@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Pokémon Collection Tracker</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#161B29">
+
+    <!-- iOS (installation via le menu Partager de Safari) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Poké Tracker">
+    <link rel="apple-touch-icon" href="images/icon-180.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎴 Pokémon Collection Tracker</h1>
+            <p>Gérez votre collection de cartes Pokémon</p>
+        </header>
+
+        <div class="hero-value-card">
+            <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
+            <div class="hero-value-content">
+                <div class="hero-value-header">
+                    <span class="hero-value-label">💎 Valeur totale (marché)</span>
+                    <span class="hero-fluctuation" id="hero-fluctuation"></span>
+                </div>
+                <div class="hero-value-row">
+                    <div class="hero-value-number" id="hero-total-value">0€</div>
+                    <button class="hero-add-btn" onclick="document.querySelector('.tabs .tab-btn').click()">+ Ajouter</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Total de cartes</div>
+                <div class="stat-number" id="total-cards">0</div>
+            </div>
+            <div class="stat-card spent">
+                <div class="stat-label">Total dépensé</div>
+                <div class="stat-number" id="total-spent">0€</div>
+            </div>
+        </div>
+
+        <div class="refresh-prices-row">
+            <button id="refresh-prices-btn" class="btn-refresh" onclick="refreshAllMarketPrices()">🔄 Rafraîchir les prix du marché</button>
+            <span id="refresh-prices-status" class="refresh-prices-status"></span>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn" onclick="switchTab(event, 'tab-add')">🔍 Ajouter</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'tab-collection')">📋 Ma Collection</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-progression')">🏆 Progression</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-stats')">📊 Statistiques</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-wishlist')">🌟 Souhaits</button>
+        </div>
+
+        <div id="message-container" class="global-message-container"></div>
+
+        <!-- ONGLET AJOUTER -->
+        <div id="tab-add" class="tab-content">
+            <div class="form-section">
+                <h2>🔍 Chercher une carte</h2>
+                <div class="search-form">
+                    <input type="text" id="card-search" placeholder="Cherchez une carte en français...">
+                    <button onclick="searchCards()" id="search-btn">Chercher</button>
+                </div>
+                <div class="filters">
+                    <select id="filter-rarity">
+                        <option value="">Toutes les raretés</option>
+                    </select>
+                    <select id="filter-series">
+                        <option value="">Toutes les séries</option>
+                    </select>
+                </div>
+                <div class="search-results" id="search-results"></div>
+            </div>
+
+            <div class="card-preview" id="card-preview">
+                <div class="preview-content">
+                    <div class="preview-image">
+                        <img id="preview-img" src="" alt="Carte">
+                    </div>
+                    <div class="preview-info">
+                        <div>
+                            <div class="preview-info-label">Nom</div>
+                            <div class="preview-info-value" id="preview-name">-</div>
+                        </div>
+                        <div>
+                            <div class="preview-info-label">Série</div>
+                            <div class="preview-info-value" id="preview-set">
+                                <img id="preview-series-logo" src="" alt="" class="series-logo-table" style="display:none;">
+                                <span id="preview-set-text">-</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="preview-info-label">Numéro</div>
+                            <div class="preview-info-value" id="preview-number">-</div>
+                        </div>
+                        <div>
+                            <div class="preview-info-label">Type</div>
+                            <div class="preview-info-value" id="preview-type">-</div>
+                        </div>
+                        <div>
+                            <div class="preview-info-label">Rareté</div>
+                            <div class="preview-info-value" id="preview-rarity">-</div>
+                        </div>
+                        <div>
+                            <div class="preview-info-label">Prix (CardMarket)</div>
+                            <div class="preview-info-value" id="preview-price">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>➕ Ajouter à ma collection</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="card-condition">État</label>
+                        <select id="card-condition">
+                            <option value="NM">Neuf (NM)</option>
+                            <option value="LP">Très bon (LP)</option>
+                            <option value="MP">Bon (MP)</option>
+                            <option value="HP">Mauvais état (HP)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="card-quantity">Quantité</label>
+                        <input type="number" id="card-quantity" value="1" min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="card-acquisition">Obtention</label>
+                        <select id="card-acquisition">
+                            <option value="achat">Achetée</option>
+                            <option value="pack">Sortie d'un booster</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="purchase-price-group">
+                        <label for="card-value">Prix payé (€)</label>
+                        <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
+                    </div>
+                </div>
+                <button class="full-width" onclick="addCard()">➕ Ajouter à ma collection</button>
+                <button class="full-width wishlist-btn" onclick="addToWishlist()">🌟 Ajouter à ma liste de souhaits</button>
+            </div>
+        </div>
+
+        <!-- ONGLET MA COLLECTION -->
+        <div id="tab-collection" class="tab-content active">
+            <div class="search-form-single">
+                <input type="text" id="search-collection" placeholder="🔍 Chercher dans ma collection...">
+            </div>
+            <div class="filters">
+                <select id="filter-condition">
+                    <option value="">Tous les états</option>
+                    <option value="NM">Neuf (NM)</option>
+                    <option value="LP">Très bon (LP)</option>
+                    <option value="MP">Bon (MP)</option>
+                    <option value="HP">Mauvais état (HP)</option>
+                </select>
+                <select id="filter-collection-series">
+                    <option value="">Toutes les séries</option>
+                </select>
+                <select id="filter-collection-rarity">
+                    <option value="">Toutes les raretés</option>
+                </select>
+                <select id="filter-collection-type">
+                    <option value="">Tous les types</option>
+                </select>
+                <button id="filter-duplicates-btn" class="filter-toggle-btn" onclick="toggleDuplicatesFilter()">🔁 Doublons uniquement</button>
+            </div>
+
+            <div class="view-toggle-row">
+                <div class="view-toggle">
+                    <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')">🖼️ Galerie</button>
+                    <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')">📋 Tableau</button>
+                </div>
+                <select id="grid-sort" class="grid-sort-select">
+                    <option value="">Trier par...</option>
+                    <option value="name-asc">Nom (A→Z)</option>
+                    <option value="rarity-asc">Rareté (A→Z)</option>
+                    <option value="value-desc">Valeur (plus cher d'abord)</option>
+                    <option value="value-asc">Valeur (moins cher d'abord)</option>
+                    <option value="quantity-desc">Quantité (plus d'abord)</option>
+                </select>
+            </div>
+
+            <div class="collection-display-case" id="collection-grid-wrapper">
+                <div class="collection-grid" id="collection-grid"></div>
+            </div>
+
+            <div class="table-wrapper" id="collection-table-wrapper" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th class="sortable" onclick="sortCollection('name')">Nom <span class="sort-arrow" id="sort-arrow-name"></span></th>
+                            <th class="sortable" onclick="sortCollection('series')">Série <span class="sort-arrow" id="sort-arrow-series"></span></th>
+                            <th class="sortable" onclick="sortCollection('number')">N° <span class="sort-arrow" id="sort-arrow-number"></span></th>
+                            <th class="sortable" onclick="sortCollection('condition')">État <span class="sort-arrow" id="sort-arrow-condition"></span></th>
+                            <th class="sortable" onclick="sortCollection('rarity')">Rareté <span class="sort-arrow" id="sort-arrow-rarity"></span></th>
+                            <th class="sortable" style="text-align: center;" onclick="sortCollection('quantity')">Qté <span class="sort-arrow" id="sort-arrow-quantity"></span></th>
+                            <th class="sortable" style="text-align: right;" onclick="sortCollection('value')">Valeur <span class="sort-arrow" id="sort-arrow-value"></span></th>
+                            <th style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cards-list">
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 2rem;">
+                                <div class="empty-state">
+                                    <p>🎴 Votre collection est vide</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ONGLET STATISTIQUES -->
+        <!-- ONGLET PROGRESSION -->
+        <div id="tab-progression" class="tab-content">
+            <div id="progression-series-view">
+                <div id="progression-series-list">
+                    <p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des séries...</p>
+                </div>
+            </div>
+
+            <div id="progression-set-view" style="display: none;">
+                <button class="back-btn" onclick="backToSeriesProgress()">← Retour aux séries</button>
+                <div class="progression-set-title-row">
+                    <img id="progression-set-logo" src="" alt="" style="display:none;">
+                    <div>
+                        <h2 id="progression-set-title"></h2>
+                        <div id="progression-set-progress-text" class="progression-set-progress-text"></div>
+                    </div>
+                </div>
+
+                <div class="progression-filters">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" id="prog-filter-all" onclick="setProgressionFilter('all')">Toutes</button>
+                        <button class="view-toggle-btn" id="prog-filter-owned" onclick="setProgressionFilter('owned')">Possédées</button>
+                        <button class="view-toggle-btn" id="prog-filter-missing" onclick="setProgressionFilter('missing')">Manquantes</button>
+                    </div>
+                    <select id="progression-rarity-filter" class="grid-sort-select">
+                        <option value="">Toutes les raretés</option>
+                    </select>
+                    <input type="text" id="progression-search" placeholder="🔍 Nom ou numéro...">
+                </div>
+
+                <div class="progression-cards-grid" id="progression-cards-grid"></div>
+            </div>
+        </div>
+
+        <div id="tab-stats" class="tab-content">
+            <div class="stats-kpi-grid">
+                <div class="stats-kpi-card">
+                    <div class="stats-kpi-icon">💎</div>
+                    <div class="stats-kpi-label">Carte la plus chère</div>
+                    <div class="stats-kpi-value" id="kpi-top-card">-</div>
+                    <div class="stats-kpi-sub" id="kpi-top-card-price"></div>
+                </div>
+                <div class="stats-kpi-card">
+                    <div class="stats-kpi-icon">📊</div>
+                    <div class="stats-kpi-label">Prix moyen / carte</div>
+                    <div class="stats-kpi-value" id="kpi-avg-price">-</div>
+                </div>
+                <div class="stats-kpi-card">
+                    <div class="stats-kpi-icon">📚</div>
+                    <div class="stats-kpi-label">Séries différentes</div>
+                    <div class="stats-kpi-value" id="kpi-series-count">-</div>
+                </div>
+                <div class="stats-kpi-card">
+                    <div class="stats-kpi-icon">⭐</div>
+                    <div class="stats-kpi-label">Rareté la + fréquente</div>
+                    <div class="stats-kpi-value" id="kpi-top-rarity">-</div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stats-chart-box">
+                    <h3>Répartition par rareté</h3>
+                    <canvas id="rarity-chart"></canvas>
+                </div>
+                <div class="stats-chart-box">
+                    <h3>Top séries (par nombre de cartes)</h3>
+                    <canvas id="series-chart"></canvas>
+                </div>
+                <div class="stats-chart-box stats-chart-wide">
+                    <div class="stats-chart-header">
+                        <h3>Évolution de la valeur de la collection</h3>
+                        <div class="stats-range-toggle">
+                            <button class="range-btn" onclick="setValueHistoryRange(event, 7)">7j</button>
+                            <button class="range-btn active" onclick="setValueHistoryRange(event, 30)">30j</button>
+                            <button class="range-btn" onclick="setValueHistoryRange(event, 0)">Tout</button>
+                        </div>
+                    </div>
+                    <canvas id="value-history-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="stats-chart-box" style="margin-top: 1.5rem;">
+                <h3>📊 Plus grosses variations (dernier rafraîchissement)</h3>
+                <div id="price-movers-section">
+                    <p style="text-align: center; color: var(--slate); padding: 1rem;">Clique sur "Rafraîchir les prix du marché" pour voir les variations.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET SOUHAITS -->
+        <div id="tab-wishlist" class="tab-content">
+            <div class="form-section">
+                <h2>🌟 Liste de souhaits</h2>
+                <div class="wishlist-grid" id="wishlist-grid">
+                    <p class="empty-state">🌟 Ta liste de souhaits est vide</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE DETAIL CARTE -->
+    <div class="modal-overlay" id="card-detail-overlay" onclick="if(event.target===this) closeCardDetail()">
+        <div class="modal-card" id="card-detail-card"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="tracker.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>
