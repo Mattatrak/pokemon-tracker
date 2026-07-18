@@ -594,6 +594,11 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         marketValue = card.pricing.cardmarket['avg-holo'];
     }
 
+    if (card.id && marketValue > 0) {
+        supabaseClient.from('card_price_history').insert([{ tcgdex_id: card.id, market_value: marketValue }])
+            .then(({ error }) => { if (error) console.error('Erreur historique prix carte:', error); });
+    }
+
     const name = card.name || '?';
     const series = card.set?.name || 'N/A';
     const number = card.localId || '?';
@@ -1172,6 +1177,15 @@ function showCardDetail(cardId) {
                     ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
                     : `<div class="modal-image-noimg">🎴</div>`
                 }
+                ${card.tcgdex_id ? `
+                    <div class="card-price-chart-wrap">
+                        <div class="card-price-chart-title">Historique de prix</div>
+                        <canvas id="card-price-chart"></canvas>
+                        <p id="card-price-chart-empty" class="card-price-chart-empty" style="display:none;">Historique pas encore disponible</p>
+                        <div id="card-price-chart-range" class="card-price-chart-range"></div>
+                        <div id="card-price-periods" class="card-price-periods"></div>
+                    </div>
+                ` : ''}
             </div>
             <div class="modal-info">
                 <div class="modal-title">${card.name}</div>
@@ -1220,6 +1234,151 @@ function showCardDetail(cardId) {
     `;
 
     document.getElementById('card-detail-overlay').classList.add('active');
+
+    if (card.tcgdex_id) {
+        renderCardPriceChart(card.tcgdex_id);
+    }
+}
+
+let cardPriceChartInstance = null;
+
+async function renderCardPriceChart(tcgdexId) {
+    const canvas = document.getElementById('card-price-chart');
+    const emptyMsg = document.getElementById('card-price-chart-empty');
+    const rangeLabel = document.getElementById('card-price-chart-range');
+    const periodsContainer = document.getElementById('card-price-periods');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const { data, error } = await supabaseClient
+        .from('card_price_history')
+        .select('*')
+        .eq('tcgdex_id', tcgdexId)
+        .order('recorded_at', { ascending: true })
+        .limit(100);
+
+    if (cardPriceChartInstance) {
+        cardPriceChartInstance.destroy();
+        cardPriceChartInstance = null;
+    }
+
+    if (error || !data || data.length < 2) {
+        canvas.style.display = 'none';
+        if (rangeLabel) rangeLabel.style.display = 'none';
+        if (periodsContainer) periodsContainer.innerHTML = '';
+        emptyMsg.style.display = 'block';
+        return;
+    }
+
+    canvas.style.display = 'block';
+    emptyMsg.style.display = 'none';
+
+    const values = data.map(d => Number(d.market_value));
+    const trendUp = values[values.length - 1] >= values[0];
+    const lineColor = trendUp ? '#4ade80' : '#ff6b6b';
+    const fillColor = trendUp ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 107, 107, 0.1)';
+
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    if (rangeLabel) {
+        rangeLabel.style.display = 'flex';
+        rangeLabel.innerHTML = minVal === maxVal
+            ? `<span>Stable à ${minVal.toFixed(2)}€</span>`
+            : `<span>Min ${minVal.toFixed(2)}€</span><span>Max ${maxVal.toFixed(2)}€</span>`;
+    }
+
+    if (periodsContainer) {
+        const currentValue = values[values.length - 1];
+        const now = Date.now();
+        const periods = [
+            { label: '1 jour', ms: 1 * 24 * 60 * 60 * 1000 },
+            { label: '7 jours', ms: 7 * 24 * 60 * 60 * 1000 },
+            { label: '30 jours', ms: 30 * 24 * 60 * 60 * 1000 }
+        ];
+
+        const rowsHtml = periods.map(p => {
+            const cutoff = now - p.ms;
+            // Point de référence : la donnée la plus récente à ou avant cette date
+            let basePoint = null;
+            for (const point of data) {
+                if (new Date(point.recorded_at).getTime() <= cutoff) {
+                    basePoint = point;
+                } else {
+                    break;
+                }
+            }
+
+            if (!basePoint || Number(basePoint.market_value) === 0) {
+                return `
+                    <div class="period-row">
+                        <span class="period-label">Depuis ${p.label}</span>
+                        <span class="period-value neutral">—</span>
+                    </div>
+                `;
+            }
+
+            const baseValue = Number(basePoint.market_value);
+            const pct = ((currentValue - baseValue) / baseValue) * 100;
+            const cls = pct > 0 ? 'positive' : pct < 0 ? 'negative' : 'neutral';
+            const sign = pct > 0 ? '+' : '';
+
+            return `
+                <div class="period-row">
+                    <span class="period-label">Depuis ${p.label}</span>
+                    <span class="period-value ${cls}">${sign}${pct.toFixed(0)}%</span>
+                </div>
+            `;
+        }).join('');
+
+        periodsContainer.innerHTML = rowsHtml;
+    }
+
+    cardPriceChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: data.map(d => new Date(d.recorded_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
+            datasets: [{
+                data: values,
+                borderColor: lineColor,
+                backgroundColor: fillColor,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: lineColor,
+                pointBorderColor: '#1B2233',
+                pointBorderWidth: 1.5,
+                pointHitRadius: 8,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#161B29',
+                    titleColor: '#8A93A6',
+                    bodyColor: '#F7F3EA',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                    borderWidth: 1,
+                    padding: 8,
+                    displayColors: false,
+                    titleFont: { size: 11 },
+                    bodyFont: { size: 13, weight: 'bold' },
+                    callbacks: { label: (ctx) => `${ctx.parsed.y.toFixed(2)}€` }
+                }
+            },
+            scales: {
+                x: { display: false },
+                y: {
+                    display: false,
+                    beginAtZero: true,
+                    suggestedMax: maxVal * 1.15 || 1
+                }
+            }
+        }
+    });
 }
 
 // ===== EDITION D'UNE CARTE DEPUIS LA FICHE DETAIL =====
@@ -1860,6 +2019,15 @@ async function refreshAllMarketPrices() {
     });
 
     await Promise.all(updates);
+
+    // Enregistrer un instantané d'historique par carte unique (pas par ligne, pour éviter les doublons)
+    const historyInserts = uniqueIds
+        .filter(id => priceMap[id] !== undefined)
+        .map(id => ({ tcgdex_id: id, market_value: priceMap[id] }));
+    if (historyInserts.length > 0) {
+        const { error: historyError } = await supabaseClient.from('card_price_history').insert(historyInserts);
+        if (historyError) console.error('Erreur historique prix par carte:', historyError);
+    }
 
     // Dédupliquer par carte (une même carte peut avoir plusieurs lignes selon l'état)
     const moversByKey = {};
