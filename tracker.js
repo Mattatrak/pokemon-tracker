@@ -372,8 +372,8 @@ function renderSearchResults(cards) {
         const cardNumber = card.localId || '?';
         const logoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
         const imgHtml = imageUrl
-            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="this.outerHTML='<div class=&quot;no-image-placeholder small&quot;>🎴</div>'">`
-            : '<div class="no-image-placeholder small">🎴</div>';
+            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="this.outerHTML='<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
+            : '<div class="no-image-placeholder small"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 
         return `
             <div class="search-result-item" onclick="selectCard(${JSON.stringify(card).replace(/"/g, '&quot;')})">
@@ -469,8 +469,8 @@ function showPreviewUploadPlaceholder() {
     const previewImageContainer = document.querySelector('.preview-image');
     previewImageContainer.innerHTML = `
         <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
-            🎴<br>Pas d'image<br>
-            <span class="upload-hint">📷 Cliquer pour ajouter</span>
+            <i class="ti ti-photo-off" aria-hidden="true"></i><br>Pas d'image<br>
+            <span class="upload-hint"><i class="ti ti-camera" aria-hidden="true"></i> Cliquer pour ajouter</span>
         </div>
         <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
     `;
@@ -1059,7 +1059,7 @@ function renderCollectionTable(filtered) {
             <tr>
                 <td colspan="9" style="text-align: center; padding: 2rem;">
                     <div class="empty-state">
-                        <p>🎴 Aucune carte trouvée</p>
+                        <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
                     </div>
                 </td>
             </tr>
@@ -1070,7 +1070,7 @@ function renderCollectionTable(filtered) {
     tbody.innerHTML = filtered.map(card => {
         const qty = Number(card.quantity || 1);
         const lineTotal = Number(card.market_value || 0) * qty;
-        const acquisitionIcon = card.acquisition_type === 'pack' ? '🎁' : '💰';
+        const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
         const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
         return `
         <tr>
@@ -1088,14 +1088,14 @@ function renderCollectionTable(filtered) {
             <td>${card.rarity || 'N/A'}</td>
             <td style="text-align: center;">
                 <div class="qty-stepper">
-                    <button onclick="changeQuantity(${card.id}, -1)">−</button>
+                    <button onclick="changeQuantity(${card.id}, -1)"><i class="ti ti-minus" aria-hidden="true"></i></button>
                     <span>${qty}</span>
-                    <button onclick="changeQuantity(${card.id}, 1)">+</button>
+                    <button onclick="changeQuantity(${card.id}, 1)"><i class="ti ti-plus" aria-hidden="true"></i></button>
                 </div>
             </td>
             <td style="text-align: right;"><strong>${lineTotal.toFixed(2)}€</strong></td>
             <td style="text-align: center;">
-                <button class="delete-btn" onclick="deleteCard(${card.id})">🗑️</button>
+                <button class="delete-btn" onclick="deleteCard(${card.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
             </td>
         </tr>
     `;
@@ -1103,7 +1103,7 @@ function renderCollectionTable(filtered) {
 }
 
 function getGridNoImageHtml() {
-    return '<div class="collection-card-noimg">🎴</div>';
+    return '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 }
 
 function renderCollectionGrid(filtered) {
@@ -1111,7 +1111,7 @@ function renderCollectionGrid(filtered) {
     if (!grid) return;
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="collection-grid-empty">🎴 Aucune carte trouvée</div>';
+        grid.innerHTML = '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
         return;
     }
 
@@ -1119,7 +1119,7 @@ function renderCollectionGrid(filtered) {
         const qty = Number(card.quantity || 1);
         const lineTotal = Number(card.market_value || 0) * qty;
         const conditionClass = (card.condition || '').toLowerCase();
-        const acquisitionIcon = card.acquisition_type === 'pack' ? '🎁' : '💰';
+        const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
         const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
 
         return `
@@ -1175,7 +1175,7 @@ function showCardDetail(cardId) {
             <div class="modal-image-wrap">
                 ${card.image
                     ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : `<div class="modal-image-noimg">🎴</div>`
+                    : `<div class="modal-image-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`
                 }
                 ${card.tcgdex_id ? `
                     <div class="card-price-chart-wrap">
@@ -1193,7 +1193,7 @@ function showCardDetail(cardId) {
                     ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">`
                     : (card.tcgdex_id ? `
                         <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
-                            🏷️ Ajouter un logo de série
+                            <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
                         </div>
                         <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${card.tcgdex_id.split('-')[0]}', ${card.id})">
                     ` : '')
@@ -1203,7 +1203,7 @@ function showCardDetail(cardId) {
                 <div class="modal-badges">
                     <span class="modal-pill rarity-pill">⭐ ${card.rarity || 'N/A'}</span>
                     <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
-                    <span class="modal-pill acquisition-pill">${isPack ? '🎁 Sortie d\'un booster' : '💰 Achetée'}</span>
+                    <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
                 </div>
 
                 <div class="modal-price-row">
@@ -1223,12 +1223,23 @@ function showCardDetail(cardId) {
                 <div class="modal-meta-line"><span class="modal-meta-label">Quantité</span> ${qty}</div>
                 ${card.date_added ? `<div class="modal-meta-line"><span class="modal-meta-label">Ajoutée le</span> ${card.date_added}</div>` : ''}
 
-                <button class="modal-edit-btn" onclick="showCardEditForm(${card.id})">✏️ Modifier</button>
-                <a href="${card.cardmarket_id
-                    ? `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${card.cardmarket_id}`
-                    : `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name || '')}`
-                }" target="_blank" rel="noopener noreferrer" class="modal-cardmarket-btn">🔎 ${card.cardmarket_id ? 'Voir sur Cardmarket' : 'Chercher sur Cardmarket'}</a>
-                <button class="modal-delete-btn" onclick="deleteCard(${card.id}); closeCardDetail();">🗑️ Supprimer de la collection</button>
+                <div class="modal-action-toolbar">
+                    <button class="toolbar-action-btn" onclick="showCardEditForm(${card.id})">
+                        <i class="ti ti-edit toolbar-action-icon" style="color: var(--gold);" aria-hidden="true"></i>
+                        <span>Modifier</span>
+                    </button>
+                    <a href="${card.cardmarket_id
+                        ? `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${card.cardmarket_id}`
+                        : `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name || '')}`
+                    }" target="_blank" rel="noopener noreferrer" class="toolbar-action-btn">
+                        <i class="ti ti-external-link toolbar-action-icon" style="color: var(--teal);" aria-hidden="true"></i>
+                        <span>${card.cardmarket_id ? 'Cardmarket' : 'Chercher'}</span>
+                    </a>
+                </div>
+                <button class="modal-delete-btn-v2" onclick="deleteCard(${card.id}); closeCardDetail();">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                    <span>Supprimer de la collection</span>
+                </button>
             </div>
         </div>
     `;
@@ -1396,7 +1407,7 @@ function showCardEditForm(cardId) {
             <div class="modal-image-wrap">
                 ${card.image
                     ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : `<div class="modal-image-noimg">🎴</div>`
+                    : `<div class="modal-image-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`
                 }
             </div>
             <div class="modal-info">
@@ -1431,7 +1442,7 @@ function showCardEditForm(cardId) {
                 </div>
 
                 <div class="modal-edit-actions">
-                    <button class="modal-save-btn" onclick="saveCardEdits(${card.id})">💾 Enregistrer</button>
+                    <button class="modal-save-btn" onclick="saveCardEdits(${card.id})"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
                     <button class="modal-cancel-btn" onclick="showCardDetail(${card.id})">Annuler</button>
                 </div>
             </div>
@@ -1495,7 +1506,7 @@ async function handleModalSeriesLogoUpload(event, setId, cardId) {
 
 function getCollectionUploadPlaceholder(cardId) {
     return `<div class="no-image-placeholder thumb upload-placeholder" onclick="document.getElementById('upload-${cardId}').click()">
-        🎴
+        <i class="ti ti-photo-off" aria-hidden="true"></i>
         <input type="file" id="upload-${cardId}" accept="image/*" style="display:none" onchange="handleCollectionImageUpload(event, ${cardId})">
     </div>`;
 }
@@ -1641,7 +1652,7 @@ function renderWishlist() {
     if (!container) return;
 
     if (allWishlistItems.length === 0) {
-        container.innerHTML = '<p class="empty-state">🌟 Ta liste de souhaits est vide</p>';
+        container.innerHTML = '<p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Ta liste de souhaits est vide</p>';
         return;
     }
 
@@ -1649,15 +1660,15 @@ function renderWishlist() {
         <div class="wishlist-card">
             ${item.image
                 ? `<img src="${item.image}" alt="${item.name}" class="wishlist-card-img" onerror="this.style.display='none'">`
-                : '<div class="no-image-placeholder thumb">🎴</div>'
+                : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
             }
             <div class="wishlist-card-info">
                 <div class="wishlist-card-name">${item.name}</div>
                 <div class="wishlist-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${item.series} - #${item.number}</div>
             </div>
             <div class="wishlist-card-actions">
-                <button class="wishlist-got-btn" onclick="moveWishlistToCollection(${item.id})">✅ Je l'ai !</button>
-                <button class="delete-btn" onclick="deleteWishlistItem(${item.id})">🗑️</button>
+                <button class="wishlist-got-btn" onclick="moveWishlistToCollection(${item.id})"><i class="ti ti-check" aria-hidden="true"></i> Je l'ai !</button>
+                <button class="delete-btn" onclick="deleteWishlistItem(${item.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
             </div>
         </div>
     `).join('');
@@ -2083,11 +2094,11 @@ function renderPriceMovers() {
     container.innerHTML = `
         <div class="movers-columns">
             <div class="movers-column">
-                <h4 class="movers-heading up">📈 En hausse</h4>
+                <h4 class="movers-heading up"><i class="ti ti-trending-up" aria-hidden="true"></i> En hausse</h4>
                 ${renderList(gainers, true)}
             </div>
             <div class="movers-column">
-                <h4 class="movers-heading down">📉 En baisse</h4>
+                <h4 class="movers-heading down"><i class="ti ti-trending-down" aria-hidden="true"></i> En baisse</h4>
                 ${renderList(losers, false)}
             </div>
         </div>
@@ -2166,7 +2177,7 @@ async function loadSeriesProgress() {
                 const logoHtml = logoUrl
                     ? `<img src="${logoUrl}" class="progression-set-logo" alt="" onerror="this.remove()">`
                     : `<div class="progression-set-logo-upload" onclick="event.stopPropagation(); document.getElementById('proglogo-${set.id}').click()" title="Ajouter un logo">
-                        🏷️
+                        <i class="ti ti-tag" aria-hidden="true"></i>
                         <input type="file" id="proglogo-${set.id}" accept="image/*" style="display:none" onchange="event.stopPropagation(); handleProgressionSeriesLogoUpload(event, '${set.id}')">
                     </div>`;
 
@@ -2349,7 +2360,7 @@ function renderProgressionCardsGrid() {
             <div class="progression-card-item ${owned ? 'owned' : 'missing'}">
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'">`
-                    : '<div class="progression-card-noimg">🎴</div>'
+                    : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${owned
                     ? '<div class="progression-owned-badge">✓</div>'
@@ -2426,7 +2437,7 @@ function showAddCardModal(card) {
             <div class="modal-image-wrap">
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : `<div class="modal-image-noimg">🎴</div>`
+                    : `<div class="modal-image-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`
                 }
             </div>
             <div class="modal-info">
@@ -2435,7 +2446,7 @@ function showAddCardModal(card) {
 
                 <div class="modal-badges">
                     <span class="modal-pill rarity-pill">⭐ ${card.rarity || 'N/A'}</span>
-                    ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill">💶 ${marketPrice.toFixed(2)}€ (marché)</span>` : ''}
+                    ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${marketPrice.toFixed(2)}€ (marché)</span>` : ''}
                 </div>
 
                 <div class="edit-form-grid">
@@ -2465,7 +2476,7 @@ function showAddCardModal(card) {
                     </div>
                 </div>
 
-                <button class="modal-save-btn full-width" id="quickadd-submit-btn" onclick="submitQuickAdd(${JSON.stringify(card).replace(/"/g, '&quot;')})">➕ Ajouter à ma collection</button>
+                <button class="modal-save-btn full-width" id="quickadd-submit-btn" onclick="submitQuickAdd(${JSON.stringify(card).replace(/"/g, '&quot;')})"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
             </div>
         </div>
     `;

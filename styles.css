@@ -163,6 +163,9 @@ header p {
     font-size: 0.85rem;
     font-weight: 700;
     border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .btn-refresh:hover {
@@ -195,6 +198,13 @@ header p {
     color: var(--slate);
     transition: all 0.2s;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.tab-btn i {
+    font-size: 1.05rem;
 }
 
 .tab-btn.active {
@@ -268,6 +278,28 @@ header p {
     margin-bottom: 1.5rem;
     font-size: 1.3rem;
     color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--slate);
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+
+.input-with-icon input {
+    width: 100%;
+    padding-left: 2.25rem;
 }
 
 .search-form {
@@ -491,6 +523,10 @@ button {
     font-weight: 700;
     cursor: pointer;
     transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
 }
 
 button:hover {
@@ -563,6 +599,9 @@ button:disabled {
     font-size: 0.85rem;
     font-weight: 600;
     border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .view-toggle-btn:hover {
@@ -591,6 +630,9 @@ button:disabled {
     font-size: 0.85rem;
     font-weight: 600;
     border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .filter-toggle-btn:hover {
@@ -934,6 +976,9 @@ tbody tr:hover {
     line-height: 1;
     font-size: 1.1rem;
     border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .qty-stepper span {
@@ -945,7 +990,7 @@ tbody tr:hover {
 /* BOUTON WISHLIST */
 .wishlist-btn {
     background: var(--teal);
-    color: white;
+    color: var(--ink-navy);
     margin-top: 0.75rem;
 }
 
@@ -1016,6 +1061,9 @@ tbody tr:hover {
     font-size: 0.75rem;
     padding: 0.4rem 0.6rem;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .wishlist-got-btn:hover {
@@ -1033,25 +1081,41 @@ tbody tr:hover {
 .stats-kpi-card {
     background: linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
     border-radius: 10px;
-    padding: 1.25rem;
+    padding: 1rem;
     box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.stats-kpi-icon {
-    font-size: 1.3rem;
-    margin-bottom: 0.5rem;
+.stats-kpi-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stats-kpi-badge i {
+    font-size: 1.1rem;
+}
+
+.stats-kpi-text {
+    min-width: 0;
 }
 
 .stats-kpi-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--slate);
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.15rem;
 }
 
 .stats-kpi-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.5rem;
-    color: var(--gold);
+    font-size: 1.3rem;
+    color: var(--parchment);
     letter-spacing: 0.02em;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1061,7 +1125,7 @@ tbody tr:hover {
 .stats-kpi-sub {
     font-size: 0.75rem;
     color: var(--teal);
-    margin-top: 0.2rem;
+    margin-top: 0.15rem;
 }
 
 /* SELECTEUR DE PERIODE */
@@ -1707,28 +1771,6 @@ tbody tr:hover {
     margin-right: 0.3rem;
 }
 
-.modal-edit-btn {
-    display: block;
-    text-align: center;
-    text-decoration: none;
-    width: 100%;
-    padding: 0.75rem 1.5rem;
-    background: var(--panel-light);
-    color: var(--gold);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    margin-top: 0.75rem;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-}
-
-.modal-edit-btn:hover {
-    border-color: var(--gold);
-    background: rgba(232, 169, 59, 0.08);
-}
-
 .edit-form-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -1757,37 +1799,66 @@ tbody tr:hover {
     background: rgba(255,255,255,0.06);
 }
 
-.modal-cardmarket-btn {
-    display: block;
-    text-align: center;
-    text-decoration: none;
-    width: 100%;
-    padding: 0.75rem 1.5rem;
+.modal-action-toolbar {
+    display: flex;
     background: var(--panel-light);
-    color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 600;
+    border-radius: 10px;
+    overflow: hidden;
     margin-top: 0.75rem;
-    transition: border-color 0.2s, background 0.2s;
 }
 
-.modal-cardmarket-btn:hover {
-    border-color: var(--gold);
-    background: rgba(232, 169, 59, 0.08);
+.toolbar-action-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    padding: 0.75rem 0.4rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: background 0.2s;
 }
 
-.modal-delete-btn {
+.toolbar-action-btn:first-child {
+    border-right: 1px solid var(--border);
+}
+
+.toolbar-action-btn:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.toolbar-action-icon {
+    font-size: 1.1rem;
+}
+
+.modal-delete-btn-v2 {
     width: 100%;
-    background: rgba(255, 107, 107, 0.12);
-    color: #ff6b6b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(255, 107, 107, 0.08);
+    border: 1px solid rgba(255, 107, 107, 0.15);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
     margin-top: 0.5rem;
+    color: #ff6b6b;
     font-size: 0.85rem;
+    font-weight: 600;
 }
 
-.modal-delete-btn:hover {
-    background: rgba(255, 107, 107, 0.2);
+.modal-delete-btn-v2 i {
+    font-size: 1rem;
+}
+
+.modal-delete-btn-v2:hover {
+    background: rgba(255, 107, 107, 0.18);
 }
 
 .row-name-link {
