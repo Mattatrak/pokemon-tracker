@@ -954,6 +954,61 @@ function toggleDuplicatesFilter() {
     filterAndDisplay();
 }
 
+// ===== EXPORT CSV =====
+
+function exportCollectionToCSV() {
+    if (allCollectionCards.length === 0) {
+        showMessage('Ta collection est vide, rien à exporter', 'error');
+        return;
+    }
+
+    const headers = [
+        'Nom', 'Série', 'Numéro', 'Type', 'Rareté', 'État', 'Quantité',
+        'Prix payé (€)', 'Valeur marché (€)', 'Obtention', 'Ajoutée le',
+        'ID TCGdex', 'ID Cardmarket'
+    ];
+
+    const escapeCsvValue = (value) => {
+        const str = String(value ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    const rows = allCollectionCards.map(card => [
+        card.name,
+        card.series,
+        card.number,
+        card.type,
+        card.rarity,
+        card.condition,
+        card.quantity,
+        Number(card.purchase_price || 0).toFixed(2),
+        Number(card.market_value || 0).toFixed(2),
+        card.acquisition_type === 'pack' ? 'Booster' : 'Achat',
+        card.date_added,
+        card.tcgdex_id || '',
+        card.cardmarket_id || ''
+    ].map(escapeCsvValue).join(','));
+
+    // BOM UTF-8 en tête pour qu'Excel affiche bien les accents
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.download = `ma-collection-pokemon-${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showMessage('Export CSV téléchargé !', 'success');
+}
+
 function filterAndDisplay() {
     const searchTerm = document.getElementById('search-collection').value.toLowerCase();
     const conditionFilter = document.getElementById('filter-condition').value;
