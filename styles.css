@@ -21,6 +21,30 @@
     box-sizing: border-box;
 }
 
+/* SCROLLBAR PERSONNALISEE */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) var(--panel-light);
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--panel-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--gold), #f4c766);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-hover);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
@@ -43,12 +67,27 @@ header {
     box-shadow: 0 4px 14px rgba(22, 27, 41, 0.25);
 }
 
+.header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.header-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid var(--gold);
+}
+
 header h1 {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 3rem;
     letter-spacing: 0.04em;
     color: var(--gold);
-    margin-bottom: 0.35rem;
+    margin-bottom: 0;
 }
 
 header p {
@@ -224,6 +263,18 @@ header p {
 
 .tab-content.active {
     display: block;
+    animation: tabFadeIn 0.25s ease;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tab-content.active {
+        animation: none;
+    }
 }
 
 .stat-card {
@@ -302,6 +353,37 @@ header p {
     padding-left: 2.25rem;
 }
 
+/* SKELETON DE CHARGEMENT */
+@keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, var(--panel-light) 25%, #2c3552 37%, var(--panel-light) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+    border-radius: 4px;
+}
+
+.skeleton-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.skeleton-row:last-child {
+    border-bottom: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
+}
+
 .search-form {
     display: grid;
     grid-template-columns: 1fr 150px;
@@ -344,6 +426,20 @@ header p {
     border-radius: 4px;
     flex-shrink: 0;
     background: var(--ink-navy);
+    transition: transform 0.2s ease;
+}
+
+.search-result-item:hover .search-result-img {
+    transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .search-result-img {
+        transition: none;
+    }
+    .search-result-item:hover .search-result-img {
+        transform: none;
+    }
 }
 
 .no-image-placeholder {
@@ -683,6 +779,22 @@ button:disabled {
     box-shadow: 0 10px 24px rgba(232, 169, 59, 0.35), 0 4px 14px rgba(0,0,0,0.6);
 }
 
+.collection-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(63,167,161,0.35) 55%, transparent 70%);
+    mix-blend-mode: overlay;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.collection-card:hover::after {
+    opacity: 1;
+}
+
 .collection-card img {
     width: 100%;
     height: 100%;
@@ -842,6 +954,9 @@ button:disabled {
     }
     .collection-card:hover {
         transform: none;
+    }
+    .collection-card::after {
+        transition: none;
     }
 }
 
@@ -1515,6 +1630,21 @@ tbody tr:hover {
     padding: 1.5rem;
 }
 
+@keyframes modalFadeInScale {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-overlay.active .modal-card {
+    animation: modalFadeInScale 0.35s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay.active .modal-card {
+        animation: none;
+    }
+}
+
 .modal-overlay.active {
     display: flex;
 }
@@ -1607,6 +1737,7 @@ tbody tr:hover {
     font-size: 0.65rem;
     color: var(--slate);
     margin-top: 0.35rem;
+    min-height: 1rem;
 }
 
 .card-price-chart-empty {
@@ -1621,6 +1752,7 @@ tbody tr:hover {
     margin-top: 0.5rem;
     padding-top: 0.4rem;
     border-top: 1px solid var(--border);
+    min-height: 66px;
 }
 
 .period-row {
@@ -1918,6 +2050,16 @@ tbody tr:hover {
 @media (max-width: 768px) {
     header h1 {
         font-size: 1.8rem;
+    }
+
+    .header-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .header-title-row {
+        gap: 0.5rem;
     }
 
     .hero-value-card {

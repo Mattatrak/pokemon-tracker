@@ -236,6 +236,23 @@ async function uploadImageToStorage(file, tcgdexId = null) {
 
 // ===== RECHERCHE DE CARTES (TCGdex) =====
 
+function showSearchResultsSkeleton() {
+    const container = document.getElementById('search-results');
+    const rowsHtml = Array.from({ length: 4 }).map(() => `
+        <div class="skeleton-row">
+            <div class="skeleton" style="width:50px; height:70px; flex-shrink:0;"></div>
+            <div style="flex:1;">
+                <div class="skeleton" style="height:14px; width:60%; margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:11px; width:40%;"></div>
+            </div>
+        </div>
+    `).join('');
+    container.innerHTML = rowsHtml;
+    container.classList.add('active');
+}
+
+let searchRequestId = 0;
+
 async function searchCards() {
     const search = document.getElementById('card-search').value.trim();
     if (!search) {
@@ -243,9 +260,13 @@ async function searchCards() {
         return;
     }
 
+    const myRequestId = ++searchRequestId;
+
     const btn = document.getElementById('search-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="loading"></span>Recherche...';
+
+    showSearchResultsSkeleton();
 
     try {
         const [frResponse, enResponse] = await Promise.all([
@@ -255,6 +276,9 @@ async function searchCards() {
 
         const frData = await frResponse.json();
         const enData = await enResponse.json();
+
+        // Une recherche plus récente a déjà démarré entre-temps : on abandonne celle-ci
+        if (myRequestId !== searchRequestId) return;
 
         const frList = Array.isArray(frData) ? frData : [];
         const enList = Array.isArray(enData) ? enData : [];
@@ -274,14 +298,18 @@ async function searchCards() {
             return;
         }
 
-        displaySearchResults(merged);
+        await displaySearchResults(merged);
+        if (myRequestId !== searchRequestId) return;
         showMessage(`${merged.length} carte(s) trouvée(s)`, 'success');
     } catch (error) {
+        if (myRequestId !== searchRequestId) return;
         showMessage('Erreur lors de la recherche', 'error');
         console.error(error);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = 'Chercher';
+        if (myRequestId === searchRequestId) {
+            btn.disabled = false;
+            btn.innerHTML = 'Chercher';
+        }
     }
 }
 
@@ -1275,7 +1303,10 @@ async function renderCardPriceChart(tcgdexId) {
     if (error || !data || data.length < 2) {
         canvas.style.display = 'none';
         if (rangeLabel) rangeLabel.style.display = 'none';
-        if (periodsContainer) periodsContainer.innerHTML = '';
+        if (periodsContainer) {
+            periodsContainer.innerHTML = '';
+            periodsContainer.style.display = 'none';
+        }
         emptyMsg.style.display = 'block';
         return;
     }
@@ -1340,6 +1371,7 @@ async function renderCardPriceChart(tcgdexId) {
             `;
         }).join('');
 
+        periodsContainer.style.display = '';
         periodsContainer.innerHTML = rowsHtml;
     }
 
@@ -1918,6 +1950,22 @@ document.getElementById('grid-sort').addEventListener('change', (e) => {
 document.getElementById('card-search').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') searchCards();
 });
+
+let searchDebounceTimer = null;
+document.getElementById('card-search').addEventListener('input', () => {
+    const value = document.getElementById('card-search').value.trim();
+    clearTimeout(searchDebounceTimer);
+
+    if (value.length < 2) {
+        document.getElementById('search-results').classList.remove('active');
+        document.getElementById('search-results').innerHTML = '';
+        return;
+    }
+
+    searchDebounceTimer = setTimeout(() => {
+        searchCards();
+    }, 350);
+});
 document.getElementById('filter-rarity').addEventListener('change', applySearchFilters);
 document.getElementById('filter-series').addEventListener('change', applySearchFilters);
 
@@ -2114,7 +2162,15 @@ let progressionFilter = 'all';
 
 async function loadSeriesProgress() {
     const container = document.getElementById('progression-series-list');
-    container.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des séries...</p>';
+    container.innerHTML = Array.from({ length: 3 }).map(() => `
+        <div class="skeleton-row" style="background: var(--panel); border-radius: 8px; margin-bottom: 0.75rem; border-bottom: none;">
+            <div class="skeleton" style="width:44px; height:32px; flex-shrink:0;"></div>
+            <div style="flex:1;">
+                <div class="skeleton" style="height:14px; width:35%; margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:6px; width:80%;"></div>
+            </div>
+        </div>
+    `).join('');
 
     try {
         if (allTcgdexSeries.length === 0) {
@@ -2252,7 +2308,11 @@ async function openSetProgression(setId, setName, logoUrl) {
     }
 
     const grid = document.getElementById('progression-cards-grid');
-    grid.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des cartes...</p>';
+    const progressText = document.getElementById('progression-set-progress-text');
+    grid.innerHTML = Array.from({ length: 12 }).map(() => `
+        <div class="skeleton" style="aspect-ratio: 5/7; border-radius: 8px;"></div>
+    `).join('');
+    if (progressText) progressText.textContent = 'Chargement des cartes...';
 
     try {
         let response = await fetch(`${API_BASE}/cards?set=${setId}`);
@@ -2269,7 +2329,7 @@ async function openSetProgression(setId, setName, logoUrl) {
         const batchSize = 5;
         for (let i = 0; i < basicList.length; i += batchSize) {
             const batch = basicList.slice(i, i + batchSize);
-            grid.innerHTML = `<p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des cartes... ${Math.min(i + batchSize, basicList.length)}/${basicList.length}</p>`;
+            if (progressText) progressText.textContent = `Chargement des cartes... ${Math.min(i + batchSize, basicList.length)}/${basicList.length}`;
 
             const results = await Promise.all(batch.map(async (card) => {
                 try {
