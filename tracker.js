@@ -13,6 +13,7 @@ const API_EN = 'https://api.tcgdex.net/v2/en';
 let selectedCard = null;
 let lastSearchResults = [];
 let customPreviewImage = null; // URL Supabase Storage une fois uploadée
+let customQuickAddImage = null; // idem, mais pour la vignette d'ajout rapide (Progression)
 let currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
 let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
 let sortColumn = null;
@@ -1569,8 +1570,8 @@ function renderCollectionGrid(filtered) {
         return `
             <div class="collection-card" onclick="showCardDetail(${card.id})">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : getGridNoImageHtml()
+                    ? `<img src="${card.image}" alt="${card.name}" loading="lazy" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'full')">`
+                    : getCollectionUploadPlaceholder(card.id, 'full')
                 }
                 ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
                 <div class="price-badge">${lineTotal.toFixed(2)}€</div>
@@ -1619,8 +1620,8 @@ function showCardDetail(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : `<div class="modal-image-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`
+                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'modal-size')">`
+                    : getCollectionUploadPlaceholder(card.id, 'modal-size')
                 }
                 ${card.tcgdex_id ? `
                     <div class="card-price-chart-wrap">
@@ -1856,8 +1857,8 @@ function showCardEditForm(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : `<div class="modal-image-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`
+                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'modal-size')">`
+                    : getCollectionUploadPlaceholder(card.id, 'modal-size')
                 }
             </div>
             <div class="modal-info">
@@ -1992,10 +1993,10 @@ async function handleModalSeriesLogoUpload(event, setId, cardId) {
     }
 }
 
-function getCollectionUploadPlaceholder(cardId) {
-    return `<div class="no-image-placeholder thumb upload-placeholder" onclick="document.getElementById('upload-${cardId}').click()">
+function getCollectionUploadPlaceholder(cardId, sizeClass = 'thumb') {
+    return `<div class="no-image-placeholder ${sizeClass} upload-placeholder" onclick="event.stopPropagation(); document.getElementById('upload-${cardId}').click()">
         <i class="ti ti-photo-off" aria-hidden="true"></i>
-        <input type="file" id="upload-${cardId}" accept="image/*" style="display:none" onchange="handleCollectionImageUpload(event, ${cardId})">
+        <input type="file" id="upload-${cardId}" accept="image/*" style="display:none" onchange="event.stopPropagation(); handleCollectionImageUpload(event, ${cardId})">
     </div>`;
 }
 
@@ -3267,7 +3268,39 @@ async function addFromProgression(cardId, btnEl) {
     }
 }
 
+function getQuickAddUploadPlaceholderHtml(tcgdexId) {
+    return `<div class="no-image-placeholder modal-size upload-placeholder" onclick="document.getElementById('quickadd-upload-input').click()">
+        <i class="ti ti-photo-off" aria-hidden="true"></i>
+    </div>
+    <input type="file" id="quickadd-upload-input" accept="image/*" style="display:none" onchange="handleQuickAddImageUpload(event, '${tcgdexId || ''}')">`;
+}
+
+async function handleQuickAddImageUpload(event, tcgdexId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const slot = document.getElementById('quickadd-image-slot');
+    slot.innerHTML = '<div class="no-image-placeholder modal-size"><span class="loading" style="border-top-color: #ff6b6b;"></span></div>';
+
+    try {
+        const publicUrl = await uploadImageToStorage(file, tcgdexId || null);
+        customQuickAddImage = publicUrl;
+
+        slot.innerHTML = `
+            <img src="${publicUrl}" alt="Carte" class="modal-image" style="cursor: pointer;" onclick="document.getElementById('quickadd-upload-input-2').click()">
+            <input type="file" id="quickadd-upload-input-2" accept="image/*" style="display:none" onchange="handleQuickAddImageUpload(event, '${tcgdexId}')">
+        `;
+        showMessage('Image envoyée !', 'success');
+    } catch (error) {
+        showMessage('Erreur lors de l\'envoi de l\'image', 'error');
+        console.error(error);
+        slot.innerHTML = getQuickAddUploadPlaceholderHtml(tcgdexId);
+    }
+}
+
 function showAddCardModal(card) {
+    customQuickAddImage = null;
+
     let marketPrice = 0;
     if (card.pricing?.cardmarket?.avg) {
         marketPrice = card.pricing.cardmarket.avg;
@@ -3282,10 +3315,12 @@ function showAddCardModal(card) {
         <button class="modal-close" onclick="closeCardDetail()">✕</button>
         <div class="modal-body">
             <div class="modal-image-wrap">
-                ${imageUrl
-                    ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : `<div class="modal-image-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`
-                }
+                <div id="quickadd-image-slot">
+                    ${imageUrl
+                        ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                        : getQuickAddUploadPlaceholderHtml(card.id)
+                    }
+                </div>
             </div>
             <div class="modal-info">
                 <div class="modal-title">${card.name}</div>
@@ -3361,7 +3396,7 @@ async function submitQuickAdd(card) {
             quantity,
             acquisitionType,
             purchasePrice,
-            customImage: null,
+            customImage: customQuickAddImage,
             customDate,
             onImageUploadStart: () => { btn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
         });
@@ -3374,6 +3409,7 @@ async function submitQuickAdd(card) {
     }
 
     closeCardDetail();
+    customQuickAddImage = null;
 
     if (result.merged) {
         showMessage(`Quantité mise à jour : ${result.newQuantity} exemplaire(s) au total`, 'success');

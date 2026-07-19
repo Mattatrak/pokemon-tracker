@@ -468,6 +468,20 @@ header p {
     font-size: 0.9rem;
 }
 
+.no-image-placeholder.full {
+    width: 100%;
+    height: 100%;
+    font-size: 2.5rem;
+    border-radius: 0;
+    border: none;
+}
+
+.no-image-placeholder.modal-size {
+    width: 190px;
+    height: 266px;
+    font-size: 2.5rem;
+}
+
 .no-image-placeholder.large {
     width: 150px;
     height: 210px;
