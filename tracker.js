@@ -1365,6 +1365,7 @@ function showCardDetail(cardId) {
                 ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-line"><span class="modal-meta-label">Type</span> ${card.type}</div>` : ''}
                 <div class="modal-meta-line"><span class="modal-meta-label">Quantité</span> ${qty}</div>
                 ${card.date_added ? `<div class="modal-meta-line"><span class="modal-meta-label">Ajoutée le</span> ${card.date_added}</div>` : ''}
+                ${card.notes ? `<div class="modal-note"><i class="ti ti-note" aria-hidden="true"></i> ${card.notes}</div>` : ''}
 
                 <div class="modal-action-toolbar">
                     <button class="toolbar-action-btn" onclick="showCardEditForm(${card.id})">
@@ -1592,6 +1593,11 @@ function showCardEditForm(cardId) {
                     </div>
                 </div>
 
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="edit-notes">Note personnelle</label>
+                    <textarea id="edit-notes" rows="2" placeholder="Cadeau de mamie, trouvée à la brocante...">${card.notes ? card.notes.replace(/</g, '&lt;') : ''}</textarea>
+                </div>
+
                 <div class="modal-edit-actions">
                     <button class="modal-save-btn" onclick="saveCardEdits(${card.id})"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
                     <button class="modal-cancel-btn" onclick="showCardDetail(${card.id})">Annuler</button>
@@ -1617,6 +1623,7 @@ async function saveCardEdits(cardId) {
         ? 0
         : (parseFloat(document.getElementById('edit-purchase-price').value) || 0);
     const dateValue = document.getElementById('edit-date-added').value;
+    const notes = document.getElementById('edit-notes').value.trim();
 
     const existingCard = allCollectionCards.find(c => c.id === cardId);
     if (!existingCard) return;
@@ -1637,7 +1644,8 @@ async function saveCardEdits(cardId) {
         condition,
         quantity,
         acquisition_type: acquisitionType,
-        purchase_price: purchasePrice
+        purchase_price: purchasePrice,
+        notes: notes || null
     };
     if (dateValue) {
         updatePayload.date_added = newDate.toLocaleDateString('fr-FR');
@@ -2145,7 +2153,6 @@ async function renderMonthlySummary() {
     const countEl = document.getElementById('month-cards-added');
     const spentEl = document.getElementById('month-spent');
     const valueAddedEl = document.getElementById('month-value-added');
-    const topCardEl = document.getElementById('month-top-card');
 
     const { data, error } = await supabaseClient
         .from('monthly_summary')
@@ -2157,14 +2164,12 @@ async function renderMonthlySummary() {
         countEl.textContent = '0';
         spentEl.textContent = '0.00€';
         valueAddedEl.textContent = '0.00€';
-        topCardEl.textContent = '-';
         return;
     }
 
     countEl.textContent = data.cards_added || 0;
     spentEl.textContent = Number(data.total_spent || 0).toFixed(2) + '€';
     valueAddedEl.textContent = Number(data.value_added || 0).toFixed(2) + '€';
-    topCardEl.textContent = data.top_card_name || '-';
 }
 
 function renderStatsKpis() {
@@ -2173,6 +2178,7 @@ function renderStatsKpis() {
     const avgPriceEl = document.getElementById('kpi-avg-price');
     const seriesCountEl = document.getElementById('kpi-series-count');
     const topRarityEl = document.getElementById('kpi-top-rarity');
+    const duplicatesValueEl = document.getElementById('kpi-duplicates-value');
 
     if (allCollectionCards.length === 0) {
         topCardEl.textContent = '-';
@@ -2180,6 +2186,7 @@ function renderStatsKpis() {
         avgPriceEl.textContent = '-';
         seriesCountEl.textContent = '-';
         topRarityEl.textContent = '-';
+        duplicatesValueEl.textContent = '-';
         return;
     }
 
@@ -2202,6 +2209,26 @@ function renderStatsKpis() {
     });
     const topRarity = Object.entries(rarityCounts).sort((a, b) => b[1] - a[1])[0];
     topRarityEl.textContent = topRarity ? topRarity[0] : '-';
+
+    // Valeur des doublons : pour chaque carte possédée en plusieurs exemplaires,
+    // on garde la valeur d'un seul exemplaire de côté et on additionne le reste
+    const duplicateGroups = {};
+    allCollectionCards.forEach(card => {
+        const key = getDuplicateGroupKey(card);
+        if (!duplicateGroups[key]) {
+            duplicateGroups[key] = { totalQty: 0, totalValue: 0, unitValue: Number(card.market_value || 0) };
+        }
+        duplicateGroups[key].totalQty += Number(card.quantity || 1);
+        duplicateGroups[key].totalValue += Number(card.market_value || 0) * Number(card.quantity || 1);
+    });
+
+    let duplicatesValue = 0;
+    Object.values(duplicateGroups).forEach(g => {
+        if (g.totalQty > 1) {
+            duplicatesValue += g.totalValue - g.unitValue;
+        }
+    });
+    duplicatesValueEl.textContent = `${duplicatesValue.toFixed(2)}€`;
 }
 
 function renderRarityChart() {
