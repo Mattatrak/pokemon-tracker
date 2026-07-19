@@ -14,6 +14,94 @@ let selectedCard = null;
 let lastSearchResults = [];
 let customPreviewImage = null; // URL Supabase Storage une fois uploadée
 let customQuickAddImage = null; // idem, mais pour la vignette d'ajout rapide (Progression)
+
+// ===== REGLAGES D'AJOUT RAPIDE (Progression) =====
+
+const QUICKADD_DEFAULTS_KEY = 'progressionQuickAddDefaults';
+
+function getQuickAddDefaults() {
+    try {
+        const stored = localStorage.getItem(QUICKADD_DEFAULTS_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch (e) { /* ignore */ }
+    return { condition: 'NM', quantity: 1, acquisitionType: 'pack', purchasePrice: 0, date: null };
+}
+
+function saveQuickAddDefaultsToStorage(defaults) {
+    localStorage.setItem(QUICKADD_DEFAULTS_KEY, JSON.stringify(defaults));
+}
+
+function openQuickAddSettingsModal() {
+    const defaults = getQuickAddDefaults();
+    const content = document.getElementById('quickadd-settings-content');
+
+    content.innerHTML = `
+        <button class="modal-close" onclick="closeQuickAddSettingsModal()">✕</button>
+        <div class="modal-title" style="margin-bottom: 1rem;">Réglages d'ajout rapide</div>
+        <p style="color: var(--slate); font-size: 0.8rem; margin-bottom: 1rem;">
+            Utilisés par le bouton "+" (ajout instantané) et pré-remplis dans la fenêtre détaillée.
+        </p>
+        <div class="edit-form-grid">
+            <div class="form-group">
+                <label for="qa-settings-condition">État</label>
+                <select id="qa-settings-condition">
+                    <option value="NM">Neuf (NM)</option>
+                    <option value="LP">Très bon (LP)</option>
+                    <option value="MP">Bon (MP)</option>
+                    <option value="HP">Mauvais état (HP)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="qa-settings-quantity">Quantité</label>
+                <input type="number" id="qa-settings-quantity" min="1" value="${defaults.quantity}">
+            </div>
+            <div class="form-group">
+                <label for="qa-settings-acquisition">Obtention</label>
+                <select id="qa-settings-acquisition" onchange="toggleQaSettingsPriceField()">
+                    <option value="pack">Sortie d'un booster</option>
+                    <option value="achat">Achetée</option>
+                </select>
+            </div>
+            <div class="form-group" id="qa-settings-price-group">
+                <label for="qa-settings-price">Prix payé (€)</label>
+                <input type="number" id="qa-settings-price" step="0.01" min="0" value="${defaults.purchasePrice}">
+            </div>
+            <div class="form-group">
+                <label for="qa-settings-date">Date d'acquisition (fixe)</label>
+                <input type="text" id="qa-settings-date" placeholder="jj/mm/aaaa">
+            </div>
+        </div>
+        <button class="modal-save-btn full-width" onclick="saveQuickAddSettings()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
+    `;
+
+    document.getElementById('qa-settings-condition').value = defaults.condition;
+    document.getElementById('qa-settings-acquisition').value = defaults.acquisitionType;
+
+    document.getElementById('quickadd-settings-overlay').classList.add('active');
+    toggleQaSettingsPriceField();
+    initDatePicker('#qa-settings-date', defaults.date || null);
+}
+
+function toggleQaSettingsPriceField() {
+    const val = document.getElementById('qa-settings-acquisition').value;
+    document.getElementById('qa-settings-price-group').style.display = val === 'pack' ? 'none' : '';
+}
+
+function closeQuickAddSettingsModal() {
+    document.getElementById('quickadd-settings-overlay').classList.remove('active');
+}
+
+function saveQuickAddSettings() {
+    const condition = document.getElementById('qa-settings-condition').value;
+    const quantity = parseInt(document.getElementById('qa-settings-quantity').value) || 1;
+    const acquisitionType = document.getElementById('qa-settings-acquisition').value;
+    const purchasePrice = acquisitionType === 'pack' ? 0 : (parseFloat(document.getElementById('qa-settings-price').value) || 0);
+    const date = document.getElementById('qa-settings-date').value || null;
+
+    saveQuickAddDefaultsToStorage({ condition, quantity, acquisitionType, purchasePrice, date });
+    showMessage('Réglages enregistrés', 'success');
+    closeQuickAddSettingsModal();
+}
 let currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
 let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
 let sortColumn = null;
@@ -880,6 +968,12 @@ async function deleteCard(id) {
 
     await refreshCollection();
     await recordValueSnapshot();
+
+    // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
+    const progressionSetView = document.getElementById('progression-set-view');
+    if (progressionSetView && progressionSetView.style.display === 'block') {
+        renderProgressionCardsGrid();
+    }
 }
 
 async function changeQuantity(id, delta) {
@@ -907,6 +1001,12 @@ async function changeQuantity(id, delta) {
 
     await refreshCollection();
     await recordValueSnapshot();
+
+    // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
+    const progressionSetView = document.getElementById('progression-set-view');
+    if (progressionSetView && progressionSetView.style.display === 'block') {
+        renderProgressionCardsGrid();
+    }
 }
 
 function updateStats() {
@@ -3205,14 +3305,14 @@ function renderProgressionCardsGrid() {
         }
 
         return `
-            <div class="progression-card-item ${owned ? 'owned' : 'missing'}">
+            <div class="progression-card-item ${owned ? 'owned' : 'missing'}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${owned
                     ? '<div class="progression-owned-badge">✓</div>'
-                    : `<button class="progression-add-badge" onclick="event.stopPropagation(); addFromProgression('${card.id}', this)">+</button>`
+                    : `<button class="progression-add-badge" onclick="event.stopPropagation(); quickInstantAdd('${card.id}', this)">+</button>`
                 }
                 <div class="progression-card-label">#${card.localId} ${card.name}</div>
             </div>
@@ -3268,6 +3368,51 @@ async function addFromProgression(cardId, btnEl) {
     }
 }
 
+// Ajout instantané (bouton "+"), sans ouvrir de fenêtre, avec les réglages par défaut
+async function quickInstantAdd(cardId, btnEl) {
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<span class="loading" style="width:12px;height:12px;border-width:2px;"></span>';
+    }
+
+    try {
+        let cardData = currentProgressionCards.find(c => c.id === cardId);
+
+        if (!cardData) {
+            let response = await fetch(`${API_BASE}/cards/${cardId}`);
+            let detail = await response.json();
+            if (!detail || detail.status) {
+                const enResponse = await fetch(`${API_EN}/cards/${cardId}`);
+                detail = await enResponse.json();
+            }
+            cardData = detail;
+        }
+
+        const defaults = getQuickAddDefaults();
+
+        await performCardAdd(cardData, {
+            condition: defaults.condition,
+            quantity: defaults.quantity,
+            acquisitionType: defaults.acquisitionType,
+            purchasePrice: defaults.purchasePrice,
+            customImage: null,
+            customDate: defaults.date || null
+        });
+
+        showMessage(`${cardData.name} ajoutée !`, 'success');
+        await refreshCollection();
+        await recordValueSnapshot();
+        renderProgressionCardsGrid();
+    } catch (error) {
+        showMessage('Erreur lors de l\'ajout rapide', 'error');
+        console.error(error);
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = '+';
+        }
+    }
+}
+
 function getQuickAddUploadPlaceholderHtml(tcgdexId) {
     return `<div class="no-image-placeholder modal-size upload-placeholder" onclick="document.getElementById('quickadd-upload-input').click()">
         <i class="ti ti-photo-off" aria-hidden="true"></i>
@@ -3300,6 +3445,7 @@ async function handleQuickAddImageUpload(event, tcgdexId) {
 
 function showAddCardModal(card) {
     customQuickAddImage = null;
+    const qaDefaults = getQuickAddDefaults();
 
     let marketPrice = 0;
     if (card.pricing?.cardmarket?.avg) {
@@ -3343,7 +3489,7 @@ function showAddCardModal(card) {
                     </div>
                     <div class="form-group">
                         <label for="quickadd-quantity">Quantité</label>
-                        <input type="number" id="quickadd-quantity" value="1" min="1" max="100">
+                        <input type="number" id="quickadd-quantity" value="${qaDefaults.quantity}" min="1" max="100">
                     </div>
                     <div class="form-group">
                         <label for="quickadd-acquisition">Obtention</label>
@@ -3354,7 +3500,7 @@ function showAddCardModal(card) {
                     </div>
                     <div class="form-group" id="quickadd-purchase-price-group">
                         <label for="quickadd-purchase-price">Prix payé (€)</label>
-                        <input type="number" id="quickadd-purchase-price" value="${marketPrice > 0 ? marketPrice.toFixed(2) : ''}" step="0.01" min="0" placeholder="optionnel">
+                        <input type="number" id="quickadd-purchase-price" value="${qaDefaults.acquisitionType === 'pack' ? '' : qaDefaults.purchasePrice}" step="0.01" min="0" placeholder="optionnel">
                     </div>
                     <div class="form-group">
                         <label for="quickadd-date-added">Date d'acquisition</label>
@@ -3367,8 +3513,12 @@ function showAddCardModal(card) {
         </div>
     `;
 
+    document.getElementById('quickadd-condition').value = qaDefaults.condition;
+    document.getElementById('quickadd-acquisition').value = qaDefaults.acquisitionType;
+
     document.getElementById('card-detail-overlay').classList.add('active');
-    initDatePicker('#quickadd-date-added');
+    toggleQuickAddPurchasePriceField();
+    initDatePicker('#quickadd-date-added', qaDefaults.date || null);
 }
 
 function toggleQuickAddPurchasePriceField() {

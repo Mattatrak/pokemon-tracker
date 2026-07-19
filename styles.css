@@ -59,7 +59,9 @@ body {
 
 header {
     text-align: center;
-    background: linear-gradient(135deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
+    background-image: linear-gradient(180deg, rgba(13,16,26,0.45) 0%, rgba(13,16,26,0.75) 65%, rgba(13,16,26,0.95) 100%), url('images/header-banner.webp');
+    background-size: cover;
+    background-position: center 55%;
     padding: 2.25rem 2rem;
     border-radius: 12px;
     color: var(--parchment);
@@ -1760,8 +1762,18 @@ tbody tr:hover {
     transition: transform 0.2s;
 }
 
+.progression-card-item.owned {
+    cursor: pointer;
+}
+
+.progression-card-item.owned:hover {
+    transform: translateY(-3px);
+    border-color: var(--gold);
+}
+
 .progression-card-item.missing {
     opacity: 0.55;
+    cursor: pointer;
 }
 
 .progression-card-item img {

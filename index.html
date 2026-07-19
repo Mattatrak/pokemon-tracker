@@ -279,6 +279,7 @@
                         <button class="view-toggle-btn" id="prog-filter-missing" onclick="setProgressionFilter('missing')">Manquantes</button>
                     </div>
                     <div class="rarity-filter-row" id="progression-rarity-filter-row"></div>
+                    <button class="filter-toggle-btn" onclick="openQuickAddSettingsModal()"><i class="ti ti-settings" aria-hidden="true"></i> Réglages</button>
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
                         <input type="text" id="progression-search" placeholder="Nom ou numéro...">
@@ -422,6 +423,11 @@
         <div class="modal-card" id="csv-import-content" style="max-width: 480px;"></div>
     </div>
 
+    <!-- MODALE REGLAGES D'AJOUT RAPIDE (Progression) -->
+    <div class="modal-overlay" id="quickadd-settings-overlay" onclick="if(event.target===this) closeQuickAddSettingsModal()">
+        <div class="modal-card" id="quickadd-settings-content" style="max-width: 420px;"></div>
+    </div>
+
     <!-- MODALE DETAIL CARTE -->
     <div class="modal-overlay" id="card-detail-overlay" onclick="if(event.target===this) closeCardDetail()">
         <div class="modal-card" id="card-detail-card"></div>
@@ -432,7 +438,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="tracker.js?v=11"></script>
+    <script src="tracker.js?v=14"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
