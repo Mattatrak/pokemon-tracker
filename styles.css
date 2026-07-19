@@ -2035,6 +2035,12 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+.period-value-abs {
+    font-weight: 500;
+    opacity: 0.75;
+    font-size: 0.9em;
+}
+
 .period-value.positive {
     color: #4ade80;
 }

@@ -832,11 +832,6 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         marketValue = card.pricing.cardmarket['avg-holo'];
     }
 
-    if (card.id && marketValue > 0) {
-        supabaseClient.from('card_price_history').insert([{ tcgdex_id: card.id, market_value: marketValue }])
-            .then(({ error }) => { if (error) console.error('Erreur historique prix carte:', error); });
-    }
-
     // Date d'acquisition : utilise la date fournie (antidatage) ou aujourd'hui par défaut
     const acquisitionDate = customDate ? new Date(customDate + 'T12:00:00') : new Date();
     const dateAddedStr = acquisitionDate.toLocaleDateString('fr-FR');
@@ -856,6 +851,12 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
         ]);
         if (updateResult.error) throw updateResult.error;
+
+        // Simple instantané (pas de pré-remplissage, la carte existe déjà dans l'historique)
+        if (card.id && marketValue > 0) {
+            supabaseClient.from('card_price_history').insert([{ tcgdex_id: card.id, market_value: marketValue }])
+                .then(({ error }) => { if (error) console.error('Erreur historique prix carte:', error); });
+        }
 
         return { merged: true, newQuantity };
     }
@@ -888,6 +889,39 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
     ]);
     if (insertResult.error) throw insertResult.error;
+
+    // Nouvelle carte : on pré-remplit l'historique avec les moyennes TCGdex (avg1/avg7/avg30) en plus
+    // de l'instantané actuel, pour avoir un vrai repère de tendance dès le premier ajout
+    if (card.id && marketValue > 0) {
+        const historyRows = [{ tcgdex_id: card.id, market_value: marketValue }];
+        const cm = card.pricing?.cardmarket;
+        const nowMs = Date.now();
+
+        if (cm && typeof cm.avg1 === 'number' && cm.avg1 > 0) {
+            historyRows.push({
+                tcgdex_id: card.id,
+                market_value: cm.avg1,
+                recorded_at: new Date(nowMs - 1 * 24 * 60 * 60 * 1000).toISOString()
+            });
+        }
+        if (cm && typeof cm.avg7 === 'number' && cm.avg7 > 0) {
+            historyRows.push({
+                tcgdex_id: card.id,
+                market_value: cm.avg7,
+                recorded_at: new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString()
+            });
+        }
+        if (cm && typeof cm.avg30 === 'number' && cm.avg30 > 0) {
+            historyRows.push({
+                tcgdex_id: card.id,
+                market_value: cm.avg30,
+                recorded_at: new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString()
+            });
+        }
+
+        supabaseClient.from('card_price_history').insert(historyRows)
+            .then(({ error }) => { if (error) console.error('Erreur historique prix carte:', error); });
+    }
 
     return { merged: false };
 }
@@ -1889,13 +1923,14 @@ async function renderCardPriceChart(tcgdexId) {
 
             const baseValue = Number(basePoint.market_value);
             const pct = ((currentValue - baseValue) / baseValue) * 100;
+            const deltaValue = currentValue - baseValue;
             const cls = pct > 0 ? 'positive' : pct < 0 ? 'negative' : 'neutral';
             const sign = pct > 0 ? '+' : '';
 
             return `
                 <div class="period-row">
                     <span class="period-label">Depuis ${p.label}</span>
-                    <span class="period-value ${cls}">${sign}${pct.toFixed(0)}%</span>
+                    <span class="period-value ${cls}">${sign}${pct.toFixed(0)}% <span class="period-value-abs">(${sign}${deltaValue.toFixed(2)}€)</span></span>
                 </div>
             `;
         }).join('');
@@ -2916,6 +2951,7 @@ async function refreshAllMarketPrices() {
 
     const uniqueIds = [...new Set(cardsWithId.map(c => c.tcgdex_id))];
     const priceMap = {};
+    const pricingDetailMap = {};
     let done = 0;
 
     btn.disabled = true;
@@ -2940,6 +2976,7 @@ async function refreshAllMarketPrices() {
                     price = data.pricing.cardmarket['avg-holo'];
                 }
                 priceMap[id] = price;
+                pricingDetailMap[id] = data?.pricing?.cardmarket || null;
             } catch (error) {
                 console.error(`Erreur récupération prix pour ${id}:`, error);
             }
@@ -2972,6 +3009,51 @@ async function refreshAllMarketPrices() {
         const { error: historyError } = await supabaseClient.from('card_price_history').insert(historyInserts);
         if (historyError) console.error('Erreur historique prix par carte:', historyError);
     }
+
+    // Enrichir automatiquement l'historique (avg1/avg7/avg30) des cartes qui en ont besoin :
+    // soit jamais enrichies du tout, soit enrichies partiellement (ex: avg7/avg30 mais sans avg1,
+    // comme certaines cartes touchées pendant la mise au point de cette fonctionnalité)
+    await Promise.all(uniqueIds.map(async (id) => {
+        const cm = pricingDetailMap[id];
+        if (!cm) return;
+
+        const { data: historyRows, error: historyErr } = await supabaseClient
+            .from('card_price_history')
+            .select('recorded_at')
+            .eq('tcgdex_id', id);
+
+        if (historyErr || !historyRows || historyRows.length === 0) return;
+
+        const nowMs = Date.now();
+        const ages = historyRows.map(r => (nowMs - new Date(r.recorded_at).getTime()) / (24 * 60 * 60 * 1000));
+        const hasOldPoint = ages.some(a => a >= 6);
+        const hasOneDayPoint = ages.some(a => a >= 0.5 && a <= 1.5);
+
+        const backfillRows = [];
+
+        if (!hasOldPoint) {
+            // Jamais enrichie : on ajoute les 3 points de repère
+            if (typeof cm.avg1 === 'number' && cm.avg1 > 0) {
+                backfillRows.push({ tcgdex_id: id, market_value: cm.avg1, recorded_at: new Date(nowMs - 1 * 24 * 60 * 60 * 1000).toISOString() });
+            }
+            if (typeof cm.avg7 === 'number' && cm.avg7 > 0) {
+                backfillRows.push({ tcgdex_id: id, market_value: cm.avg7, recorded_at: new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString() });
+            }
+            if (typeof cm.avg30 === 'number' && cm.avg30 > 0) {
+                backfillRows.push({ tcgdex_id: id, market_value: cm.avg30, recorded_at: new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString() });
+            }
+        } else if (!hasOneDayPoint) {
+            // Déjà enrichie (avg7/avg30 ou historique réel ancien) mais il manque le point ~1 jour
+            if (typeof cm.avg1 === 'number' && cm.avg1 > 0) {
+                backfillRows.push({ tcgdex_id: id, market_value: cm.avg1, recorded_at: new Date(nowMs - 1 * 24 * 60 * 60 * 1000).toISOString() });
+            }
+        }
+
+        if (backfillRows.length > 0) {
+            const { error: backfillError } = await supabaseClient.from('card_price_history').insert(backfillRows);
+            if (backfillError) console.error('Erreur enrichissement historique prix:', backfillError);
+        }
+    }));
 
     // Dédupliquer par carte (une même carte peut avoir plusieurs lignes selon l'état)
     const moversByKey = {};
@@ -3274,7 +3356,7 @@ function populateProgressionRarityFilter() {
         buildRarityFilterRowHtml(rarities, progressionRarityFilterValues, 'setProgressionRarityFilter');
 }
 
-function renderProgressionCardsGrid() {
+async function renderProgressionCardsGrid() {
     const grid = document.getElementById('progression-cards-grid');
     const ownedIds = new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id));
     const searchTerm = document.getElementById('progression-search').value.toLowerCase();
@@ -3308,6 +3390,9 @@ function renderProgressionCardsGrid() {
         return;
     }
 
+    grid.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement...</p>';
+    const storedFilenames = await getStoredImageFilenames();
+
     grid.innerHTML = cards.map(card => {
         const owned = ownedIds.has(card.id);
         const ownedCardRow = owned ? allCollectionCards.find(c => c.tcgdex_id === card.id) : null;
@@ -3315,6 +3400,10 @@ function renderProgressionCardsGrid() {
         let imageUrl = '';
         if (ownedCardRow && ownedCardRow.image) {
             imageUrl = ownedCardRow.image; // Notre image (auto ou uploadée manuellement), déjà une URL complète
+        } else if (storedFilenames.has(`${sanitizeForPath(card.id)}.jpg`)) {
+            // On a déjà hébergé une image pour cette carte (même si elle n'est plus/pas encore en collection)
+            const { data } = supabaseClient.storage.from('card-images').getPublicUrl(getTcgdexImagePath(card.id));
+            imageUrl = data.publicUrl;
         } else if (card.image) {
             imageUrl = `${card.image}/low.webp`; // Lien brut TCGdex en secours
         }
