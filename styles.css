@@ -1718,6 +1718,19 @@ tbody tr:hover {
     color: var(--slate);
     white-space: nowrap;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+}
+
+.progression-secret-badge {
+    font-size: 0.65rem;
+    color: #c77dff;
+    background: rgba(199, 125, 255, 0.12);
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    font-weight: 600;
 }
 
 .progression-chevron {

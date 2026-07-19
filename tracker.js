@@ -3101,7 +3101,9 @@ async function loadSeriesProgress() {
             if (sets.length === 0) return '';
 
             const setsHtml = sets.map(set => {
-                const total = set.cardCount?.official || 0;
+                const officialCount = set.cardCount?.official || 0;
+                const total = set.cardCount?.total || officialCount;
+                const secretCount = Math.max(0, total - officialCount);
                 const owned = ownedIdsBySet[set.id]?.size || 0;
                 const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
                 const safeName = (set.name || '').replace(/'/g, "\\'");
@@ -3129,7 +3131,10 @@ async function loadSeriesProgress() {
                             <div class="progression-set-name">${set.name}</div>
                             <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pct}%"></div></div>
                         </div>
-                        <div class="progression-set-count">${owned}/${total} · ${pct}%</div>
+                        <div class="progression-set-count">
+                            ${owned}/${officialCount} · ${pct}%
+                            ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
+                        </div>
                         <span class="progression-chevron">›</span>
                     </div>
                 `;
