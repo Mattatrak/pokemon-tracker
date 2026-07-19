@@ -47,7 +47,8 @@ html {
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
+    background: radial-gradient(ellipse at 50% 0%, #1a2035 0%, var(--bg) 60%);
+    background-attachment: fixed;
     color: var(--text-primary);
 }
 
@@ -59,10 +60,10 @@ body {
 
 header {
     text-align: center;
-    background-image: linear-gradient(180deg, rgba(13,16,26,0.45) 0%, rgba(13,16,26,0.75) 65%, rgba(13,16,26,0.95) 100%), url('images/header-banner.webp');
+    background-image: linear-gradient(180deg, rgba(13,16,26,0.2) 0%, rgba(13,16,26,0.45) 55%, rgba(13,16,26,0.8) 100%), url('images/header-banner.webp');
     background-size: cover;
-    background-position: center 55%;
-    padding: 2.25rem 2rem;
+    background-position: center center;
+    padding: 4rem 2rem;
     border-radius: 12px;
     color: var(--parchment);
     margin-bottom: 2rem;
@@ -90,6 +91,7 @@ header h1 {
     letter-spacing: 0.04em;
     color: var(--gold);
     margin-bottom: 0;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
 }
 
 header p {
@@ -653,11 +655,24 @@ button {
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
+}
+
+button:active {
+    transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button {
+        transition: background 0.2s;
+    }
+    button:active {
+        transform: none;
+    }
 }
 
 button:hover {
@@ -1774,6 +1789,13 @@ tbody tr:hover {
 .progression-card-item.missing {
     opacity: 0.55;
     cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.progression-card-item.missing:hover {
+    opacity: 0.9;
+    transform: translateY(-3px);
+    border-color: var(--teal);
 }
 
 .progression-card-item img {
