@@ -690,32 +690,44 @@ async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardNa
 }
 
 async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart, customDate }) {
-    let imageUrl = '';
+    const name = card.name || '?';
+    const series = card.set?.name || 'N/A';
+    const number = card.localId || '?';
 
-    if (customImage) {
-        imageUrl = customImage;
-    } else if (card.image) {
-        const tcgdexUrl = `${card.image}/high.png`;
-        if (onImageUploadStart) onImageUploadStart();
-        try {
-            imageUrl = await fetchAndUploadExternalImage(tcgdexUrl, card.id);
-        } catch (error) {
-            console.error('Echec hébergement image, fallback lien TCGdex:', error);
-            imageUrl = tcgdexUrl;
+    // Image, logo de série et recherche de doublon ne dépendent pas les uns des autres : on les lance en parallèle
+    const imagePromise = (async () => {
+        if (customImage) return customImage;
+        if (card.image) {
+            const tcgdexUrl = `${card.image}/high.png`;
+            if (onImageUploadStart) onImageUploadStart();
+            try {
+                return await fetchAndUploadExternalImage(tcgdexUrl, card.id);
+            } catch (error) {
+                console.error('Echec hébergement image, fallback lien TCGdex:', error);
+                return tcgdexUrl;
+            }
+        } else if (card.id) {
+            const existingUrl = await checkExistingImage(card.id);
+            return existingUrl || '';
         }
-    } else if (card.id) {
-        const existingUrl = await checkExistingImage(card.id);
-        if (existingUrl) imageUrl = existingUrl;
-    }
+        return '';
+    })();
 
-    let seriesLogoUrl = null;
-    if (card.set?.logo && card.set?.id) {
-        try {
-            seriesLogoUrl = await fetchAndUploadSeriesLogo(card.set.logo, card.set.id);
-        } catch (error) {
-            console.error('Logo de série non récupéré:', error);
+    const logoPromise = (async () => {
+        if (card.set?.logo && card.set?.id) {
+            try {
+                return await fetchAndUploadSeriesLogo(card.set.logo, card.set.id);
+            } catch (error) {
+                console.error('Logo de série non récupéré:', error);
+                return null;
+            }
         }
-    }
+        return null;
+    })();
+
+    const existingRowPromise = findExistingCardRow(card.id, name, series, number, condition);
+
+    const [imageUrl, seriesLogoUrl, existingRow] = await Promise.all([imagePromise, logoPromise, existingRowPromise]);
 
     let marketValue = 0;
     if (card.pricing?.cardmarket?.avg) {
@@ -733,12 +745,6 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
     const acquisitionDate = customDate ? new Date(customDate + 'T12:00:00') : new Date();
     const dateAddedStr = acquisitionDate.toLocaleDateString('fr-FR');
 
-    const name = card.name || '?';
-    const series = card.set?.name || 'N/A';
-    const number = card.localId || '?';
-
-    const existingRow = await findExistingCardRow(card.id, name, series, number, condition);
-
     if (existingRow) {
         const newQuantity = Number(existingRow.quantity || 1) + quantity;
         const updatePayload = { quantity: newQuantity, market_value: marketValue };
@@ -748,10 +754,13 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             updatePayload.cardmarket_id = card.pricing.cardmarket.idProduct;
         }
 
-        const { error } = await supabaseClient.from('cards').update(updatePayload).eq('id', existingRow.id);
-        if (error) throw error;
+        // La mise à jour de la carte et l'historique mensuel sont indépendants : en parallèle
+        const [updateResult] = await Promise.all([
+            supabaseClient.from('cards').update(updatePayload).eq('id', existingRow.id),
+            recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
+        ]);
+        if (updateResult.error) throw updateResult.error;
 
-        await recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate });
         return { merged: true, newQuantity };
     }
 
@@ -760,27 +769,30 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         types = card.types.join(', ');
     }
 
-    const { error } = await supabaseClient.from('cards').insert([{
-        name,
-        series,
-        number,
-        type: types,
-        rarity: card.rarity || 'N/A',
-        condition,
-        purchase_price: purchasePrice,
-        market_value: marketValue,
-        acquisition_type: acquisitionType,
-        quantity,
-        image: imageUrl,
-        series_logo: seriesLogoUrl,
-        tcgdex_id: card.id || null,
-        cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
-        date_added: dateAddedStr,
-        created_at: acquisitionDate.toISOString()
-    }]);
-    if (error) throw error;
+    // Idem : l'insertion de la carte et l'historique mensuel sont indépendants
+    const [insertResult] = await Promise.all([
+        supabaseClient.from('cards').insert([{
+            name,
+            series,
+            number,
+            type: types,
+            rarity: card.rarity || 'N/A',
+            condition,
+            purchase_price: purchasePrice,
+            market_value: marketValue,
+            acquisition_type: acquisitionType,
+            quantity,
+            image: imageUrl,
+            series_logo: seriesLogoUrl,
+            tcgdex_id: card.id || null,
+            cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
+            date_added: dateAddedStr,
+            created_at: acquisitionDate.toISOString()
+        }]),
+        recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
+    ]);
+    if (insertResult.error) throw insertResult.error;
 
-    await recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate });
     return { merged: false };
 }
 
@@ -910,7 +922,10 @@ async function recordValueSnapshot() {
     }]);
     if (error) console.error('Erreur enregistrement historique valeur:', error);
 
-    renderStatsCharts();
+    // On ne recalcule les graphiques (coûteux : plusieurs requêtes + Chart.js) que si l'onglet est réellement affiché
+    if (document.getElementById('tab-stats').classList.contains('active')) {
+        renderStatsCharts();
+    }
     renderHeroValueCard();
 }
 
@@ -1465,8 +1480,12 @@ function filterAndDisplay() {
 
     filtered = applySorting(filtered);
 
-    renderCollectionTable(filtered);
-    renderCollectionGrid(filtered);
+    // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
+    if (collectionViewMode === 'table') {
+        renderCollectionTable(filtered);
+    } else {
+        renderCollectionGrid(filtered);
+    }
 }
 
 function renderCollectionTable(filtered) {
@@ -2655,7 +2674,11 @@ function renderValueHistoryChart() {
 }
 
 // ===== EVENT LISTENERS =====
-document.getElementById('search-collection').addEventListener('input', filterAndDisplay);
+let collectionSearchDebounceTimer = null;
+document.getElementById('search-collection').addEventListener('input', () => {
+    clearTimeout(collectionSearchDebounceTimer);
+    collectionSearchDebounceTimer = setTimeout(filterAndDisplay, 150);
+});
 document.getElementById('filter-condition').addEventListener('change', filterAndDisplay);
 document.getElementById('filter-collection-series').addEventListener('change', filterAndDisplay);
 document.addEventListener('keydown', (e) => {
@@ -2719,6 +2742,7 @@ function setCollectionView(mode) {
     document.getElementById('collection-grid-wrapper').style.display = mode === 'grid' ? 'block' : 'none';
     document.getElementById('collection-table-wrapper').style.display = mode === 'table' ? 'block' : 'none';
     document.getElementById('grid-sort').style.display = mode === 'grid' ? 'inline-block' : 'none';
+    filterAndDisplay();
 }
 
 // ===== ONGLETS =====
