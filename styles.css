@@ -761,6 +761,45 @@ button:disabled {
     border-color: var(--gold);
 }
 
+.csv-dropdown-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.csv-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    padding: 0.4rem;
+    min-width: 210px;
+    z-index: 50;
+}
+
+.csv-dropdown-menu.active {
+    display: block;
+}
+
+.csv-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.csv-dropdown-item:hover {
+    background: rgba(255,255,255,0.06);
+}
+
 /* VITRINE DE COLLECTION (vue galerie) */
 .collection-display-case {
     background: linear-gradient(180deg, #161B29 0%, #1F2740 100%);
@@ -930,6 +969,20 @@ button:disabled {
     padding: 0.2rem 0.5rem;
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,0.15);
+}
+
+.rarity-badge-corner {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    z-index: 5;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.rarity-badge-corner img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
 }
 
 .condition-badge-grid {
@@ -1967,6 +2020,83 @@ tbody tr:hover {
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 700;
+}
+
+.rarity-icon {
+    display: inline-block;
+    vertical-align: middle;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.rarity-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.rarity-filter-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 8px;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+    color: var(--text-primary);
+    position: relative;
+}
+
+.rarity-filter-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink-navy);
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+    z-index: 30;
+}
+
+.rarity-filter-btn[data-tooltip]:hover::after {
+    opacity: 1;
+}
+
+.rarity-filter-btn:hover {
+    border-color: var(--gold);
+}
+
+.rarity-filter-btn.active {
+    background: rgba(232, 169, 59, 0.15);
+    border-color: var(--gold);
+}
+
+.rarity-filter-btn-text {
+    width: auto;
+    padding: 0 0.6rem;
+}
+
+.rarity-filter-text {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .rarity-pill {

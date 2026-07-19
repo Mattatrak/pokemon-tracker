@@ -492,7 +492,7 @@ function selectCard(card) {
     }
     document.getElementById('preview-type').textContent = types;
 
-    document.getElementById('preview-rarity').textContent = card.rarity || '-';
+    document.getElementById('preview-rarity').innerHTML = `${getRarityIconHtml(card.rarity)} ${card.rarity || '-'}`;
 
     let price = 0;
     if (card.pricing?.cardmarket?.avg) {
@@ -1056,29 +1056,45 @@ function applySorting(list) {
     return sorted;
 }
 
+let collectionRarityFilterValues = new Set();
+
+function setCollectionRarityFilter(value) {
+    if (value === '') {
+        collectionRarityFilterValues.clear();
+    } else if (collectionRarityFilterValues.has(value)) {
+        collectionRarityFilterValues.delete(value);
+    } else {
+        collectionRarityFilterValues.add(value);
+    }
+    renderCollectionRarityRow();
+    filterAndDisplay();
+}
+
+function renderCollectionRarityRow() {
+    const rarities = sortRaritiesByTier([...new Set(allCollectionCards.map(c => c.rarity).filter(Boolean))]);
+    document.getElementById('filter-collection-rarity-row').innerHTML =
+        buildRarityFilterRowHtml(rarities, collectionRarityFilterValues, 'setCollectionRarityFilter');
+}
+
 function populateCollectionFilters() {
     const seriesSelect = document.getElementById('filter-collection-series');
-    const raritySelect = document.getElementById('filter-collection-rarity');
     const typeSelect = document.getElementById('filter-collection-type');
 
     const currentSeries = seriesSelect.value;
-    const currentRarity = raritySelect.value;
     const currentType = typeSelect.value;
 
     const series = [...new Set(allCollectionCards.map(c => c.series).filter(Boolean))].sort();
-    const rarities = [...new Set(allCollectionCards.map(c => c.rarity).filter(Boolean))].sort();
     const types = [...new Set(allCollectionCards.map(c => c.type).filter(Boolean))].sort();
 
     seriesSelect.innerHTML = '<option value="">Toutes les séries</option>' +
         series.map(s => `<option value="${s}">${s}</option>`).join('');
-    raritySelect.innerHTML = '<option value="">Toutes les raretés</option>' +
-        rarities.map(r => `<option value="${r}">${r}</option>`).join('');
     typeSelect.innerHTML = '<option value="">Tous les types</option>' +
         types.map(t => `<option value="${t}">${t}</option>`).join('');
 
+    renderCollectionRarityRow();
+
     // Réappliquer la sélection précédente si elle existe toujours
     if (series.includes(currentSeries)) seriesSelect.value = currentSeries;
-    if (rarities.includes(currentRarity)) raritySelect.value = currentRarity;
     if (types.includes(currentType)) typeSelect.value = currentType;
 }
 
@@ -1157,11 +1173,270 @@ function exportCollectionToCSV() {
     showMessage('Export CSV téléchargé !', 'success');
 }
 
+// ===== IMPORT CSV EN MASSE =====
+
+function toggleCsvDropdown(event) {
+    event.stopPropagation();
+    document.getElementById('csv-dropdown-menu').classList.toggle('active');
+}
+
+function closeCsvDropdown() {
+    document.getElementById('csv-dropdown-menu').classList.remove('active');
+}
+
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('csv-dropdown-menu');
+    if (menu && menu.classList.contains('active') && !e.target.closest('.csv-dropdown-wrap')) {
+        menu.classList.remove('active');
+    }
+});
+
+function downloadCsvTemplate() {
+    const headers = ['Nom', 'Serie', 'Numero', 'Etat', 'Quantite', 'Prix', 'Obtention', 'Date'];
+    const example = ['Pikachu', 'Ecarlate et Violet', '025', 'NM', '1', '3.50', 'achat', '15/03/2026'];
+    const csvContent = '\uFEFF' + [headers.join(','), example.join(',')].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'modele-import-pokemon.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function normalizeForMatch(str) {
+    return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+// Correspondance entre le texte de rareté (tel que renvoyé par TCGdex) et l'icône fournie par l'utilisateur.
+// Plusieurs variantes par icône pour maximiser les chances de correspondance selon les libellés/époques.
+// Si aucune correspondance : on affiche simplement le texte comme avant, rien ne casse.
+const RARITY_ICON_MAP = {
+    'commune': 'commune.webp',
+    'common': 'commune.webp',
+    'peu commune': 'peu-commune.webp',
+    'uncommon': 'peu-commune.webp',
+    'rare holo': 'holo.webp',
+    'holo rare': 'holo.webp',
+    'holographique': 'holo.webp',
+    'rare': 'holo.webp',
+    'double rare': 'double-rare.png',
+    'illustration rare': 'illustration-rare.png',
+    'illustration rare rare': 'illustration-rare.png',
+    'ultra rare': 'ultra-rare.png',
+    'illustration speciale rare': 'illustration-speciale-rare.png',
+    'special illustration rare': 'illustration-speciale-rare.png',
+    'hyper rare': 'mega-hyper-rare.webp',
+    'mega hyper rare': 'mega-hyper-rare.webp',
+    'promo': 'promo.webp'
+};
+
+// Ordre d'affichage des raretés (du plus commun au plus rare), reprenant l'ordre visuel fourni
+const RARITY_ORDER = [
+    'commune.webp',
+    'peu-commune.webp',
+    'holo.webp',
+    'double-rare.png',
+    'illustration-rare.png',
+    'ultra-rare.png',
+    'illustration-speciale-rare.png',
+    'mega-hyper-rare.webp',
+    'promo.webp'
+];
+
+function sortRaritiesByTier(rarities) {
+    return [...rarities].sort((a, b) => {
+        const fileA = RARITY_ICON_MAP[normalizeForMatch(a)];
+        const fileB = RARITY_ICON_MAP[normalizeForMatch(b)];
+        const rankA = fileA ? RARITY_ORDER.indexOf(fileA) : 999;
+        const rankB = fileB ? RARITY_ORDER.indexOf(fileB) : 999;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.localeCompare(b);
+    });
+}
+
+function getRarityIconHtml(rarity, sizePx = 16) {
+    const filename = RARITY_ICON_MAP[normalizeForMatch(rarity)];
+    if (!filename) return '';
+    return `<img src="images/rarity/${filename}" alt="" class="rarity-icon" style="width:${sizePx}px;height:${sizePx}px;">`;
+}
+
+// Construit une ligne de boutons icônes pour filtrer par rareté (multi-sélection possible)
+function buildRarityFilterRowHtml(rarities, activeValues, clickHandlerName) {
+    const allBtn = `<button class="rarity-filter-btn ${activeValues.size === 0 ? 'active' : ''}" onclick="${clickHandlerName}('')" data-tooltip="Toutes les raretés" aria-label="Toutes les raretés"><i class="ti ti-asterisk" aria-hidden="true"></i></button>`;
+
+    const rarityBtns = rarities.map(r => {
+        const icon = getRarityIconHtml(r, 20);
+        const isActive = activeValues.has(r);
+        const safeR = r.replace(/'/g, "\\'");
+        const content = icon || `<span class="rarity-filter-text">${r}</span>`;
+        return `<button class="rarity-filter-btn ${isActive ? 'active' : ''} ${icon ? '' : 'rarity-filter-btn-text'}" onclick="${clickHandlerName}('${safeR}')" data-tooltip="${r}" aria-label="${r}">${content}</button>`;
+    }).join('');
+
+    return allBtn + rarityBtns;
+}
+
+// Convertit une date jj/mm/aaaa (saisie dans le CSV) en aaaa-mm-jj (attendu par performCardAdd)
+function parseCsvDate(str) {
+    if (!str) return null;
+    const parts = str.trim().split(/[\/\-]/);
+    if (parts.length !== 3) return null;
+    const [d, m, y] = parts;
+    if (!d || !m || !y) return null;
+    return `${y.padStart(4, '20')}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+}
+
+// Cherche la carte correspondante sur TCGdex (nom + série + numéro)
+async function findTcgdexMatch(nom, serie, numero) {
+    const [frRes, enRes] = await Promise.all([
+        fetch(`${API_BASE}/cards?name=${encodeURIComponent(nom)}`),
+        fetch(`${API_EN}/cards?name=${encodeURIComponent(nom)}`)
+    ]);
+    const frData = await frRes.json();
+    const enData = await enRes.json();
+    const combined = [...(Array.isArray(frData) ? frData : []), ...(Array.isArray(enData) ? enData : [])];
+
+    const normNum = normalizeForMatch(numero).replace(/^0+/, '');
+    const normSerie = normalizeForMatch(serie);
+
+    const matches = combined.filter(c => {
+        const cNum = normalizeForMatch(c.localId).replace(/^0+/, '');
+        const cSet = normalizeForMatch(c.set?.name);
+        const numMatches = normNum === '' || cNum === normNum;
+        const serieMatches = normSerie === '' || cSet.includes(normSerie) || normSerie.includes(cSet);
+        return numMatches && serieMatches;
+    });
+
+    // Dédupliquer par id (une carte peut apparaître via la recherche FR et EN)
+    return [...new Map(matches.map(m => [m.id, m])).values()];
+}
+
+function handleCsvImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+            processCsvImportRows(results.data);
+        },
+        error: (error) => {
+            showMessage('Erreur lors de la lecture du fichier CSV', 'error');
+            console.error(error);
+        }
+    });
+
+    event.target.value = ''; // permet de réimporter le même fichier si besoin
+}
+
+async function processCsvImportRows(rows) {
+    const content = document.getElementById('csv-import-content');
+    document.getElementById('csv-import-overlay').classList.add('active');
+
+    const validRows = rows.filter(r => r.Nom && r.Nom.trim());
+    const total = validRows.length;
+
+    if (total === 0) {
+        content.innerHTML = `
+            <div class="modal-title" style="margin-bottom: 1rem;">Import CSV</div>
+            <p style="color: var(--slate);">Aucune ligne valide trouvée dans ce fichier (colonne "Nom" manquante ou vide).</p>
+            <button class="modal-save-btn full-width" style="margin-top: 1rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+        `;
+        return;
+    }
+
+    let successCount = 0;
+    const failures = [];
+
+    for (let i = 0; i < validRows.length; i++) {
+        const row = validRows[i];
+        content.innerHTML = `
+            <div class="modal-title" style="margin-bottom: 1rem;">Import en cours...</div>
+            <p style="color: var(--slate);">${i + 1} / ${total} — ${row.Nom}</p>
+        `;
+
+        try {
+            const matches = await findTcgdexMatch(row.Nom, row.Serie, row.Numero);
+
+            if (matches.length !== 1) {
+                failures.push({
+                    nom: row.Nom,
+                    raison: matches.length === 0 ? 'Aucune correspondance trouvée' : `${matches.length} correspondances possibles (ambigu)`
+                });
+                continue;
+            }
+
+            // Récupérer les détails complets (prix, image...) pour un ajout fidèle
+            let detail = null;
+            try {
+                let r = await fetch(`${API_BASE}/cards/${matches[0].id}`);
+                let d = await r.json();
+                if (!d || d.status) {
+                    const r2 = await fetch(`${API_EN}/cards/${matches[0].id}`);
+                    d = await r2.json();
+                }
+                if (d && !d.status) detail = d;
+            } catch (e) { /* on utilisera le filet de sécurité ci-dessous */ }
+
+            if (!detail) detail = matches[0];
+
+            const condition = (row.Etat || 'NM').trim().toUpperCase();
+            const quantity = parseInt(row.Quantite) || 1;
+            const purchasePrice = parseFloat((row.Prix || '0').replace(',', '.')) || 0;
+            const acquisitionType = normalizeForMatch(row.Obtention) === 'booster' ? 'pack' : 'achat';
+            const customDate = parseCsvDate(row.Date);
+
+            await performCardAdd(detail, {
+                condition: ['NM', 'LP', 'MP', 'HP'].includes(condition) ? condition : 'NM',
+                quantity,
+                acquisitionType,
+                purchasePrice,
+                customImage: null,
+                customDate
+            });
+
+            successCount++;
+        } catch (error) {
+            failures.push({ nom: row.Nom, raison: 'Erreur inattendue' });
+            console.error(error);
+        }
+    }
+
+    await refreshCollection();
+    await recordValueSnapshot();
+
+    const failuresHtml = failures.length === 0
+        ? ''
+        : `
+            <div style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
+                <div style="color: var(--slate); font-size: 0.8rem; margin-bottom: 0.5rem;">Lignes ignorées :</div>
+                ${failures.map(f => `
+                    <div style="font-size: 0.8rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+                        <strong>${f.nom}</strong> — <span style="color: var(--slate);">${f.raison}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+    content.innerHTML = `
+        <div class="modal-title" style="margin-bottom: 1rem;">Import terminé</div>
+        <p style="color: var(--text-primary);">
+            <span style="color: #4ade80; font-weight: 700;">${successCount}</span> carte(s) ajoutée(s)
+            ${failures.length > 0 ? `· <span style="color: #ff6b6b; font-weight: 700;">${failures.length}</span> ignorée(s)` : ''}
+        </p>
+        ${failuresHtml}
+        <button class="modal-save-btn full-width" style="margin-top: 1.25rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+    `;
+}
+
 function filterAndDisplay() {
     const searchTerm = document.getElementById('search-collection').value.toLowerCase();
     const conditionFilter = document.getElementById('filter-condition').value;
     const seriesFilter = document.getElementById('filter-collection-series').value;
-    const rarityFilter = document.getElementById('filter-collection-rarity').value;
     const typeFilter = document.getElementById('filter-collection-type').value;
 
     let filtered = allCollectionCards;
@@ -1177,8 +1452,8 @@ function filterAndDisplay() {
     if (seriesFilter) {
         filtered = filtered.filter(c => c.series === seriesFilter);
     }
-    if (rarityFilter) {
-        filtered = filtered.filter(c => c.rarity === rarityFilter);
+    if (collectionRarityFilterValues.size > 0) {
+        filtered = filtered.filter(c => collectionRarityFilterValues.has(c.rarity));
     }
     if (typeFilter) {
         filtered = filtered.filter(c => c.type === typeFilter);
@@ -1228,7 +1503,7 @@ function renderCollectionTable(filtered) {
                 <span class="badge ${(card.condition || '').toLowerCase()}">${card.condition}</span>
                 <span title="${acquisitionTitle}" class="acquisition-icon">${acquisitionIcon}</span>
             </td>
-            <td>${card.rarity || 'N/A'}</td>
+            <td>${getRarityIconHtml(card.rarity)} ${card.rarity || 'N/A'}</td>
             <td style="text-align: center;">
                 <div class="qty-stepper">
                     <button onclick="changeQuantity(${card.id}, -1)"><i class="ti ti-minus" aria-hidden="true"></i></button>
@@ -1273,6 +1548,7 @@ function renderCollectionGrid(filtered) {
                 }
                 ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
                 <div class="price-badge">${lineTotal.toFixed(2)}€</div>
+                ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${card.rarity}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
                 <div class="collection-card-overlay">
                     <div class="collection-card-name">${card.name}</div>
                     <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${card.series} · #${card.number}</div>
@@ -1344,7 +1620,7 @@ function showCardDetail(cardId) {
                 <div class="modal-subtitle">${card.series} · #${card.number}</div>
 
                 <div class="modal-badges">
-                    <span class="modal-pill rarity-pill">⭐ ${card.rarity || 'N/A'}</span>
+                    <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
                     <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
                     <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
                 </div>
@@ -2382,7 +2658,6 @@ function renderValueHistoryChart() {
 document.getElementById('search-collection').addEventListener('input', filterAndDisplay);
 document.getElementById('filter-condition').addEventListener('change', filterAndDisplay);
 document.getElementById('filter-collection-series').addEventListener('change', filterAndDisplay);
-document.getElementById('filter-collection-rarity').addEventListener('change', filterAndDisplay);
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeCardDetail();
 });
@@ -2758,6 +3033,7 @@ async function handleProgressionSeriesLogoUpload(event, setId) {
 async function openSetProgression(setId, setName, logoUrl) {
     currentProgressionSetId = setId;
     progressionFilter = 'all';
+    progressionRarityFilterValues.clear();
     document.getElementById('progression-search').value = '';
     document.querySelectorAll('#tab-progression .view-toggle-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('prog-filter-all').classList.add('active');
@@ -2831,11 +3107,24 @@ async function openSetProgression(setId, setName, logoUrl) {
     }
 }
 
+let progressionRarityFilterValues = new Set();
+
+function setProgressionRarityFilter(value) {
+    if (value === '') {
+        progressionRarityFilterValues.clear();
+    } else if (progressionRarityFilterValues.has(value)) {
+        progressionRarityFilterValues.delete(value);
+    } else {
+        progressionRarityFilterValues.add(value);
+    }
+    populateProgressionRarityFilter();
+    renderProgressionCardsGrid();
+}
+
 function populateProgressionRarityFilter() {
-    const select = document.getElementById('progression-rarity-filter');
-    const rarities = [...new Set(currentProgressionCards.map(c => c.rarity).filter(Boolean))].sort();
-    select.innerHTML = '<option value="">Toutes les raretés</option>' +
-        rarities.map(r => `<option value="${r}">${r}</option>`).join('');
+    const rarities = sortRaritiesByTier([...new Set(currentProgressionCards.map(c => c.rarity).filter(Boolean))]);
+    document.getElementById('progression-rarity-filter-row').innerHTML =
+        buildRarityFilterRowHtml(rarities, progressionRarityFilterValues, 'setProgressionRarityFilter');
 }
 
 function renderProgressionCardsGrid() {
@@ -2861,9 +3150,8 @@ function renderProgressionCardsGrid() {
         cards = cards.filter(c => !ownedIds.has(c.id));
     }
 
-    const rarityFilter = document.getElementById('progression-rarity-filter').value;
-    if (rarityFilter) {
-        cards = cards.filter(c => c.rarity === rarityFilter);
+    if (progressionRarityFilterValues.size > 0) {
+        cards = cards.filter(c => progressionRarityFilterValues.has(c.rarity));
     }
 
     cards = [...cards].sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));
@@ -2973,7 +3261,7 @@ function showAddCardModal(card) {
                 <div class="modal-subtitle">${card.set?.name || 'N/A'} · #${card.localId || '?'}</div>
 
                 <div class="modal-badges">
-                    <span class="modal-pill rarity-pill">⭐ ${card.rarity || 'N/A'}</span>
+                    <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
                     ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${marketPrice.toFixed(2)}€ (marché)</span>` : ''}
                 </div>
 
@@ -3072,7 +3360,6 @@ async function submitQuickAdd(card) {
 }
 
 document.getElementById('progression-search').addEventListener('input', renderProgressionCardsGrid);
-document.getElementById('progression-rarity-filter').addEventListener('change', renderProgressionCardsGrid);
 document.getElementById('month-summary-select').addEventListener('change', renderMonthlySummary);
 
 // Initialise Flatpickr avec le thème et la locale de l'app sur un champ de date donné

@@ -190,9 +190,6 @@
                 <select id="filter-collection-series">
                     <option value="">Toutes les séries</option>
                 </select>
-                <select id="filter-collection-rarity">
-                    <option value="">Toutes les raretés</option>
-                </select>
                 <select id="filter-collection-type">
                     <option value="">Tous les types</option>
                 </select>
@@ -204,6 +201,7 @@
                     <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
                     <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
                 </div>
+                <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
                 <select id="grid-sort" class="grid-sort-select">
                     <option value="">Trier par...</option>
                     <option value="name-asc">Nom (A→Z)</option>
@@ -212,7 +210,15 @@
                     <option value="value-asc">Valeur (moins cher d'abord)</option>
                     <option value="quantity-desc">Quantité (plus d'abord)</option>
                 </select>
-                <button class="filter-toggle-btn" onclick="exportCollectionToCSV()"><i class="ti ti-file-download" aria-hidden="true"></i> Exporter en CSV</button>
+                <div class="csv-dropdown-wrap">
+                    <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> CSV <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                    <div class="csv-dropdown-menu" id="csv-dropdown-menu">
+                        <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
+                        <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
+                        <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
+                    </div>
+                    <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+                </div>
             </div>
 
             <div class="collection-display-case" id="collection-grid-wrapper">
@@ -272,9 +278,7 @@
                         <button class="view-toggle-btn" id="prog-filter-owned" onclick="setProgressionFilter('owned')">Possédées</button>
                         <button class="view-toggle-btn" id="prog-filter-missing" onclick="setProgressionFilter('missing')">Manquantes</button>
                     </div>
-                    <select id="progression-rarity-filter" class="grid-sort-select">
-                        <option value="">Toutes les raretés</option>
-                    </select>
+                    <div class="rarity-filter-row" id="progression-rarity-filter-row"></div>
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
                         <input type="text" id="progression-search" placeholder="Nom ou numéro...">
@@ -413,6 +417,11 @@
         <div class="modal-card" id="confirm-modal-content" style="max-width: 380px;"></div>
     </div>
 
+    <!-- MODALE DE PROGRESSION / RAPPORT D'IMPORT CSV -->
+    <div class="modal-overlay" id="csv-import-overlay">
+        <div class="modal-card" id="csv-import-content" style="max-width: 480px;"></div>
+    </div>
+
     <!-- MODALE DETAIL CARTE -->
     <div class="modal-overlay" id="card-detail-overlay" onclick="if(event.target===this) closeCardDetail()">
         <div class="modal-card" id="card-detail-card"></div>
@@ -422,7 +431,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
-    <script src="tracker.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+    <script src="tracker.js?v=7"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
