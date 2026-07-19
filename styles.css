@@ -535,6 +535,19 @@ header p {
     align-items: start;
 }
 
+.duplicate-alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(63, 167, 161, 0.15);
+    color: var(--teal);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+}
+
 .preview-image {
     text-align: center;
 }

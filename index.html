@@ -30,7 +30,6 @@
                 <img src="images/icon-192.png" alt="" class="header-logo">
                 <h1>Pokémon Collection Tracker</h1>
             </div>
-            <p>Gérez votre collection de cartes Pokémon</p>
         </header>
 
         <div class="hero-value-card">
@@ -100,7 +99,9 @@
                     <div class="preview-image">
                         <img id="preview-img" src="" alt="Carte">
                     </div>
-                    <div class="preview-info">
+                    <div class="preview-content-body">
+                        <div id="preview-duplicate-alert" style="display: none;"></div>
+                        <div class="preview-info">
                         <div>
                             <div class="preview-info-label">Nom</div>
                             <div class="preview-info-value" id="preview-name">-</div>
@@ -127,6 +128,7 @@
                         <div>
                             <div class="preview-info-label">Prix (CardMarket)</div>
                             <div class="preview-info-value" id="preview-price">-</div>
+                        </div>
                         </div>
                     </div>
                 </div>

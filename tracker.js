@@ -423,6 +423,24 @@ function selectCard(card) {
     customPreviewImage = null;
     document.getElementById('search-results').classList.remove('active');
 
+    // Vérifier si cette carte est déjà dans la collection (par identifiant TCGdex)
+    const duplicateAlert = document.getElementById('preview-duplicate-alert');
+    const ownedRows = card.id ? allCollectionCards.filter(c => c.tcgdex_id === card.id) : [];
+    if (ownedRows.length > 0) {
+        const totalQty = ownedRows.reduce((sum, r) => sum + Number(r.quantity || 1), 0);
+        const conditionsCount = {};
+        ownedRows.forEach(r => {
+            conditionsCount[r.condition] = (conditionsCount[r.condition] || 0) + Number(r.quantity || 1);
+        });
+        const conditionsText = Object.entries(conditionsCount).map(([cond, qty]) => `${cond} ×${qty}`).join(', ');
+
+        duplicateAlert.innerHTML = `<span class="duplicate-alert-badge"><i class="ti ti-copy" aria-hidden="true"></i> Tu en as déjà ${totalQty} (${conditionsText})</span>`;
+        duplicateAlert.style.display = 'block';
+    } else {
+        duplicateAlert.style.display = 'none';
+        duplicateAlert.innerHTML = '';
+    }
+
     const imageUrl = card.image ? `${card.image}/high.png` : '';
     const previewImageContainer = document.querySelector('.preview-image');
 
