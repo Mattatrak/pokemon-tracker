@@ -207,6 +207,24 @@ function resizeImageToWebpBlob(file, maxWidth = 300) {
 
 // Upload manuel d'un logo de série : même chemin déterministe que l'auto-téléchargement (dédup garantie),
 // et applique le logo à TOUTES les cartes déjà en collection pour ce set
+async function uploadSeriesSymbolManually(file, setId) {
+    const blob = await resizeImageToWebpBlob(file, 100);
+    const path = getSeriesSymbolPath(setId);
+
+    const { error: uploadError } = await supabaseClient.storage
+        .from('card-images')
+        .upload(path, blob, { contentType: 'image/webp', upsert: true });
+    if (uploadError) throw uploadError;
+
+    const { data } = supabaseClient.storage.from('card-images').getPublicUrl(path);
+    const symbolUrl = data.publicUrl;
+
+    // Appliquer à toutes les cartes de ce set déjà en collection
+    await supabaseClient.from('cards').update({ series_symbol: symbolUrl }).like('tcgdex_id', `${setId}-%`);
+
+    return symbolUrl;
+}
+
 async function uploadSeriesLogoManually(file, setId) {
     const blob = await resizeImageToWebpBlob(file, 300);
     const path = getSeriesLogoPath(setId);
@@ -239,6 +257,37 @@ async function checkExistingSeriesLogo(setId) {
 }
 
 // Télécharge le logo d'une série (une seule fois par set, réutilisé pour toutes ses cartes)
+function getSeriesSymbolPath(setId) {
+    return `symbols/${sanitizeForPath(setId)}.webp`;
+}
+
+async function fetchAndUploadSeriesSymbol(symbolBaseUrl, setId) {
+    const path = getSeriesSymbolPath(setId);
+
+    const { data: existing } = await supabaseClient.storage
+        .from('card-images')
+        .list('symbols', { search: `${sanitizeForPath(setId)}.webp` });
+
+    if (existing && existing.length > 0) {
+        const { data } = supabaseClient.storage.from('card-images').getPublicUrl(path);
+        return data.publicUrl;
+    }
+
+    const response = await fetch(`${symbolBaseUrl}.webp`);
+    if (!response.ok) throw new Error('Symbole introuvable sur TCGdex');
+
+    const blob = await response.blob();
+
+    const { error: uploadError } = await supabaseClient.storage
+        .from('card-images')
+        .upload(path, blob, { contentType: 'image/webp', upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabaseClient.storage.from('card-images').getPublicUrl(path);
+    return data.publicUrl;
+}
+
 async function fetchAndUploadSeriesLogo(logoBaseUrl, setId) {
     const path = getSeriesLogoPath(setId);
 
@@ -821,9 +870,21 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         return null;
     })();
 
+    const symbolPromise = (async () => {
+        if (card.set?.symbol && card.set?.id) {
+            try {
+                return await fetchAndUploadSeriesSymbol(card.set.symbol, card.set.id);
+            } catch (error) {
+                console.error('Symbole de set non récupéré:', error);
+                return null;
+            }
+        }
+        return null;
+    })();
+
     const existingRowPromise = findExistingCardRow(card.id, name, series, number, condition);
 
-    const [imageUrl, seriesLogoUrl, existingRow] = await Promise.all([imagePromise, logoPromise, existingRowPromise]);
+    const [imageUrl, seriesLogoUrl, seriesSymbolUrl, existingRow] = await Promise.all([imagePromise, logoPromise, symbolPromise, existingRowPromise]);
 
     let marketValue = 0;
     if (card.pricing?.cardmarket?.avg) {
@@ -841,6 +902,7 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         const updatePayload = { quantity: newQuantity, market_value: marketValue };
         if (!existingRow.image && imageUrl) updatePayload.image = imageUrl;
         if (!existingRow.series_logo && seriesLogoUrl) updatePayload.series_logo = seriesLogoUrl;
+        if (!existingRow.series_symbol && seriesSymbolUrl) updatePayload.series_symbol = seriesSymbolUrl;
         if (!existingRow.cardmarket_id && card.pricing?.cardmarket?.idProduct) {
             updatePayload.cardmarket_id = card.pricing.cardmarket.idProduct;
         }
@@ -881,6 +943,7 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             quantity,
             image: imageUrl,
             series_logo: seriesLogoUrl,
+            series_symbol: seriesSymbolUrl,
             tcgdex_id: card.id || null,
             cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
             date_added: dateAddedStr,
@@ -1719,7 +1782,10 @@ function renderCollectionGrid(filtered) {
                 }
                 ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
                 <div class="price-badge">${lineTotal.toFixed(2)}€</div>
-                ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${card.rarity}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
+                <div class="set-rarity-badge-row">
+                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${card.series}" onerror="this.remove()">` : ''}
+                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${card.rarity}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
+                </div>
                 <div class="collection-card-overlay">
                     <div class="collection-card-name">${card.name}</div>
                     <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${card.series} · #${card.number}</div>
@@ -1794,6 +1860,12 @@ function showCardDetail(cardId) {
                     <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
                     <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
                     <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
+                    ${!card.series_symbol && card.tcgdex_id ? `
+                        <span class="modal-pill symbol-upload-pill" onclick="document.getElementById('modal-symbol-upload-input').click()">
+                            <i class="ti ti-plus" aria-hidden="true"></i> Symbole du set
+                        </span>
+                        <input type="file" id="modal-symbol-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesSymbolUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
+                    ` : ''}
                 </div>
 
                 <div class="modal-price-row">
@@ -2120,6 +2192,22 @@ async function saveCardEdits(cardId) {
 
 function closeCardDetail() {
     document.getElementById('card-detail-overlay').classList.remove('active');
+}
+
+async function handleModalSeriesSymbolUpload(event, setId, cardId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        showMessage('Envoi du symbole...', 'success');
+        await uploadSeriesSymbolManually(file, setId);
+        showMessage('Symbole ajouté ! Il sera visible sur toutes les cartes de cette série.', 'success');
+        await refreshCollection();
+        showCardDetail(cardId);
+    } catch (error) {
+        showMessage('Erreur lors de l\'envoi du symbole', 'error');
+        console.error(error);
+    }
 }
 
 async function handleModalSeriesLogoUpload(event, setId, cardId) {
@@ -2952,6 +3040,7 @@ async function refreshAllMarketPrices() {
     const uniqueIds = [...new Set(cardsWithId.map(c => c.tcgdex_id))];
     const priceMap = {};
     const pricingDetailMap = {};
+    const setInfoMap = {};
     let done = 0;
 
     btn.disabled = true;
@@ -2977,6 +3066,7 @@ async function refreshAllMarketPrices() {
                 }
                 priceMap[id] = price;
                 pricingDetailMap[id] = data?.pricing?.cardmarket || null;
+                setInfoMap[id] = data?.set || null;
             } catch (error) {
                 console.error(`Erreur récupération prix pour ${id}:`, error);
             }
@@ -3052,6 +3142,39 @@ async function refreshAllMarketPrices() {
         if (backfillRows.length > 0) {
             const { error: backfillError } = await supabaseClient.from('card_price_history').insert(backfillRows);
             if (backfillError) console.error('Erreur enrichissement historique prix:', backfillError);
+        }
+    }));
+
+    // Rattraper le logo et le symbole de série pour les cartes qui n'en ont pas encore (ex: ajoutées
+    // avant l'introduction de ces fonctionnalités) - en réutilisant les détails déjà récupérés ci-dessus
+    await Promise.all(uniqueIds.map(async (id) => {
+        const setInfo = setInfoMap[id];
+        if (!setInfo) return;
+
+        const rowsForThisCard = allCollectionCards.filter(c => c.tcgdex_id === id);
+        const missingLogo = rowsForThisCard.some(c => !c.series_logo) && setInfo.logo;
+        const missingSymbol = rowsForThisCard.some(c => !c.series_symbol) && setInfo.symbol;
+        if (!missingLogo && !missingSymbol) return;
+
+        const updatePayload = {};
+        if (missingLogo) {
+            try {
+                updatePayload.series_logo = await fetchAndUploadSeriesLogo(setInfo.logo, setInfo.id);
+            } catch (error) {
+                console.error('Rattrapage logo échoué:', error);
+            }
+        }
+        if (missingSymbol) {
+            try {
+                updatePayload.series_symbol = await fetchAndUploadSeriesSymbol(setInfo.symbol, setInfo.id);
+            } catch (error) {
+                console.error('Rattrapage symbole échoué:', error);
+            }
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+            const { error } = await supabaseClient.from('cards').update(updatePayload).eq('tcgdex_id', id);
+            if (error) console.error('Erreur mise à jour logo/symbole:', error);
         }
     }));
 

@@ -1002,11 +1002,25 @@ button:disabled {
     border: 1px solid rgba(255,255,255,0.15);
 }
 
-.rarity-badge-corner {
+.set-rarity-badge-row {
     position: absolute;
     bottom: 0.5rem;
     right: 0.5rem;
     z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.set-symbol-badge {
+    height: 20px;
+    width: auto;
+    max-width: 28px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.rarity-badge-corner {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
 }
 
@@ -2087,6 +2101,19 @@ tbody tr:hover {
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 700;
+}
+
+.symbol-upload-pill {
+    background: var(--panel-light);
+    color: var(--slate);
+    border: 1px dashed rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.symbol-upload-pill:hover {
+    border-color: var(--gold);
+    color: var(--gold);
 }
 
 .rarity-icon {
