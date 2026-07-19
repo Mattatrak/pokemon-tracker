@@ -587,7 +587,91 @@ async function findExistingCardRow(tcgdexId, name, series, number, condition) {
 }
 
 // Logique partagée d'ajout/fusion d'une carte en collection (utilisée par l'onglet Ajouter ET la vignette rapide depuis Progression)
-async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart }) {
+// Enregistre un ajout dans l'historique mensuel persistant (indépendant des suppressions futures)
+// Ajuste (positivement ou négativement) les compteurs d'un mois donné, pour réconcilier
+// l'historique quand une carte existante est modifiée (date, quantité, prix payé)
+async function adjustMonthlyStatsAmount(monthKey, quantityDelta, spentDelta, valueDelta) {
+    const { data: existing, error: fetchError } = await supabaseClient
+        .from('monthly_summary')
+        .select('*')
+        .eq('month', monthKey)
+        .maybeSingle();
+
+    if (fetchError) {
+        console.error('Erreur lecture historique mensuel:', fetchError);
+        return;
+    }
+
+    if (existing) {
+        const { error } = await supabaseClient.from('monthly_summary').update({
+            cards_added: Math.max(0, Number(existing.cards_added || 0) + quantityDelta),
+            total_spent: Math.max(0, Number(existing.total_spent || 0) + spentDelta),
+            value_added: Math.max(0, Number(existing.value_added || 0) + valueDelta),
+            updated_at: new Date().toISOString()
+        }).eq('id', existing.id);
+        if (error) console.error('Erreur ajustement historique mensuel:', error);
+    } else if (quantityDelta > 0) {
+        const { error } = await supabaseClient.from('monthly_summary').insert([{
+            month: monthKey,
+            cards_added: quantityDelta,
+            total_spent: Math.max(0, spentDelta),
+            value_added: Math.max(0, valueDelta)
+        }]);
+        if (error) console.error('Erreur création historique mensuel:', error);
+    }
+}
+
+async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName, date }) {
+    const targetDate = date || new Date();
+    const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const { data: existing, error: fetchError } = await supabaseClient
+        .from('monthly_summary')
+        .select('*')
+        .eq('month', monthKey)
+        .maybeSingle();
+
+    if (fetchError) {
+        console.error('Erreur lecture historique mensuel:', fetchError);
+        return;
+    }
+
+    const addedSpent = purchasePrice * quantity;
+    const addedValue = marketValue * quantity;
+
+    if (existing) {
+        let topCardName = existing.top_card_name;
+        let topCardValue = Number(existing.top_card_value || 0);
+        if (marketValue > topCardValue) {
+            topCardValue = marketValue;
+            topCardName = cardName;
+        }
+
+        const { error } = await supabaseClient.from('monthly_summary').update({
+            cards_added: Number(existing.cards_added || 0) + quantity,
+            total_spent: Number(existing.total_spent || 0) + addedSpent,
+            value_added: Number(existing.value_added || 0) + addedValue,
+            top_card_name: topCardName,
+            top_card_value: topCardValue,
+            updated_at: new Date().toISOString()
+        }).eq('id', existing.id);
+
+        if (error) console.error('Erreur mise à jour historique mensuel:', error);
+    } else {
+        const { error } = await supabaseClient.from('monthly_summary').insert([{
+            month: monthKey,
+            cards_added: quantity,
+            total_spent: addedSpent,
+            value_added: addedValue,
+            top_card_name: cardName,
+            top_card_value: marketValue
+        }]);
+
+        if (error) console.error('Erreur création historique mensuel:', error);
+    }
+}
+
+async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart, customDate }) {
     let imageUrl = '';
 
     if (customImage) {
@@ -627,6 +711,10 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             .then(({ error }) => { if (error) console.error('Erreur historique prix carte:', error); });
     }
 
+    // Date d'acquisition : utilise la date fournie (antidatage) ou aujourd'hui par défaut
+    const acquisitionDate = customDate ? new Date(customDate + 'T12:00:00') : new Date();
+    const dateAddedStr = acquisitionDate.toLocaleDateString('fr-FR');
+
     const name = card.name || '?';
     const series = card.set?.name || 'N/A';
     const number = card.localId || '?';
@@ -644,6 +732,8 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
 
         const { error } = await supabaseClient.from('cards').update(updatePayload).eq('id', existingRow.id);
         if (error) throw error;
+
+        await recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate });
         return { merged: true, newQuantity };
     }
 
@@ -667,9 +757,12 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         series_logo: seriesLogoUrl,
         tcgdex_id: card.id || null,
         cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
-        date_added: new Date().toLocaleDateString('fr-FR')
+        date_added: dateAddedStr,
+        created_at: acquisitionDate.toISOString()
     }]);
     if (error) throw error;
+
+    await recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate });
     return { merged: false };
 }
 
@@ -685,6 +778,7 @@ async function addCard() {
     const purchasePrice = acquisitionType === 'pack'
         ? 0
         : (parseFloat(document.getElementById('card-value').value) || 0);
+    const customDate = document.getElementById('card-date-added').value || null;
 
     const addBtn = document.querySelector('.form-section .full-width');
     const originalBtnText = addBtn.textContent;
@@ -698,6 +792,7 @@ async function addCard() {
             acquisitionType,
             purchasePrice,
             customImage: customPreviewImage,
+            customDate,
             onImageUploadStart: () => { addBtn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
         });
     } catch (error) {
@@ -722,6 +817,8 @@ async function addCard() {
     document.getElementById('card-condition').value = 'NM';
     document.getElementById('card-value').value = '';
     document.getElementById('card-acquisition').value = 'achat';
+    const cardDateInput = document.getElementById('card-date-added');
+    if (cardDateInput._flatpickr) cardDateInput._flatpickr.clear();
     document.getElementById('purchase-price-group').style.display = '';
     document.getElementById('card-preview').classList.remove('active');
     selectedCard = null;
@@ -733,7 +830,7 @@ async function addCard() {
 }
 
 async function deleteCard(id) {
-    if (!confirm('Supprimer cette carte ?')) return;
+    if (!await showConfirmModal('Supprimer cette carte ?', 'Supprimer')) return;
 
     const { error } = await supabaseClient.from('cards').delete().eq('id', id);
 
@@ -754,7 +851,7 @@ async function changeQuantity(id, delta) {
     const newQuantity = Number(card.quantity || 1) + delta;
 
     if (newQuantity <= 0) {
-        if (!confirm('Retirer complètement cette carte de la collection ?')) return;
+        if (!await showConfirmModal('Retirer complètement cette carte de la collection ?', 'Retirer')) return;
         const { error } = await supabaseClient.from('cards').delete().eq('id', id);
         if (error) {
             showMessage('Erreur lors de la suppression', 'error');
@@ -1471,6 +1568,10 @@ function showCardEditForm(cardId) {
                         <label for="edit-purchase-price">Prix payé (€)</label>
                         <input type="number" id="edit-purchase-price" value="${Number(card.purchase_price || 0).toFixed(2)}" step="0.01" min="0">
                     </div>
+                    <div class="form-group">
+                        <label for="edit-date-added">Date d'acquisition</label>
+                        <input type="text" id="edit-date-added" value="${card.created_at ? new Date(card.created_at).toISOString().split('T')[0] : ''}">
+                    </div>
                 </div>
 
                 <div class="modal-edit-actions">
@@ -1482,6 +1583,7 @@ function showCardEditForm(cardId) {
     `;
 
     document.getElementById('card-detail-overlay').classList.add('active');
+    initDatePicker('#edit-date-added');
 }
 
 function toggleEditPurchasePriceField() {
@@ -1496,19 +1598,45 @@ async function saveCardEdits(cardId) {
     const purchasePrice = acquisitionType === 'pack'
         ? 0
         : (parseFloat(document.getElementById('edit-purchase-price').value) || 0);
+    const dateValue = document.getElementById('edit-date-added').value;
 
-    const { error } = await supabaseClient.from('cards').update({
+    const existingCard = allCollectionCards.find(c => c.id === cardId);
+    if (!existingCard) return;
+
+    const marketValue = Number(existingCard.market_value || 0);
+
+    // Ancienne contribution (avant modification) pour retirer du bon mois
+    const oldQuantity = Number(existingCard.quantity || 1);
+    const oldPurchasePrice = Number(existingCard.purchase_price || 0);
+    const oldDate = existingCard.created_at ? new Date(existingCard.created_at) : new Date();
+    const oldMonthKey = `${oldDate.getFullYear()}-${String(oldDate.getMonth() + 1).padStart(2, '0')}`;
+
+    // Nouvelle date et nouvelle contribution
+    const newDate = dateValue ? new Date(dateValue + 'T12:00:00') : oldDate;
+    const newMonthKey = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const updatePayload = {
         condition,
         quantity,
         acquisition_type: acquisitionType,
         purchase_price: purchasePrice
-    }).eq('id', cardId);
+    };
+    if (dateValue) {
+        updatePayload.date_added = newDate.toLocaleDateString('fr-FR');
+        updatePayload.created_at = newDate.toISOString();
+    }
+
+    const { error } = await supabaseClient.from('cards').update(updatePayload).eq('id', cardId);
 
     if (error) {
         showMessage('Erreur lors de la modification', 'error');
         console.error(error);
         return;
     }
+
+    // Réconcilier l'historique mensuel : retirer l'ancienne contribution, ajouter la nouvelle
+    await adjustMonthlyStatsAmount(oldMonthKey, -oldQuantity, -(oldPurchasePrice * oldQuantity), -(marketValue * oldQuantity));
+    await adjustMonthlyStatsAmount(newMonthKey, quantity, purchasePrice * quantity, marketValue * quantity);
 
     showMessage('Carte mise à jour', 'success');
     await refreshCollection();
@@ -1568,35 +1696,317 @@ async function handleCollectionImageUpload(event, cardId) {
     }
 }
 
-// ===== LISTE DE SOUHAITS =====
+// ===== LISTES DE SOUHAITS (multiples) =====
 
+let allWishlists = [];
 let allWishlistItems = [];
+let expandedWishlistIds = new Set();
 
-async function refreshWishlist() {
-    const { data, error } = await supabaseClient
-        .from('wishlist')
-        .select('*')
-        .order('created_at', { ascending: false });
+async function loadWishlists() {
+    const [wishlistsRes, itemsRes] = await Promise.all([
+        supabaseClient.from('wishlists').select('*').order('created_at', { ascending: true }),
+        supabaseClient.from('wishlist').select('*').order('created_at', { ascending: false })
+    ]);
 
+    if (wishlistsRes.error) console.error('Erreur chargement listes:', wishlistsRes.error);
+    if (itemsRes.error) console.error('Erreur chargement souhaits:', itemsRes.error);
+
+    allWishlists = wishlistsRes.data || [];
+    allWishlistItems = itemsRes.data || [];
+
+    // Ouvrir la première liste par défaut si rien n'est encore déplié
+    if (expandedWishlistIds.size === 0 && allWishlists.length > 0) {
+        expandedWishlistIds.add(allWishlists[0].id);
+    }
+
+    renderWishlistsUI();
+}
+
+function toggleWishlistSection(wishlistId) {
+    if (expandedWishlistIds.has(wishlistId)) {
+        expandedWishlistIds.delete(wishlistId);
+    } else {
+        expandedWishlistIds.add(wishlistId);
+    }
+    renderWishlistsUI();
+}
+
+// ===== MODALE DE SAISIE DE TEXTE GENERIQUE (remplace prompt() natif) =====
+
+let textPromptResolve = null;
+
+function showTextPromptModal(title, defaultValue = '') {
+    return new Promise((resolve) => {
+        textPromptResolve = resolve;
+        const content = document.getElementById('text-prompt-content');
+        content.innerHTML = `
+            <button class="modal-close" onclick="closeTextPrompt()">✕</button>
+            <div class="modal-title" style="margin-bottom: 1rem;">${title}</div>
+            <input type="text" id="text-prompt-input" value="${defaultValue.replace(/"/g, '&quot;')}" style="width:100%; margin-bottom: 1.25rem;">
+            <div class="modal-edit-actions">
+                <button class="modal-save-btn" onclick="submitTextPrompt()">Valider</button>
+                <button class="modal-cancel-btn" onclick="closeTextPrompt()">Annuler</button>
+            </div>
+        `;
+        document.getElementById('text-prompt-overlay').classList.add('active');
+
+        const input = document.getElementById('text-prompt-input');
+        setTimeout(() => { input.focus(); input.select(); }, 50);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitTextPrompt();
+        });
+    });
+}
+
+function submitTextPrompt() {
+    const value = document.getElementById('text-prompt-input').value.trim();
+    document.getElementById('text-prompt-overlay').classList.remove('active');
+    if (textPromptResolve) {
+        textPromptResolve(value || null);
+        textPromptResolve = null;
+    }
+}
+
+function closeTextPrompt() {
+    document.getElementById('text-prompt-overlay').classList.remove('active');
+    if (textPromptResolve) {
+        textPromptResolve(null);
+        textPromptResolve = null;
+    }
+}
+
+// ===== MODALE DE CONFIRMATION GENERIQUE (remplace confirm() natif) =====
+
+let confirmModalResolve = null;
+
+function showConfirmModal(message, confirmLabel = 'Confirmer') {
+    return new Promise((resolve) => {
+        confirmModalResolve = resolve;
+        const content = document.getElementById('confirm-modal-content');
+        content.innerHTML = `
+            <button class="modal-close" onclick="closeConfirmModal(false)">✕</button>
+            <div class="modal-title" style="margin-bottom: 1.25rem;">${message}</div>
+            <div class="modal-edit-actions">
+                <button class="modal-delete-btn-v2" style="flex: 1; margin-top: 0;" onclick="closeConfirmModal(true)">${confirmLabel}</button>
+                <button class="modal-cancel-btn" onclick="closeConfirmModal(false)">Annuler</button>
+            </div>
+        `;
+        document.getElementById('confirm-modal-overlay').classList.add('active');
+    });
+}
+
+function closeConfirmModal(result) {
+    document.getElementById('confirm-modal-overlay').classList.remove('active');
+    if (confirmModalResolve) {
+        confirmModalResolve(result);
+        confirmModalResolve = null;
+    }
+}
+
+async function renameWishlist(wishlistId) {
+    const current = allWishlists.find(w => w.id === wishlistId);
+    if (!current) return;
+
+    const newName = await showTextPromptModal('Renommer la liste', current.name);
+    if (!newName || newName === current.name) return;
+
+    const { error } = await supabaseClient.from('wishlists').update({ name: newName }).eq('id', wishlistId);
     if (error) {
-        console.error('Erreur chargement liste de souhaits:', error);
+        showMessage('Erreur lors du renommage', 'error');
+        console.error(error);
+        return;
+    }
+    await loadWishlists();
+}
+
+async function deleteWishlist(wishlistId) {
+    const current = allWishlists.find(w => w.id === wishlistId);
+    if (!current) return;
+
+    if (!await showConfirmModal(`Supprimer la liste "${current.name}" et toutes les cartes qu'elle contient ?`, 'Supprimer')) return;
+
+    const { error } = await supabaseClient.from('wishlists').delete().eq('id', wishlistId);
+    if (error) {
+        showMessage('Erreur lors de la suppression de la liste', 'error');
+        console.error(error);
         return;
     }
 
-    allWishlistItems = data || [];
-    renderWishlist();
+    expandedWishlistIds.delete(wishlistId);
+    await loadWishlists();
 }
 
-async function addToWishlist() {
+async function deleteWishlistItem(itemId) {
+    if (!await showConfirmModal('Retirer cette carte de cette liste ?', 'Retirer')) return;
+
+    const { error } = await supabaseClient.from('wishlist').delete().eq('id', itemId);
+    if (error) {
+        showMessage('Erreur lors de la suppression', 'error');
+        console.error(error);
+        return;
+    }
+
+    await loadWishlists();
+}
+
+// Ajoute la carte à la collection (sans la retirer de la liste de souhaits)
+async function markWishlistItemOwned(itemId) {
+    const item = allWishlistItems.find(w => w.id === itemId);
+    if (!item) return;
+
+    let cardData = null;
+    if (item.tcgdex_id) {
+        try {
+            let response = await fetch(`${API_BASE}/cards/${item.tcgdex_id}`);
+            let detail = await response.json();
+            if (!detail || detail.status) {
+                const enResponse = await fetch(`${API_EN}/cards/${item.tcgdex_id}`);
+                detail = await enResponse.json();
+            }
+            if (detail && !detail.status) cardData = detail;
+        } catch (error) {
+            console.error('Erreur récupération détails carte:', error);
+        }
+    }
+
+    // Filet de sécurité si TCGdex ne répond pas : on reconstruit un objet minimal à partir des données stockées
+    if (!cardData) {
+        cardData = {
+            id: item.tcgdex_id || null,
+            name: item.name,
+            localId: item.number,
+            rarity: item.rarity,
+            set: { name: item.series },
+            image: null
+        };
+    }
+
+    try {
+        await performCardAdd(cardData, {
+            condition: 'NM',
+            quantity: 1,
+            acquisitionType: 'achat',
+            purchasePrice: 0,
+            customImage: null
+        });
+    } catch (error) {
+        showMessage('Erreur lors de l\'ajout à la collection', 'error');
+        console.error(error);
+        return;
+    }
+
+    showMessage('Ajoutée à ta collection ! Pense à ajuster l\'état et le prix si besoin.', 'success');
+    await refreshCollection();
+    await recordValueSnapshot();
+    renderWishlistsUI();
+}
+
+function renderWishlistsUI() {
+    const container = document.getElementById('wishlists-container');
+    if (!container) return;
+
+    if (allWishlists.length === 0) {
+        container.innerHTML = '<p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l\'instant</p>';
+        return;
+    }
+
+    const ownedTcgdexIds = new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id));
+
+    container.innerHTML = allWishlists.map(list => {
+        const items = allWishlistItems.filter(i => i.wishlist_id === list.id);
+        const isExpanded = expandedWishlistIds.has(list.id);
+
+        const itemsHtml = items.length === 0
+            ? '<p class="empty-state" style="padding: 1.5rem;">Aucune carte dans cette liste</p>'
+            : `<div class="wishlist-grid">${items.map(item => {
+                const owned = item.tcgdex_id && ownedTcgdexIds.has(item.tcgdex_id);
+                return `
+                    <div class="wishlist-card">
+                        ${item.image
+                            ? `<img src="${item.image}" alt="${item.name}" class="wishlist-card-img" onerror="this.style.display='none'">`
+                            : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
+                        }
+                        <div class="wishlist-card-info">
+                            <div class="wishlist-card-name">${item.name}</div>
+                            <div class="wishlist-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${item.series} - #${item.number}</div>
+                        </div>
+                        <div class="wishlist-card-actions">
+                            ${owned
+                                ? '<span class="wishlist-owned-badge"><i class="ti ti-check" aria-hidden="true"></i> Déjà dans ta collection</span>'
+                                : `<button class="wishlist-got-btn" onclick="markWishlistItemOwned(${item.id})"><i class="ti ti-check" aria-hidden="true"></i> Je l'ai !</button>`
+                            }
+                            <button class="delete-btn" onclick="deleteWishlistItem(${item.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}</div>`;
+
+        return `
+            <div class="wishlist-section">
+                <div class="wishlist-section-header" onclick="toggleWishlistSection(${list.id})">
+                    <div class="wishlist-section-title">
+                        <i class="ti ti-chevron-right wishlist-chevron ${isExpanded ? 'expanded' : ''}" aria-hidden="true"></i>
+                        <span>${list.name}</span>
+                        <span class="wishlist-count-badge">${items.length}</span>
+                    </div>
+                    <div class="wishlist-section-actions">
+                        <button onclick="event.stopPropagation(); renameWishlist(${list.id})" title="Renommer"><i class="ti ti-edit" aria-hidden="true"></i></button>
+                        <button onclick="event.stopPropagation(); deleteWishlist(${list.id})" title="Supprimer la liste"><i class="ti ti-trash" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="wishlist-section-body" style="display: ${isExpanded ? 'block' : 'none'};">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ===== FENETRE DE CHOIX / CREATION DE LISTE (au moment d'ajouter une carte) =====
+
+function openWishlistPicker() {
     if (!selectedCard) {
         showMessage('Veuillez sélectionner une carte', 'error');
         return;
     }
+    renderWishlistPicker();
+    document.getElementById('wishlist-picker-overlay').classList.add('active');
+}
+
+function closeWishlistPicker() {
+    document.getElementById('wishlist-picker-overlay').classList.remove('active');
+}
+
+function renderWishlistPicker() {
+    const content = document.getElementById('wishlist-picker-content');
+    const listsHtml = allWishlists.map(list => `
+        <div class="wishlist-picker-item" onclick="addCardToSpecificWishlist(${list.id})">
+            <span>${list.name}</span>
+            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </div>
+    `).join('');
+
+    content.innerHTML = `
+        <button class="modal-close" onclick="closeWishlistPicker()">✕</button>
+        <div class="modal-title" style="margin-bottom: 1rem;">Ajouter à quelle liste ?</div>
+        <div class="wishlist-picker-list">
+            ${listsHtml || '<p class="empty-state" style="padding: 1rem;">Aucune liste pour l\'instant</p>'}
+        </div>
+        <div class="wishlist-picker-new">
+            <input type="text" id="new-wishlist-name" placeholder="Nom d'une nouvelle liste">
+            <button class="wishlist-picker-add-btn" onclick="createWishlistAndAddCard()"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter</button>
+        </div>
+    `;
+}
+
+async function addCardToSpecificWishlist(wishlistId) {
+    if (!selectedCard) return;
 
     let imageUrl = customPreviewImage || (selectedCard.image ? `${selectedCard.image}/high.png` : '');
     const logoUrl = selectedCard.set?.logo ? `${selectedCard.set.logo}.webp` : null;
 
     const { error } = await supabaseClient.from('wishlist').insert([{
+        wishlist_id: wishlistId,
         tcgdex_id: selectedCard.id || null,
         name: selectedCard.name || '?',
         series: selectedCard.set?.name || 'N/A',
@@ -1613,97 +2023,46 @@ async function addToWishlist() {
     }
 
     showMessage('Ajoutée à ta liste de souhaits !', 'success');
+    closeWishlistPicker();
     document.getElementById('card-preview').classList.remove('active');
     selectedCard = null;
     customPreviewImage = null;
 
-    await refreshWishlist();
+    await loadWishlists();
 }
 
-async function deleteWishlistItem(id) {
-    if (!confirm('Retirer cette carte de la liste de souhaits ?')) return;
+async function createWishlistAndAddCard() {
+    const input = document.getElementById('new-wishlist-name');
+    const name = input.value.trim();
+    if (!name) {
+        showMessage('Donne un nom à ta nouvelle liste', 'error');
+        return;
+    }
 
-    const { error } = await supabaseClient.from('wishlist').delete().eq('id', id);
+    const { data, error } = await supabaseClient.from('wishlists').insert([{ name }]).select().single();
     if (error) {
-        showMessage('Erreur lors de la suppression', 'error');
+        showMessage('Erreur lors de la création de la liste', 'error');
         console.error(error);
         return;
     }
 
-    await refreshWishlist();
+    allWishlists.push(data);
+    expandedWishlistIds.add(data.id);
+    await addCardToSpecificWishlist(data.id);
 }
 
-// Déplace une carte de la liste de souhaits vers la collection
-async function moveWishlistToCollection(id) {
-    const item = allWishlistItems.find(w => w.id === id);
-    if (!item) return;
+async function createWishlistOnly() {
+    const name = await showTextPromptModal('Nom de la nouvelle liste');
+    if (!name) return;
 
-    const existingRow = await findExistingCardRow(item.tcgdex_id, item.name, item.series, item.number, 'NM');
-
-    let dbError = null;
-    if (existingRow) {
-        const newQuantity = Number(existingRow.quantity || 1) + 1;
-        const { error } = await supabaseClient.from('cards').update({ quantity: newQuantity }).eq('id', existingRow.id);
-        dbError = error;
-    } else {
-        const { error } = await supabaseClient.from('cards').insert([{
-            name: item.name,
-            series: item.series,
-            number: item.number,
-            type: 'N/A',
-            rarity: item.rarity,
-            condition: 'NM',
-            purchase_price: 0,
-            market_value: 0,
-            acquisition_type: 'achat',
-            quantity: 1,
-            image: item.image,
-            series_logo: item.series_logo || null,
-            tcgdex_id: item.tcgdex_id,
-            date_added: new Date().toLocaleDateString('fr-FR')
-        }]);
-        dbError = error;
-    }
-
-    if (dbError) {
-        showMessage('Erreur lors du transfert vers la collection', 'error');
-        console.error(dbError);
+    const { error } = await supabaseClient.from('wishlists').insert([{ name }]);
+    if (error) {
+        showMessage('Erreur lors de la création de la liste', 'error');
+        console.error(error);
         return;
     }
 
-    await supabaseClient.from('wishlist').delete().eq('id', id);
-
-    showMessage('Carte déplacée vers ta collection ! Pense à ajuster l\'état et le prix.', 'success');
-    await refreshWishlist();
-    await refreshCollection();
-    await recordValueSnapshot();
-}
-
-function renderWishlist() {
-    const container = document.getElementById('wishlist-grid');
-    if (!container) return;
-
-    if (allWishlistItems.length === 0) {
-        container.innerHTML = '<p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Ta liste de souhaits est vide</p>';
-        return;
-    }
-
-    container.innerHTML = allWishlistItems.map(item => `
-        <div class="wishlist-card">
-            ${item.image
-                ? `<img src="${item.image}" alt="${item.name}" class="wishlist-card-img" onerror="this.style.display='none'">`
-                : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
-            }
-            <div class="wishlist-card-info">
-                <div class="wishlist-card-name">${item.name}</div>
-                <div class="wishlist-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${item.series} - #${item.number}</div>
-            </div>
-            <div class="wishlist-card-actions">
-                <button class="wishlist-got-btn" onclick="moveWishlistToCollection(${item.id})"><i class="ti ti-check" aria-hidden="true"></i> Je l'ai !</button>
-                <button class="delete-btn" onclick="deleteWishlistItem(${item.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
-            </div>
-        </div>
-    `).join('');
+    await loadWishlists();
 }
 
 // ===== STATISTIQUES =====
@@ -1723,11 +2082,71 @@ async function renderStatsCharts() {
     Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
     renderStatsKpis();
+    await loadMonthlySummaryOptions();
+    await renderMonthlySummary();
     renderRarityChart();
     renderSeriesChart();
     await loadValueHistoryData();
     renderValueHistoryChart();
     renderPriceMovers();
+}
+
+function formatMonthLabel(monthKey) {
+    const [year, month] = monthKey.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function getCurrentMonthKey() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+async function loadMonthlySummaryOptions() {
+    const select = document.getElementById('month-summary-select');
+    const currentMonthKey = getCurrentMonthKey();
+
+    const { data, error } = await supabaseClient
+        .from('monthly_summary')
+        .select('month')
+        .order('month', { ascending: false });
+
+    const months = (!error && data) ? data.map(row => row.month) : [];
+    if (!months.includes(currentMonthKey)) months.unshift(currentMonthKey);
+
+    const previousSelection = select.value;
+    select.innerHTML = months.map(m => `<option value="${m}">${formatMonthLabel(m)}</option>`).join('');
+    select.value = months.includes(previousSelection) ? previousSelection : currentMonthKey;
+}
+
+async function renderMonthlySummary() {
+    const select = document.getElementById('month-summary-select');
+    const monthKey = select.value || getCurrentMonthKey();
+
+    const countEl = document.getElementById('month-cards-added');
+    const spentEl = document.getElementById('month-spent');
+    const valueAddedEl = document.getElementById('month-value-added');
+    const topCardEl = document.getElementById('month-top-card');
+
+    const { data, error } = await supabaseClient
+        .from('monthly_summary')
+        .select('*')
+        .eq('month', monthKey)
+        .maybeSingle();
+
+    if (error || !data) {
+        countEl.textContent = '0';
+        spentEl.textContent = '0.00€';
+        valueAddedEl.textContent = '0.00€';
+        topCardEl.textContent = '-';
+        return;
+    }
+
+    countEl.textContent = data.cards_added || 0;
+    spentEl.textContent = Number(data.total_spent || 0).toFixed(2) + '€';
+    valueAddedEl.textContent = Number(data.value_added || 0).toFixed(2) + '€';
+    topCardEl.textContent = data.top_card_name || '-';
 }
 
 function renderStatsKpis() {
@@ -2002,6 +2421,10 @@ function switchTab(event, tabId) {
         } else {
             loadSeriesProgress();
         }
+    }
+
+    if (tabId === 'tab-wishlist') {
+        loadWishlists();
     }
 }
 
@@ -2534,6 +2957,10 @@ function showAddCardModal(card) {
                         <label for="quickadd-purchase-price">Prix payé (€)</label>
                         <input type="number" id="quickadd-purchase-price" value="${marketPrice > 0 ? marketPrice.toFixed(2) : ''}" step="0.01" min="0" placeholder="optionnel">
                     </div>
+                    <div class="form-group">
+                        <label for="quickadd-date-added">Date d'acquisition</label>
+                        <input type="text" id="quickadd-date-added" placeholder="jj/mm/aaaa">
+                    </div>
                 </div>
 
                 <button class="modal-save-btn full-width" id="quickadd-submit-btn" onclick="submitQuickAdd(${JSON.stringify(card).replace(/"/g, '&quot;')})"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
@@ -2542,6 +2969,7 @@ function showAddCardModal(card) {
     `;
 
     document.getElementById('card-detail-overlay').classList.add('active');
+    initDatePicker('#quickadd-date-added');
 }
 
 function toggleQuickAddPurchasePriceField() {
@@ -2556,6 +2984,7 @@ async function submitQuickAdd(card) {
     const purchasePrice = acquisitionType === 'pack'
         ? 0
         : (parseFloat(document.getElementById('quickadd-purchase-price').value) || 0);
+    const customDate = document.getElementById('quickadd-date-added').value || null;
 
     const btn = document.getElementById('quickadd-submit-btn');
     const originalText = btn.textContent;
@@ -2569,6 +2998,7 @@ async function submitQuickAdd(card) {
             acquisitionType,
             purchasePrice,
             customImage: null,
+            customDate,
             onImageUploadStart: () => { btn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
         });
     } catch (error) {
@@ -2598,12 +3028,28 @@ async function submitQuickAdd(card) {
 
 document.getElementById('progression-search').addEventListener('input', renderProgressionCardsGrid);
 document.getElementById('progression-rarity-filter').addEventListener('change', renderProgressionCardsGrid);
+document.getElementById('month-summary-select').addEventListener('change', renderMonthlySummary);
+
+// Initialise Flatpickr avec le thème et la locale de l'app sur un champ de date donné
+function initDatePicker(selector, presetValue) {
+    if (typeof flatpickr === 'undefined') return;
+    flatpickr(selector, {
+        locale: 'fr',
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        maxDate: 'today',
+        monthSelectorType: 'static',
+        defaultDate: presetValue || null
+    });
+}
 
 async function init() {
     await refreshCollection();
-    await refreshWishlist();
+    await loadWishlists();
     await renderStatsCharts();
     await renderHeroValueCard();
     updateLastRefreshLabel();
+    initDatePicker('#card-date-added');
 }
 init();

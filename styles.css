@@ -1185,6 +1185,137 @@ tbody tr:hover {
     background: #7dd88f;
 }
 
+.wishlist-owned-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(149, 225, 163, 0.15);
+    color: #95e1a3;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.35rem 0.6rem;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* SECTIONS DE LISTES DE SOUHAITS */
+.wishlist-section {
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.wishlist-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.wishlist-section-header:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.wishlist-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.wishlist-chevron {
+    font-size: 0.9rem;
+    color: var(--slate);
+    transition: transform 0.2s ease;
+}
+
+.wishlist-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.wishlist-count-badge {
+    background: rgba(232, 169, 59, 0.15);
+    color: var(--gold);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.55rem;
+    border-radius: 20px;
+}
+
+.wishlist-section-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.wishlist-section-actions button {
+    background: none;
+    color: var(--slate);
+    padding: 0.3rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+}
+
+.wishlist-section-actions button:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-primary);
+}
+
+.wishlist-section-body {
+    padding: 1rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+/* FENETRE DE CHOIX / CREATION DE LISTE */
+.wishlist-picker-list {
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.wishlist-picker-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    background: var(--panel-light);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: border-color 0.15s;
+    border: 1px solid var(--border);
+}
+
+.wishlist-picker-item:hover {
+    border-color: var(--gold);
+}
+
+.wishlist-picker-item i {
+    color: var(--slate);
+}
+
+.wishlist-picker-new {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.wishlist-picker-new input {
+    flex: 1;
+}
+
+.wishlist-picker-add-btn {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 /* KPI STATISTIQUES */
 .stats-kpi-grid {
     display: grid;
@@ -2160,4 +2291,174 @@ tbody tr:hover {
     .grid-sort-select {
         width: 100%;
     }
+}
+
+/* THEME FLATPICKR AUX COULEURS DE L'APP */
+.flatpickr-calendar {
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.55) !important;
+    padding: 0.85rem !important;
+    overflow: hidden;
+}
+
+.flatpickr-calendar.arrowTop::before,
+.flatpickr-calendar.arrowTop::after {
+    border-bottom-color: var(--panel) !important;
+}
+
+.flatpickr-innerContainer,
+.flatpickr-rContainer,
+.flatpickr-days {
+    border: none !important;
+}
+
+.flatpickr-months {
+    background: transparent !important;
+    padding-bottom: 0.6rem;
+}
+
+.flatpickr-month {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.flatpickr-current-month {
+    color: var(--text-primary) !important;
+}
+
+.flatpickr-current-month .cur-month {
+    color: var(--gold) !important;
+    font-weight: 700;
+    margin-right: 0.4rem;
+}
+
+.flatpickr-current-month .cur-month {
+    color: var(--gold) !important;
+    font-weight: 700;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+}
+
+.flatpickr-current-month .numInputWrapper {
+    vertical-align: middle;
+}
+
+html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
+    background: rgba(232, 169, 59, 0.12) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: var(--gold) !important;
+    font-weight: 700;
+    padding: 0.1rem 0.3rem !important;
+    box-shadow: none !important;
+    appearance: textfield;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+    color-scheme: light;
+}
+
+.flatpickr-current-month input.cur-year:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(232, 169, 59, 0.4) !important;
+}
+
+.flatpickr-current-month input.cur-year::-webkit-inner-spin-button,
+.flatpickr-current-month input.cur-year::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.flatpickr-current-month input.cur-year {
+    background: var(--panel-light) !important;
+    border-radius: 8px !important;
+    color: var(--text-primary) !important;
+    font-weight: 600;
+}
+
+.flatpickr-prev-month,
+.flatpickr-next-month {
+    border-radius: 50% !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    top: 0.55rem !important;
+    transition: background 0.15s;
+}
+
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
+    background: var(--panel-light) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month svg,
+.flatpickr-months .flatpickr-next-month svg {
+    fill: var(--slate) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+    fill: var(--gold) !important;
+}
+
+.flatpickr-weekdays {
+    background: transparent !important;
+    margin-bottom: 0.3rem;
+}
+
+.flatpickr-weekdaycontainer {
+    background: transparent !important;
+}
+
+span.flatpickr-weekday {
+    background: transparent !important;
+    color: var(--slate) !important;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.flatpickr-day {
+    color: var(--text-primary) !important;
+    border-radius: 50% !important;
+    max-width: 32px;
+    height: 32px;
+    line-height: 32px;
+    margin: 1px auto;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+    color: rgba(255,255,255,0.15) !important;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: var(--slate) !important;
+    opacity: 0.5;
+}
+
+.flatpickr-day:hover {
+    background: var(--panel-light) !important;
+}
+
+.flatpickr-day.today {
+    border-color: var(--gold) !important;
+}
+
+.flatpickr-day.today:hover {
+    border-color: var(--gold) !important;
+    background: rgba(232, 169, 59, 0.15) !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: var(--gold) !important;
+    border-color: var(--gold) !important;
+    color: var(--ink-navy) !important;
+    font-weight: 700;
 }

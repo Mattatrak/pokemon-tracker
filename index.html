@@ -20,7 +20,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
+    <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
     <div class="container">
@@ -158,9 +159,13 @@
                         <label for="card-value">Prix payé (€)</label>
                         <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
                     </div>
+                    <div class="form-group">
+                        <label for="card-date-added">Date d'acquisition</label>
+                        <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
+                    </div>
                 </div>
                 <button class="full-width" onclick="addCard()"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
-                <button class="full-width wishlist-btn" onclick="addToWishlist()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma liste de souhaits</button>
+                <button class="full-width wishlist-btn" onclick="openWishlistPicker()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma liste de souhaits</button>
             </div>
         </div>
 
@@ -310,6 +315,43 @@
                 </div>
             </div>
 
+            <div class="stats-chart-box" style="margin-bottom: 1.5rem;">
+                <div class="stats-chart-header">
+                    <h3><i class="ti ti-calendar" aria-hidden="true"></i> Résumé du mois</h3>
+                    <select id="month-summary-select" class="grid-sort-select"></select>
+                </div>
+                <div class="stats-kpi-grid" style="margin-bottom: 0;">
+                    <div class="stats-kpi-card">
+                        <span class="stats-kpi-badge" style="background: rgba(232,169,59,0.15);"><i class="ti ti-cards" style="color: var(--gold);" aria-hidden="true"></i></span>
+                        <div class="stats-kpi-text">
+                            <div class="stats-kpi-label">Cartes ajoutées</div>
+                            <div class="stats-kpi-value" id="month-cards-added">-</div>
+                        </div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <span class="stats-kpi-badge" style="background: rgba(63,167,161,0.15);"><i class="ti ti-currency-euro" style="color: var(--teal);" aria-hidden="true"></i></span>
+                        <div class="stats-kpi-text">
+                            <div class="stats-kpi-label">Dépensé ce mois-ci</div>
+                            <div class="stats-kpi-value" id="month-spent">-</div>
+                        </div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <span class="stats-kpi-badge" style="background: rgba(107,203,255,0.15);"><i class="ti ti-trending-up" style="color: #6bcbff;" aria-hidden="true"></i></span>
+                        <div class="stats-kpi-text">
+                            <div class="stats-kpi-label">Valeur ajoutée (marché)</div>
+                            <div class="stats-kpi-value" id="month-value-added">-</div>
+                        </div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <span class="stats-kpi-badge" style="background: rgba(199,125,255,0.15);"><i class="ti ti-diamond" style="color: #c77dff;" aria-hidden="true"></i></span>
+                        <div class="stats-kpi-text">
+                            <div class="stats-kpi-label">Carte la + chère du mois</div>
+                            <div class="stats-kpi-value" id="month-top-card" style="font-size: 1.1rem;">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="stats-grid">
                 <div class="stats-chart-box">
                     <h3>Répartition par rareté</h3>
@@ -343,12 +385,30 @@
         <!-- ONGLET SOUHAITS -->
         <div id="tab-wishlist" class="tab-content">
             <div class="form-section">
-                <h2><i class="ti ti-star" aria-hidden="true"></i> Liste de souhaits</h2>
-                <div class="wishlist-grid" id="wishlist-grid">
-                    <p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Ta liste de souhaits est vide</p>
+                <div class="stats-chart-header">
+                    <h2><i class="ti ti-star" aria-hidden="true"></i> Listes de souhaits</h2>
+                    <button class="filter-toggle-btn" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+                </div>
+                <div id="wishlists-container">
+                    <p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l'instant</p>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- MODALE CHOIX / CREATION DE LISTE DE SOUHAITS -->
+    <div class="modal-overlay" id="wishlist-picker-overlay" onclick="if(event.target===this) closeWishlistPicker()">
+        <div class="modal-card" id="wishlist-picker-content" style="max-width: 400px;"></div>
+    </div>
+
+    <!-- MODALE SAISIE DE TEXTE (renommer / creer une liste) -->
+    <div class="modal-overlay" id="text-prompt-overlay" onclick="if(event.target===this) closeTextPrompt()">
+        <div class="modal-card" id="text-prompt-content" style="max-width: 380px;"></div>
+    </div>
+
+    <!-- MODALE DE CONFIRMATION (remplace confirm() natif) -->
+    <div class="modal-overlay" id="confirm-modal-overlay" onclick="if(event.target===this) closeConfirmModal(false)">
+        <div class="modal-card" id="confirm-modal-content" style="max-width: 380px;"></div>
     </div>
 
     <!-- MODALE DETAIL CARTE -->
@@ -358,6 +418,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="tracker.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
