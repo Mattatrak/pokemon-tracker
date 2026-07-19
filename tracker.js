@@ -353,12 +353,15 @@ async function displaySearchResults(cards) {
 
     lastSearchResults = cardsWithDetails;
     populateSearchFilters(cardsWithDetails);
-    renderSearchResults(cardsWithDetails);
+    applySearchFilters();
 }
 
 function populateSearchFilters(cards) {
     const raritySelect = document.getElementById('filter-rarity');
     const seriesSelect = document.getElementById('filter-series');
+
+    const currentRarity = raritySelect.value;
+    const currentSeries = seriesSelect.value;
 
     const rarities = [...new Set(cards.map(c => c.rarity).filter(Boolean))].sort();
     const series = [...new Set(cards.map(c => c.set?.name).filter(Boolean))].sort();
@@ -368,6 +371,10 @@ function populateSearchFilters(cards) {
 
     seriesSelect.innerHTML = '<option value="">Toutes les séries</option>' +
         series.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    // Reappliquer la sélection précédente si elle existe toujours parmi les nouveaux résultats
+    if (rarities.includes(currentRarity)) raritySelect.value = currentRarity;
+    if (series.includes(currentSeries)) seriesSelect.value = currentSeries;
 }
 
 function applySearchFilters() {
