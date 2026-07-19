@@ -104,9 +104,9 @@ function saveQuickAddSettings() {
 }
 let currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
 let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
-let sortColumn = null;
+let sortColumn = 'value';
 let duplicatesOnlyFilter = false;
-let sortDirection = 'asc';
+let sortDirection = 'desc';
 
 // ===== UTILITAIRES =====
 
