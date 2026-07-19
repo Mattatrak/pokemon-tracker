@@ -21,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
     <div class="container">
@@ -211,11 +211,15 @@
                     <option value="quantity-desc">Quantité (plus d'abord)</option>
                 </select>
                 <div class="csv-dropdown-wrap">
-                    <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> CSV <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                    <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
                     <div class="csv-dropdown-menu" id="csv-dropdown-menu">
                         <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
                         <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
                         <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
+                        <div class="csv-dropdown-divider"></div>
+                        <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
+                        <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
+                        <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
                     </div>
                     <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
                 </div>
@@ -379,6 +383,10 @@
                     </div>
                     <canvas id="value-history-chart"></canvas>
                 </div>
+                <div class="stats-chart-box">
+                    <h3>Top séries (par valeur)</h3>
+                    <canvas id="series-value-chart"></canvas>
+                </div>
             </div>
 
             <div class="stats-chart-box" style="margin-top: 1.5rem;">
@@ -386,6 +394,11 @@
                 <div id="price-movers-section">
                     <p style="text-align: center; color: var(--slate); padding: 1rem;">Clique sur "Rafraîchir les prix du marché" pour voir les variations.</p>
                 </div>
+            </div>
+
+            <div class="stats-chart-box" style="margin-top: 1.5rem;">
+                <h3><i class="ti ti-trending-up" aria-hidden="true"></i> Meilleur retour sur investissement</h3>
+                <div id="roi-section"></div>
             </div>
         </div>
 
@@ -438,7 +451,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="tracker.js?v=30"></script>
+    <script src="tracker.js?v=32"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

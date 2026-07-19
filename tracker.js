@@ -1411,6 +1411,231 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// ===== SAUVEGARDE / RESTAURATION COMPLETE (JSON) =====
+
+async function exportFullBackupJson() {
+    showMessage('Préparation de la sauvegarde...', 'success');
+
+    try {
+        const [cardsRes, wishlistsRes, wishlistItemsRes, valueHistoryRes, priceHistoryRes, monthlySummaryRes] = await Promise.all([
+            supabaseClient.from('cards').select('*'),
+            supabaseClient.from('wishlists').select('*'),
+            supabaseClient.from('wishlist').select('*'),
+            supabaseClient.from('value_history').select('*'),
+            supabaseClient.from('card_price_history').select('*'),
+            supabaseClient.from('monthly_summary').select('*')
+        ]);
+
+        const backup = {
+            exportedAt: new Date().toISOString(),
+            version: 1,
+            cards: cardsRes.data || [],
+            wishlists: wishlistsRes.data || [],
+            wishlistItems: wishlistItemsRes.data || [],
+            valueHistory: valueHistoryRes.data || [],
+            cardPriceHistory: priceHistoryRes.data || [],
+            monthlySummary: monthlySummaryRes.data || []
+        };
+
+        const jsonContent = JSON.stringify(backup, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        link.download = `sauvegarde-pokemon-tracker-${dateStr}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showMessage('Sauvegarde téléchargée !', 'success');
+    } catch (error) {
+        showMessage('Erreur lors de la préparation de la sauvegarde', 'error');
+        console.error(error);
+    }
+}
+
+function handleJsonRestore(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            await confirmAndProcessJsonRestore(data);
+        } catch (error) {
+            showMessage('Fichier de sauvegarde invalide ou illisible', 'error');
+            console.error(error);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+async function confirmAndProcessJsonRestore(data) {
+    const cardCount = data.cards?.length || 0;
+    const wishlistCount = data.wishlists?.length || 0;
+
+    if (!await showConfirmModal(
+        `Restaurer va importer jusqu'à ${cardCount} carte(s) et ${wishlistCount} liste(s) de souhaits. Les cartes et souhaits déjà présents dans ta collection actuelle seront automatiquement ignorés (pas de doublons créés). Continuer ?`,
+        'Restaurer'
+    )) return;
+
+    const content = document.getElementById('csv-import-content');
+    document.getElementById('csv-import-overlay').classList.add('active');
+    content.innerHTML = `
+        <div class="modal-title" style="margin-bottom: 1rem;">Restauration en cours...</div>
+        <p style="color: var(--slate);">Merci de patienter, ne ferme pas cette fenêtre.</p>
+    `;
+
+    const errors = [];
+    let cardsInserted = 0, cardsSkipped = 0;
+    let wishlistsCreated = 0, wishlistsReused = 0;
+    let itemsInserted = 0, itemsSkipped = 0;
+
+    // 1. Listes de souhaits : réutiliser celle existante si le nom correspond déjà
+    const wishlistIdMap = {};
+    try {
+        if (data.wishlists && data.wishlists.length > 0) {
+            for (const w of data.wishlists) {
+                const existing = allWishlists.find(existingW => existingW.name === w.name);
+                if (existing) {
+                    wishlistIdMap[w.id] = existing.id;
+                    wishlistsReused++;
+                } else {
+                    const { id: oldId, ...rest } = w;
+                    const { data: inserted, error } = await supabaseClient.from('wishlists').insert([rest]).select().single();
+                    if (!error && inserted) {
+                        wishlistIdMap[oldId] = inserted.id;
+                        wishlistsCreated++;
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        errors.push('listes de souhaits');
+        console.error(error);
+    }
+
+    // 2. Cartes de souhaits : ignorer si déjà présente dans la même liste (même tcgdex_id)
+    try {
+        if (data.wishlistItems && data.wishlistItems.length > 0) {
+            const rowsToInsert = [];
+            for (const item of data.wishlistItems) {
+                const newWishlistId = wishlistIdMap[item.wishlist_id];
+                if (!newWishlistId) continue;
+
+                const alreadyExists = allWishlistItems.some(existingItem =>
+                    existingItem.wishlist_id === newWishlistId && existingItem.tcgdex_id === item.tcgdex_id
+                );
+                if (alreadyExists) {
+                    itemsSkipped++;
+                    continue;
+                }
+
+                const { id, ...rest } = item;
+                rowsToInsert.push({ ...rest, wishlist_id: newWishlistId });
+            }
+            if (rowsToInsert.length > 0) {
+                const { error } = await supabaseClient.from('wishlist').insert(rowsToInsert);
+                if (error) throw error;
+                itemsInserted = rowsToInsert.length;
+            }
+        }
+    } catch (error) {
+        errors.push('cartes de souhaits');
+        console.error(error);
+    }
+
+    // 3. Collection : ignorer si une carte identique (même tcgdex_id + état, ou nom/série/numéro/état) existe déjà
+    try {
+        if (data.cards && data.cards.length > 0) {
+            const rowsToInsert = [];
+            for (const card of data.cards) {
+                const exists = allCollectionCards.some(c => {
+                    if (card.tcgdex_id && c.tcgdex_id) {
+                        return c.tcgdex_id === card.tcgdex_id && c.condition === card.condition;
+                    }
+                    return c.name === card.name && c.series === card.series && c.number === card.number && c.condition === card.condition;
+                });
+                if (exists) {
+                    cardsSkipped++;
+                    continue;
+                }
+                const { id, ...rest } = card;
+                rowsToInsert.push(rest);
+            }
+            for (let i = 0; i < rowsToInsert.length; i += 100) {
+                const { error } = await supabaseClient.from('cards').insert(rowsToInsert.slice(i, i + 100));
+                if (error) throw error;
+            }
+            cardsInserted = rowsToInsert.length;
+        }
+    } catch (error) {
+        errors.push('collection de cartes');
+        console.error(error);
+    }
+
+    // 4. Historiques de valeur/prix : simples journaux, pas de notion de doublon à vérifier
+    try {
+        if (data.valueHistory && data.valueHistory.length > 0) {
+            const rows = data.valueHistory.map(({ id, ...rest }) => rest);
+            for (let i = 0; i < rows.length; i += 200) {
+                await supabaseClient.from('value_history').insert(rows.slice(i, i + 200));
+            }
+        }
+    } catch (error) {
+        errors.push('historique de valeur');
+        console.error(error);
+    }
+
+    try {
+        if (data.cardPriceHistory && data.cardPriceHistory.length > 0) {
+            const rows = data.cardPriceHistory.map(({ id, ...rest }) => rest);
+            for (let i = 0; i < rows.length; i += 200) {
+                await supabaseClient.from('card_price_history').insert(rows.slice(i, i + 200));
+            }
+        }
+    } catch (error) {
+        errors.push('historique de prix par carte');
+        console.error(error);
+    }
+
+    // 5. Historique mensuel : ignorer les mois déjà présents (contrainte unique sur "month")
+    try {
+        if (data.monthlySummary && data.monthlySummary.length > 0) {
+            const { data: existingMonthsData } = await supabaseClient.from('monthly_summary').select('month');
+            const existingMonths = new Set((existingMonthsData || []).map(m => m.month));
+            const rows = data.monthlySummary
+                .filter(m => !existingMonths.has(m.month))
+                .map(({ id, ...rest }) => rest);
+            if (rows.length > 0) {
+                const { error } = await supabaseClient.from('monthly_summary').insert(rows);
+                if (error) throw error;
+            }
+        }
+    } catch (error) {
+        errors.push('historique mensuel');
+        console.error(error);
+    }
+
+    await refreshCollection();
+    await loadWishlists();
+
+    content.innerHTML = `
+        <div class="modal-title" style="margin-bottom: 1rem;">Restauration terminée</div>
+        <p style="color: var(--text-primary); line-height: 1.6;">
+            <strong style="color: #4ade80;">${cardsInserted}</strong> carte(s) ajoutée(s) <span style="color: var(--slate);">· ${cardsSkipped} déjà présente(s), ignorée(s)</span><br>
+            <strong style="color: #4ade80;">${wishlistsCreated}</strong> liste(s) créée(s) <span style="color: var(--slate);">· ${wishlistsReused} réutilisée(s)</span><br>
+            <strong style="color: #4ade80;">${itemsInserted}</strong> souhait(s) ajouté(s) <span style="color: var(--slate);">· ${itemsSkipped} déjà présent(s), ignoré(s)</span>
+            ${errors.length > 0 ? `<br><span style="color: #ff6b6b;">Soucis sur : ${errors.join(', ')}</span>` : ''}
+        </p>
+        <button class="modal-save-btn full-width" style="margin-top: 1.25rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+    `;
+}
+
 function downloadCsvTemplate() {
     const headers = ['Nom', 'Serie', 'Numero', 'Etat', 'Quantite', 'Prix', 'Obtention', 'Date'];
     const example = ['Pikachu', 'Ecarlate et Violet', '025', 'NM', '1', '3.50', 'achat', '15/03/2026'];
@@ -2648,6 +2873,8 @@ async function renderStatsCharts() {
     await renderMonthlySummary();
     renderRarityChart();
     renderSeriesChart();
+    renderSeriesValueChart();
+    renderRoiSection();
     await loadValueHistoryData();
     renderValueHistoryChart();
     renderPriceMovers();
@@ -2843,6 +3070,88 @@ function renderSeriesChart() {
             }
         }
     });
+}
+
+let seriesValueChartInstance = null;
+
+function renderSeriesValueChart() {
+    const canvas = document.getElementById('series-value-chart');
+    if (!canvas) return;
+
+    const totals = {};
+    allCollectionCards.forEach(card => {
+        const key = card.series;
+        if (!key || key === 'N/A') return;
+        totals[key] = (totals[key] || 0) + Number(card.market_value || 0) * Number(card.quantity || 1);
+    });
+
+    // Top 8 séries par valeur
+    const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const labels = sorted.map(s => s[0]);
+    const values = sorted.map(s => s[1]);
+
+    if (seriesValueChartInstance) seriesValueChartInstance.destroy();
+
+    if (labels.length === 0) return;
+
+    seriesValueChartInstance = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: '#3FA7A1',
+                borderRadius: 4,
+                barThickness: 18
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.x.toFixed(2)}€` } }
+            },
+            scales: {
+                x: { beginAtZero: true, ticks: { callback: (v) => `${v}€` } },
+                y: { ticks: { autoSkip: false } }
+            }
+        }
+    });
+}
+
+function renderRoiSection() {
+    const container = document.getElementById('roi-section');
+    if (!container) return;
+
+    const candidates = allCollectionCards
+        .filter(c => Number(c.purchase_price) > 0)
+        .map(c => {
+            const purchase = Number(c.purchase_price);
+            const current = Number(c.market_value || 0);
+            const qty = Number(c.quantity || 1);
+            const gainPercent = ((current - purchase) / purchase) * 100;
+            const gainAmount = (current - purchase) * qty;
+            return { name: c.name, number: c.number, gainPercent, gainAmount };
+        })
+        .sort((a, b) => b.gainPercent - a.gainPercent)
+        .slice(0, 5);
+
+    if (candidates.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune carte avec un prix payé renseigné pour l\'instant.</p>';
+        return;
+    }
+
+    container.innerHTML = candidates.map(c => {
+        const cls = c.gainPercent > 0 ? 'positive' : c.gainPercent < 0 ? 'negative' : 'neutral';
+        const sign = c.gainPercent > 0 ? '+' : '';
+        return `
+            <div class="mover-row">
+                <span class="mover-name">${c.name} <span class="mover-number">#${c.number}</span></span>
+                <span class="mover-delta ${cls}">${sign}${c.gainPercent.toFixed(0)}% <span class="period-value-abs">(${sign}${c.gainAmount.toFixed(2)}€)</span></span>
+            </div>
+        `;
+    }).join('');
 }
 
 async function loadValueHistoryData() {

@@ -827,6 +827,12 @@ button:disabled {
     white-space: nowrap;
 }
 
+.csv-dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.3rem 0.4rem;
+}
+
 .csv-dropdown-item:hover {
     background: rgba(255,255,255,0.06);
 }
