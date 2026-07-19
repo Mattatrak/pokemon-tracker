@@ -673,7 +673,7 @@ async function fillMissingSeriesLogos() {
     const stored = new Set(data.map(f => f.name));
 
     missing.forEach(card => {
-        const setId = card.tcgdex_id.split('-')[0];
+        const setId = getSetIdFromTcgdexId(card.tcgdex_id);
         const filename = `${sanitizeForPath(setId)}.webp`;
         if (stored.has(filename)) {
             const { data: urlData } = supabaseClient.storage.from('card-images').getPublicUrl(`logos/${filename}`);
@@ -1330,6 +1330,16 @@ function downloadCsvTemplate() {
     URL.revokeObjectURL(url);
 }
 
+// Déduit l'identifiant du set à partir d'un identifiant TCGdex de carte (ex: "sv08-097" -> "sv08").
+// Utilise le DERNIER tiret (pas le premier) car certains sets ont eux-mêmes un tiret dans leur
+// identifiant (ex: séries ".5" comme Héros Transcendants, probablement "me2-5"), ce qui les
+// confondrait sinon avec le set principal (ex: "me2" Flammes Fantasmagoriques).
+function getSetIdFromTcgdexId(tcgdexId) {
+    if (!tcgdexId) return null;
+    const lastDash = tcgdexId.lastIndexOf('-');
+    return lastDash === -1 ? tcgdexId : tcgdexId.substring(0, lastDash);
+}
+
 function normalizeForMatch(str) {
     return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
@@ -1741,7 +1751,7 @@ function showCardDetail(cardId) {
                         <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
                             <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
                         </div>
-                        <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${card.tcgdex_id.split('-')[0]}', ${card.id})">
+                        <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
                     ` : '')
                 }
                 <div class="modal-subtitle">${card.series} · #${card.number}</div>
@@ -3076,7 +3086,7 @@ async function loadSeriesProgress() {
         const ownedIdsBySet = {};
         allCollectionCards.forEach(card => {
             if (card.tcgdex_id) {
-                const setId = card.tcgdex_id.split('-')[0];
+                const setId = getSetIdFromTcgdexId(card.tcgdex_id);
                 if (!ownedIdsBySet[setId]) ownedIdsBySet[setId] = new Set();
                 ownedIdsBySet[setId].add(card.tcgdex_id);
             }
@@ -3198,7 +3208,7 @@ async function openSetProgression(setId, setName, logoUrl) {
             data = await enResponse.json();
         }
 
-        const basicList = Array.isArray(data) ? data : [];
+        const basicList = (Array.isArray(data) ? data : []).filter(c => getSetIdFromTcgdexId(c.id) === setId);
 
         // Récupérer les détails complets (rareté, prix, image) par lots de 5
         const detailed = [];
