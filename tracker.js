@@ -732,8 +732,8 @@ async function fillMissingSeriesLogos() {
 }
 
 // Cherche si cette carte (même tcgdex_id + état, ou même nom/série/numéro + état) est déjà dans la collection
-async function findExistingCardRow(tcgdexId, name, series, number, condition) {
-    let query = supabaseClient.from('cards').select('*').eq('condition', condition).limit(1);
+async function findExistingCardRow(tcgdexId, name, series, number, condition, finish = 'normal') {
+    let query = supabaseClient.from('cards').select('*').eq('condition', condition).eq('finish', finish).limit(1);
 
     if (tcgdexId) {
         query = query.eq('tcgdex_id', tcgdexId);
@@ -834,7 +834,7 @@ async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardNa
     }
 }
 
-async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart, customDate }) {
+async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart, customDate, finish = 'normal' }) {
     const name = card.name || '?';
     const series = card.set?.name || 'N/A';
     const number = card.localId || '?';
@@ -882,15 +882,18 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         return null;
     })();
 
-    const existingRowPromise = findExistingCardRow(card.id, name, series, number, condition);
+    const existingRowPromise = findExistingCardRow(card.id, name, series, number, condition, finish);
 
     const [imageUrl, seriesLogoUrl, seriesSymbolUrl, existingRow] = await Promise.all([imagePromise, logoPromise, symbolPromise, existingRowPromise]);
 
     let marketValue = 0;
-    if (card.pricing?.cardmarket?.avg) {
-        marketValue = card.pricing.cardmarket.avg;
-    } else if (card.pricing?.cardmarket?.['avg-holo']) {
-        marketValue = card.pricing.cardmarket['avg-holo'];
+    const cm = card.pricing?.cardmarket;
+    if (finish === 'reverse' && cm && (cm['reverse-holo-avg'] || cm.reverseHoloAvg || cm['avg-reverse'])) {
+        marketValue = cm['reverse-holo-avg'] || cm.reverseHoloAvg || cm['avg-reverse'];
+    } else if (cm?.avg) {
+        marketValue = cm.avg;
+    } else if (cm?.['avg-holo']) {
+        marketValue = cm['avg-holo'];
     }
 
     // Date d'acquisition : utilise la date fournie (antidatage) ou aujourd'hui par défaut
@@ -947,7 +950,8 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             tcgdex_id: card.id || null,
             cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
             date_added: dateAddedStr,
-            created_at: acquisitionDate.toISOString()
+            created_at: acquisitionDate.toISOString(),
+            finish
         }]),
         recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
     ]);
@@ -996,6 +1000,7 @@ async function addCard() {
     }
 
     const condition = document.getElementById('card-condition').value;
+    const finish = document.getElementById('card-finish').value;
     const quantity = parseInt(document.getElementById('card-quantity').value) || 1;
     const acquisitionType = document.getElementById('card-acquisition').value;
     const purchasePrice = acquisitionType === 'pack'
@@ -1016,6 +1021,7 @@ async function addCard() {
             purchasePrice,
             customImage: customPreviewImage,
             customDate,
+            finish,
             onImageUploadStart: () => { addBtn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
         });
     } catch (error) {
@@ -1038,6 +1044,7 @@ async function addCard() {
     document.getElementById('card-search').value = '';
     document.getElementById('card-quantity').value = '1';
     document.getElementById('card-condition').value = 'NM';
+    document.getElementById('card-finish').value = 'normal';
     document.getElementById('card-value').value = '';
     document.getElementById('card-acquisition').value = 'achat';
     const cardDateInput = document.getElementById('card-date-added');
@@ -1320,7 +1327,8 @@ function populateCollectionFilters() {
 
 // Identifiant de regroupement d'une carte (même carte, peu importe l'état) pour détecter les doublons
 function getDuplicateGroupKey(card) {
-    return card.tcgdex_id ? `id:${card.tcgdex_id}` : `nsn:${card.name}|${card.series}|${card.number}`;
+    const finishKey = card.finish || 'normal';
+    return card.tcgdex_id ? `id:${card.tcgdex_id}:${finishKey}` : `nsn:${card.name}|${card.series}|${card.number}|${finishKey}`;
 }
 
 function computeDuplicateGroupTotals() {
@@ -1747,6 +1755,12 @@ function sortRaritiesByTier(rarities) {
     });
 }
 
+// Renvoie un libellé court pour la finition, ou null pour "normal" (pas besoin de l'afficher)
+function getFinishLabel(finish) {
+    const labels = { reverse: 'Reverse', holo: 'Holo', first_edition: '1ère éd.' };
+    return labels[finish] || null;
+}
+
 function getRarityIconHtml(rarity, sizePx = 16) {
     const filename = RARITY_ICON_MAP[normalizeForMatch(rarity)];
     if (!filename) return '';
@@ -1994,6 +2008,7 @@ function renderCollectionTable(filtered) {
             <td>${card.number}</td>
             <td>
                 <span class="badge ${(card.condition || '').toLowerCase()}">${card.condition}</span>
+                ${getFinishLabel(card.finish) ? `<span class="badge finish-badge">${getFinishLabel(card.finish)}</span>` : ''}
                 <span title="${acquisitionTitle}" class="acquisition-icon">${acquisitionIcon}</span>
             </td>
             <td>${getRarityIconHtml(card.rarity)} ${card.rarity || 'N/A'}</td>
@@ -2049,6 +2064,7 @@ function renderCollectionGrid(filtered) {
                     <div class="collection-card-name">${card.name}</div>
                     <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${card.series} · #${card.number}</div>
                     <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
+                    ${getFinishLabel(card.finish) ? `<span class="condition-badge-grid finish-badge">${getFinishLabel(card.finish)}</span>` : ''}
                     <span class="acquisition-icon" title="${acquisitionTitle}">${acquisitionIcon}</span>
                 </div>
             </div>
@@ -2118,6 +2134,7 @@ function showCardDetail(cardId) {
                 <div class="modal-badges">
                     <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
                     <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
+                    ${getFinishLabel(card.finish) ? `<span class="modal-pill finish-pill">${getFinishLabel(card.finish)}</span>` : ''}
                     <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
                     ${!card.series_symbol && card.tcgdex_id ? `
                         <span class="modal-pill symbol-upload-pill" onclick="document.getElementById('modal-symbol-upload-input').click()">
@@ -2352,6 +2369,15 @@ function showCardEditForm(cardId) {
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="edit-finish">Finition</label>
+                        <select id="edit-finish">
+                            <option value="normal" ${(card.finish || 'normal') === 'normal' ? 'selected' : ''}>Normale</option>
+                            <option value="reverse" ${card.finish === 'reverse' ? 'selected' : ''}>Reverse</option>
+                            <option value="holo" ${card.finish === 'holo' ? 'selected' : ''}>Holo</option>
+                            <option value="first_edition" ${card.finish === 'first_edition' ? 'selected' : ''}>1ère édition</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="edit-quantity">Quantité</label>
                         <input type="number" id="edit-quantity" value="${Number(card.quantity || 1)}" min="1" max="100">
                     </div>
@@ -2396,6 +2422,7 @@ function toggleEditPurchasePriceField() {
 
 async function saveCardEdits(cardId) {
     const condition = document.getElementById('edit-condition').value;
+    const finish = document.getElementById('edit-finish').value;
     const quantity = parseInt(document.getElementById('edit-quantity').value) || 1;
     const acquisitionType = document.getElementById('edit-acquisition').value;
     const purchasePrice = acquisitionType === 'pack'
@@ -2421,6 +2448,7 @@ async function saveCardEdits(cardId) {
 
     const updatePayload = {
         condition,
+        finish,
         quantity,
         acquisition_type: acquisitionType,
         purchase_price: purchasePrice,
@@ -3592,6 +3620,7 @@ let allTcgdexSeries = [];
 let currentProgressionSetId = null;
 let currentProgressionCards = [];
 let progressionFilter = 'all';
+let progressionFinishMode = 'normal';
 
 async function loadSeriesProgress() {
     const container = document.getElementById('progression-series-list');
@@ -3728,10 +3757,13 @@ async function handleProgressionSeriesLogoUpload(event, setId) {
 async function openSetProgression(setId, setName, logoUrl) {
     currentProgressionSetId = setId;
     progressionFilter = 'all';
+    progressionFinishMode = 'normal';
     progressionRarityFilterValues.clear();
     document.getElementById('progression-search').value = '';
     document.querySelectorAll('#tab-progression .view-toggle-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('prog-filter-all').classList.add('active');
+    document.getElementById('prog-finish-normal').classList.add('active');
+    document.getElementById('prog-finish-reverse').classList.remove('active');
 
     document.getElementById('progression-series-view').style.display = 'none';
     document.getElementById('progression-set-view').style.display = 'block';
@@ -3824,15 +3856,25 @@ function populateProgressionRarityFilter() {
 
 async function renderProgressionCardsGrid() {
     const grid = document.getElementById('progression-cards-grid');
-    const ownedIds = new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id));
     const searchTerm = document.getElementById('progression-search').value.toLowerCase();
 
-    const ownedCount = currentProgressionCards.filter(c => ownedIds.has(c.id)).length;
-    const totalCount = currentProgressionCards.length;
+    // Une carte est "possédée" dans un mode donné si on en a une ligne avec cette finition précise
+    // (les cartes sans finish renseigné - ajoutées avant cette fonctionnalité - comptent comme "normal")
+    const isOwnedInMode = (tcgdexId, mode) =>
+        allCollectionCards.some(c => c.tcgdex_id === tcgdexId && (c.finish || 'normal') === mode);
+
+    let baseCards = currentProgressionCards;
+    if (progressionFinishMode === 'reverse') {
+        // En mode Reverse, on ne montre que les cartes qui ont réellement une déclinaison reverse
+        baseCards = baseCards.filter(c => c.variants?.reverse === true);
+    }
+
+    const ownedCount = baseCards.filter(c => isOwnedInMode(c.id, progressionFinishMode)).length;
+    const totalCount = baseCards.length;
     const pct = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
     document.getElementById('progression-set-progress-text').textContent = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
 
-    let cards = currentProgressionCards;
+    let cards = baseCards;
     if (searchTerm) {
         cards = cards.filter(c =>
             (c.name || '').toLowerCase().includes(searchTerm) ||
@@ -3840,9 +3882,9 @@ async function renderProgressionCardsGrid() {
         );
     }
     if (progressionFilter === 'owned') {
-        cards = cards.filter(c => ownedIds.has(c.id));
+        cards = cards.filter(c => isOwnedInMode(c.id, progressionFinishMode));
     } else if (progressionFilter === 'missing') {
-        cards = cards.filter(c => !ownedIds.has(c.id));
+        cards = cards.filter(c => !isOwnedInMode(c.id, progressionFinishMode));
     }
 
     if (progressionRarityFilterValues.size > 0) {
@@ -3852,7 +3894,7 @@ async function renderProgressionCardsGrid() {
     cards = [...cards].sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));
 
     if (cards.length === 0) {
-        grid.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Aucune carte ne correspond</p>';
+        grid.innerHTML = `<p style="text-align: center; padding: 2rem; color: var(--slate);">${progressionFinishMode === 'reverse' ? 'Aucune carte reverse ne correspond' : 'Aucune carte ne correspond'}</p>`;
         return;
     }
 
@@ -3860,8 +3902,10 @@ async function renderProgressionCardsGrid() {
     const storedFilenames = await getStoredImageFilenames();
 
     grid.innerHTML = cards.map(card => {
-        const owned = ownedIds.has(card.id);
-        const ownedCardRow = owned ? allCollectionCards.find(c => c.tcgdex_id === card.id) : null;
+        const owned = isOwnedInMode(card.id, progressionFinishMode);
+        const ownedCardRow = owned
+            ? allCollectionCards.find(c => c.tcgdex_id === card.id && (c.finish || 'normal') === progressionFinishMode)
+            : null;
 
         let imageUrl = '';
         if (ownedCardRow && ownedCardRow.image) {
@@ -3875,7 +3919,7 @@ async function renderProgressionCardsGrid() {
         }
 
         return `
-            <div class="progression-card-item ${owned ? 'owned' : 'missing'}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
+            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode === 'reverse' ? 'reverse-mode' : ''}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
@@ -3888,6 +3932,13 @@ async function renderProgressionCardsGrid() {
             </div>
         `;
     }).join('');
+}
+
+function setProgressionFinishMode(mode) {
+    progressionFinishMode = mode;
+    document.getElementById('prog-finish-normal').classList.toggle('active', mode === 'normal');
+    document.getElementById('prog-finish-reverse').classList.toggle('active', mode === 'reverse');
+    renderProgressionCardsGrid();
 }
 
 function setProgressionFilter(filter) {
@@ -3966,7 +4017,8 @@ async function quickInstantAdd(cardId, btnEl) {
             acquisitionType: defaults.acquisitionType,
             purchasePrice: defaults.purchasePrice,
             customImage: null,
-            customDate: defaults.date || null
+            customDate: defaults.date || null,
+            finish: progressionFinishMode
         });
 
         showMessage(`${cardData.name} ajoutée !`, 'success');
@@ -4058,6 +4110,15 @@ function showAddCardModal(card) {
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="quickadd-finish">Finition</label>
+                        <select id="quickadd-finish">
+                            <option value="normal">Normale</option>
+                            <option value="reverse">Reverse</option>
+                            <option value="holo">Holo</option>
+                            <option value="first_edition">1ère édition</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="quickadd-quantity">Quantité</label>
                         <input type="number" id="quickadd-quantity" value="${qaDefaults.quantity}" min="1" max="100">
                     </div>
@@ -4084,6 +4145,7 @@ function showAddCardModal(card) {
     `;
 
     document.getElementById('quickadd-condition').value = qaDefaults.condition;
+    document.getElementById('quickadd-finish').value = progressionFinishMode;
     document.getElementById('quickadd-acquisition').value = qaDefaults.acquisitionType;
 
     document.getElementById('card-detail-overlay').classList.add('active');
@@ -4098,6 +4160,7 @@ function toggleQuickAddPurchasePriceField() {
 
 async function submitQuickAdd(card) {
     const condition = document.getElementById('quickadd-condition').value;
+    const finish = document.getElementById('quickadd-finish').value;
     const quantity = parseInt(document.getElementById('quickadd-quantity').value) || 1;
     const acquisitionType = document.getElementById('quickadd-acquisition').value;
     const purchasePrice = acquisitionType === 'pack'
@@ -4118,6 +4181,7 @@ async function submitQuickAdd(card) {
             purchasePrice,
             customImage: customQuickAddImage,
             customDate,
+            finish,
             onImageUploadStart: () => { btn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
         });
     } catch (error) {

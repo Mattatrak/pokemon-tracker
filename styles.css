@@ -1788,11 +1788,35 @@ tbody tr:hover {
 
 .progression-filters {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.progression-filters-row {
+    display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1.5rem;
     flex-wrap: wrap;
+}
+
+.progression-filters-row.centered-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+}
+
+.progression-filters-row.centered-row .row-start {
+    justify-self: start;
+}
+
+.progression-filters-row.centered-row .row-center {
+    justify-self: center;
+}
+
+.progression-filters-row.centered-row .row-end {
+    justify-self: end;
 }
 
 .progression-cards-grid {
@@ -1812,6 +1836,10 @@ tbody tr:hover {
 
 .progression-card-item.owned {
     cursor: pointer;
+}
+
+.progression-card-item.reverse-mode.owned {
+    border-color: var(--teal);
 }
 
 .progression-card-item.owned:hover {
@@ -2194,7 +2222,7 @@ tbody tr:hover {
     font-weight: 700;
     color: var(--text-primary);
     white-space: nowrap;
-    max-width: 70px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -2207,6 +2235,12 @@ tbody tr:hover {
 .condition-pill {
     background: rgba(255,255,255,0.06);
     color: var(--text-primary);
+}
+
+.finish-pill,
+.finish-badge {
+    background: rgba(63, 167, 161, 0.15) !important;
+    color: var(--teal) !important;
 }
 
 .condition-pill.nm { color: #95e1a3; }
