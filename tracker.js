@@ -1670,22 +1670,56 @@ function normalizeForMatch(str) {
 // Plusieurs variantes par icône pour maximiser les chances de correspondance selon les libellés/époques.
 // Si aucune correspondance : on affiche simplement le texte comme avant, rien ne casse.
 const RARITY_ICON_MAP = {
+    // Commune
     'commune': 'commune.webp',
     'common': 'commune.webp',
+
+    // Peu commune
     'peu commune': 'peu-commune.webp',
     'uncommon': 'peu-commune.webp',
+
+    // Holo (rare de base) - "Holo Rare" est un renommage plus récent de "Rare Holo"
+    'rare': 'holo.webp',
     'rare holo': 'holo.webp',
     'holo rare': 'holo.webp',
     'holographique': 'holo.webp',
-    'rare': 'holo.webp',
+
+    // Double rare - inclut les V/VMAX/VSTAR non full-art, équivalent historique
     'double rare': 'double-rare.png',
-    'illustration rare': 'illustration-rare.png',
-    'illustration rare rare': 'illustration-rare.png',
+    'holo rare v': 'double-rare.png',
+    'holo rare vmax': 'double-rare.png',
+    'holo rare vstar': 'double-rare.png',
+    'shiny rare v': 'double-rare.png',
+    'shiny rare vmax': 'double-rare.png',
+
+    // Ultra rare - mécaniques spéciales historiques de rang comparable
     'ultra rare': 'ultra-rare.png',
-    'illustration speciale rare': 'illustration-speciale-rare.png',
+    'shiny ultra rare': 'ultra-rare.png',
+    'amazing rare': 'ultra-rare.png',
+    'magnifique rare': 'ultra-rare.png',
+    'radiant rare': 'ultra-rare.png',
+    'rare prime': 'ultra-rare.png',
+    'legend': 'ultra-rare.png',
+    'rare holo lv.x': 'ultra-rare.png',
+    'full art trainer': 'ultra-rare.png',
+    'ace spec rare': 'ultra-rare.png',
+
+    // Illustration rare
+    'illustration rare': 'illustration-rare.png',
+
+    // Illustration spéciale rare
     'special illustration rare': 'illustration-speciale-rare.png',
+    'illustration speciale rare': 'illustration-speciale-rare.png',
+
+    // Top tier / secrètes
     'hyper rare': 'mega-hyper-rare.webp',
     'mega hyper rare': 'mega-hyper-rare.webp',
+    'secret rare': 'mega-hyper-rare.webp',
+    'shiny rare': 'mega-hyper-rare.webp',
+    'black white rare': 'mega-hyper-rare.webp',
+    'classic collection': 'mega-hyper-rare.webp',
+
+    // Promo
     'promo': 'promo.webp'
 };
 
