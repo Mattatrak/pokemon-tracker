@@ -2179,7 +2179,11 @@ tbody tr:hover {
     position: relative;
 }
 
-.rarity-filter-btn[data-tooltip]::after {
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]::after {
     content: attr(data-tooltip);
     position: absolute;
     bottom: calc(100% + 8px);
@@ -2199,7 +2203,7 @@ tbody tr:hover {
     z-index: 30;
 }
 
-.rarity-filter-btn[data-tooltip]:hover::after {
+[data-tooltip]:hover::after {
     opacity: 1;
 }
 
@@ -2241,6 +2245,15 @@ tbody tr:hover {
 .finish-badge {
     background: rgba(63, 167, 161, 0.15) !important;
     color: var(--teal) !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.foil-icon {
+    display: inline-block;
+    object-fit: contain;
+    vertical-align: middle;
 }
 
 .condition-pill.nm { color: #95e1a3; }

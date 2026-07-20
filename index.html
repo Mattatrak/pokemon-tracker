@@ -21,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=13">
+    <link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
     <div class="container">
@@ -151,7 +151,6 @@
                         <select id="card-finish">
                             <option value="normal">Normale</option>
                             <option value="reverse">Reverse</option>
-                            <option value="holo">Holo</option>
                             <option value="first_edition">1ère édition</option>
                         </select>
                     </div>
@@ -295,10 +294,7 @@
                             </div>
                         </div>
                         <div class="row-center">
-                            <div class="view-toggle">
-                                <button class="view-toggle-btn active" id="prog-finish-normal" onclick="setProgressionFinishMode('normal')">Normal</button>
-                                <button class="view-toggle-btn" id="prog-finish-reverse" onclick="setProgressionFinishMode('reverse')"><i class="ti ti-sparkles" aria-hidden="true"></i> Reverse</button>
-                            </div>
+                            <div class="view-toggle" id="progression-finish-toggle-row"></div>
                         </div>
                         <div class="row-end">
                             <button class="filter-toggle-btn" onclick="openQuickAddSettingsModal()"><i class="ti ti-settings" aria-hidden="true"></i> Réglages</button>
@@ -480,7 +476,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="tracker.js?v=35"></script>
+    <script src="tracker.js?v=44"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
