@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Pokémon Collection Tracker - Connexion</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#161B29">
+
+    <!-- iOS (installation via le menu Partager de Safari) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Poké Tracker">
+    <link rel="apple-touch-icon" href="images/icon-180.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles-login.css?v=1">
+</head>
+<body class="login-page">
+    <div class="login-background"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-pokeball-top">
+                <img src="images/login/pokeball.png" alt="Pokéball" class="pokeball-icon">
+            </div>
+
+            <div class="login-header">
+                <img src="images/login/pokemonlogo.png" alt="Pokémon" class="pokemon-logo">
+                <div class="login-tracker-wrapper">
+                    <img src="images/login/greypokeball.png" alt="" class="grey-pokeball grey-pokeball-left">
+                    <div class="login-subtitle">COLLECTION TRACKER</div>
+                    <img src="images/login/greypokeball.png" alt="" class="grey-pokeball grey-pokeball-right">
+                </div>
+            </div>
+
+            <h1 class="login-welcome">Bienvenue Dresseur !</h1>
+            <p class="login-description">Connecte-toi à ton compte pour continuer ton aventure.</p>
+
+            <form id="login-form" class="login-form-group">
+                <div class="form-field">
+                    <div class="input-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </div>
+                    <input type="email" id="login-email" placeholder="Adresse e-mail" required autocomplete="username">
+                </div>
+
+                <div class="form-field">
+                    <div class="input-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <input type="password" id="login-password" placeholder="Mot de passe" required autocomplete="current-password">
+                </div>
+
+                <div class="form-footer">
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="login-remember">
+                        <label for="login-remember">Se souvenir de moi</label>
+                    </div>
+                    <a href="#" class="forgot-password-link">Mot de passe oublié ?</a>
+                </div>
+
+                <p id="login-error" class="login-error" style="display:none;"></p>
+
+                <button type="submit" class="login-submit-btn" id="login-submit-btn">
+                    <img src="images/login/pokeball.png" alt="Pokéball" class="btn-pokeball">
+                    Se connecter
+                </button>
+
+                <div class="login-pikachu">
+                    <img src="images/login/pikachu.png" alt="Pikachu">
+                </div>
+            </form>
+
+            <div class="login-signup">
+                <img src="images/login/pokeball.png" alt="Pokéball" class="signup-pokeball">
+                <span>Pas encore de compte ?</span>
+                <a href="#" class="signup-link">Rejoins l'aventure</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="modules/utils.js?v=1"></script>
+    <script src="tracker.js?v=57"></script>
+    <script src="modules/auth-login.js?v=1"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>
