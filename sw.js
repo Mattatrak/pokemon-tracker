@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poketracker-v1';
+const CACHE_NAME = 'poketracker-v2';
 const CORE_ASSETS = [
     './',
     './index.html',
