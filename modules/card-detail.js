@@ -23,8 +23,8 @@ function showCardDetail(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'modal-size')">`
-                    : getCollectionUploadPlaceholder(card.id, 'modal-size')
+                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                    : getModalUploadPlaceholder(card.id)
                 }
                 ${card.tcgdex_id ? `
                     <div class="card-price-chart-wrap">
@@ -304,8 +304,8 @@ async function showCardEditForm(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'modal-size')">`
-                    : getCollectionUploadPlaceholder(card.id, 'modal-size')
+                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                    : getModalUploadPlaceholder(card.id)
                 }
             </div>
             <div class="modal-info">
@@ -464,10 +464,20 @@ async function handleModalSeriesLogoUpload(event, setId, cardId) {
     }
 }
 
+// Placeholder utilisé dans la grille/tableau de collection : ouvre la fiche détail au clic
+// (comme le reste de la carte), au lieu de lancer directement l'upload.
 function getCollectionUploadPlaceholder(cardId, sizeClass = 'thumb') {
-    return `<div class="no-image-placeholder ${sizeClass} upload-placeholder" onclick="event.stopPropagation(); document.getElementById('upload-${cardId}').click()">
+    return `<div class="no-image-placeholder ${sizeClass} upload-placeholder" onclick="event.stopPropagation(); showCardDetail(${cardId})">
         <i class="ti ti-photo-off" aria-hidden="true"></i>
-        <input type="file" id="upload-${cardId}" accept="image/*" style="display:none" onchange="event.stopPropagation(); handleCollectionImageUpload(event, ${cardId})">
+    </div>`;
+}
+
+// Placeholder utilisé dans la modale de détail : clique dessus pour uploader une image directement
+function getModalUploadPlaceholder(cardId) {
+    return `<div class="no-image-placeholder modal-size upload-placeholder" onclick="document.getElementById('modal-upload-${cardId}').click()">
+        <i class="ti ti-photo-off" aria-hidden="true"></i><br>
+        <span class="upload-hint"><i class="ti ti-camera" aria-hidden="true"></i> Cliquer pour ajouter</span>
+        <input type="file" id="modal-upload-${cardId}" accept="image/*" style="display:none" onchange="handleCollectionImageUpload(event, ${cardId})">
     </div>`;
 }
 
