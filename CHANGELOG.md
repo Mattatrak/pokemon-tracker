@@ -1,5 +1,12 @@
 # Changelog
 
+## Feat : édition en masse sur la vue Tableau de la collection
+
+- **Sélection multiple** : case à cocher par ligne + case "tout sélectionner" dans l'en-tête, sur la vue Tableau de l'onglet Ma Collection (`index.html`, `modules/collection.js`).
+- **Barre d'actions groupées** apparaît dès qu'au moins une carte est sélectionnée : compteur, changement d'état groupé (NM/LP/MP/HP), suppression groupée avec confirmation (`modules/collection.js`, `styles.css`).
+- Une seule requête Supabase par action (`update().in('id', [...])` / `delete().in('id', [...])`), pas une par carte.
+- La sélection repart à zéro à chaque changement de recherche/filtre/tri/vue, pour éviter d'agir sur des cartes qu'on ne voit plus.
+
 ## Amélioration : contraste, focus clavier, responsive et lisibilité
 
 Corrections issues d'un audit visuel/UX complet du site.

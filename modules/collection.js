@@ -177,8 +177,92 @@ function getFilteredSortedCollection() {
 const COLLECTION_PAGE_SIZE = 60;
 let collectionDisplayLimit = COLLECTION_PAGE_SIZE;
 
+// Sélection multiple (édition en masse, vue Tableau)
+let selectedCardIds = new Set();
+
+function clearSelection() {
+    selectedCardIds.clear();
+    updateBulkActionsBar();
+    updateSelectAllCheckboxState();
+}
+
+function toggleCardSelection(id) {
+    if (selectedCardIds.has(id)) {
+        selectedCardIds.delete(id);
+    } else {
+        selectedCardIds.add(id);
+    }
+    updateSelectAllCheckboxState();
+    updateBulkActionsBar();
+}
+
+function toggleSelectAllVisible() {
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    const checkboxes = document.querySelectorAll('#cards-list .row-select-checkbox');
+    checkboxes.forEach(cb => {
+        const id = Number(cb.dataset.id);
+        cb.checked = selectAllCb.checked;
+        if (selectAllCb.checked) selectedCardIds.add(id);
+        else selectedCardIds.delete(id);
+    });
+    updateBulkActionsBar();
+}
+
+function updateSelectAllCheckboxState() {
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (!selectAllCb) return;
+    const checkboxes = [...document.querySelectorAll('#cards-list .row-select-checkbox')];
+    const checkedCount = checkboxes.filter(cb => cb.checked).length;
+    selectAllCb.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+    selectAllCb.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+}
+
+function updateBulkActionsBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    if (!bar) return;
+    const count = selectedCardIds.size;
+    bar.style.display = count > 0 ? 'flex' : 'none';
+    document.getElementById('bulk-selection-count').textContent =
+        `${count} carte${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`;
+}
+
+async function bulkUpdateCondition(newCondition) {
+    if (!newCondition || selectedCardIds.size === 0) return;
+    const ids = [...selectedCardIds];
+
+    const { error } = await supabaseClient.from('cards').update({ condition: newCondition }).in('id', ids);
+    if (error) {
+        showMessage('Erreur lors de la mise à jour groupée', 'error');
+        console.error(error);
+        return;
+    }
+
+    showMessage(`État mis à jour pour ${ids.length} carte${ids.length > 1 ? 's' : ''}`, 'success');
+    clearSelection();
+    await refreshCollection();
+}
+
+async function bulkDeleteSelected() {
+    const ids = [...selectedCardIds];
+    if (ids.length === 0) return;
+    if (!await showConfirmModal(`Supprimer ${ids.length} carte${ids.length > 1 ? 's' : ''} de la collection ?`, 'Supprimer')) return;
+
+    const { error } = await supabaseClient.from('cards').delete().in('id', ids);
+    if (error) {
+        showMessage('Erreur lors de la suppression groupée', 'error');
+        console.error(error);
+        return;
+    }
+
+    showMessage(`${ids.length} carte${ids.length > 1 ? 's' : ''} supprimée${ids.length > 1 ? 's' : ''}`, 'success');
+    clearSelection();
+    await refreshCollection();
+    await recordValueSnapshot();
+}
+
 function filterAndDisplay() {
     collectionDisplayLimit = COLLECTION_PAGE_SIZE; // toute recherche/filtre/tri repart de la première page
+    clearSelection(); // évite d'agir sur une sélection de cartes qu'on ne voit plus
     renderFilteredCollection();
 }
 
@@ -214,13 +298,14 @@ function renderCollectionTable(filtered) {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" style="text-align: center; padding: 2rem;">
+                <td colspan="10" style="text-align: center; padding: 2rem;">
                     <div class="empty-state">
                         <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
                     </div>
                 </td>
             </tr>
         `;
+        updateSelectAllCheckboxState();
         return;
     }
 
@@ -231,6 +316,7 @@ function renderCollectionTable(filtered) {
         const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
         return `
         <tr>
+            <td class="select-col"><input type="checkbox" class="row-select-checkbox" data-id="${card.id}" ${selectedCardIds.has(card.id) ? 'checked' : ''} onchange="toggleCardSelection(${card.id})"></td>
             <td>${card.image
                 ? `<img src="${card.image}" alt="${card.name}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id})">`
                 : getCollectionUploadPlaceholder(card.id)
@@ -258,6 +344,8 @@ function renderCollectionTable(filtered) {
         </tr>
     `;
     }).join('');
+
+    updateSelectAllCheckboxState();
 }
 
 function getGridNoImageHtml() {

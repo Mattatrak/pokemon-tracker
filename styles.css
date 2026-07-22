@@ -1434,6 +1434,29 @@ button:disabled {
     overflow: hidden;
 }
 
+.select-col {
+    width: 40px;
+    text-align: center;
+}
+
+.bulk-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: var(--panel-light);
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+#bulk-selection-count {
+    font-weight: 600;
+    color: var(--gold);
+    margin-right: auto;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

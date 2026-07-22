@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=27">
+    <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
     <div class="container" id="main-app-container">
@@ -257,10 +257,24 @@
                 <div class="collection-grid" id="collection-grid"></div>
             </div>
 
+            <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
+                <span id="bulk-selection-count">0 carte sélectionnée</span>
+                <select id="bulk-condition-select" onchange="bulkUpdateCondition(this.value); this.value='';">
+                    <option value="">Changer l'état...</option>
+                    <option value="NM">Neuf (NM)</option>
+                    <option value="LP">Très bon (LP)</option>
+                    <option value="MP">Bon (MP)</option>
+                    <option value="HP">Mauvais état (HP)</option>
+                </select>
+                <button class="delete-btn" onclick="bulkDeleteSelected()"><i class="ti ti-trash" aria-hidden="true"></i> Supprimer la sélection</button>
+                <button class="filter-toggle-btn" onclick="clearSelection()">Annuler la sélection</button>
+            </div>
+
             <div class="table-wrapper" id="collection-table-wrapper" style="display: none;">
                 <table>
                     <thead>
                         <tr>
+                            <th class="select-col"><input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAllVisible()"></th>
                             <th>Image</th>
                             <th class="sortable" onclick="sortCollection('name')">Nom <span class="sort-arrow" id="sort-arrow-name"></span></th>
                             <th class="sortable" onclick="sortCollection('series')">Série <span class="sort-arrow" id="sort-arrow-series"></span></th>
@@ -274,7 +288,7 @@
                     </thead>
                     <tbody id="cards-list">
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 2rem;">
+                            <td colspan="10" style="text-align: center; padding: 2rem;">
                                 <div class="empty-state">
                                     <p><i class="ti ti-cards" aria-hidden="true"></i> Votre collection est vide</p>
                                 </div>
@@ -509,7 +523,7 @@
     <script src="modules/storage.js?v=1"></script>
     <script src="modules/cards.js?v=1"></script>
     <script src="modules/stats.js?v=1"></script>
-    <script src="modules/collection.js?v=1"></script>
+    <script src="modules/collection.js?v=2"></script>
     <script src="modules/import-export.js?v=1"></script>
     <script src="modules/card-detail.js?v=1"></script>
     <script src="modules/ui.js?v=1"></script>
