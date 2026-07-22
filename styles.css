@@ -2,8 +2,8 @@
     --ink-navy: #161B29;
     --ink-navy-light: #232B42;
     --bg: #0D0F17;
-    --panel: #1B2233;
-    --panel-light: #232B42;
+    --panel: #212A44;
+    --panel-light: #293356;
     --border: rgba(255,255,255,0.08);
     --parchment: #F7F3EA;
     --text-primary: #EDEFF5;
@@ -19,6 +19,11 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
 }
 
 /* SCROLLBAR PERSONNALISEE */
@@ -46,14 +51,14 @@ html {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: radial-gradient(ellipse at 50% 0%, #1a2035 0%, var(--bg) 60%);
     background-attachment: fixed;
     color: var(--text-primary);
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
     padding: 2rem 1rem;
 }
@@ -136,7 +141,7 @@ header {
     background-image: linear-gradient(180deg, rgba(13,16,26,0.2) 0%, rgba(13,16,26,0.45) 55%, rgba(13,16,26,0.8) 100%), url('images/background-header.png');
     background-size: cover;
     background-position: center center;
-    padding: 4rem 2rem;
+    padding: 2.5rem 2rem;
     border-radius: 12px;
     color: var(--parchment);
     margin-bottom: 2rem;
@@ -949,7 +954,7 @@ input, select, textarea {
 }
 
 input::placeholder {
-    color: var(--slate);
+    color: #9CA5B8;
 }
 
 input, select, textarea {
@@ -2827,7 +2832,17 @@ tbody tr:hover {
 
 
 /* RESPONSIF */
+@media (max-width: 1024px) {
+    .view-toggle-row {
+        justify-content: flex-start;
+    }
+}
+
 @media (max-width: 768px) {
+    header {
+        padding: 1.75rem 1rem;
+    }
+
     header h1 {
         font-size: 1.8rem;
     }

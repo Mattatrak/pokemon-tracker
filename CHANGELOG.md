@@ -1,5 +1,18 @@
 # Changelog
 
+## Amélioration : contraste, focus clavier, responsive et lisibilité
+
+Corrections issues d'un audit visuel/UX complet du site.
+
+- **Contraste panels/fond** : `--panel` et `--panel-light` éclaircis (`#1B2233`→`#212A44`, `#232B42`→`#293356`) pour que les blocs (stats, filtres, cartes) se détachent du fond au lieu de se fondre dedans (`styles.css`).
+- **Focus clavier visible** : ajout d'une règle globale `:focus-visible` (anneau or, décalé de 2px) sur tous les éléments interactifs — jusqu'ici seuls les champs de formulaire avaient un style de focus (`styles.css`).
+- **Largeur max augmentée** : `.container` passe de `1200px` à `1440px`, la grille de collection exploite mieux les grands écrans (6 colonnes au lieu de 5 sur un 1920px) (`styles.css`).
+- **Header allégé** : `padding` réduit de `4rem` à `2.5rem` (desktop) et `1.75rem` sur mobile — stats et onglets visibles sans scroll à l'ouverture (`styles.css`).
+- **Barre d'outils collection sur écran moyen** : `.view-toggle-row` gardait un `justify-content: space-between` hérité du desktop entre 769px et 1024px, créant un vide énorme entre le tri et le bouton "Données". Ajout d'un breakpoint dédié (`styles.css`).
+- **Police du corps de texte** : ajout d'Inter (Google Fonts) à la place de la police système par défaut, cohérent avec Bebas Neue déjà utilisée sur les titres (`index.html`, `login.html`, `styles.css`).
+- **Placeholder des champs plus lisible** : couleur `--slate` (ratio de contraste 4.6:1 sur le nouveau fond de panel, sous le seuil recommandé) remplacée par `#9CA5B8` (5.7:1) (`styles.css`).
+- **Graphique "Top séries" en échelle logarithmique** : une seule série (Héros Transcendants, 214 cartes) écrasait l'échelle linéaire et rendait les 7 autres illisibles (barres de 2px). Passage en échelle log pour pouvoir comparer les petites séries entre elles (`modules/stats-render.js`).
+
 ## Refonte : onglet Ajouter, header, stats et upload d'image de carte
 
 - **Header** : logo remplacé par `images/poke-tracker.png` (agrandi, aligné à gauche dans la bannière avec le titre sur 2 lignes).

@@ -214,7 +214,7 @@ function renderSeriesChart() {
             responsive: true,
             plugins: { legend: { display: false } },
             scales: {
-                x: { beginAtZero: true, ticks: { precision: 0 } },
+                x: { type: 'logarithmic', ticks: { precision: 0, callback: v => Number.isInteger(Math.log10(v)) ? v : '' } },
                 y: { ticks: { autoSkip: false } }
             }
         }
