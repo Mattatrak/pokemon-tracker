@@ -214,7 +214,7 @@ function renderSeriesChart() {
             responsive: true,
             plugins: { legend: { display: false } },
             scales: {
-                x: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { beginAtZero: true, ticks: { precision: 0 } },
                 y: { ticks: { autoSkip: false } }
             }
         }

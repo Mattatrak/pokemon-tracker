@@ -1,5 +1,10 @@
 # Changelog
 
+## Fix : warning Chart.js sur le graphique "Top séries" + nouvelle image de header
+
+- **Fix warning console Chart.js** : le graphique "Top séries (par nombre de cartes)" forçait `ticks.stepSize: 1` sur l'axe X, ce qui demandait à Chart.js de générer une graduation par carte (jusqu'à 1289 sur une grosse collection) — plafonné à 1000 avec un warning en boucle. Remplacé par `ticks.precision: 0` : graduations entières mais espacement choisi automatiquement (`modules/stats-render.js`).
+- **Nouvelle image de header** (`images/background-header.png`) remplace `images/header-banner.webp` dans `styles.css`. L'ancien fichier n'est plus référencé nulle part.
+
 ## Feat : détail des variations 24h, rafraîchissement auto des prix, favicon, thème des toasts
 
 - **Fix fluctuation 24h** : le calcul de `+X€ (24h)` de la hero card interrogeait `value_history` triée par ordre chronologique croissant avec `limit(200)` — sur une collection avec plus de 200 snapshots, ça récupérait les 200 plus **vieux** points au lieu des plus récents, faussant complètement le calcul (`modules/stats.js`). Tri inversé + remis en ordre en JS.
