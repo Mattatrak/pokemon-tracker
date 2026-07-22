@@ -146,24 +146,39 @@ header {
 .header-title-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
+    justify-content: flex-start;
+    gap: 0.35rem;
     margin-bottom: 0.35rem;
 }
 
 .header-logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    border: 2px solid var(--gold);
+    width: 92px;
+    height: 92px;
+    border-radius: 14px;
+    filter: drop-shadow(0 0 10px rgba(232, 169, 59, 0.5));
 }
 
 header h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem;
-    letter-spacing: 0.04em;
-    color: var(--gold);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1;
     margin-bottom: 0;
+}
+
+.header-title-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.6rem;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+}
+
+.header-title-sub {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    color: var(--parchment);
     text-shadow: 0 2px 8px rgba(0,0,0,0.7);
 }
 
@@ -272,6 +287,13 @@ header p {
     flex-wrap: wrap;
 }
 
+.tabs .refresh-prices-row {
+    margin-bottom: 0;
+    margin-left: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
 .btn-refresh {
     background: var(--panel-light);
     color: var(--gold);
@@ -302,6 +324,7 @@ header p {
     margin-bottom: 2rem;
     border-bottom: 2px solid var(--panel-light);
     overflow-x: auto;
+    overflow-y: visible;
 }
 
 .tab-btn {
@@ -464,19 +487,33 @@ header p {
 
 .search-form {
     display: grid;
-    grid-template-columns: 1fr 150px;
+    grid-template-columns: minmax(0, 420px) 150px;
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
 
 .search-results {
-    background: var(--panel-light);
+    background: rgba(35, 43, 66, 0.3);
+    backdrop-filter: blur(6px);
     border: 1px solid var(--border);
     border-radius: 8px;
-    max-height: 400px;
+    max-height: 480px;
+    max-width: 540px;
     overflow-y: auto;
     margin-bottom: 1rem;
     display: none;
+}
+
+.search-results {
+    scrollbar-color: rgba(232, 169, 59, 0.5) rgba(35, 43, 66, 0.3);
+}
+
+.search-results::-webkit-scrollbar-track {
+    background: rgba(35, 43, 66, 0.3);
+}
+
+.search-results::-webkit-scrollbar-thumb {
+    background: rgba(232, 169, 59, 0.5);
 }
 
 .search-results.active {
@@ -606,25 +643,236 @@ header p {
     color: var(--slate);
 }
 
-/* APERCU CARTE */
-.card-preview {
-    background: var(--panel-light);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    display: none;
+.search-result-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+    color: var(--gold);
+    flex-shrink: 0;
 }
 
-.card-preview.active {
+/* AJOUTER : IMAGE + FORMULAIRE COTE A COTE */
+.add-card-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1.75rem;
+    align-items: start;
+    margin-bottom: 1.25rem;
+}
+
+.add-card-form-col {
+    min-width: 0;
+}
+
+/* APERCU CARTE / ZONE IMAGE */
+.card-preview {
     display: block;
 }
 
-.preview-content {
+.card-preview .preview-image {
+    background: var(--ink-navy);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.search-card-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.add-collection-section {
+    background: radial-gradient(circle at 100% 0%, rgba(232, 169, 59, 0.1), transparent 55%), #141826;
+}
+
+.search-card-section > *:not(.search-pokeball-decor) {
+    position: relative;
+    z-index: 1;
+}
+
+.search-pokeball-decor {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: right center;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.no-image-placeholder.large.upload-placeholder {
+    width: 100%;
+    height: 320px;
+    border: 2px dashed rgba(232, 169, 59, 0.35);
+    border-radius: 12px;
+    position: relative;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    padding-bottom: 0.75rem;
+}
+
+.no-image-placeholder.large.upload-placeholder .ti-photo-off {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3.5rem;
+    opacity: 0.35;
+}
+
+.no-image-placeholder.large.upload-placeholder .upload-btn-pill,
+.no-image-placeholder.large.upload-placeholder .upload-hint {
+    position: relative;
+    z-index: 1;
+}
+
+.upload-btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--gold);
+    color: var(--ink-navy);
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 30px;
+}
+
+/* CONSEIL */
+.add-tip-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    background: rgba(232, 169, 59, 0.08);
+    border: 1px solid rgba(232, 169, 59, 0.25);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+}
+
+.add-tip-icon {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(232, 169, 59, 0.2);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-size: 1.1rem;
+}
+
+.add-tip-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.add-tip-title {
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 0.2rem;
+}
+
+.add-tip-text {
+    font-size: 0.9rem;
+    color: var(--slate);
+}
+
+/* STATS DU BAS */
+.stats-bottom {
     display: grid;
-    grid-template-columns: 150px 1fr;
-    gap: 1.5rem;
-    align-items: start;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.stat-card-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+}
+
+.stat-card-icon[onclick] {
+    cursor: pointer;
+}
+
+.stat-card-cartes {
+    background: radial-gradient(circle at 0% 0%, rgba(199, 125, 255, 0.25), transparent 130%), var(--panel-light);
+    border-left: 3px solid #c77dff;
+    box-shadow: -5px 0 15px -2px rgba(199, 125, 255, 0.6);
+}
+
+.stat-card-value {
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at 0% 0%, rgba(232, 169, 59, 0.25), transparent 130%), var(--panel-light);
+    border-left: 3px solid var(--gold);
+    box-shadow: -5px 0 15px -2px rgba(232, 169, 59, 0.6);
+}
+
+.stat-card-achat {
+    background: radial-gradient(circle at 0% 0%, rgba(63, 167, 161, 0.28), transparent 130%), var(--panel-light);
+    border-left: 3px solid var(--teal);
+    box-shadow: -5px 0 15px -2px rgba(63, 167, 161, 0.6);
+}
+
+.stat-card-value .hero-sparkline-canvas {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100% !important;
+    height: 70% !important;
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.stat-card-value .stat-icon-img,
+.stat-card-value .stat-icon-text {
+    position: relative;
+    z-index: 1;
+}
+
+.stat-number-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.hero-fluctuation {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.hero-fluctuation.positive { color: #4ade80; }
+.hero-fluctuation.negative { color: #ff6b6b; }
+.hero-fluctuation.neutral { color: var(--slate); }
+
+.stat-icon-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.stat-icon-text .stat-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+}
+
+.stat-icon-text .stat-label {
+    font-size: 0.85rem;
+    color: var(--slate);
 }
 
 .duplicate-alert-badge {
@@ -2594,31 +2842,20 @@ tbody tr:hover {
         gap: 0.5rem;
     }
 
-    .hero-value-card {
-        padding: 1.25rem 1.5rem;
-    }
-
-    .hero-value-number {
-        font-size: 2.2rem;
-    }
-
-    .hero-value-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .hero-add-btn {
-        width: 100%;
-        text-align: center;
+    .stats-bottom {
+        grid-template-columns: 1fr;
     }
 
     .search-form {
         grid-template-columns: 1fr;
     }
 
-    .preview-content {
+    .add-card-layout {
         grid-template-columns: 1fr;
-        text-align: center;
+    }
+
+    .no-image-placeholder.large.upload-placeholder {
+        height: 220px;
     }
 
     .series-grid {

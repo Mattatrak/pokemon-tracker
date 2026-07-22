@@ -22,46 +22,44 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
     <div class="container" id="main-app-container">
         <header>
             <div class="header-title-row">
-                <img src="images/icon-192.png" alt="" class="header-logo">
-                <h1>Pokémon Collection Tracker</h1>
+                <img src="images/poke-tracker.png" alt="" class="header-logo">
+                <h1><span class="header-title-main">Pokémon</span><span class="header-title-sub">Collection Tracker</span></h1>
                 <button class="logout-btn" onclick="handleLogout()" title="Se déconnecter"><i class="ti ti-logout" aria-hidden="true"></i></button>
             </div>
         </header>
 
-        <div class="hero-value-card" onclick="showTopMoversModal()">
-            <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
-            <div class="hero-value-content">
-                <div class="hero-value-header">
-                    <span class="hero-value-label"><i class="ti ti-diamond" aria-hidden="true"></i> Valeur totale (marché)</span>
-                    <span class="hero-fluctuation" id="hero-fluctuation"></span>
-                </div>
-                <div class="hero-value-row">
-                    <div class="hero-value-number" id="hero-total-value">0€</div>
-                    <button class="hero-add-btn" onclick="event.stopPropagation(); document.querySelector('.tabs .tab-btn').click()">+ Ajouter</button>
+        <div class="stats-bottom">
+            <div class="stat-card-icon stat-card-cartes">
+                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="total-cards">0</div>
+                    <div class="stat-label">Total de cartes</div>
                 </div>
             </div>
-        </div>
-
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-label">Total de cartes</div>
-                <div class="stat-number" id="total-cards">0</div>
+            <div class="stat-card-icon stat-card-value" onclick="showTopMoversModal()">
+                <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
+                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number-row">
+                        <div class="stat-number" id="hero-total-value">0€</div>
+                        <span class="hero-fluctuation" id="hero-fluctuation"></span>
+                    </div>
+                    <div class="stat-label">Valeur totale (marché)</div>
+                </div>
             </div>
-            <div class="stat-card spent">
-                <div class="stat-label">Total dépensé</div>
-                <div class="stat-number" id="total-spent">0€</div>
+            <div class="stat-card-icon stat-card-achat">
+                <img src="images/total-achat.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="total-spent">0€</div>
+                    <div class="stat-label">Total dépensé</div>
+                </div>
             </div>
-        </div>
-
-        <div class="refresh-prices-row">
-            <button id="refresh-prices-btn" class="btn-refresh" onclick="refreshAllMarketPrices()"><i class="ti ti-refresh" aria-hidden="true"></i> Rafraîchir les prix du marché</button>
-            <span id="refresh-prices-status" class="refresh-prices-status"></span>
         </div>
 
         <div class="tabs">
@@ -70,20 +68,25 @@
             <button class="tab-btn" onclick="switchTab(event, 'tab-progression')"><i class="ti ti-trophy" aria-hidden="true"></i> Progression</button>
             <button class="tab-btn" onclick="switchTab(event, 'tab-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Statistiques</button>
             <button class="tab-btn" onclick="switchTab(event, 'tab-wishlist')"><i class="ti ti-star" aria-hidden="true"></i> Souhaits</button>
+            <div class="refresh-prices-row">
+                <button id="refresh-prices-btn" class="btn-refresh btn-refresh-icon-only" onclick="refreshAllMarketPrices()"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+                <span id="refresh-prices-status" class="refresh-prices-status"></span>
+            </div>
         </div>
 
         <div id="message-container" class="global-message-container"></div>
 
         <!-- ONGLET AJOUTER -->
         <div id="tab-add" class="tab-content">
-            <div class="form-section">
-                <h2><i class="ti ti-search" aria-hidden="true"></i> Chercher une carte</h2>
+            <div class="form-section search-card-section">
+                <h2><i class="ti ti-search" aria-hidden="true"></i> Rechercher une carte</h2>
+                <img src="images/goldpokeball.png" alt="" class="search-pokeball-decor" aria-hidden="true">
                 <div class="search-form">
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="card-search" placeholder="Cherchez une carte en français...">
+                        <input type="text" id="card-search" placeholder="Recherchez une carte en français...">
                     </div>
-                    <button onclick="searchCards()" id="search-btn">Chercher</button>
+                    <button onclick="searchCards()" id="search-btn"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
                 </div>
                 <div class="filters">
                     <select id="filter-rarity">
@@ -96,88 +99,103 @@
                 <div class="search-results" id="search-results"></div>
             </div>
 
-            <div class="card-preview" id="card-preview">
-                <div class="preview-content">
-                    <div class="preview-image">
-                        <img id="preview-img" src="" alt="Carte">
+            <div class="form-section add-collection-section">
+                <h2><i class="ti ti-circle-plus" aria-hidden="true"></i> Ajouter à ma collection</h2>
+                <div class="add-card-layout">
+                    <div class="card-preview" id="card-preview">
+                        <div class="preview-image">
+                            <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
+                                <i class="ti ti-photo-off" aria-hidden="true"></i>
+                                <span class="upload-btn-pill"><i class="ti ti-upload" aria-hidden="true"></i> Choisir une image</span>
+                                <span class="upload-hint">PNG, JPG ou WEBP (max 5MB)</span>
+                            </div>
+                            <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
+                        </div>
                     </div>
-                    <div class="preview-content-body">
+
+                    <div class="add-card-form-col">
                         <div id="preview-duplicate-alert" style="display: none;"></div>
                         <div class="preview-info">
-                        <div>
-                            <div class="preview-info-label">Nom</div>
-                            <div class="preview-info-value" id="preview-name">-</div>
-                        </div>
-                        <div>
-                            <div class="preview-info-label">Série</div>
-                            <div class="preview-info-value" id="preview-set">
-                                <img id="preview-series-logo" src="" alt="" class="series-logo-table" style="display:none;">
-                                <span id="preview-set-text">-</span>
+                            <div>
+                                <div class="preview-info-label">Nom</div>
+                                <div class="preview-info-value" id="preview-name">-</div>
+                            </div>
+                            <div>
+                                <div class="preview-info-label">Série</div>
+                                <div class="preview-info-value" id="preview-set">
+                                    <img id="preview-series-logo" src="" alt="" class="series-logo-table" style="display:none;">
+                                    <span id="preview-set-text">-</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="preview-info-label">Numéro</div>
+                                <div class="preview-info-value" id="preview-number">-</div>
+                            </div>
+                            <div>
+                                <div class="preview-info-label">Type</div>
+                                <div class="preview-info-value" id="preview-type">-</div>
+                            </div>
+                            <div>
+                                <div class="preview-info-label">Rareté</div>
+                                <div class="preview-info-value" id="preview-rarity">-</div>
+                            </div>
+                            <div>
+                                <div class="preview-info-label">Prix (CardMarket)</div>
+                                <div class="preview-info-value" id="preview-price">-</div>
                             </div>
                         </div>
-                        <div>
-                            <div class="preview-info-label">Numéro</div>
-                            <div class="preview-info-value" id="preview-number">-</div>
-                        </div>
-                        <div>
-                            <div class="preview-info-label">Type</div>
-                            <div class="preview-info-value" id="preview-type">-</div>
-                        </div>
-                        <div>
-                            <div class="preview-info-label">Rareté</div>
-                            <div class="preview-info-value" id="preview-rarity">-</div>
-                        </div>
-                        <div>
-                            <div class="preview-info-label">Prix (CardMarket)</div>
-                            <div class="preview-info-value" id="preview-price">-</div>
-                        </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="form-section">
-                <h2><i class="ti ti-circle-plus" aria-hidden="true"></i> Ajouter à ma collection</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="card-condition">État</label>
-                        <select id="card-condition">
-                            <option value="NM">Neuf (NM)</option>
-                            <option value="LP">Très bon (LP)</option>
-                            <option value="MP">Bon (MP)</option>
-                            <option value="HP">Mauvais état (HP)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="card-finish">Finition</label>
-                        <select id="card-finish">
-                            <option value="normal">Normale</option>
-                            <option value="reverse">Reverse</option>
-                            <option value="first_edition">1ère édition</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="card-quantity">Quantité</label>
-                        <input type="number" id="card-quantity" value="1" min="1" max="100">
-                    </div>
-                    <div class="form-group">
-                        <label for="card-acquisition">Obtention</label>
-                        <select id="card-acquisition">
-                            <option value="achat">Achetée</option>
-                            <option value="pack">Sortie d'un booster</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="purchase-price-group">
-                        <label for="card-value">Prix payé (€)</label>
-                        <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="card-date-added">Date d'acquisition</label>
-                        <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="card-condition">État</label>
+                                <select id="card-condition">
+                                    <option value="NM">Neuf (NM)</option>
+                                    <option value="LP">Très bon (LP)</option>
+                                    <option value="MP">Bon (MP)</option>
+                                    <option value="HP">Mauvais état (HP)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="card-finish">Finition</label>
+                                <select id="card-finish">
+                                    <option value="normal">Normale</option>
+                                    <option value="reverse">Reverse</option>
+                                    <option value="first_edition">1ère édition</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="card-quantity">Quantité</label>
+                                <input type="number" id="card-quantity" value="1" min="1" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label for="card-acquisition">Obtention</label>
+                                <select id="card-acquisition">
+                                    <option value="achat">Achetée</option>
+                                    <option value="pack">Sortie d'un booster</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="purchase-price-group">
+                                <label for="card-value">Prix payé (€)</label>
+                                <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="card-date-added">Date d'acquisition</label>
+                                <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <button class="full-width" onclick="addCard()"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
                 <button class="full-width wishlist-btn" onclick="openWishlistPicker()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma liste de souhaits</button>
+
+                <div class="add-tip-box">
+                    <span class="add-tip-icon"><img src="images/detective_pikachupng.png" alt="" class="add-tip-icon-img"></span>
+                    <div>
+                        <div class="add-tip-title">Conseil</div>
+                        <div class="add-tip-text">Renseignez l'état et la finition avec attention pour suivre au mieux la valeur de votre collection.</div>
+                    </div>
+                </div>
             </div>
         </div>
 

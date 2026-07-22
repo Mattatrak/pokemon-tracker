@@ -1,5 +1,14 @@
 # Changelog
 
+## Refonte : onglet Ajouter, header, stats et upload d'image de carte
+
+- **Header** : logo remplacé par `images/poke-tracker.png` (agrandi, aligné à gauche dans la bannière avec le titre sur 2 lignes).
+- **Stats globales** déplacées au-dessus des onglets (juste sous la bannière), refondues en 3 cartes avec icônes (`images/total-cartes.png`, `total-valeur.png`, `total-achat.png`), glow radial coloré par carte (violet/or/teal) et bordure gauche lumineuse assortie. La carte "Valeur totale" garde son sparkline et sa fluctuation 24h.
+- **Onglet Ajouter fusionné** : la carte "aperçu" et le formulaire "Ajouter à ma collection" ne font plus qu'un (image à gauche, infos + champs à droite). Carte recherche avec décor `images/goldpokeball.png` en fond, résultats limités à 540px avec fond semi-transparent + flou, prix CardMarket affiché sur chaque résultat.
+- **Bloc "Conseil"** ajouté sous les boutons d'ajout, avec icône `images/detective_pikachupng.png`.
+- **Bouton "Rafraîchir les prix"** déplacé dans la barre d'onglets (aligné à droite), réduit à une icône ; le texte "Dernière mise à jour" simplifié pour n'afficher que la date/heure.
+- **Fix** (`tracker.js`) : `refreshAllMarketPrices` restaurait le bouton via `textContent` après le compteur de progression, ce qui faisait disparaître l'icône — remplacé par `innerHTML`.
+
 ## Feat : pagination "Charger plus" sur la collection, purge auto de l'historique, alertes de refresh
 
 - **Pagination "Charger plus"** sur l'onglet Ma Collection (grille et tableau) : 60 cartes affichées par page, bouton "Charger plus (N restantes)" pour la suite. Toute recherche/filtre/tri/changement de vue repart de la page 1 (`modules/collection.js`, `index.html`, `styles.css`).

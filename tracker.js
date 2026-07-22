@@ -438,7 +438,7 @@ function updateLastRefreshLabel() {
     const last = localStorage.getItem('lastPriceRefresh');
     if (last) {
         const date = new Date(last);
-        status.textContent = `Dernière mise à jour : ${date.toLocaleDateString('fr-FR')} à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+        status.textContent = `${date.toLocaleDateString('fr-FR')} à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
     } else {
         status.textContent = 'Jamais rafraîchi';
     }
@@ -461,7 +461,7 @@ async function refreshAllMarketPrices() {
     let done = 0;
 
     btn.disabled = true;
-    const originalText = btn.textContent;
+    const originalText = btn.innerHTML;
 
     // Traiter par lots de 5 pour ne pas surcharger l'API
     const batchSize = 5;

@@ -83,7 +83,7 @@ async function searchCards() {
     } finally {
         if (myRequestId === searchRequestId) {
             btn.disabled = false;
-            btn.innerHTML = 'Chercher';
+            btn.innerHTML = '<i class="ti ti-search" aria-hidden="true"></i> Rechercher';
         }
     }
 }
@@ -175,6 +175,13 @@ function renderSearchResults(cards) {
             ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="this.outerHTML='<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
             : '<div class="no-image-placeholder small"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 
+        let price = 0;
+        if (card.pricing?.cardmarket?.avg) {
+            price = card.pricing.cardmarket.avg;
+        } else if (card.pricing?.cardmarket?.['avg-holo']) {
+            price = card.pricing.cardmarket['avg-holo'];
+        }
+
         return `
             <div class="search-result-item" onclick="selectCard(${JSON.stringify(card).replace(/"/g, '&quot;')})">
                 ${imgHtml}
@@ -182,6 +189,7 @@ function renderSearchResults(cards) {
                     <div class="search-result-name">${card.name || '?'}</div>
                     <div class="search-result-set">${logoUrl ? `<img src="${logoUrl}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${setName} - #${cardNumber}</div>
                 </div>
+                ${price > 0 ? `<div class="search-result-price">${price.toFixed(2)}€</div>` : ''}
             </div>
         `;
     }).join('');
@@ -289,8 +297,9 @@ function showPreviewUploadPlaceholder() {
     const previewImageContainer = document.querySelector('.preview-image');
     previewImageContainer.innerHTML = `
         <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
-            <i class="ti ti-photo-off" aria-hidden="true"></i><br>Pas d'image<br>
-            <span class="upload-hint"><i class="ti ti-camera" aria-hidden="true"></i> Cliquer pour ajouter</span>
+            <i class="ti ti-photo-off" aria-hidden="true"></i>
+            <span class="upload-btn-pill"><i class="ti ti-upload" aria-hidden="true"></i> Choisir une image</span>
+            <span class="upload-hint">PNG, JPG ou WEBP (max 5MB)</span>
         </div>
         <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
     `;
