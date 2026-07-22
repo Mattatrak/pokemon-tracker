@@ -172,13 +172,13 @@ async function showTopMoversModal() {
         const baselineValue = Number(baseline.market_value);
         if (baselineValue <= 0) return;
 
-        const pct = ((current.value - baselineValue) / baselineValue) * 100;
-        if (Math.abs(pct) < 0.01) return;
+        const delta = current.value - baselineValue;
+        if (Math.abs(delta) < 0.005) return;
 
-        movers.push({ name: current.name, number: current.number, pct, value: current.value });
+        movers.push({ name: current.name, number: current.number, delta, value: current.value });
     });
 
-    movers.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
+    movers.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
     const top10 = movers.slice(0, 10);
 
     const listHtml = top10.length === 0
@@ -186,7 +186,7 @@ async function showTopMoversModal() {
         : top10.map(m => `
             <div class="mover-row">
                 <span class="mover-name">${escapeHtml(m.name)} <span class="mover-number">#${escapeHtml(m.number)}</span></span>
-                <span class="mover-delta ${m.pct > 0 ? 'positive' : 'negative'}"><span style="color: var(--slate);">${m.value.toFixed(2)}€</span> (${m.pct > 0 ? '+' : ''}${m.pct.toFixed(1)}%)</span>
+                <span class="mover-delta ${m.delta > 0 ? 'positive' : 'negative'}"><span style="color: var(--slate);">${m.value.toFixed(2)}€</span> (${m.delta > 0 ? '+' : ''}${m.delta.toFixed(2)}€)</span>
             </div>
         `).join('');
 

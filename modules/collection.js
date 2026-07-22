@@ -141,7 +141,7 @@ function toggleDuplicatesFilter() {
     filterAndDisplay();
 }
 
-function filterAndDisplay() {
+function getFilteredSortedCollection() {
     const searchTerm = document.getElementById('search-collection').value.toLowerCase();
     const conditionFilter = document.getElementById('filter-condition').value;
     const seriesFilter = document.getElementById('filter-collection-series').value;
@@ -171,13 +171,40 @@ function filterAndDisplay() {
         filtered = filtered.filter(c => (totals[getDuplicateGroupKey(c)] || 0) > 1);
     }
 
-    filtered = applySorting(filtered);
+    return applySorting(filtered);
+}
+
+const COLLECTION_PAGE_SIZE = 60;
+let collectionDisplayLimit = COLLECTION_PAGE_SIZE;
+
+function filterAndDisplay() {
+    collectionDisplayLimit = COLLECTION_PAGE_SIZE; // toute recherche/filtre/tri repart de la première page
+    renderFilteredCollection();
+}
+
+function loadMoreCollectionCards() {
+    collectionDisplayLimit += COLLECTION_PAGE_SIZE;
+    renderFilteredCollection();
+}
+
+function renderFilteredCollection() {
+    const filtered = getFilteredSortedCollection();
+    const page = filtered.slice(0, collectionDisplayLimit);
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     if (collectionViewMode === 'table') {
-        renderCollectionTable(filtered);
+        renderCollectionTable(page);
     } else {
-        renderCollectionGrid(filtered);
+        renderCollectionGrid(page);
+    }
+
+    const loadMoreRow = document.getElementById('load-more-row');
+    const remaining = filtered.length - page.length;
+    if (remaining > 0) {
+        loadMoreRow.style.display = 'flex';
+        document.getElementById('load-more-btn').textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
+    } else {
+        loadMoreRow.style.display = 'none';
     }
 }
 

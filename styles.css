@@ -842,6 +842,12 @@ button:disabled {
     font-family: inherit;
 }
 
+.load-more-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
 .filter-toggle-btn {
     background: var(--panel-light);
     color: var(--slate);

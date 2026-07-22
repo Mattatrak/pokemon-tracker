@@ -611,10 +611,29 @@ async function refreshAllMarketPrices() {
     localStorage.setItem('lastPriceRefresh', new Date().toISOString());
     updateLastRefreshLabel();
 
-    showMessage('Prix du marché mis à jour !', 'success');
+    const failCount = uniqueIds.length - Object.keys(priceMap).length;
+    if (failCount > 0) {
+        showMessage(`Prix du marché mis à jour (${failCount} carte${failCount > 1 ? 's' : ''} en échec, voir la console)`, 'error');
+    } else {
+        showMessage('Prix du marché mis à jour !', 'success');
+    }
     await refreshCollection();
     await recordValueSnapshot();
     renderPriceMovers();
+    purgeOldPriceHistory(); // non bloquant : ne retarde pas le retour à l'utilisateur
+}
+
+// Les stats/graphiques n'utilisent jamais plus de 30 jours d'historique : on garde une marge de 35j
+// et on purge le reste à chaque rafraîchissement, pour éviter que card_price_history/value_history
+// grossissent indéfiniment.
+async function purgeOldPriceHistory() {
+    const cutoff = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: cardHistError } = await supabaseClient.from('card_price_history').delete().lt('recorded_at', cutoff);
+    if (cardHistError) console.error('Erreur purge card_price_history:', cardHistError);
+
+    const { error: valueHistError } = await supabaseClient.from('value_history').delete().lt('recorded_at', cutoff);
+    if (valueHistError) console.error('Erreur purge value_history:', valueHistError);
 }
 
 function renderPriceMovers() {

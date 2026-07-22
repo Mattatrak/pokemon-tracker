@@ -1,5 +1,12 @@
 # Changelog
 
+## Feat : pagination "Charger plus" sur la collection, purge auto de l'historique, alertes de refresh
+
+- **Pagination "Charger plus"** sur l'onglet Ma Collection (grille et tableau) : 60 cartes affichées par page, bouton "Charger plus (N restantes)" pour la suite. Toute recherche/filtre/tri/changement de vue repart de la page 1 (`modules/collection.js`, `index.html`, `styles.css`).
+- **Purge automatique de l'historique des prix** : `card_price_history` et `value_history` ne gardaient jamais rien, croissance illimitée (déjà ~15 000 lignes). Purge des points de plus de 35 jours à chaque rafraîchissement de prix — marge au-delà des 30 jours utilisés par les stats (`tracker.js`, fonction `purgeOldPriceHistory`).
+- **Détail des variations en €** (au lieu du %) dans la modale "Plus grosses variations (24h)", triée par hausse/baisse en euros plutôt que par pourcentage — plus parlant pour repérer les cartes qui bougent vraiment (`modules/stats.js`).
+- **Visibilité sur les échecs de rafraîchissement** : si des cartes échouent à récupérer leur prix TCGdex pendant un refresh, le message de fin l'indique désormais (`X cartes en échec, voir la console`) au lieu d'échouer silencieusement (`tracker.js`).
+
 ## Fix : warning Chart.js sur le graphique "Top séries" + nouvelle image de header
 
 - **Fix warning console Chart.js** : le graphique "Top séries (par nombre de cartes)" forçait `ticks.stepSize: 1` sur l'axe X, ce qui demandait à Chart.js de générer une graduation par carte (jusqu'à 1289 sur une grosse collection) — plafonné à 1000 avec un warning en boucle. Remplacé par `ticks.precision: 0` : graduations entières mais espacement choisi automatiquement (`modules/stats-render.js`).
