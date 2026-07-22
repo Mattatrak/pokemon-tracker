@@ -1,6 +1,20 @@
 // Helpers purs - Pokémon Tracker
 // Aucun état partagé, aucune dépendance à supabaseClient. Charge juste après config.js.
 
+function toLocalDateInputValue(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function showMessage(text, type = 'error') {
     const container = document.getElementById('message-container');
     const div = document.createElement('div');

@@ -78,7 +78,7 @@ function showCardDetail(cardId) {
                 ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-line"><span class="modal-meta-label">Type</span> ${card.type}</div>` : ''}
                 <div class="modal-meta-line"><span class="modal-meta-label">Quantité</span> ${qty}</div>
                 ${card.date_added ? `<div class="modal-meta-line"><span class="modal-meta-label">Ajoutée le</span> ${card.date_added}</div>` : ''}
-                ${card.notes ? `<div class="modal-note"><i class="ti ti-note" aria-hidden="true"></i> ${card.notes}</div>` : ''}
+                ${card.notes ? `<div class="modal-note"><i class="ti ti-note" aria-hidden="true"></i> ${escapeHtml(card.notes)}</div>` : ''}
 
                 <div class="modal-action-toolbar">
                     <button class="toolbar-action-btn" onclick="showCardEditForm(${card.id})">
@@ -345,13 +345,13 @@ async function showCardEditForm(cardId) {
                     </div>
                     <div class="form-group">
                         <label for="edit-date-added">Date d'acquisition</label>
-                        <input type="text" id="edit-date-added" value="${card.created_at ? new Date(card.created_at).toISOString().split('T')[0] : ''}">
+                        <input type="text" id="edit-date-added" value="${card.created_at ? toLocalDateInputValue(new Date(card.created_at)) : ''}">
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label for="edit-notes">Note personnelle</label>
-                    <textarea id="edit-notes" rows="2" placeholder="Cadeau de mamie, trouvée à la brocante...">${card.notes ? card.notes.replace(/</g, '&lt;') : ''}</textarea>
+                    <textarea id="edit-notes" rows="2" placeholder="Cadeau de mamie, trouvée à la brocante...">${escapeHtml(card.notes)}</textarea>
                 </div>
 
                 <div class="modal-edit-actions">

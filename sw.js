@@ -1,12 +1,27 @@
-const CACHE_NAME = 'poketracker-v2';
+const CACHE_NAME = 'poketracker-v3';
 const CORE_ASSETS = [
     './',
     './index.html',
+    './login.html',
     './styles.css',
+    './styles-login.css',
     './tracker.js',
     './manifest.json',
     './images/icon-192.png',
-    './images/icon-512.png'
+    './images/icon-512.png',
+    './modules/utils.js',
+    './modules/storage.js',
+    './modules/cards.js',
+    './modules/stats.js',
+    './modules/collection.js',
+    './modules/import-export.js',
+    './modules/card-detail.js',
+    './modules/ui.js',
+    './modules/wishlist.js',
+    './modules/stats-render.js',
+    './modules/progression.js',
+    './modules/auth.js',
+    './modules/auth-login.js'
 ];
 
 self.addEventListener('install', (event) => {

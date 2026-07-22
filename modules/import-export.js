@@ -383,7 +383,7 @@ async function processCsvImportRows(rows) {
         const row = validRows[i];
         content.innerHTML = `
             <div class="modal-title" style="margin-bottom: 1rem;">Import en cours...</div>
-            <p style="color: var(--slate);">${i + 1} / ${total} — ${row.Nom}</p>
+            <p style="color: var(--slate);">${i + 1} / ${total} — ${escapeHtml(row.Nom)}</p>
         `;
 
         try {
@@ -443,7 +443,7 @@ async function processCsvImportRows(rows) {
                 <div style="color: var(--slate); font-size: 0.8rem; margin-bottom: 0.5rem;">Lignes ignorées :</div>
                 ${failures.map(f => `
                     <div style="font-size: 0.8rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
-                        <strong>${f.nom}</strong> — <span style="color: var(--slate);">${f.raison}</span>
+                        <strong>${escapeHtml(f.nom)}</strong> — <span style="color: var(--slate);">${escapeHtml(f.raison)}</span>
                     </div>
                 `).join('')}
             </div>

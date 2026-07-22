@@ -156,12 +156,12 @@ function renderWishlistsUI() {
                 return `
                     <div class="wishlist-card">
                         ${item.image
-                            ? `<img src="${item.image}" alt="${item.name}" class="wishlist-card-img" onerror="this.style.display='none'">`
+                            ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="wishlist-card-img" onerror="this.style.display='none'">`
                             : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
                         <div class="wishlist-card-info">
-                            <div class="wishlist-card-name">${item.name}</div>
-                            <div class="wishlist-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${item.series} - #${item.number}</div>
+                            <div class="wishlist-card-name">${escapeHtml(item.name)}</div>
+                            <div class="wishlist-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(item.series)} - #${escapeHtml(item.number)}</div>
                         </div>
                         <div class="wishlist-card-actions">
                             ${owned
@@ -179,7 +179,7 @@ function renderWishlistsUI() {
                 <div class="wishlist-section-header" onclick="toggleWishlistSection(${list.id})">
                     <div class="wishlist-section-title">
                         <i class="ti ti-chevron-right wishlist-chevron ${isExpanded ? 'expanded' : ''}" aria-hidden="true"></i>
-                        <span>${list.name}</span>
+                        <span>${escapeHtml(list.name)}</span>
                         <span class="wishlist-count-badge">${items.length}</span>
                     </div>
                     <div class="wishlist-section-actions">
@@ -214,7 +214,7 @@ function renderWishlistPicker() {
     const content = document.getElementById('wishlist-picker-content');
     const listsHtml = allWishlists.map(list => `
         <div class="wishlist-picker-item" onclick="addCardToSpecificWishlist(${list.id})">
-            <span>${list.name}</span>
+            <span>${escapeHtml(list.name)}</span>
             <i class="ti ti-chevron-right" aria-hidden="true"></i>
         </div>
     `).join('');

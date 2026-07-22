@@ -398,7 +398,7 @@ function switchTab(event, tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
     document.getElementById(tabId).classList.add('active');
-    event.target.classList.add('active');
+    event.currentTarget.classList.add('active');
 
     // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture
     if (tabId === 'tab-stats') {
@@ -720,5 +720,5 @@ function initEventListeners() {
     document.getElementById('month-summary-select').addEventListener('change', renderMonthlySummary);
 }
 
-initEventListeners();
+if (document.getElementById('search-collection')) initEventListeners();
 

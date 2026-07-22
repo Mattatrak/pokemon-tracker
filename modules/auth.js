@@ -17,9 +17,14 @@ async function handleLogout() {
     window.location.href = 'login.html';
 }
 
+let appInitialized = false;
+
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
-        init();
+        if (!appInitialized) {
+            appInitialized = true;
+            init();
+        }
     } else {
         window.location.href = 'login.html';
     }
