@@ -3,7 +3,19 @@
 const SUPABASE_URL = 'https://mmdcpkwygqsdaqnkimwb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tZGNwa3d5Z3FzZGFxbmtpbXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyOTA2MTYsImV4cCI6MjA5OTg2NjYxNn0.mae_gw0VWy0ep8h9FrjJj2XSdjrfeR3mW9_Nx0nIaQ0';
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// "Se souvenir de moi" : route la session vers localStorage (persiste) ou sessionStorage (perdue à la
+// fermeture du navigateur) selon ce flag, écrit par modules/auth-login.js avant la connexion. Flag absent =
+// traité comme localStorage, pour rester compatible avec les sessions déjà persistées avant cette fonctionnalité.
+const REMEMBER_ME_KEY = 'poketracker-remember-me';
+const rememberAwareStorage = {
+    getItem: (key) => (localStorage.getItem(REMEMBER_ME_KEY) === 'false' ? sessionStorage : localStorage).getItem(key),
+    setItem: (key, value) => (localStorage.getItem(REMEMBER_ME_KEY) === 'false' ? sessionStorage : localStorage).setItem(key, value),
+    removeItem: (key) => { localStorage.removeItem(key); sessionStorage.removeItem(key); }
+};
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: rememberAwareStorage }
+});
 
 // ===== CONFIG API TCGDEX =====
 const API_BASE = 'https://api.tcgdex.net/v2/fr';

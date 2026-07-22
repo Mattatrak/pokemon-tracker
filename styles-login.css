@@ -201,6 +201,25 @@
     border-radius: 8px;
 }
 
+.login-success {
+    color: #4ade80;
+    font-size: 0.9rem;
+    text-align: center;
+    margin: 0.5rem 0;
+    padding: 0.75rem;
+    background: rgba(74, 222, 128, 0.15);
+    border-radius: 8px;
+}
+
+.login-view {
+    display: none;
+}
+
+.login-view.active {
+    display: flex;
+    flex-direction: column;
+}
+
 .login-submit-btn {
     background: linear-gradient(135deg, #E8A93B 0%, #D89A2E 100%);
     color: white;

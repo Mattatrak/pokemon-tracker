@@ -1,5 +1,18 @@
 # Changelog
 
+## Feat : mot de passe oublié, inscription et "se souvenir de moi"
+
+Les 3 éléments de `login.html` qui n'avaient aucun effet (checkbox, lien mot de passe oublié, lien inscription) sont maintenant fonctionnels.
+
+- **Inscription** : nouvelle vue `#signup-view` sur `login.html` (email + mot de passe + confirmation), appelle `supabaseClient.auth.signUp()`. Confirmation par e-mail requise avant connexion (comportement par défaut Supabase) ; si la confirmation email est désactivée côté dashboard, redirection directe vers `index.html`.
+- **Mot de passe oublié** : nouvelle vue `#forgot-view`, appelle `supabaseClient.auth.resetPasswordForEmail()`. Le lien reçu par e-mail ramène sur `login.html`, qui détecte l'event Supabase `PASSWORD_RECOVERY` et bascule automatiquement sur une 4e vue `#reset-view` pour saisir le nouveau mot de passe (`supabaseClient.auth.updateUser()`).
+- **Se souvenir de moi** : nouvel adaptateur de storage personnalisé (`rememberAwareStorage` dans `tracker.js`) qui route la session Supabase vers `localStorage` (coché, persiste après fermeture du navigateur) ou `sessionStorage` (décoché, perdue à la fermeture). Flag `poketracker-remember-me` écrit par `modules/auth-login.js` avant chaque connexion.
+- Pas de nouvelle page HTML : tout se passe dans `login.html` via un système de 4 vues togglées en JS, sur le même principe que `switchTab` dans `tracker.js`.
+
+**A savoir / dépendances externes (dashboard Supabase, pas dans ce repo)** :
+- Le service d'e-mail intégré de Supabase (sans SMTP custom) limite fort l'envoi — environ 2 à 4 e-mails/heure sur la configuration par défaut. Suffisant pour un usage perso, mais un pic de tests ou d'inscriptions fera remonter une erreur `over_email_send_rate_limit`. Pour lever la limite : configurer un SMTP custom (Resend, SendGrid...) dans Authentication → Emails, ou désactiver "Confirm email" dans Authentication → Providers → Email si la confirmation n'est pas nécessaire.
+- `resetPasswordForEmail` nécessite que l'URL de redirection (`login.html`) soit autorisée dans Authentication → URL Configuration → Redirect URLs du dashboard Supabase.
+
 ## Fix : bugs post-refactoring modulaire (crash login, XSS, cache PWA, date, tabs)
 
 Corrections trouvées lors d'un audit complet du code suite au découpage de `tracker.js` en modules.
