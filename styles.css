@@ -30,6 +30,12 @@
 html {
     scrollbar-width: thin;
     scrollbar-color: var(--gold) var(--panel-light);
+    background: var(--bg);
+    overflow-x: hidden;
+}
+
+body {
+    overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {

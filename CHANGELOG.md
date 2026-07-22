@@ -1,5 +1,9 @@
 # Changelog
 
+## Fix : zone blanche au bord de l'écran sur mobile (rebond iOS Safari)
+
+Sur mobile, glisser sur les côtés révélait une bande blanche au lieu du fond du site. `<html>` n'avait pas de couleur de fond (seul `<body>` en avait une) — pendant le rebond élastique de Safari iOS au-delà du contenu, c'est le fond par défaut du navigateur (blanc) qui apparaît. Ajout de `background: var(--bg)` sur `html`, plus `overflow-x: hidden` sur `html` et `body` en sécurité contre tout débordement horizontal (`styles.css`).
+
 ## Feat : édition en masse sur la vue Tableau de la collection
 
 - **Sélection multiple** : case à cocher par ligne + case "tout sélectionner" dans l'en-tête, sur la vue Tableau de l'onglet Ma Collection (`index.html`, `modules/collection.js`).
