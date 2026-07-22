@@ -15,6 +15,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Poké Tracker">
     <link rel="apple-touch-icon" href="images/icon-180.png">
+    <link rel="icon" type="image/png" href="images/balle.png ">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +34,7 @@
             </div>
         </header>
 
-        <div class="hero-value-card">
+        <div class="hero-value-card" onclick="showTopMoversModal()">
             <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
             <div class="hero-value-content">
                 <div class="hero-value-header">
@@ -42,7 +43,7 @@
                 </div>
                 <div class="hero-value-row">
                     <div class="hero-value-number" id="hero-total-value">0€</div>
-                    <button class="hero-add-btn" onclick="document.querySelector('.tabs .tab-btn').click()">+ Ajouter</button>
+                    <button class="hero-add-btn" onclick="event.stopPropagation(); document.querySelector('.tabs .tab-btn').click()">+ Ajouter</button>
                 </div>
             </div>
         </div>
@@ -465,6 +466,11 @@
     <!-- MODALE REGLAGES D'AJOUT RAPIDE (Progression) -->
     <div class="modal-overlay" id="quickadd-settings-overlay" onclick="if(event.target===this) closeQuickAddSettingsModal()">
         <div class="modal-card" id="quickadd-settings-content" style="max-width: 420px;"></div>
+    </div>
+
+    <!-- MODALE TOP VARIATIONS % (24H) -->
+    <div class="modal-overlay" id="top-movers-overlay" onclick="if(event.target===this) closeTopMoversModal()">
+        <div class="modal-card" id="top-movers-content" style="max-width: 420px;"></div>
     </div>
 
     <!-- MODALE DETAIL CARTE -->

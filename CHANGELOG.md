@@ -1,5 +1,13 @@
 # Changelog
 
+## Feat : détail des variations 24h, rafraîchissement auto des prix, favicon, thème des toasts
+
+- **Fix fluctuation 24h** : le calcul de `+X€ (24h)` de la hero card interrogeait `value_history` triée par ordre chronologique croissant avec `limit(200)` — sur une collection avec plus de 200 snapshots, ça récupérait les 200 plus **vieux** points au lieu des plus récents, faussant complètement le calcul (`modules/stats.js`). Tri inversé + remis en ordre en JS.
+- **Nouvelle modale "Plus grosses variations (24h)"** : clic sur toute la hero card (`.hero-value-card`, pas juste le texte de fluctuation) ouvre le détail des 10 cartes ayant le plus varié en % sur 24h, prix actuel affiché en gris avant le %. Basé sur `card_price_history` (déjà alimentée par `refreshAllMarketPrices`), même logique de recherche de point de référence que la fluctuation globale. Nouvelle modale `#top-movers-overlay` dans `index.html`, logique dans `modules/stats.js`.
+- **Rafraîchissement auto des prix à la connexion** : `init()` (`modules/auth.js`) déclenche `refreshAllMarketPrices()` en tâche de fond (non bloquant) si le dernier rafraîchissement date de plus de 24h ou n'a jamais eu lieu — évite de le refaire à chaque simple reconnexion/rechargement.
+- **Favicon** : ajout de `<link rel="icon">` sur `index.html` et `login.html` (404 navigateur sur `/favicon.ico` corrigée).
+- **Thème des messages toast** (`.message.success` / `.message.error`) : remplacement des couleurs Bootstrap par défaut (vert/rouge pastel) par la palette du site (or/rouge doux sur fond navy), cohérent avec le reste de l'UI.
+
 ## Feat : mot de passe oublié, inscription et "se souvenir de moi"
 
 Les 3 éléments de `login.html` qui n'avaient aucun effet (checkbox, lien mot de passe oublié, lien inscription) sont maintenant fonctionnels.

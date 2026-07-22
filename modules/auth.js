@@ -10,6 +10,13 @@ async function init() {
     await renderHeroValueCard();
     updateLastRefreshLabel();
     initDatePicker('#card-date-added');
+
+    // Rafraîchit les prix du marché automatiquement si ça n'a pas été fait depuis plus de 24h
+    const lastRefresh = localStorage.getItem('lastPriceRefresh');
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    if (!lastRefresh || new Date(lastRefresh).getTime() <= dayAgo) {
+        refreshAllMarketPrices();
+    }
 }
 
 async function handleLogout() {
