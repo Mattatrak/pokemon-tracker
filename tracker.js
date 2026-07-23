@@ -27,6 +27,18 @@ const API_EN = 'https://api.tcgdex.net/v2/en';
 // toggleQaSettingsPriceField, closeQuickAddSettingsModal, saveQuickAddSettings chargées depuis modules/progression.js
 
 let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
+
+// ===== DASHBOARD (obsolescence) =====
+// renderDashboard chargée depuis modules/dashboard.js. Marqué obsolète par refreshCollection()
+// (ajout/suppression/quantité/prix) et loadWishlists() (souhaits) : pas de recalcul inutile ailleurs.
+let dashboardNeedsRefresh = true;
+
+function markDashboardDirty() {
+    dashboardNeedsRefresh = true;
+    if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
+        renderDashboard();
+    }
+}
 // sortColumn, sortDirection, duplicatesOnlyFilter, collectionRarityFilterValues, collectionViewMode chargés depuis modules/collection.js
 
 // ===== UTILITAIRES =====
@@ -60,6 +72,7 @@ async function refreshCollection() {
     updateStats();
     populateCollectionFilters();
     filterAndDisplay();
+    markDashboardDirty();
 }
 
 // Complète en mémoire les logos manquants avec ceux déjà stockés (auto ou uploadés manuellement),
@@ -411,6 +424,16 @@ function switchTab(event, tabId) {
 
     document.getElementById(tabId).classList.add('active');
     event.currentTarget.classList.add('active');
+
+    activateTabContent(tabId);
+}
+
+// Rendu paresseux propre à un onglet, extrait de switchTab pour être réutilisable sans évènement de
+// clic (ex: boutons de navigation internes au Dashboard)
+function activateTabContent(tabId) {
+    if (tabId === 'tab-dashboard') {
+        renderDashboard();
+    }
 
     // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture
     if (tabId === 'tab-stats') {

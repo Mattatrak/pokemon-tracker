@@ -218,6 +218,8 @@ async function loadSeriesProgress() {
                 </div>
             `;
         }).join('');
+
+        markDashboardDirty(); // le cache allTcgdexSeries vient peut-être d'être rempli : l'objectif du Dashboard peut changer
     } catch (error) {
         container.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Erreur lors du chargement des séries</p>';
         console.error(error);

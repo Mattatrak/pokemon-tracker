@@ -1,5 +1,16 @@
 # Changelog
 
+## Refonte : Hero Engine du Dashboard
+
+Redesign complet du composant Hero card avec fonds thématisés par type Pokémon et amélioration visuelle/lisibilité.
+
+- **Fonds thématisés par type** : 8 images de fond ajoutées (`images/electrique.png`, `feu.png`, `eau.png`, `plante.png`, `psy.png`, `tenebre.png`, `dragon.png`, `normal.png`) avec gradient overlay progressif pour lisibilité du texte (`styles.css`).
+- **Panneau de contraste glassmorphe** : fond semi-transparent derrière les infos carte (droite) avec `backdrop-filter: blur(6px)` (mobile: `none`), dégradé `rgba(12,18,28,0.66) → rgba(12,18,28,0.38)`, ombres multiples et `border-radius: 16px` pour cohérence premium (`styles.css`).
+- **Centrage vertical de la carte** : carte (image + drop-shadows) centrée en hauteur sans déplacer le texte via transforms compensatoires sur `.dashboard-hero-card-stage` et `.dashboard-hero-card-img-wrap` (`styles.css`).
+- **Animation de rebond restaurée** : `animation: dashboard-hero-float 6s ease-in-out infinite` rétablie sur la carte (mouvements de 5px en hauteur), bloquée au hover avec `animation: none !important` (`styles.css`).
+- **Profondeur sans bordure** : bordure supprimée, remplacée par ombres inset multiples — highlight blanc (0.14) en haut + ombre noire (0.25, blur 16px) pour créer relief 3D. Combine effet concave (inset) + separation (ombres externes) (`styles.css`).
+- **Amélioration typographie** : `text-shadow: 0 2px 4px rgba(0,0,0,0.30)` ajouté sur tous les labels/noms/valeurs pour lisibilité sur backgrounds lumineux, ombre or renforcée sur la valeur marchande (`styles.css`).
+
 ## Fix : zone blanche au bord de l'écran sur mobile (rebond iOS Safari)
 
 Sur mobile, glisser sur les côtés révélait une bande blanche au lieu du fond du site. `<html>` n'avait pas de couleur de fond (seul `<body>` en avait une) — pendant le rebond élastique de Safari iOS au-delà du contenu, c'est le fond par défaut du navigateur (blanc) qui apparaît. Ajout de `background: var(--bg)` sur `html`, plus `overflow-x: hidden` sur `html` et `body` en sécurité contre tout débordement horizontal (`styles.css`).

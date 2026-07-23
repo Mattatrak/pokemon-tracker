@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=29">
+    <link rel="stylesheet" href="styles.css?t=2026-07-23-2060">
 </head>
 <body>
     <div class="container" id="main-app-container">
@@ -63,11 +63,12 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn" onclick="switchTab(event, 'tab-add')"><i class="ti ti-search" aria-hidden="true"></i> Ajouter</button>
-            <button class="tab-btn active" onclick="switchTab(event, 'tab-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Ma Collection</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-progression')"><i class="ti ti-trophy" aria-hidden="true"></i> Progression</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Statistiques</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-wishlist')"><i class="ti ti-star" aria-hidden="true"></i> Souhaits</button>
+            <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab(event, 'tab-dashboard')"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Dashboard</button>
+            <button class="tab-btn" id="tab-btn-add" onclick="switchTab(event, 'tab-add')"><i class="ti ti-search" aria-hidden="true"></i> Ajouter</button>
+            <button class="tab-btn" id="tab-btn-collection" onclick="switchTab(event, 'tab-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Ma Collection</button>
+            <button class="tab-btn" id="tab-btn-progression" onclick="switchTab(event, 'tab-progression')"><i class="ti ti-trophy" aria-hidden="true"></i> Progression</button>
+            <button class="tab-btn" id="tab-btn-stats" onclick="switchTab(event, 'tab-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Statistiques</button>
+            <button class="tab-btn" id="tab-btn-wishlist" onclick="switchTab(event, 'tab-wishlist')"><i class="ti ti-star" aria-hidden="true"></i> Souhaits</button>
             <div class="refresh-prices-row">
                 <button id="refresh-prices-btn" class="btn-refresh btn-refresh-icon-only" onclick="refreshAllMarketPrices()"><i class="ti ti-refresh" aria-hidden="true"></i></button>
                 <span id="refresh-prices-status" class="refresh-prices-status"></span>
@@ -75,6 +76,15 @@
         </div>
 
         <div id="message-container" class="global-message-container"></div>
+
+        <!-- ONGLET DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="dashboard-header" id="dashboard-header"></div>
+            <div class="dashboard-hero" id="dashboard-hero"></div>
+            <div class="dashboard-kpis" id="dashboard-kpis"></div>
+            <div class="dashboard-main-grid" id="dashboard-main-grid"></div>
+            <div class="dashboard-bottom-grid" id="dashboard-bottom-grid"></div>
+        </div>
 
         <!-- ONGLET AJOUTER -->
         <div id="tab-add" class="tab-content">
@@ -200,7 +210,7 @@
         </div>
 
         <!-- ONGLET MA COLLECTION -->
-        <div id="tab-collection" class="tab-content active">
+        <div id="tab-collection" class="tab-content">
             <div class="search-form-single">
                 <div class="input-with-icon">
                     <i class="ti ti-search" aria-hidden="true"></i>
@@ -530,6 +540,7 @@
     <script src="modules/wishlist.js?v=1"></script>
     <script src="modules/stats-render.js?v=2"></script>
     <script src="modules/progression.js?v=1"></script>
+    <script src="modules/dashboard.js?v=6"></script>
     <script src="tracker.js?v=57"></script>
     <script src="modules/auth.js?v=1"></script>
     <script>

@@ -25,6 +25,7 @@ async function loadWishlists() {
     }
 
     renderWishlistsUI();
+    markDashboardDirty();
 }
 
 function toggleWishlistSection(wishlistId) {

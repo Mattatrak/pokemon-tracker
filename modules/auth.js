@@ -8,6 +8,7 @@ async function init() {
     await loadWishlists();
     await renderStatsCharts();
     await renderHeroValueCard();
+    await renderDashboard();
     updateLastRefreshLabel();
     initDatePicker('#card-date-added');
 
