@@ -1,5 +1,17 @@
 # Changelog
 
+## Sprint 1 Collection : Polish et restructuration UI
+
+Refonte légère de la page Ma Collection pour améliorer lisibilité et réduire encombrement des contrôles.
+
+- **Résumé des résultats** : ligne discrète entre toolbar et grille affichant nombre de cartes/valeur/tri appliqué, avec formatage français (12px espacement, couleurs hiérarchisées) (`index.html`, `modules/collection.js`, `styles.css`).
+- **Réorganisation toolbar secondaire** : galerie/tableau, filtres raretés et tri/données organisés en 3 groupes via `display: grid; grid-template-columns: auto 1fr auto`, avec gap 24px (desktop), 16px (tablette à 1100px), empilés en colonne (mobile < 700px) (`index.html`, `styles.css`).
+- **Optimisation espacements verticaux** : réduits selon grille Design System (recherche→filtres: 12px, filtres→toolbar: 16px, toolbar→résumé: 12px, résumé→grille: 16px), gain approx. 28px en hauteur visible sans compression (`styles.css`).
+- **Augmentation gaps grille** : colonne 26px (+2px), ligne 28px (+4px) pour respiration cartes sans densité réduite (minmax 190px inchangé) (`styles.css`).
+- **Polish hover cartes** : `translateY(-3px)` fluide (ease-out 180ms), ombre neutre sans glow doré, badge prix 12% plus lumineux via `filter: brightness(1.12)`, cohérent Design System (`styles.css`).
+
+Aucun changement fonctionnel — polish et réorg visuelle uniquement.
+
 ## Refonte : Hero Engine du Dashboard
 
 Redesign complet du composant Hero card avec fonds thématisés par type Pokémon et amélioration visuelle/lisibilité.

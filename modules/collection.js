@@ -271,9 +271,68 @@ function loadMoreCollectionCards() {
     renderFilteredCollection();
 }
 
+function getSortLabel() {
+    const sortLabels = {
+        'name': 'Nom',
+        'series': 'Série',
+        'number': 'Numéro',
+        'condition': 'État',
+        'rarity': 'Rareté',
+        'quantity': 'Quantité',
+        'value': 'Valeur'
+    };
+    const label = sortLabels[sortColumn] || sortColumn;
+    const direction = sortDirection === 'asc' ? 'croissante' : 'décroissante';
+    return `${label} ${direction}`;
+}
+
+function updateCollectionSummary(filtered, page) {
+    const summary = document.getElementById('collection-summary');
+    if (!summary) return;
+
+    const displayed = page.length;
+    const total = allCollectionCards.length;
+    const displayedValue = page.reduce((sum, card) => {
+        const cardValue = Number(card.market_value || 0) * Number(card.quantity || 1);
+        return sum + cardValue;
+    }, 0);
+    const sortLabel = getSortLabel();
+
+    const formattedValue = new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(displayedValue);
+
+    summary.innerHTML = `
+        <span class="summary-segment summary-count">
+            <span class="summary-value">${displayed}</span>
+            <span class="summary-label">carte${displayed > 1 ? 's' : ''} affichée${displayed > 1 ? 's' : ''}</span>
+        </span>
+        <span class="summary-separator">•</span>
+        <span class="summary-segment">
+            <span class="summary-label">sur</span>
+            <span class="summary-value">${total}</span>
+        </span>
+        <span class="summary-separator">•</span>
+        <span class="summary-segment">
+            <span class="summary-label">Valeur :</span>
+            <span class="summary-value">${formattedValue}</span>
+        </span>
+        <span class="summary-separator">•</span>
+        <span class="summary-segment">
+            <span class="summary-label">Tri :</span>
+            <span class="summary-value">${sortLabel}</span>
+        </span>
+    `;
+}
+
 function renderFilteredCollection() {
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
+
+    updateCollectionSummary(filtered, page);
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     if (collectionViewMode === 'table') {

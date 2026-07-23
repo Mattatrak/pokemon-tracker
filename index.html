@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-07-23-2060">
+    <link rel="stylesheet" href="styles.css?t=2026-07-23-2300">
 </head>
 <body>
     <div class="container" id="main-app-container">
@@ -235,33 +235,43 @@
             </div>
 
             <div class="view-toggle-row">
-                <div class="view-toggle">
-                    <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
-                    <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
-                </div>
-                <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
-                <select id="grid-sort" class="grid-sort-select">
-                    <option value="">Trier par...</option>
-                    <option value="name-asc">Nom (A→Z)</option>
-                    <option value="rarity-asc">Rareté (A→Z)</option>
-                    <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
-                    <option value="value-asc">Valeur (moins cher d'abord)</option>
-                    <option value="quantity-desc">Quantité (plus d'abord)</option>
-                </select>
-                <div class="csv-dropdown-wrap">
-                    <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
-                    <div class="csv-dropdown-menu" id="csv-dropdown-menu">
-                        <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
-                        <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
-                        <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
-                        <div class="csv-dropdown-divider"></div>
-                        <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
-                        <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
-                        <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
+                <div class="toolbar-group toolbar-group-view">
+                    <div class="view-toggle">
+                        <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
+                        <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
                     </div>
-                    <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+                </div>
+
+                <div class="toolbar-group toolbar-group-rarities">
+                    <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
+                </div>
+
+                <div class="toolbar-group toolbar-group-actions">
+                    <select id="grid-sort" class="grid-sort-select">
+                        <option value="">Trier par...</option>
+                        <option value="name-asc">Nom (A→Z)</option>
+                        <option value="rarity-asc">Rareté (A→Z)</option>
+                        <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
+                        <option value="value-asc">Valeur (moins cher d'abord)</option>
+                        <option value="quantity-desc">Quantité (plus d'abord)</option>
+                    </select>
+                    <div class="csv-dropdown-wrap">
+                        <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                        <div class="csv-dropdown-menu" id="csv-dropdown-menu">
+                            <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
+                            <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
+                            <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
+                            <div class="csv-dropdown-divider"></div>
+                            <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
+                            <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
+                            <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
+                        </div>
+                        <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+                    </div>
                 </div>
             </div>
+
+            <div class="collection-summary" id="collection-summary"></div>
 
             <div class="collection-display-case" id="collection-grid-wrapper">
                 <div class="collection-grid" id="collection-grid"></div>
@@ -533,7 +543,7 @@
     <script src="modules/storage.js?v=1"></script>
     <script src="modules/cards.js?v=1"></script>
     <script src="modules/stats.js?v=1"></script>
-    <script src="modules/collection.js?v=2"></script>
+    <script src="modules/collection.js?v=3"></script>
     <script src="modules/import-export.js?v=1"></script>
     <script src="modules/card-detail.js?v=1"></script>
     <script src="modules/ui.js?v=1"></script>
