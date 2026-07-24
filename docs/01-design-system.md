@@ -613,6 +613,43 @@ Avant toute Pull Request contenant des modifications UI :
 
 ---
 
+## Hiérarchie des surfaces
+
+### Surface 0 — Background
+Fond principal de l'application.
+
+### Surface 1 — Hero
+Surface unique.
+Illustration ou visuel immersif.
+
+### Surface 2 — Panels
+Toutes les cartes principales :
+- KPI
+- Sets suivis
+- Catalogue
+- Widgets
+
+Même langage visuel.
+
+### Surface 3 — Interactive
+Éléments contenus dans les panels :
+- lignes
+- listes
+- cartes internes
+- hover
+
+## Utilisation des accents
+
+Le doré n'est jamais utilisé comme couleur principale d'une surface.
+
+Il sert uniquement à :
+
+- bordures actives ;
+- progression ;
+- éléments sélectionnés ;
+- icônes importantes ;
+- indicateurs de complétion.
+
 # Règle d'or
 
 > **Toute nouvelle interface doit donner l'impression d'avoir été conçue le même jour que le Hero.**

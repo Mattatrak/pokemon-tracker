@@ -444,7 +444,7 @@ function generateDesktopNavigation(activeTabId) {
             </div>
             <div class="dashboard-integrated-nav-right">
                 <button class="dashboard-integrated-nav-action" title="Rechercher" onclick="navigateToTab('tab-add')"><i class="ti ti-search" aria-hidden="true"></i></button>
-                <button class="dashboard-integrated-nav-action" title="Ajouter" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i></button>
                 <button class="dashboard-integrated-nav-action" title="Profil" onclick="handleLogout()"><i class="ti ti-user" aria-hidden="true"></i></button>
             </div>
         </div>
@@ -452,11 +452,11 @@ function generateDesktopNavigation(activeTabId) {
 }
 
 function updateDesktopNavigation(tabId) {
-    if (tabId !== 'tab-dashboard') {
-        const navContainer = document.getElementById('desktop-nav-container');
-        if (navContainer) {
-            navContainer.innerHTML = generateDesktopNavigation(tabId);
-        }
+    if (tabId === 'tab-dashboard') return;
+    const containerId = tabId === 'tab-progression' ? 'progression-hero-nav-container' : 'desktop-nav-container';
+    const navContainer = document.getElementById(containerId);
+    if (navContainer) {
+        navContainer.innerHTML = generateDesktopNavigation(tabId);
     }
 }
 
@@ -499,8 +499,9 @@ function activateTabContent(tabId) {
     if (tabId === 'tab-progression') {
         if (currentProgressionSetId && document.getElementById('progression-set-view').style.display === 'block') {
             renderProgressionCardsGrid();
+            loadFollowedSets();
         } else {
-            loadSeriesProgress();
+            loadSeriesProgress().then(loadFollowedSets);
         }
     }
 

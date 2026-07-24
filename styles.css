@@ -2106,13 +2106,24 @@ tbody tr:hover {
     text-align: center;
 }
 
-/* PROGRESSION PAR SERIE */
+/* PROGRESSION PAR SERIE — chapitres de l'Atlas */
 .progression-series-block {
-    background: var(--panel);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(20,16,10,0.35) 0%, rgba(20,16,10,0.12) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: 2px solid transparent;
     border-radius: 12px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
     overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 24px -18px rgba(0,0,0,0.5);
+    transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.progression-series-block.is-open {
+    border-left-color: rgba(224,201,155,0.6);
+}
+
+.progression-series-block.is-closed .progression-series-header:hover {
+    background: rgba(255,255,255,0.03);
 }
 
 .progression-series-header {
@@ -2120,8 +2131,19 @@ tbody tr:hover {
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background: var(--panel-light);
-    border-bottom: 1px solid var(--border);
+    background: rgba(20,16,10,0.42);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.progression-series-block.is-open .progression-series-header {
+    background: linear-gradient(180deg, rgba(224,201,155,0.05), transparent 70%), rgba(20,16,10,0.42);
+}
+
+.progression-series-block.is-closed .progression-series-header {
+    border-bottom-color: transparent;
 }
 
 .progression-series-logo {
@@ -2129,6 +2151,12 @@ tbody tr:hover {
     width: auto;
     max-width: 140px;
     object-fit: contain;
+    flex-shrink: 0;
+}
+
+.progression-series-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .progression-series-name {
@@ -2136,11 +2164,56 @@ tbody tr:hover {
     font-size: 1.3rem;
     color: var(--parchment);
     letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
 }
 
 .progression-series-meta {
     font-size: 0.8rem;
     color: var(--slate);
+    opacity: 0.85;
+    margin-bottom: 0.45rem;
+}
+
+.progression-series-progress-bar {
+    height: 6px;
+    max-width: 320px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progression-series-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, rgba(196,144,58,0.8), rgba(224,201,155,0.85));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.progression-series-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    min-width: 3.2rem;
+    text-align: right;
+}
+
+.progression-series-toggle {
+    color: var(--slate);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.progression-series-toggle i {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    transform: rotate(-90deg);
+}
+
+.progression-series-block.is-open .progression-series-toggle i {
+    transform: rotate(0deg);
 }
 
 .progression-set-row {
@@ -2148,9 +2221,9 @@ tbody tr:hover {
     align-items: center;
     gap: 1rem;
     padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .progression-set-row:last-child {
@@ -2158,7 +2231,16 @@ tbody tr:hover {
 }
 
 .progression-set-row:hover {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.035);
+    border-bottom-color: rgba(232,169,59,0.15);
+}
+
+.progression-set-row:hover .progression-set-name {
+    color: #ffffff;
+}
+
+.progression-set-row:hover .progression-chevron {
+    color: var(--gold);
 }
 
 .progression-set-logo {
@@ -2166,6 +2248,7 @@ tbody tr:hover {
     width: 50px;
     object-fit: contain;
     flex-shrink: 0;
+    opacity: 0.92;
 }
 
 .progression-set-logo-upload {
@@ -2194,44 +2277,47 @@ tbody tr:hover {
 
 .progression-set-name {
     font-size: 0.95rem;
-    color: var(--text-primary);
+    color: var(--parchment);
     font-weight: 600;
     margin-bottom: 0.4rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color 0.15s ease;
 }
 
 .progression-progress-bar {
     height: 6px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.04);
     border-radius: 3px;
     overflow: hidden;
 }
 
 .progression-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--gold), #f4c766);
+    background: linear-gradient(90deg, rgba(200,148,58,0.92), rgba(232,169,59,0.92));
     border-radius: 3px;
     transition: width 0.3s ease;
 }
 
 .progression-set-count {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--slate);
     white-space: nowrap;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0.2rem;
+    gap: 0.25rem;
 }
 
 .progression-secret-badge {
-    font-size: 0.65rem;
-    color: #c77dff;
-    background: rgba(199, 125, 255, 0.12);
-    padding: 0.1rem 0.5rem;
+    font-size: 0.62rem;
+    color: #a888c9;
+    background: rgba(40,32,50,0.6);
+    border: 1px solid rgba(199,125,255,0.15);
+    padding: 0.08rem 0.45rem;
     border-radius: 20px;
     font-weight: 600;
 }
@@ -2240,6 +2326,36 @@ tbody tr:hover {
     color: var(--slate);
     font-size: 1.2rem;
     flex-shrink: 0;
+    transition: color 0.15s ease;
+}
+
+/* Etats sobres d'une extension : terminée / presque terminée / très peu commencée */
+.progression-set-pct {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.progression-set-row.is-complete {
+    background: rgba(74,222,128,0.05);
+}
+
+.progression-set-complete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #4ade80;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.progression-set-row.is-almost .progression-set-pct {
+    color: var(--gold);
+}
+
+.progression-set-row.is-low .progression-set-name {
+    color: var(--slate);
+    font-weight: 500;
 }
 
 /* VUE DETAIL D'UN SET */
@@ -3286,6 +3402,358 @@ body.page-dashboard .dashboard-header {
     display: none !important;
 }
 
+/* Onglet Progression : le header global est remplacé par le Hero Atlas (nav intégrée dedans) */
+body.page-progression header {
+    display: none !important;
+}
+
+/* Onglet Progression : les KPI globaux laissent place aux KPI de progression des sets
+   (mêmes classes .stats-bottom/.stat-card-icon, design strictement identique, contenu différent) */
+body.page-progression .stats-bottom {
+    display: none;
+}
+
+#progression-stats-bottom {
+    display: none;
+}
+
+body.page-progression #progression-stats-bottom {
+    display: grid;
+}
+
+/* Harmonisation visuelle des KPI de Progression avec l'univers Hero Atlas — scope strict
+   via #progression-stats-bottom, aucune classe partagée (.stat-card-icon/-cartes/-value/-achat)
+   n'est modifiée, donc Dashboard et Collection restent inchangés */
+#progression-stats-bottom .stat-card-icon {
+    background: linear-gradient(180deg, rgba(20,16,10,0.45) 0%, rgba(20,16,10,0.22) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+#progression-stats-bottom .stat-card-cartes {
+    background: linear-gradient(180deg, rgba(20,16,10,0.45) 0%, rgba(20,16,10,0.22) 100%);
+    border-left: 2px solid rgba(199,125,255,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+#progression-stats-bottom .stat-card-achat {
+    background: linear-gradient(180deg, rgba(20,16,10,0.45) 0%, rgba(20,16,10,0.22) 100%);
+    border-left: 2px solid rgba(63,167,161,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+#progression-stats-bottom .stat-card-value {
+    background: linear-gradient(180deg, rgba(20,16,10,0.45) 0%, rgba(20,16,10,0.22) 100%);
+    border-left: 2px solid rgba(232,169,59,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+#progression-stats-bottom .stat-icon-img {
+    filter: saturate(0.5) brightness(0.92);
+    opacity: 0.88;
+}
+
+#progression-stats-bottom .stat-icon-text .stat-label {
+    opacity: 0.9;
+}
+
+/* ===== HERO ATLAS (Progression) ===== */
+
+/* Section positionnée au niveau global (avant .stats-bottom) pour précéder les KPI dans le flux
+   de la page Progression ; masquée partout ailleurs, comme le header sur body.page-dashboard */
+.progression-atlas-hero {
+    display: none;
+}
+
+body.page-progression .progression-atlas-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+    padding: 2rem;
+    border-radius: 24px;
+    overflow: hidden;
+    background-image:
+        linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
+        url('images/atlas.png');
+    background-size: cover;
+    background-position: center 35%;
+    background-repeat: no-repeat;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        inset 0 2px 16px rgba(0,0,0,0.25),
+        0 30px 70px -20px rgba(0,0,0,0.55),
+        0 10px 30px rgba(0,0,0,0.35);
+    margin-bottom: 2rem;
+    animation: dashboard-fade-in 0.4s ease both;
+}
+
+.progression-atlas-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+    text-align: center;
+}
+
+.progression-atlas-hero-eyebrow {
+    color: #B7C0D6;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+
+.progression-atlas-hero-title {
+    color: #ffffff;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.6rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+}
+
+.progression-atlas-hero-subtitle {
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* ===== MES SETS SUIVIS ===== */
+
+.progression-followed-sets {
+    display: none;
+    position: relative;
+    margin-top: -0.375rem;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+    border-radius: 16px;
+    border: 1px solid rgba(232,169,59,0.08);
+    background: linear-gradient(180deg, rgba(20,16,10,0.35) 0%, rgba(20,16,10,0.12) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+body.page-progression .progression-followed-sets {
+    display: block;
+}
+
+.followed-sets-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.followed-sets-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(232,169,59,0.08);
+    color: var(--gold);
+    font-size: 0.95rem;
+}
+
+.followed-sets-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--parchment);
+}
+
+.followed-sets-subtitle {
+    font-size: 0.78rem;
+    color: var(--slate);
+    margin-top: 0.1rem;
+}
+
+.followed-sets-empty {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+
+.followed-sets-empty-title {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.followed-sets-empty-text {
+    color: var(--slate);
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.followed-sets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.followed-set-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.followed-set-card:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.followed-set-logo {
+    height: 32px;
+    width: 50px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.followed-set-logo-placeholder {
+    height: 32px;
+    width: 50px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-light);
+    border-radius: 4px;
+    color: var(--slate);
+}
+
+.followed-set-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.followed-set-name {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.followed-set-progress-bar {
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.3rem;
+}
+
+.followed-set-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), #f4c766);
+    border-radius: 3px;
+}
+
+.followed-set-count {
+    font-size: 0.78rem;
+    color: var(--slate);
+}
+
+@media (max-width: 640px) {
+    .progression-followed-sets {
+        padding: 1.1rem 1.1rem 1rem;
+    }
+
+    .followed-sets-title {
+        font-size: 0.95rem;
+    }
+
+    .followed-sets-subtitle {
+        font-size: 0.72rem;
+    }
+
+    .followed-sets-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1199px) and (min-width: 641px) {
+    .progression-atlas-hero {
+        min-height: 340px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .progression-atlas-hero {
+        min-height: 0;
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .progression-atlas-hero-subtitle {
+        font-size: 0.85rem;
+    }
+
+    .progression-series-header {
+        flex-wrap: wrap;
+        padding: 0.85rem 1rem;
+    }
+
+    .progression-series-logo {
+        height: 26px;
+    }
+
+    .progression-series-progress-bar {
+        max-width: none;
+        width: 100%;
+    }
+
+    .progression-series-pct {
+        order: 3;
+        min-width: 0;
+    }
+
+    .progression-series-toggle {
+        order: 4;
+    }
+
+    .progression-series-info {
+        order: 2;
+        flex-basis: 100%;
+    }
+
+    .progression-set-row {
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+        row-gap: 0.5rem;
+    }
+
+    .progression-set-info {
+        flex-basis: 100%;
+        order: 2;
+    }
+
+    .progression-set-count {
+        order: 3;
+    }
+
+    .progression-chevron {
+        order: 4;
+    }
+}
+
 .dashboard-empty-text {
     color: var(--slate);
     font-size: 0.85rem;
@@ -3670,24 +4138,22 @@ body.page-dashboard .dashboard-header {
 }
 
 .dashboard-integrated-nav-center {
-    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 1.5rem;
-    margin: 8px 1.5rem 0 1.5rem;
-    padding: 8px 16px;
-    background: rgba(10, 14, 26, 0.38);
+    margin: 8px auto 0 auto;
+    padding: 10px 20px;
+    background: rgba(10, 14, 26, 0.55);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .dashboard-integrated-nav-link {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: #ffffff;
     font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
@@ -3737,7 +4203,10 @@ body.page-dashboard .dashboard-header {
     color: rgba(255, 255, 255, 0.65);
     width: 40px;
     height: 40px;
-    border-radius: 8px;
+    padding: 0;
+    min-width: 0;
+    flex-shrink: 0;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3749,6 +4218,18 @@ body.page-dashboard .dashboard-header {
     background: rgba(255, 255, 255, 0.08);
     color: var(--gold);
     border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dashboard-integrated-nav-action--primary {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--ink-navy);
+}
+
+.dashboard-integrated-nav-action--primary:hover {
+    background: var(--gold-hover);
+    border-color: var(--gold-hover);
+    color: var(--ink-navy);
 }
 
 .dashboard-integrated-nav-action i {
@@ -4599,7 +5080,8 @@ body.page-dashboard .dashboard-header {
     .dashboard-kpi-card,
     .dashboard-widget,
     .dashboard-widget-empty-compact i,
-    .dashboard-hero-card-img-wrap {
+    .dashboard-hero-card-img-wrap,
+    .progression-atlas-hero {
         animation: none;
     }
 

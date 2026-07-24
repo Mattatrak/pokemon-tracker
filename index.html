@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-07-24-0120">
+    <link rel="stylesheet" href="styles.css?t=2026-07-24-2200">
 </head>
 <body>
     <div class="container" id="main-app-container">
@@ -34,6 +34,17 @@
             </div>
             <div id="desktop-nav-container"></div>
         </header>
+
+        <div class="progression-atlas-hero">
+            <div id="progression-hero-nav-container"></div>
+            <div class="progression-atlas-hero-content">
+                <div class="progression-atlas-hero-eyebrow">Atlas des séries</div>
+                <h1 class="progression-atlas-hero-title">Explorez l'histoire de votre collection</h1>
+                <p class="progression-atlas-hero-subtitle">Parcourez toutes les extensions Pokémon, suivez votre progression et complétez chaque chapitre de votre aventure.</p>
+            </div>
+        </div>
+
+        <div id="progression-followed-sets" class="progression-followed-sets"></div>
 
         <div class="stats-bottom">
             <div class="stat-card-icon stat-card-cartes">
@@ -59,6 +70,30 @@
                 <div class="stat-icon-text">
                     <div class="stat-number" id="total-spent">0€</div>
                     <div class="stat-label">Total dépensé</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="progression-stats-bottom" class="stats-bottom">
+            <div class="stat-card-icon stat-card-cartes">
+                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="progression-kpi-inprogress">0</div>
+                    <div class="stat-label">Sets en cours</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-achat">
+                <img src="images/total-achat.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="progression-kpi-completed">0</div>
+                    <div class="stat-label">Sets complétés</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-value">
+                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="progression-kpi-advanced-pct">—</div>
+                    <div class="stat-label" id="progression-kpi-advanced-name">Aucun set commencé</div>
                 </div>
             </div>
         </div>
@@ -537,9 +572,9 @@
     <script src="modules/ui.js?v=1"></script>
     <script src="modules/wishlist.js?v=1"></script>
     <script src="modules/stats-render.js?v=2"></script>
-    <script src="modules/progression.js?v=1"></script>
+    <script src="modules/progression.js?v=6"></script>
     <script src="modules/dashboard.js?v=6"></script>
-    <script src="tracker.js?v=58"></script>
+    <script src="tracker.js?v=61"></script>
     <script src="modules/auth.js?v=1"></script>
     <script>
         if ('serviceWorker' in navigator) {

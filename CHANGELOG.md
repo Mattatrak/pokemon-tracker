@@ -1,5 +1,18 @@
 # Changelog
 
+## Feat : Atlas des séries — refonte de la page Progression
+
+La page Progression devient l'"Atlas des séries" : un lieu dédié à l'exploration des extensions Pokémon, avec sa propre identité visuelle distincte du Dashboard et de la Collection.
+
+- **Hero Atlas** : nouveau Hero dédié (`images/atlas.png`, bureau d'archives du Professeur), header global masqué sur cette page et remplacé par ce Hero — navigation intégrée dedans via `generateDesktopNavigation()` réutilisée telle quelle (`index.html`, `styles.css`, `tracker.js`).
+- **Section "Mes sets suivis"** : nouvelle section entre le Hero et les KPI, lecture seule ce sprint (le contrôle d'ajout/retrait arrivera plus tard). Table Supabase `followed_sets` (`set_id`, `created_at`, sans `user_id` — app single-user, cohérent avec le reste du schéma). État vide compact si aucun set suivi (`modules/progression.js`, `index.html`, `styles.css`).
+- **KPI de progression** : les 3 KPI globaux (Total de cartes/Valeur/Dépensé) laissent place sur cette page à 3 KPI dédiés — Sets en cours, Sets complétés, Set le plus avancé (nom + %). Réutilisent strictement le calcul de progression déjà existant du catalogue (`pct === 100` pour la complétion, `owned/total` incluant les cartes secrètes) ; aucun nouvel appel API. Même structure/classes visuelles que les KPI globaux, affichées/masquées via `#progression-stats-bottom` scopé à `body.page-progression` — Dashboard et Collection inchangés (`modules/progression.js`, `index.html`, `styles.css`).
+- **Catalogue des générations harmonisé** : chapitres pliables/dépliables (ouvert par défaut : le plus récent), résumé de progression par génération (extensions/cartes/%), états visuels sobres par extension (terminée/presque terminée/peu commencée). Plusieurs passes de polish visuel pour aligner les surfaces sur l'univers Atlas — d'abord des aplats bruns trop marqués, corrigés vers la même recette translucide que le Hero/KPI (`rgba(20,16,10,x)`), puis raffinement final (bordure active plus fine et champagne plutôt que gold plein, accents dorés hiérarchisés, légère profondeur) (`modules/progression.js`, `styles.css`).
+- **Design System** : nouvelle section "Hiérarchie des surfaces" (Background/Hero/Panels/Interactive) et règle explicite — le doré ne sert jamais de couleur principale de surface, uniquement d'accent (bordures actives, progression, sélection) (`docs/01-design-system.md`).
+- **Navbar** : texte des liens de navigation passé de gris (`rgba(255,255,255,0.6)`) à blanc pour plus de lisibilité (`styles.css`).
+
+Aucune donnée, calcul ou comportement de clic existant modifié. Dashboard et Collection non affectés (vérifié à chaque étape).
+
 ## Art Director Pass : Navigation Desktop Premium
 
 Ajustements visuels subtils pour retrouver la sensation de navigation "suspendue" dans le Hero.
