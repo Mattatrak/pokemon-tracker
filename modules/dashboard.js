@@ -165,17 +165,8 @@ function dashboardBuildSkeleton() {
     `;
 }
 
-// Va sur un autre onglet sans dépendre d'un évènement de clic (utilisé par les boutons du Dashboard)
-function dashboardGoToTab(tabId, btnId) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    if (btnId) document.getElementById(btnId)?.classList.add('active');
-    activateTabContent(tabId);
-}
-
 function dashboardGoToProgressionSet(setId, setName, logoUrl) {
-    dashboardGoToTab('tab-progression', 'tab-btn-progression');
+    navigateToTab('tab-progression');
     openSetProgression(setId, setName, logoUrl);
 }
 
@@ -195,7 +186,7 @@ function renderDashboardHeader() {
         </div>
         <div class="dashboard-header-actions">
             ${lastRefreshHtml}
-            <button class="dashboard-add-btn" onclick="dashboardGoToTab('tab-add', 'tab-btn-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+            <button class="dashboard-add-btn" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
         </div>
     `;
 }
@@ -214,6 +205,12 @@ function dashboardGetLastMovers() {
 function renderDashboardHero() {
     const el = document.getElementById('dashboard-hero');
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+
+    // Info de mise à jour des prix
+    const lastRefresh = localStorage.getItem('lastPriceRefresh');
+    const lastRefreshHtml = lastRefresh
+        ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
+        : '';
 
     // Variation sur 7 jours, calculée à partir de value_history si on a un point suffisamment ancien
     let variationHtml = '';
@@ -277,13 +274,16 @@ function renderDashboardHero() {
             <span class="dashboard-hero-stars"></span>
         </div>
 
+        ${generateDesktopNavigation('tab-dashboard')}
+
         <div class="dashboard-hero-summary">
             <div class="dashboard-hero-label">Valeur totale de la collection</div>
             <div class="dashboard-hero-value">${totalValue.toFixed(2)}€</div>
             ${variationHtml}
+            ${lastRefreshHtml}
             <div class="dashboard-hero-actions">
-                <button class="dashboard-btn-primary" onclick="dashboardGoToTab('tab-collection', 'tab-btn-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Voir ma collection</button>
-                <button class="dashboard-btn-secondary" onclick="dashboardGoToTab('tab-stats', 'tab-btn-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Voir les statistiques</button>
+                <button class="dashboard-btn-primary" onclick="navigateToTab('tab-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Voir ma collection</button>
+                <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-progression')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Voir les statistiques</button>
             </div>
         </div>
 
@@ -626,7 +626,7 @@ function dashboardWishlistEmptyHtml(text) {
         <div class="dashboard-widget-empty-compact">
             <i class="ti ti-star" aria-hidden="true"></i>
             <p class="dashboard-empty-text" style="padding:0;">${text}</p>
-            <button class="dashboard-btn-secondary" onclick="dashboardGoToTab('tab-wishlist', 'tab-btn-wishlist')">Voir mes souhaits</button>
+            <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-wishlist')">Voir mes souhaits</button>
         </div>
     `;
 }

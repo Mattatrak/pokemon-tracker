@@ -416,16 +416,72 @@ async function changeQuantity(id, delta) {
 
 // collectionViewMode, setCollectionView chargées depuis modules/collection.js
 
+// ===== NAVIGATION DESKTOP =====
+
+function generateDesktopNavigation(activeTabId) {
+    const pages = [
+        { id: 'tab-dashboard', label: 'Accueil', icon: 'ti-layout-dashboard' },
+        { id: 'tab-collection', label: 'Ma Collection', icon: 'ti-layout-grid' },
+        { id: 'tab-progression', label: 'Progression', icon: 'ti-trophy' },
+        { id: 'tab-stats', label: 'Statistiques', icon: 'ti-chart-bar' },
+        { id: 'tab-wishlist', label: 'Souhaits', icon: 'ti-star' }
+    ];
+
+    const navCenter = pages
+        .map(p => `<button class="dashboard-integrated-nav-link ${p.id === activeTabId ? 'active' : ''}" onclick="navigateToTab('${p.id}')">${p.label}</button>`)
+        .join('');
+
+    return `
+        <div class="dashboard-integrated-nav">
+            <div class="dashboard-integrated-nav-left">
+                <div class="dashboard-integrated-nav-logo">
+                    <img src="images/poke-tracker.png" alt="PokéTracker" class="dashboard-integrated-nav-logo-img">
+                    <span>PokéTracker</span>
+                </div>
+            </div>
+            <div class="dashboard-integrated-nav-center">
+                ${navCenter}
+            </div>
+            <div class="dashboard-integrated-nav-right">
+                <button class="dashboard-integrated-nav-action" title="Rechercher" onclick="navigateToTab('tab-add')"><i class="ti ti-search" aria-hidden="true"></i></button>
+                <button class="dashboard-integrated-nav-action" title="Ajouter" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                <button class="dashboard-integrated-nav-action" title="Profil" onclick="handleLogout()"><i class="ti ti-user" aria-hidden="true"></i></button>
+            </div>
+        </div>
+    `;
+}
+
+function updateDesktopNavigation(tabId) {
+    if (tabId !== 'tab-dashboard') {
+        const navContainer = document.getElementById('desktop-nav-container');
+        if (navContainer) {
+            navContainer.innerHTML = generateDesktopNavigation(tabId);
+        }
+    }
+}
+
+function navigateToTab(tabId) {
+    const pageMap = {
+        'tab-dashboard': 'page-dashboard',
+        'tab-add': 'page-add',
+        'tab-collection': 'page-collection',
+        'tab-progression': 'page-progression',
+        'tab-stats': 'page-statistics',
+        'tab-wishlist': 'page-wishlist'
+    };
+
+    document.body.className = pageMap[tabId] || '';
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+
+    updateDesktopNavigation(tabId);
+    activateTabContent(tabId);
+}
+
 // ===== ONGLETS =====
 
 function switchTab(event, tabId) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
-    document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
-
-    activateTabContent(tabId);
+    navigateToTab(tabId);
 }
 
 // Rendu paresseux propre à un onglet, extrait de switchTab pour être réutilisable sans évènement de
@@ -776,3 +832,11 @@ function initEventListeners() {
 
 if (document.getElementById('search-collection')) initEventListeners();
 
+function initDesktopNavigation() {
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab) {
+        navigateToTab(activeTab.id);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initDesktopNavigation);
