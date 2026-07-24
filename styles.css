@@ -147,11 +147,16 @@ header {
     background-image: linear-gradient(180deg, rgba(13,16,26,0.2) 0%, rgba(13,16,26,0.45) 55%, rgba(13,16,26,0.8) 100%), url('images/background-header.png');
     background-size: cover;
     background-position: center center;
-    padding: 2.5rem 2rem;
+    padding: 2rem 1.5rem;
     border-radius: 12px;
     color: var(--parchment);
     margin-bottom: 2rem;
     box-shadow: 0 4px 14px rgba(22, 27, 41, 0.25);
+    min-height: 120px;
+}
+
+body:not(.page-dashboard) header .header-title-row {
+    display: none !important;
 }
 
 .header-title-row {
@@ -163,9 +168,9 @@ header {
 }
 
 .header-logo {
-    width: 92px;
-    height: 92px;
-    border-radius: 14px;
+    width: 84px;
+    height: 84px;
+    border-radius: 13px;
     filter: drop-shadow(0 0 10px rgba(232, 169, 59, 0.5));
 }
 
@@ -298,13 +303,6 @@ header p {
     flex-wrap: wrap;
 }
 
-.tabs .refresh-prices-row {
-    margin-bottom: 0;
-    margin-left: auto;
-    flex-wrap: nowrap;
-    white-space: nowrap;
-}
-
 .btn-refresh {
     background: var(--panel-light);
     color: var(--gold);
@@ -326,47 +324,6 @@ header p {
 .refresh-prices-status {
     font-size: 0.8rem;
     color: var(--slate);
-}
-
-/* ONGLETS */
-.tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-    border-bottom: 2px solid var(--panel-light);
-    overflow-x: auto;
-    overflow-y: visible;
-}
-
-.tab-btn {
-    padding: 1rem 1.25rem;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--slate);
-    transition: all 0.2s;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.tab-btn i {
-    font-size: 1.05rem;
-}
-
-.tab-btn.active {
-    color: var(--gold-hover);
-    border-bottom-color: var(--gold);
-    background: none;
-}
-
-.tab-btn:hover {
-    color: var(--gold-hover);
-    background: none;
 }
 
 .tab-content {
@@ -3317,35 +3274,16 @@ span.flatpickr-weekday {
 
 /* Onglet Dashboard uniquement : la bannière + les 3 cartes stats du haut dupliquent le hero/KPI du
    Dashboard, donc masquées/réduites ici sans toucher aux autres onglets (:has() cible l'ancêtre commun) */
-.container:has(#tab-dashboard.active) header {
-    padding: 0.5rem 1.25rem;
-    margin-bottom: 1rem;
-    background-image: none;
-    background: var(--panel);
-    border-radius: 10px;
-    box-shadow: none;
+body.page-dashboard header {
+    display: none !important;
 }
 
-.container:has(#tab-dashboard.active) header .header-logo {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-}
-
-.container:has(#tab-dashboard.active) .header-title-row {
-    margin-bottom: 0;
-}
-
-.container:has(#tab-dashboard.active) .header-title-main {
-    font-size: 1.15rem;
-}
-
-.container:has(#tab-dashboard.active) .header-title-sub {
-    font-size: 0.6rem;
-}
-
-.container:has(#tab-dashboard.active) .stats-bottom {
+body.page-dashboard .stats-bottom {
     display: none;
+}
+
+body.page-dashboard .dashboard-header {
+    display: none !important;
 }
 
 .dashboard-empty-text {
@@ -3512,7 +3450,7 @@ span.flatpickr-weekday {
     align-items: center;
     gap: 2rem;
     min-height: 420px;
-    padding: 40px;
+    padding: 104px 40px 40px 40px;
     border-radius: 24px;
     overflow: hidden;
     background-image:
@@ -3626,6 +3564,15 @@ span.flatpickr-weekday {
 .dashboard-hero-variation.dashboard-negative { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: #ff6b6b; }
 .dashboard-hero-variation.dashboard-neutral { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: var(--slate); }
 
+.dashboard-hero-last-refresh {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: #8A93A6;
+    margin-top: 0.5rem;
+}
+
 .dashboard-hero-actions {
     display: flex;
     gap: 0.75rem;
@@ -3683,6 +3630,129 @@ span.flatpickr-weekday {
 .dashboard-btn-full {
     width: 100%;
     margin-top: 0.75rem;
+}
+
+/* ----- Navigation intégrée au Hero (Prototype Sprint 1) ----- */
+
+.dashboard-integrated-nav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 32px;
+}
+
+.dashboard-integrated-nav-left {
+    flex: 0 0 auto;
+    align-self: center;
+}
+
+.dashboard-integrated-nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    font-weight: 600;
+}
+
+.dashboard-integrated-nav-logo-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.dashboard-integrated-nav-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 8px 1.5rem 0 1.5rem;
+    padding: 8px 16px;
+    background: rgba(10, 14, 26, 0.38);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-integrated-nav-link {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.dashboard-integrated-nav-link:hover {
+    color: var(--gold);
+    background: none !important;
+}
+
+.dashboard-integrated-nav-link:focus-visible {
+    outline: none;
+}
+
+.dashboard-integrated-nav-link.active {
+    color: var(--gold);
+    padding-bottom: 0.5rem;
+}
+
+.dashboard-integrated-nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--gold);
+    border-radius: 50%;
+}
+
+.dashboard-integrated-nav-right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.dashboard-integrated-nav-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.65);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dashboard-integrated-nav-action:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--gold);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dashboard-integrated-nav-action i {
+    font-size: 1.1rem;
 }
 
 /* ----- Zone droite : scène / showcase ----- */

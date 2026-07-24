@@ -1,5 +1,25 @@
 # Changelog
 
+## Art Director Pass : Navigation Desktop Premium
+
+Ajustements visuels subtils pour retrouver la sensation de navigation "suspendue" dans le Hero.
+
+- **Navigation descendue** : groupe central et actions à droite décalés de 8px vers le bas (margin-top) tandis que le logo reste centré verticalement — crée une hiérarchie visuelle où le logo devient la signature du header et la navigation flotte dans le décor (`styles.css`).
+- **Logo agrandi** : largeur/hauteur de 24px → 28px (+16.7%, arrondi grille 4px) pour mieux équilibrer la composition gauche-droite (`styles.css`).
+- **Actions rapprochées** : gap entre les boutons Rechercher/Ajouter/Profil réduit de 1rem (16px) à 12px pour les percevoir comme un ensemble cohérent avec la navigation centrale (`styles.css`).
+
+Tous les changements respectent la grille Design System (8px, 12px, 28px multiples de 4px). Aucune modification de hauteur header, responsive, logique ou composants — composition uniquement.
+
+## Fix : Hover navbar — rectangle orange non-conforme
+
+Sélecteur global `button:hover { background: var(--gold-hover); }` appliquait un background doré à TOUS les boutons, y compris les links de navigation navbar → rectangle orange visible au hover, non-conforme à la charte discrète du site.
+
+- **Override spécifique nav links** : ajout `.dashboard-integrated-nav-link:hover { background: none !important; }` pour annuler le background doré sur les liens de navigation, garde juste le changement de couleur texte (`styles.css`).
+- **Focus-visible neutre** : ajout `.dashboard-integrated-nav-link:focus-visible { outline: none; }` pour retirer l'outline doré au focus clavier, cohérent avec l'absence de background (`styles.css`).
+- **Cache CSS forcé** : timestamp CSS mis à jour dans `index.html` (2026-07-24-0110 → 2026-07-24-0120) pour forcer rechargement du CSS depuis le navigateur (`index.html`).
+
+Résultat : hover navbar discret (texte doré uniquement), conforme charte Design System.
+
 ## Sprint 1 Collection : Polish et restructuration UI
 
 Refonte légère de la page Ma Collection pour améliorer lisibilité et réduire encombrement des contrôles.
