@@ -17,6 +17,9 @@ function showCardDetail(cardId) {
     const conditionLabel = conditionLabels[conditionClass] || card.condition || '';
     const isPack = card.acquisition_type === 'pack';
 
+    const oldDateInput = document.getElementById('edit-date-added');
+    if (oldDateInput && oldDateInput._flatpickr) oldDateInput._flatpickr.destroy();
+
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
         <button class="modal-close" onclick="closeCardDetail()">✕</button>
@@ -297,6 +300,9 @@ async function showCardEditForm(cardId) {
         }
         finishOptionsHtml = fallbackOptions.map(o => `<option value="${o.value}" ${o.value === currentFinish ? 'selected' : ''}>${o.label}</option>`).join('');
     }
+
+    const oldDateInput = document.getElementById('edit-date-added');
+    if (oldDateInput && oldDateInput._flatpickr) oldDateInput._flatpickr.destroy();
 
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `

@@ -11,6 +11,7 @@ async function init() {
     await renderDashboard();
     updateLastRefreshLabel();
     initDatePicker('#card-date-added');
+    updateMobileBottomNav('tab-dashboard');
 
     // Rafraîchit les prix du marché automatiquement si ça n'a pas été fait depuis plus de 24h
     const lastRefresh = localStorage.getItem('lastPriceRefresh');

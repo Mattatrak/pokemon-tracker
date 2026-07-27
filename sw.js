@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poketracker-v3';
+const CACHE_NAME = 'poketracker-v4';
 const CORE_ASSETS = [
     './',
     './index.html',
@@ -21,7 +21,10 @@ const CORE_ASSETS = [
     './modules/stats-render.js',
     './modules/progression.js',
     './modules/auth.js',
-    './modules/auth-login.js'
+    './modules/auth-login.js',
+    './components/navigation/DesktopNavbar.js',
+    './components/navigation/MobileBottomNavigation.js',
+    './components/navigation/navigation.css'
 ];
 
 self.addEventListener('install', (event) => {

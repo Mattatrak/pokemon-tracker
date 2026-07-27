@@ -3214,11 +3214,15 @@ tbody tr:hover {
 
 /* THEME FLATPICKR AUX COULEURS DE L'APP */
 .flatpickr-calendar {
-    background: var(--panel) !important;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%),
+        linear-gradient(165deg, var(--panel-light) 0%, var(--panel) 55%, var(--ink-navy) 100%) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 20px 45px rgba(0,0,0,0.55) !important;
-    padding: 0.85rem !important;
+    border-radius: 14px !important;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset !important;
+    padding: 0.65rem !important;
+    width: 268px !important;
+    font-size: 0.85rem !important;
     overflow: hidden;
 }
 
@@ -3233,9 +3237,19 @@ tbody tr:hover {
     border: none !important;
 }
 
+html body .flatpickr-calendar .flatpickr-innerContainer,
+html body .flatpickr-calendar .flatpickr-rContainer,
+html body .flatpickr-calendar .flatpickr-days,
+html body .flatpickr-calendar .flatpickr-weekdaycontainer,
+html body .flatpickr-calendar .dayContainer {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
 .flatpickr-months {
     background: transparent !important;
-    padding-bottom: 0.6rem;
+    padding-bottom: 0.4rem;
 }
 
 .flatpickr-month {
@@ -3300,12 +3314,12 @@ html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
 .flatpickr-prev-month,
 .flatpickr-next-month {
     border-radius: 50% !important;
-    width: 30px !important;
-    height: 30px !important;
+    width: 26px !important;
+    height: 26px !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
-    top: 0.55rem !important;
+    top: 0.45rem !important;
     transition: background 0.15s;
 }
 
@@ -3326,7 +3340,7 @@ html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
 
 .flatpickr-weekdays {
     background: transparent !important;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
 }
 
 .flatpickr-weekdaycontainer {
@@ -3336,18 +3350,39 @@ html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
 span.flatpickr-weekday {
     background: transparent !important;
     color: var(--slate) !important;
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
+    opacity: 0.7;
+}
+
+html body .flatpickr-calendar .dayContainer {
+    row-gap: 2px;
+    column-gap: 0;
+}
+
+/* Flatpickr genere toujours 42 cellules (6 semaines), meme quand le mois tient sur 5. Si les 7
+   dernieres cellules (positions 36-42) sont TOUTES des jours du mois suivant, la 6e rangee est du
+   pur remplissage : on la masque. Des qu'une seule de ces 7 cellules appartient au mois courant
+   (mois necessitant reellement 6 semaines), la regle ne matche plus et la rangee reste visible. */
+html body .flatpickr-calendar .dayContainer:not(:has(.flatpickr-day:nth-child(n+36):nth-child(-n+42):not(.nextMonthDay)))
+    .flatpickr-day:nth-child(n+36):nth-child(-n+42) {
+    display: none !important;
 }
 
 .flatpickr-day {
     color: var(--text-primary) !important;
     border-radius: 50% !important;
-    max-width: 32px;
-    height: 32px;
-    line-height: 32px;
-    margin: 1px auto;
+    flex: 1 0 14.2857% !important;
+    max-width: 14.2857% !important;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    margin: 0;
 }
 
 .flatpickr-day.flatpickr-disabled,
@@ -3365,21 +3400,28 @@ span.flatpickr-weekday {
     background: var(--panel-light) !important;
 }
 
-.flatpickr-day.today {
-    border-color: var(--gold) !important;
+html body .flatpickr-calendar .flatpickr-day.today {
+    border-color: transparent !important;
+    box-shadow: inset 0 -2px 0 -1px var(--gold) !important;
 }
 
-.flatpickr-day.today:hover {
-    border-color: var(--gold) !important;
-    background: rgba(232, 169, 59, 0.15) !important;
+html body .flatpickr-calendar .flatpickr-day.today:hover {
+    border-color: transparent !important;
+    background: var(--panel-light) !important;
 }
 
-.flatpickr-day.selected,
-.flatpickr-day.selected:hover {
-    background: var(--gold) !important;
-    border-color: var(--gold) !important;
-    color: var(--ink-navy) !important;
+html body .flatpickr-calendar .flatpickr-day.selected,
+html body .flatpickr-calendar .flatpickr-day.selected:hover {
+    background: rgba(232, 169, 59, 0.12) !important;
+    border-color: rgba(232, 169, 59, 0.7) !important;
+    color: var(--text-primary) !important;
     font-weight: 700;
+    box-shadow: none !important;
+}
+
+html body .flatpickr-calendar .flatpickr-day.today.selected,
+html body .flatpickr-calendar .flatpickr-day.today.selected:hover {
+    box-shadow: none !important;
 }
 
 /* ===================== DASHBOARD ===================== */
@@ -4100,141 +4142,8 @@ body.page-progression .progression-followed-sets {
     margin-top: 0.75rem;
 }
 
-/* ----- Navigation intégrée au Hero (Prototype Sprint 1) ----- */
-
-.dashboard-integrated-nav {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    height: 64px;
-    padding: 0 32px;
-}
-
-.dashboard-integrated-nav-left {
-    flex: 0 0 auto;
-    align-self: center;
-}
-
-.dashboard-integrated-nav-logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.04em;
-    color: var(--gold);
-    font-weight: 600;
-}
-
-.dashboard-integrated-nav-logo-img {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-}
-
-.dashboard-integrated-nav-center {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin: 8px auto 0 auto;
-    padding: 10px 20px;
-    background: rgba(10, 14, 26, 0.55);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-}
-
-.dashboard-integrated-nav-link {
-    background: none;
-    border: none;
-    color: #ffffff;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    padding: 0.5rem 0;
-    transition: color 0.2s ease, background 0.2s ease;
-    white-space: nowrap;
-    position: relative;
-}
-
-.dashboard-integrated-nav-link:hover {
-    color: var(--gold);
-    background: none !important;
-}
-
-.dashboard-integrated-nav-link:focus-visible {
-    outline: none;
-}
-
-.dashboard-integrated-nav-link.active {
-    color: var(--gold);
-    padding-bottom: 0.5rem;
-}
-
-.dashboard-integrated-nav-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    background: var(--gold);
-    border-radius: 50%;
-}
-
-.dashboard-integrated-nav-right {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.dashboard-integrated-nav-action {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.65);
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    min-width: 0;
-    flex-shrink: 0;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.dashboard-integrated-nav-action:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--gold);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-.dashboard-integrated-nav-action--primary {
-    background: var(--gold);
-    border-color: var(--gold);
-    color: var(--ink-navy);
-}
-
-.dashboard-integrated-nav-action--primary:hover {
-    background: var(--gold-hover);
-    border-color: var(--gold-hover);
-    color: var(--ink-navy);
-}
-
-.dashboard-integrated-nav-action i {
-    font-size: 1.1rem;
-}
+/* Navigation (desktop .dashboard-integrated-nav* + mobile .mobile-bottom-nav*) :
+   voir components/navigation/navigation.css */
 
 /* ----- Zone droite : scène / showcase ----- */
 

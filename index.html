@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
     <link rel="stylesheet" href="styles.css?t=2026-07-24-2200">
+    <link rel="stylesheet" href="components/navigation/navigation.css?v=1">
 </head>
 <body>
     <div class="container" id="main-app-container">
@@ -557,12 +558,17 @@
         <div class="modal-card" id="card-detail-card"></div>
     </div>
 
+    <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
     <script src="modules/utils.js?v=1"></script>
+    <script src="components/navigation/DesktopNavbar.js?v=1"></script>
+    <script src="components/navigation/MobileBottomNavigation.js?v=1"></script>
     <script src="modules/storage.js?v=1"></script>
     <script src="modules/cards.js?v=1"></script>
     <script src="modules/stats.js?v=1"></script>

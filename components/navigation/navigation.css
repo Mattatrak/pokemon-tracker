@@ -1,0 +1,226 @@
+/* Navigation - Pokémon Tracker
+   Deux composants indépendants, chacun visible sur un seul breakpoint (pas de navbar unique
+   truffée de media queries) :
+   - .dashboard-integrated-nav*  -> DesktopNavbar.js   (visible  > 768px)
+   - .mobile-bottom-nav*         -> MobileBottomNavigation.js (visible <= 768px)
+   Breakpoint aligné sur celui déjà utilisé dans styles.css (@media max-width: 768px). */
+
+/* ===================== DESKTOP NAVBAR ===================== */
+
+.dashboard-integrated-nav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 32px;
+}
+
+.dashboard-integrated-nav-left {
+    flex: 0 0 auto;
+    align-self: center;
+}
+
+.dashboard-integrated-nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    font-weight: 600;
+}
+
+.dashboard-integrated-nav-logo-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.dashboard-integrated-nav-center {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 8px auto 0 auto;
+    padding: 10px 20px;
+    background: rgba(10, 14, 26, 0.55);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.dashboard-integrated-nav-link {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    transition: color 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.dashboard-integrated-nav-link:hover {
+    color: var(--gold);
+    background: none !important;
+}
+
+.dashboard-integrated-nav-link:focus-visible {
+    outline: none;
+}
+
+.dashboard-integrated-nav-link.active {
+    color: var(--gold);
+    padding-bottom: 0.5rem;
+}
+
+.dashboard-integrated-nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--gold);
+    border-radius: 50%;
+}
+
+.dashboard-integrated-nav-right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.dashboard-integrated-nav-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.65);
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    min-width: 0;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dashboard-integrated-nav-action:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--gold);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dashboard-integrated-nav-action--primary {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--ink-navy);
+}
+
+.dashboard-integrated-nav-action--primary:hover {
+    background: var(--gold-hover);
+    border-color: var(--gold-hover);
+    color: var(--ink-navy);
+}
+
+.dashboard-integrated-nav-action i {
+    font-size: 1.1rem;
+}
+
+/* ===================== MOBILE BOTTOM NAVIGATION ===================== */
+
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+    align-items: stretch;
+    justify-content: space-around;
+    background: linear-gradient(180deg, rgba(41, 51, 86, 0.82) 0%, rgba(18, 22, 36, 0.94) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-bottom-nav-item,
+.mobile-bottom-nav-item:hover,
+.mobile-bottom-nav-item:focus-visible {
+    position: relative;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    min-height: 48px;
+    margin: 2px 3px;
+    background: none !important;
+    border: 1px solid transparent;
+    outline: none;
+    color: var(--slate);
+    font-size: 0.65rem;
+    font-weight: 600;
+    opacity: 0.8;
+    padding: 0.3rem 0.1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: color 0.15s ease, opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.mobile-bottom-nav-item i {
+    font-size: 1.3rem;
+}
+
+.mobile-bottom-nav-item:active {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.mobile-bottom-nav-item.active,
+.mobile-bottom-nav-item.active:hover,
+.mobile-bottom-nav-item.active:focus-visible {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(232, 169, 59, 0.35) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+    color: var(--gold) !important;
+    opacity: 1;
+    font-weight: 700;
+}
+
+.mobile-bottom-nav-item.active i {
+    font-size: 1.35rem;
+}
+
+/* ===================== BREAKPOINT SWITCH ===================== */
+
+@media (max-width: 768px) {
+    .dashboard-integrated-nav {
+        display: none;
+    }
+
+    .mobile-bottom-nav {
+        display: flex;
+    }
+
+    /* Laisse la place à la barre fixe en bas pour que le dernier contenu ne soit jamais masqué */
+    .container {
+        padding-bottom: calc(2rem + 64px + env(safe-area-inset-bottom, 0px));
+    }
+}

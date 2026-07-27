@@ -1,5 +1,19 @@
 # Changelog
 
+## Fix : sélecteur de date + refonte navigation mobile
+
+Correction ciblée du calendrier Flatpickr (ajout/édition de carte) puis nouvelle architecture de navigation séparant desktop et mobile.
+
+- **Date picker cassé à l'ajout** : `init()` plantait sur `updateLastRefreshLabel()` (référence à `#refresh-prices-status`, élément supprimé du DOM lors d'un précédent redesign nav) avant d'atteindre `initDatePicker('#card-date-added')` → calendrier jamais initialisé sur la fenêtre d'ajout. Garde nulle ajoutée (`tracker.js`).
+- **Fuite de flatpickr sur la page d'édition** : `showCardEditForm`/`showCardDetail` remplaçaient `#card-detail-card` en `innerHTML` sans détruire l'instance flatpickr précédente (calendrier + altInput orphelins accumulés dans le DOM à chaque réouverture) → `.destroy()` appelé avant chaque remplacement (`modules/card-detail.js`).
+- **Grille du calendrier cassée** : `.flatpickr-day{max-width:32px}` clampait sous le `flex-basis:14.2857%` du thème CDN → 9 colonnes au lieu de 7, dimanche coupé. Réécrit en pourcentages stricts (`flex:1 0 14.2857%`, `aspect-ratio:1/1`), plus fix de spécificité sur `.dayContainer` (largeur fixe du thème CDN non neutralisée par un premier essai) (`styles.css`).
+- **6e rangée fantôme** : Flatpickr génère toujours 42 cellules (6 semaines) même quand le mois tient sur 5 — masquée en CSS pur via `:has()` (row cachée seulement si les 7 dernières cellules sont toutes hors mois courant, donc correcte pour tous les mois sans index en dur) (`styles.css`).
+- **Raffinement calendrier** : surface dégradée sombre, calendrier compact (307px → 268px), sélection en contour champagne fin (plus de disque doré plein), jour courant distinct du jour sélectionné (`styles.css`).
+- **Nouvelle architecture de navigation** : extraction de `generateDesktopNavigation`/`updateDesktopNavigation` (`tracker.js`) vers `components/navigation/DesktopNavbar.js` (comportement identique), ajout de `components/navigation/MobileBottomNavigation.js` + `navigation.css`. Bottom Navigation fixe (<=768px) avec 4 onglets (Accueil/Collection/Progression/Souhaits) + "Plus" (emplacement réservé, pas d'écran implémenté), switch automatique par breakpoint CSS — deux composants indépendants, pas de navbar unique à coups de media queries (`index.html`, `tracker.js`, `modules/auth.js`, `sw.js`).
+- **État actif Bottom Nav** : capsule discrète (fond légèrement plus clair, bordure champagne fine, radius doux) autour de l'onglet actif — pas de trait, pas de pastille, pas de fond doré plein (`components/navigation/navigation.css`).
+
+Aucun changement de format de date, de logique d'ajout/édition, de calculs, ni de navigation desktop (layout identique, juste déplacée dans `DesktopNavbar.js`).
+
 ## Feat : Atlas des séries — refonte de la page Progression
 
 La page Progression devient l'"Atlas des séries" : un lieu dédié à l'exploration des extensions Pokémon, avec sa propre identité visuelle distincte du Dashboard et de la Collection.
