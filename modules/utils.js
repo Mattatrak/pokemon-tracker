@@ -22,7 +22,11 @@ function showMessage(text, type = 'error') {
     div.textContent = text;
     container.innerHTML = '';
     container.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
+    setTimeout(() => {
+        div.classList.add('message--leaving');
+        div.addEventListener('transitionend', () => div.remove(), { once: true });
+        setTimeout(() => div.remove(), 300); // filet de sécurité si transitionend ne se déclenche pas
+    }, 3000);
 }
 
 // Redimensionne une image et la convertit en Blob JPEG, prête à uploader

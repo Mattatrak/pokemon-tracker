@@ -332,18 +332,7 @@ header p {
 
 .tab-content.active {
     display: block;
-    animation: tabFadeIn 0.25s ease;
-}
-
-@keyframes tabFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .tab-content.active {
-        animation: none;
-    }
+    animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
 }
 
 .stat-card {
@@ -770,6 +759,19 @@ header p {
 
 .stat-card-icon[onclick] {
     cursor: pointer;
+    transition:
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .stat-card-icon[onclick]:hover {
+        transform: translateY(calc(var(--motion-distance-xs) * -1));
+    }
+}
+
+.stat-card-icon[onclick]:active {
+    transform: scale(var(--motion-scale-pressed));
 }
 
 .stat-card-cartes {
@@ -914,6 +916,10 @@ input, select, textarea {
     font-family: inherit;
     background: var(--panel);
     color: var(--text-primary);
+    transition:
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+        background-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 input::placeholder {
@@ -945,7 +951,11 @@ button {
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s ease;
+    transition:
+        background var(--motion-duration-fast) var(--motion-ease-standard),
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        filter var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -953,7 +963,7 @@ button {
 }
 
 button:active {
-    transform: scale(0.96);
+    transform: scale(var(--motion-scale-pressed));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2531,7 +2541,7 @@ tbody tr:hover {
 
 /* MODALE DETAIL CARTE */
 .modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
@@ -2539,25 +2549,21 @@ tbody tr:hover {
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
-}
-
-@keyframes modalFadeInScale {
-    from { opacity: 0; transform: scale(0.96) translateY(6px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.modal-overlay.active .modal-card {
-    animation: modalFadeInScale 0.35s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .modal-overlay.active .modal-card {
-        animation: none;
-    }
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity var(--motion-duration-normal) var(--motion-ease-standard),
+        visibility 0s linear var(--motion-duration-normal);
 }
 
 .modal-overlay.active {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        opacity var(--motion-duration-normal) var(--motion-ease-standard),
+        visibility 0s linear 0s;
 }
 
 .modal-card {
@@ -2572,6 +2578,16 @@ tbody tr:hover {
     overflow-x: hidden;
     position: relative;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(var(--motion-distance-md)) scale(var(--motion-scale-enter));
+    transition:
+        opacity var(--motion-duration-normal) var(--motion-ease-enter),
+        transform var(--motion-duration-normal) var(--motion-ease-enter);
+}
+
+.modal-overlay.active .modal-card {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }
 
 .modal-close {
@@ -3081,6 +3097,15 @@ tbody tr:hover {
     background: var(--ink-navy-light);
     border: 1px solid var(--border);
     box-shadow: 0 4px 14px rgba(22, 27, 41, 0.25);
+    animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
+    transition:
+        opacity var(--motion-duration-normal) var(--motion-ease-standard),
+        transform var(--motion-duration-normal) var(--motion-ease-standard);
+}
+
+.message--leaving {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-distance-sm) * -1));
 }
 
 .message.error {
@@ -3551,7 +3576,7 @@ body.page-progression .progression-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: dashboard-fade-in 0.4s ease both;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .progression-atlas-hero-content {
@@ -3613,7 +3638,7 @@ body.page-collection .collection-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: dashboard-fade-in 0.4s ease both;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .collection-atlas-hero-content {
@@ -3715,7 +3740,7 @@ body.page-statistics .stats-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: dashboard-fade-in 0.4s ease both;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .stats-hero-content {
@@ -3775,7 +3800,7 @@ body.page-wishlist .wishlist-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: dashboard-fade-in 0.4s ease both;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .wishlist-hero-content {
@@ -4063,16 +4088,6 @@ body.page-progression .progression-followed-sets {
     font-style: italic;
 }
 
-@keyframes dashboard-fade-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes dashboard-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-}
-
 /* ----- En-tete ----- */
 
 .dashboard-header {
@@ -4082,7 +4097,7 @@ body.page-progression .progression-followed-sets {
     flex-wrap: wrap;
     gap: 1rem;
     margin-bottom: 1.75rem;
-    animation: dashboard-fade-in 0.4s ease both;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .dashboard-greeting {
@@ -4220,8 +4235,8 @@ body.page-progression .progression-followed-sets {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: dashboard-fade-in 0.4s ease both;
-    animation-delay: 0.05s;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
+    animation-delay: var(--motion-stagger-normal);
 }
 
 /* Vignette interne : assombrit légèrement les bords sans passer devant le contenu */
@@ -4610,9 +4625,12 @@ body.page-progression .progression-followed-sets {
     min-width: 0;
     overflow: hidden;
     box-shadow: 0 8px 20px -12px rgba(0,0,0,0.5);
-    animation: dashboard-fade-in 0.4s ease both;
-    animation-delay: 0.1s;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
+    animation-delay: calc(var(--motion-stagger-normal) * 2);
+    transition:
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 /* Ligne d'accent colorée en haut de chaque carte, visible au repos (pas seulement au survol) */
@@ -4704,9 +4722,12 @@ body.page-progression .progression-followed-sets {
     padding: 1.4rem;
     min-width: 0;
     box-shadow: 0 8px 20px -14px rgba(0,0,0,0.5);
-    animation: dashboard-fade-in 0.4s ease both;
-    animation-delay: 0.15s;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
+    animation-delay: calc(var(--motion-stagger-normal) * 3);
+    transition:
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .dashboard-widget:hover {

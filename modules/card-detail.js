@@ -361,7 +361,7 @@ async function showCardEditForm(cardId) {
                 </div>
 
                 <div class="modal-edit-actions">
-                    <button class="modal-save-btn" onclick="saveCardEdits(${card.id})"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
+                    <button class="modal-save-btn" onclick="saveCardEdits(${card.id}, this)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
                     <button class="modal-cancel-btn" onclick="showCardDetail(${card.id})">Annuler</button>
                 </div>
             </div>
@@ -377,7 +377,12 @@ function toggleEditPurchasePriceField() {
     document.getElementById('edit-purchase-price-group').style.display = val === 'pack' ? 'none' : '';
 }
 
-async function saveCardEdits(cardId) {
+async function saveCardEdits(cardId, btn) {
+    if (btn.disabled) return;
+    const originalBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span> Enregistrement...';
+
     const condition = document.getElementById('edit-condition').value;
     const finish = document.getElementById('edit-finish').value;
     const quantity = parseInt(document.getElementById('edit-quantity').value) || 1;
@@ -421,6 +426,8 @@ async function saveCardEdits(cardId) {
     if (error) {
         showMessage('Erreur lors de la modification', 'error');
         console.error(error);
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
         return;
     }
 

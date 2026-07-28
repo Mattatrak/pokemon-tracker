@@ -372,6 +372,7 @@ function renderFilteredCollection() {
 
 function renderCollectionTable(filtered) {
     const tbody = document.getElementById('cards-list');
+    const tableWrapper = document.getElementById('collection-table-wrapper');
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
@@ -384,6 +385,7 @@ function renderCollectionTable(filtered) {
             </tr>
         `;
         updateSelectAllCheckboxState();
+        replayEntrance(tableWrapper);
         return;
     }
 
@@ -424,6 +426,16 @@ function renderCollectionTable(filtered) {
     }).join('');
 
     updateSelectAllCheckboxState();
+    replayEntrance(tableWrapper);
+}
+
+// Rejoue l'entrée douce du Motion System (.motion-enter) sur un conteneur dont le contenu vient
+// d'être reconstruit (innerHTML) - reflow forcé pour redémarrer l'animation CSS à chaque rebuild
+function replayEntrance(el) {
+    if (!el) return;
+    el.classList.remove('motion-enter');
+    void el.offsetWidth;
+    el.classList.add('motion-enter');
 }
 
 function getGridNoImageHtml() {
@@ -436,6 +448,7 @@ function renderCollectionGrid(filtered) {
 
     if (filtered.length === 0) {
         grid.innerHTML = '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
+        replayEntrance(grid);
         return;
     }
 
@@ -468,6 +481,8 @@ function renderCollectionGrid(filtered) {
             </div>
         `;
     }).join('');
+
+    replayEntrance(grid);
 }
 
 // Change la quantité depuis la fiche détail sans fermer la fenêtre (la ferme seulement si la carte a été supprimée)
