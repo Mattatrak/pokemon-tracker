@@ -3449,6 +3449,29 @@ body.page-progression header {
     display: none !important;
 }
 
+/* Onglet Collection : le header global et les KPI génériques laissent place au Page Header dédié */
+body.page-collection header {
+    display: none !important;
+}
+
+body.page-collection .stats-bottom {
+    display: none;
+}
+
+#collection-stats-bottom {
+    display: none;
+}
+
+body.page-collection #collection-stats-bottom {
+    display: grid;
+}
+
+/* Onglets Statistiques et Souhaits : le header global laisse place au Page Header dédié */
+body.page-statistics header,
+body.page-wishlist header {
+    display: none !important;
+}
+
 /* Onglet Progression : les KPI globaux laissent place aux KPI de progression des sets
    (mêmes classes .stats-bottom/.stat-card-icon, design strictement identique, contenu différent) */
 body.page-progression .stats-bottom {
@@ -3562,6 +3585,228 @@ body.page-progression .progression-atlas-hero {
     font-size: 0.95rem;
     line-height: 1.5;
     text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* ===== PAGE HEADER (Collection) ===== */
+
+.collection-atlas-hero {
+    display: none;
+}
+
+body.page-collection .collection-atlas-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 420px;
+    padding: 2rem 2.5rem;
+    border-radius: 24px;
+    overflow: hidden;
+    background-image:
+        linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
+        url('images/collection.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        inset 0 2px 16px rgba(0,0,0,0.25),
+        0 30px 70px -20px rgba(0,0,0,0.55),
+        0 10px 30px rgba(0,0,0,0.35);
+    margin-bottom: 2rem;
+    animation: dashboard-fade-in 0.4s ease both;
+}
+
+.collection-atlas-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+}
+
+.collection-atlas-hero-eyebrow,
+.stats-hero-eyebrow,
+.wishlist-hero-eyebrow {
+    color: #B7C0D6;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+}
+
+.collection-atlas-hero-title,
+.stats-hero-title,
+.wishlist-hero-title {
+    color: #ffffff;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.6rem;
+}
+
+.collection-atlas-hero-subtitle,
+.stats-hero-subtitle,
+.wishlist-hero-subtitle {
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 1.4rem;
+}
+
+.collection-atlas-hero-search {
+    max-width: 420px;
+}
+
+.collection-atlas-hero-search input {
+    width: 100%;
+}
+
+@media (max-width: 1199px) and (min-width: 641px) {
+    .collection-atlas-hero {
+        min-height: 340px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .collection-atlas-hero {
+        min-height: 0;
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .collection-atlas-hero-subtitle {
+        font-size: 0.85rem;
+    }
+
+    .collection-atlas-hero-search {
+        max-width: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .collection-atlas-hero {
+        animation: none;
+    }
+}
+
+/* ===== PAGE HEADER (Statistiques) ===== */
+
+.stats-hero {
+    display: none;
+}
+
+body.page-statistics .stats-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 420px;
+    padding: 2rem 2.5rem;
+    border-radius: 24px;
+    overflow: hidden;
+    background-image:
+        linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
+        url('images/stats.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        inset 0 2px 16px rgba(0,0,0,0.25),
+        0 30px 70px -20px rgba(0,0,0,0.55),
+        0 10px 30px rgba(0,0,0,0.35);
+    margin-bottom: 2rem;
+    animation: dashboard-fade-in 0.4s ease both;
+}
+
+.stats-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+}
+
+@media (max-width: 1199px) and (min-width: 641px) {
+    .stats-hero {
+        min-height: 340px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-hero {
+        min-height: 0;
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .stats-hero-subtitle {
+        font-size: 0.85rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stats-hero {
+        animation: none;
+    }
+}
+
+/* ===== PAGE HEADER (Souhaits) ===== */
+
+.wishlist-hero {
+    display: none;
+}
+
+body.page-wishlist .wishlist-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 420px;
+    padding: 2rem 2.5rem;
+    border-radius: 24px;
+    overflow: hidden;
+    background-image:
+        linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
+        url('images/wishlist.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        inset 0 2px 16px rgba(0,0,0,0.25),
+        0 30px 70px -20px rgba(0,0,0,0.55),
+        0 10px 30px rgba(0,0,0,0.35);
+    margin-bottom: 2rem;
+    animation: dashboard-fade-in 0.4s ease both;
+}
+
+.wishlist-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+}
+
+@media (max-width: 1199px) and (min-width: 641px) {
+    .wishlist-hero {
+        min-height: 340px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .wishlist-hero {
+        min-height: 0;
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .wishlist-hero-subtitle {
+        font-size: 0.85rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wishlist-hero {
+        animation: none;
+    }
 }
 
 /* ===== MES SETS SUIVIS ===== */

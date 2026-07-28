@@ -328,11 +328,30 @@ function updateCollectionSummary(filtered, page) {
     `;
 }
 
+function renderCollectionHeaderKpis(filtered) {
+    const totalEl = document.getElementById('collection-kpi-total');
+    const valueEl = document.getElementById('collection-kpi-value');
+    const displayedEl = document.getElementById('collection-kpi-displayed');
+    if (!totalEl || !valueEl || !displayedEl) return;
+
+    const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+
+    totalEl.textContent = allCollectionCards.length;
+    valueEl.textContent = new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(totalValue);
+    displayedEl.textContent = filtered.length;
+}
+
 function renderFilteredCollection() {
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
 
     updateCollectionSummary(filtered, page);
+    renderCollectionHeaderKpis(filtered);
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     if (collectionViewMode === 'table') {

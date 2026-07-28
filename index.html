@@ -45,6 +45,37 @@
             </div>
         </div>
 
+        <div class="collection-atlas-hero">
+            <div id="collection-hero-nav-container"></div>
+            <div class="collection-atlas-hero-content">
+                <div class="collection-atlas-hero-eyebrow">Ma collection</div>
+                <h1 class="collection-atlas-hero-title">Votre Collection</h1>
+                <p class="collection-atlas-hero-subtitle">Explorez, recherchez et gérez chacune de vos cartes Pokémon.</p>
+                <div class="collection-atlas-hero-search input-with-icon">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="text" id="search-collection" placeholder="Chercher dans ma collection...">
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-hero">
+            <div id="stats-hero-nav-container"></div>
+            <div class="stats-hero-content">
+                <div class="stats-hero-eyebrow">Vos statistiques</div>
+                <h1 class="stats-hero-title">Analysez votre collection</h1>
+                <p class="stats-hero-subtitle">Suivez la valeur, les tendances et les temps forts de votre collection.</p>
+            </div>
+        </div>
+
+        <div class="wishlist-hero">
+            <div id="wishlist-hero-nav-container"></div>
+            <div class="wishlist-hero-content">
+                <div class="wishlist-hero-eyebrow">Souhaits</div>
+                <h1 class="wishlist-hero-title">Vos listes de souhaits</h1>
+                <p class="wishlist-hero-subtitle">Gardez un œil sur les cartes que vous rêvez d'ajouter à votre collection.</p>
+            </div>
+        </div>
+
         <div id="progression-followed-sets" class="progression-followed-sets"></div>
 
         <div class="stats-bottom">
@@ -95,6 +126,30 @@
                 <div class="stat-icon-text">
                     <div class="stat-number" id="progression-kpi-advanced-pct">—</div>
                     <div class="stat-label" id="progression-kpi-advanced-name">Aucun set commencé</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="collection-stats-bottom" class="stats-bottom">
+            <div class="stat-card-icon stat-card-cartes">
+                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="collection-kpi-total">0</div>
+                    <div class="stat-label">Cartes au total</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-value">
+                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="collection-kpi-value">0€</div>
+                    <div class="stat-label">Valeur estimée</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-achat">
+                <img src="images/total-achat.png" alt="" class="stat-icon-img">
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="collection-kpi-displayed">0</div>
+                    <div class="stat-label">Cartes affichées</div>
                 </div>
             </div>
         </div>
@@ -235,12 +290,6 @@
 
         <!-- ONGLET MA COLLECTION -->
         <div id="tab-collection" class="tab-content">
-            <div class="search-form-single">
-                <div class="input-with-icon">
-                    <i class="ti ti-search" aria-hidden="true"></i>
-                    <input type="text" id="search-collection" placeholder="Chercher dans ma collection...">
-                </div>
-            </div>
             <div class="filters">
                 <select id="filter-condition">
                     <option value="">Tous les états</option>

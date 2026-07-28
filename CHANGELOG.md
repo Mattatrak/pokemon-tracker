@@ -1,5 +1,16 @@
 # Changelog
 
+## Sprint 3.1 : Page Header premium — Collection, Statistiques, Souhaits
+
+Harmonisation visuelle : la page Ma Collection reçoit un Page Header de la même famille graphique que Dashboard/Progression (nav intégrée, bannière illustrée, KPI, recherche), puis le même gabarit est étendu aux pages Statistiques et Souhaits.
+
+- **Page Header Collection** : nouveau `.collection-atlas-hero` (bannière 420px, même dimensions que Progression) avec titre "Votre Collection", sous-titre, illustration de fond `images/collection.png`, texte/recherche ancrés en bas-gauche. Header global et KPI génériques masqués sur cette page via `body.page-collection`, remplacés par 3 KPI dédiés (`#collection-stats-bottom` : cartes au total, valeur estimée, cartes affichées selon filtres) (`index.html`, `styles.css`, `modules/collection.js`).
+- **Recherche déplacée dans le Header** : le champ `#search-collection` (même id, mêmes listeners) quitte son ancienne position au-dessus des filtres pour devenir l'action principale du Header — comportement, filtres et logique strictement inchangés (`index.html`).
+- **Navigation intégrée par page** : `DesktopNavbar.js` route désormais vers un conteneur dédié par onglet (`#collection-hero-nav-container`, `#stats-hero-nav-container`, `#wishlist-hero-nav-container`) au lieu du header global masqué, même pattern que Progression (`components/navigation/DesktopNavbar.js`).
+- **Page Header Statistiques et Souhaits** : mêmes gabarits (`.stats-hero`, `.wishlist-hero` — nommage sans "atlas", réservé à Progression), titre/sous-titre dédiés, prêts à recevoir `images/stats.png` et `images/wishlist.png` (déjà câblés en `background-image`, KPI et contenu existants de ces pages non modifiés) (`index.html`, `styles.css`).
+
+Aucune modification des filtres, de la grille de cartes, des modales ou de la logique JS. Dashboard et Progression non affectés (vérifiés en navigateur).
+
 ## Fix : sélecteur de date + refonte navigation mobile
 
 Correction ciblée du calendrier Flatpickr (ajout/édition de carte) puis nouvelle architecture de navigation séparant desktop et mobile.

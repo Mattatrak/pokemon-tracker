@@ -1,7 +1,9 @@
 // DesktopNavbar - Pokémon Tracker
 // Navigation horizontale desktop (>768px). Rendue dans 3 emplacements possibles selon l'onglet actif :
 // #desktop-nav-container (header), #progression-hero-nav-container (onglet Progression),
-// et directement dans le hero du Dashboard (modules/dashboard.js). Masquée en CSS sous 768px
+// #collection-hero-nav-container (onglet Collection), #stats-hero-nav-container (onglet Statistiques),
+// #wishlist-hero-nav-container (onglet Souhaits), et directement dans le hero du Dashboard
+// (modules/dashboard.js). Masquée en CSS sous 768px
 // (navigation.css) au profit de MobileBottomNavigation.js.
 // Dépend de : navigateToTab (tracker.js), handleLogout (modules/auth.js)
 
@@ -40,7 +42,13 @@ function generateDesktopNavigation(activeTabId) {
 
 function updateDesktopNavigation(tabId) {
     if (tabId === 'tab-dashboard') return;
-    const containerId = tabId === 'tab-progression' ? 'progression-hero-nav-container' : 'desktop-nav-container';
+    const containerMap = {
+        'tab-progression': 'progression-hero-nav-container',
+        'tab-collection': 'collection-hero-nav-container',
+        'tab-stats': 'stats-hero-nav-container',
+        'tab-wishlist': 'wishlist-hero-nav-container'
+    };
+    const containerId = containerMap[tabId] || 'desktop-nav-container';
     const navContainer = document.getElementById(containerId);
     if (navContainer) {
         navContainer.innerHTML = generateDesktopNavigation(tabId);
