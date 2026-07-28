@@ -22,10 +22,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-07-24-2200">
+    <link rel="stylesheet" href="styles.css?t=2026-07-29-19">
+    <link rel="stylesheet" href="css/layout-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-components.css?v=1">
-    <link rel="stylesheet" href="components/navigation/navigation.css?v=1">
+    <link rel="stylesheet" href="components/navigation/navigation.css?v=8">
 </head>
 <body>
     <div class="container" id="main-app-container">
@@ -169,123 +170,189 @@
 
         <!-- ONGLET AJOUTER -->
         <div id="tab-add" class="tab-content">
-            <div class="form-section search-card-section">
-                <h2><i class="ti ti-search" aria-hidden="true"></i> Rechercher une carte</h2>
-                <img src="images/goldpokeball.png" alt="" class="search-pokeball-decor" aria-hidden="true">
-                <div class="search-form">
-                    <div class="input-with-icon">
-                        <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="card-search" placeholder="Recherchez une carte en français...">
+            <div class="catalogue-hero">
+                <div id="catalogue-hero-nav-container"></div>
+                <div class="catalogue-hero-stage">
+                    <div class="catalogue-hero-decor" aria-hidden="true"></div>
+
+                    <div class="catalogue-hero-main">
+                        <div class="catalogue-hero-eyebrow">Explorez le catalogue Pokémon</div>
+                        <h1 class="catalogue-hero-title">Trouvez <span class="catalogue-hero-title-accent">la carte que vous cherchez</span></h1>
+                        <div class="catalogue-hero-search-form">
+                            <div class="input-with-icon catalogue-hero-input">
+                                <i class="ti ti-search" aria-hidden="true"></i>
+                                <input type="text" id="card-search" placeholder="Nom, série, numéro ou illustrateur...">
+                            </div>
+                            <button onclick="searchCards()" id="search-btn"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
+                        </div>
                     </div>
-                    <button onclick="searchCards()" id="search-btn"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
                 </div>
-                <div class="filters">
-                    <select id="filter-rarity">
-                        <option value="">Toutes les raretés</option>
-                    </select>
-                    <select id="filter-series">
-                        <option value="">Toutes les séries</option>
-                    </select>
-                </div>
-                <div class="search-results" id="search-results"></div>
             </div>
 
-            <div class="form-section add-collection-section">
-                <h2><i class="ti ti-circle-plus" aria-hidden="true"></i> Ajouter à ma collection</h2>
-                <div class="add-card-layout">
-                    <div class="card-preview" id="card-preview">
-                        <div class="preview-image">
-                            <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
-                                <i class="ti ti-photo-off" aria-hidden="true"></i>
-                                <span class="upload-btn-pill"><i class="ti ti-upload" aria-hidden="true"></i> Choisir une image</span>
-                                <span class="upload-hint">PNG, JPG ou WEBP (max 5MB)</span>
+            <div class="catalogue-panel">
+                <div class="catalogue-scene">
+                    <div class="catalogue-grid-col">
+                        <div class="catalogue-toolbar">
+                            <div class="catalogue-toolbar-info">
+                                <span class="catalogue-toolbar-query" id="catalogue-results-label"></span>
+                                <span class="catalogue-toolbar-count" id="catalogue-results-count"></span>
                             </div>
-                            <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
-                        </div>
-                    </div>
 
-                    <div class="add-card-form-col">
-                        <div id="preview-duplicate-alert" style="display: none;"></div>
-                        <div class="preview-info">
-                            <div>
-                                <div class="preview-info-label">Nom</div>
-                                <div class="preview-info-value" id="preview-name">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Série</div>
-                                <div class="preview-info-value" id="preview-set">
-                                    <img id="preview-series-logo" src="" alt="" class="series-logo-table" style="display:none;">
-                                    <span id="preview-set-text">-</span>
+                            <div class="catalogue-toolbar-actions">
+                                <div class="catalogue-view-toggle">
+                                    <button type="button" class="catalogue-view-btn active" data-view="grid" onclick="setCatalogueView('grid')" title="Vue grille"><i class="ti ti-layout-grid" aria-hidden="true"></i></button>
+                                    <button type="button" class="catalogue-view-btn" data-view="list" onclick="setCatalogueView('list')" title="Vue liste"><i class="ti ti-list" aria-hidden="true"></i></button>
+                                </div>
+
+                                <select id="catalogue-sort" class="catalogue-sort-select" onchange="setSearchSort(this.value)">
+                                    <option value="set-asc">Trier : Set (A → Z)</option>
+                                    <option value="name-asc">Trier : Nom (A → Z)</option>
+                                    <option value="price-desc">Trier : Prix (haut → bas)</option>
+                                </select>
+
+                                <div class="catalogue-filter-popover-wrap">
+                                    <button type="button" class="catalogue-filter-btn" onclick="toggleCatalogueFilterPopover(event)" title="Filtres avancés"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i></button>
+                                    <div class="catalogue-filter-popover" id="catalogue-filter-popover">
+                                        <div class="filters">
+                                            <select id="filter-rarity">
+                                                <option value="">Toutes les raretés</option>
+                                            </select>
+                                            <select id="filter-series">
+                                                <option value="">Toutes les séries</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <div class="preview-info-label">Numéro</div>
-                                <div class="preview-info-value" id="preview-number">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Type</div>
-                                <div class="preview-info-value" id="preview-type">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Rareté</div>
-                                <div class="preview-info-value" id="preview-rarity">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Prix (CardMarket)</div>
-                                <div class="preview-info-value" id="preview-price">-</div>
-                            </div>
                         </div>
 
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="card-condition">État</label>
-                                <select id="card-condition">
-                                    <option value="NM">Neuf (NM)</option>
-                                    <option value="LP">Très bon (LP)</option>
-                                    <option value="MP">Bon (MP)</option>
-                                    <option value="HP">Mauvais état (HP)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="card-finish">Finition</label>
-                                <select id="card-finish">
-                                    <option value="normal">Normale</option>
-                                    <option value="reverse">Reverse</option>
-                                    <option value="first_edition">1ère édition</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="card-quantity">Quantité</label>
-                                <input type="number" id="card-quantity" value="1" min="1" max="100">
-                            </div>
-                            <div class="form-group">
-                                <label for="card-acquisition">Obtention</label>
-                                <select id="card-acquisition">
-                                    <option value="achat">Achetée</option>
-                                    <option value="pack">Sortie d'un booster</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="purchase-price-group">
-                                <label for="card-value">Prix payé (€)</label>
-                                <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="card-date-added">Date d'acquisition</label>
-                                <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
-                            </div>
+                        <div class="search-results" id="search-results"></div>
+                        <div class="catalogue-load-more-row" id="catalogue-load-more-row" style="display:none;">
+                            <button type="button" class="catalogue-load-more-btn" id="catalogue-load-more-btn" onclick="loadMoreCatalogueResults()">Charger plus de résultats</button>
                         </div>
                     </div>
-                </div>
 
-                <button class="full-width" onclick="addCard()"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
-                <button class="full-width wishlist-btn" onclick="openWishlistPicker()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma liste de souhaits</button>
+                    <aside class="catalogue-sheet-col">
+                      <div class="catalogue-sheet-sticky">
+                        <div class="card-preview" id="card-preview">
+                            <div class="preview-main">
+                                <div class="preview-image">
+                                    <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
+                                        <i class="ti ti-photo-off" aria-hidden="true"></i>
+                                        <span class="upload-btn-pill"><i class="ti ti-upload" aria-hidden="true"></i> Choisir une image</span>
+                                        <span class="upload-hint">PNG, JPG ou WEBP (max 5MB)</span>
+                                    </div>
+                                    <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
+                                </div>
 
-                <div class="add-tip-box">
-                    <span class="add-tip-icon"><img src="images/detective_pikachupng.png" alt="" class="add-tip-icon-img"></span>
-                    <div>
-                        <div class="add-tip-title">Conseil</div>
-                        <div class="add-tip-text">Renseignez l'état et la finition avec attention pour suivre au mieux la valeur de votre collection.</div>
-                    </div>
+                                <div class="preview-details">
+                                    <div class="preview-breadcrumb" id="preview-set">
+                                        <img id="preview-series-logo" src="" alt="" class="preview-breadcrumb-logo" style="display:none;">
+                                        <div class="preview-breadcrumb-text">
+                                            <span id="preview-set-text">-</span>
+                                            <span class="preview-breadcrumb-number" id="preview-number">-</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="preview-heading" id="preview-name">-</div>
+
+                                    <div class="preview-meta-label">Détails de la carte</div>
+                                    <div class="preview-meta-box">
+                                        <div class="preview-meta-item">
+                                            <div class="preview-info-label">Rareté</div>
+                                            <div class="preview-info-value" id="preview-rarity">-</div>
+                                        </div>
+                                        <div class="preview-meta-item">
+                                            <div class="preview-info-label">Type</div>
+                                            <div class="preview-info-value" id="preview-type">-</div>
+                                        </div>
+                                        <div class="preview-meta-item">
+                                            <div class="preview-info-label">Illustrateur</div>
+                                            <div class="preview-info-value" id="preview-illustrator" onclick="searchByIllustrator()">-</div>
+                                        </div>
+                                        <div class="preview-meta-item preview-meta-item-full">
+                                            <div class="preview-info-label">Prix (CardMarket)</div>
+                                            <div class="preview-info-value" id="preview-price">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="add-panel">
+                                <button type="button" class="add-panel-header" id="add-panel-toggle" onclick="toggleAddPanel()" aria-expanded="false" aria-controls="catalogue-add-expand">
+                                    <span class="add-panel-header-icon"><i class="ti ti-shopping-bag-plus" aria-hidden="true"></i></span>
+                                    <span class="add-panel-header-text">
+                                        <span class="add-panel-title">Ajouter à ma collection</span>
+                                        <span class="add-panel-subtitle">Décrivez votre exemplaire</span>
+                                    </span>
+                                    <i class="ti ti-chevron-up add-panel-chevron" aria-hidden="true"></i>
+                                </button>
+
+                                <div class="catalogue-add-expand" id="catalogue-add-expand">
+                                  <div class="catalogue-add-expand-inner">
+                                    <div id="preview-duplicate-alert" style="display: none;"></div>
+
+                                    <div class="add-panel-row add-panel-row-4">
+                                        <div class="form-group">
+                                            <label for="card-condition">État</label>
+                                            <select id="card-condition">
+                                                <option value="NM">Neuf (NM)</option>
+                                                <option value="LP">Très bon (LP)</option>
+                                                <option value="MP">Bon (MP)</option>
+                                                <option value="HP">Mauvais état (HP)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="card-finish">Finition</label>
+                                            <select id="card-finish">
+                                                <option value="normal">Normale</option>
+                                                <option value="reverse">Reverse</option>
+                                                <option value="first_edition">1ère édition</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="purchase-price-group">
+                                            <label for="card-value">Prix d'achat (€)</label>
+                                            <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="card-date-added">Date d'acquisition</label>
+                                            <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
+                                        </div>
+                                    </div>
+
+                                    <div class="add-panel-row add-panel-row-2">
+                                        <div class="form-group add-panel-qty-group">
+                                            <label for="card-quantity">Quantité</label>
+                                            <div class="qty-stepper add-panel-qty-stepper">
+                                                <button type="button" onclick="stepAddQuantity(-1)" aria-label="Diminuer la quantité"><i class="ti ti-minus" aria-hidden="true"></i></button>
+                                                <input type="number" id="card-quantity" value="1" min="1" max="100">
+                                                <button type="button" onclick="stepAddQuantity(1)" aria-label="Augmenter la quantité"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="card-acquisition">Obtention</label>
+                                            <select id="card-acquisition">
+                                                <option value="achat">Achetée</option>
+                                                <option value="pack">Sortie d'un booster</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="add-panel-hint">
+                                        <i class="ti ti-info-circle" aria-hidden="true"></i>
+                                        <span>Vous pourrez retrouver cette carte dans votre collection ou votre wishlist.</span>
+                                    </div>
+
+                                    <div class="add-panel-actions">
+                                        <button type="button" class="add-panel-submit" onclick="addCard()"><i class="ti ti-circle-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
+                                        <button type="button" class="add-panel-wishlist" onclick="openWishlistPicker()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma wishlist</button>
+                                    </div>
+                                  </div>
+                                </div>
+                            </div>
+                        </div>
+                      </div>
+                    </aside>
                 </div>
             </div>
         </div>
@@ -619,9 +686,9 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
     <script src="modules/utils.js?v=1"></script>
     <script src="components/navigation/DesktopNavbar.js?v=1"></script>
-    <script src="components/navigation/MobileBottomNavigation.js?v=1"></script>
+    <script src="components/navigation/MobileBottomNavigation.js?v=3"></script>
     <script src="modules/storage.js?v=1"></script>
-    <script src="modules/cards.js?v=1"></script>
+    <script src="modules/cards.js?v=7"></script>
     <script src="modules/stats.js?v=1"></script>
     <script src="modules/collection.js?v=3"></script>
     <script src="modules/import-export.js?v=1"></script>

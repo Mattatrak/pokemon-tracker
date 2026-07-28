@@ -31,7 +31,7 @@ let searchRequestId = 0;
 async function searchCards() {
     const search = document.getElementById('card-search').value.trim();
     if (!search) {
-        showMessage('Veuillez entrer un nom de carte', 'error');
+        showMessage('Veuillez entrer un nom, une série, un numéro ou un illustrateur', 'error');
         return;
     }
 
@@ -43,27 +43,36 @@ async function searchCards() {
 
     showSearchResultsSkeleton();
 
-    try {
-        const [frResponse, enResponse] = await Promise.all([
-            fetch(`${API_BASE}/cards?name=${encodeURIComponent(search)}`),
-            fetch(`${API_EN}/cards?name=${encodeURIComponent(search)}`)
-        ]);
+    // Recherche combinée : le champ peut matcher le nom, la série, l'illustrateur ou le
+    // numéro. On interroge TCGdex sur chaque attribut en parallèle (FR+EN) et on
+    // fusionne/déduplique les résultats par id de carte. localId seulement si des
+    // chiffres sont tapés, pour éviter une requête inutile.
+    const encoded = encodeURIComponent(search);
+    const searchFields = ['name', 'illustrator', 'set.name'];
+    if (/\d/.test(search)) searchFields.push('localId');
 
-        const frData = await frResponse.json();
-        const enData = await enResponse.json();
+    const urls = [];
+    for (const field of searchFields) {
+        urls.push(`${API_BASE}/cards?${field}=${encoded}`);
+        urls.push(`${API_EN}/cards?${field}=${encoded}`);
+    }
+
+    try {
+        const settled = await Promise.allSettled(urls.map(url => fetch(url).then(r => r.json())));
 
         // Une recherche plus récente a déjà démarré entre-temps : on abandonne celle-ci
         if (myRequestId !== searchRequestId) return;
 
-        const frList = Array.isArray(frData) ? frData : [];
-        const enList = Array.isArray(enData) ? enData : [];
-
-        const merged = [...frList];
-        const existingIds = new Set(frList.map(c => c.id));
-        for (const card of enList) {
-            if (!existingIds.has(card.id)) {
-                merged.push(card);
-                existingIds.add(card.id);
+        const merged = [];
+        const seenIds = new Set();
+        for (const result of settled) {
+            if (result.status !== 'fulfilled') continue;
+            const list = Array.isArray(result.value) ? result.value : [];
+            for (const card of list) {
+                if (!seenIds.has(card.id)) {
+                    merged.push(card);
+                    seenIds.add(card.id);
+                }
             }
         }
 
@@ -86,6 +95,12 @@ async function searchCards() {
             btn.innerHTML = '<i class="ti ti-search" aria-hidden="true"></i> Rechercher';
         }
     }
+}
+
+function searchByIllustrator() {
+    if (!selectedCard?.illustrator) return;
+    document.getElementById('card-search').value = selectedCard.illustrator;
+    searchCards();
 }
 
 async function displaySearchResults(cards) {
@@ -142,6 +157,10 @@ function populateSearchFilters(cards) {
     if (series.includes(currentSeries)) seriesSelect.value = currentSeries;
 }
 
+const CATALOGUE_PAGE_SIZE = 8;
+let lastFilteredResults = [];
+let catalogueVisibleCount = CATALOGUE_PAGE_SIZE;
+
 function applySearchFilters() {
     const rarityFilter = document.getElementById('filter-rarity').value;
     const seriesFilter = document.getElementById('filter-series').value;
@@ -153,8 +172,32 @@ function applySearchFilters() {
     if (seriesFilter) {
         filtered = filtered.filter(c => c.set?.name === seriesFilter);
     }
+    filtered = sortSearchResults(filtered);
 
-    renderSearchResults(filtered);
+    lastFilteredResults = filtered;
+    catalogueVisibleCount = CATALOGUE_PAGE_SIZE;
+
+    updateCatalogueResultsInfo(filtered.length);
+    renderSearchResults(filtered.slice(0, catalogueVisibleCount));
+    updateCatalogueLoadMoreButton(filtered.length);
+}
+
+function loadMoreCatalogueResults() {
+    catalogueVisibleCount += CATALOGUE_PAGE_SIZE;
+    renderSearchResults(lastFilteredResults.slice(0, catalogueVisibleCount));
+    updateCatalogueLoadMoreButton(lastFilteredResults.length);
+}
+
+function updateCatalogueLoadMoreButton(totalCount) {
+    const row = document.getElementById('catalogue-load-more-row');
+    if (!row) return;
+    const remaining = totalCount - catalogueVisibleCount;
+    if (remaining > 0) {
+        row.style.display = 'flex';
+        document.getElementById('catalogue-load-more-btn').textContent = `Charger plus de résultats (${remaining} restante${remaining > 1 ? 's' : ''})`;
+    } else {
+        row.style.display = 'none';
+    }
 }
 
 function renderSearchResults(cards) {
@@ -183,13 +226,16 @@ function renderSearchResults(cards) {
         }
 
         return `
-            <div class="search-result-item" onclick="selectCard(${JSON.stringify(card).replace(/"/g, '&quot;')})">
+            <div class="search-result-item" onclick="onSearchResultClick(${JSON.stringify(card).replace(/"/g, '&quot;')}, this)">
                 ${imgHtml}
                 <div class="search-result-info">
-                    <div class="search-result-name">${card.name || '?'}</div>
-                    <div class="search-result-set">${logoUrl ? `<img src="${logoUrl}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${setName} - #${cardNumber}</div>
+                    <div class="search-result-text">
+                        <div class="search-result-name">${card.name || '?'}</div>
+                        <div class="search-result-set">${setName} - #${cardNumber}</div>
+                        ${price > 0 ? `<div class="search-result-price">${price.toFixed(2)}€</div>` : ''}
+                    </div>
+                    ${logoUrl ? `<img src="${logoUrl}" class="search-result-series-logo" alt="" onerror="this.remove()">` : ''}
                 </div>
-                ${price > 0 ? `<div class="search-result-price">${price.toFixed(2)}€</div>` : ''}
             </div>
         `;
     }).join('');
@@ -266,13 +312,20 @@ function selectCard(card) {
     } else {
         previewLogo.style.display = 'none';
     }
-    document.getElementById('preview-number').textContent = card.localId || '-';
+    const totalCards = card.set?.cardCount?.official || card.set?.cardCount?.total;
+    document.getElementById('preview-number').textContent = card.localId
+        ? (totalCards ? `${card.localId}/${totalCards}` : card.localId)
+        : '-';
 
     let types = 'N/A';
     if (card.types && Array.isArray(card.types)) {
         types = card.types.join(', ');
     }
     document.getElementById('preview-type').textContent = types;
+
+    const illustratorEl = document.getElementById('preview-illustrator');
+    illustratorEl.textContent = card.illustrator || '-';
+    illustratorEl.classList.toggle('preview-info-value-clickable', !!card.illustrator);
 
     document.getElementById('preview-rarity').innerHTML = `${getRarityIconHtml(card.rarity)} ${card.rarity || '-'}`;
 
@@ -345,7 +398,7 @@ async function addCard() {
         : (parseFloat(document.getElementById('card-value').value) || 0);
     const customDate = document.getElementById('card-date-added').value || null;
 
-    const addBtn = document.querySelector('.form-section .full-width');
+    const addBtn = document.querySelector('.add-panel-submit');
     const originalBtnText = addBtn.textContent;
     addBtn.disabled = true;
 
@@ -395,3 +448,110 @@ async function addCard() {
     await refreshCollection();
     await recordValueSnapshot();
 }
+
+// ===== PHASE 2 CATALOGUE : bascule fiche consultation / formulaire d'ajout =====
+// Purement visuel (classes CSS) : ne lit ni n'écrit aucune donnée, n'altère pas
+// selectCard()/addCard(). Les champs du formulaire restent dans le DOM en permanence
+// pour que addCard() continue de les trouver, qu'ils soient repliés ou non.
+
+function toggleAddPanel(show) {
+    const expand = document.getElementById('catalogue-add-expand');
+    const toggleBtn = document.getElementById('add-panel-toggle');
+    if (!expand) return;
+    const next = typeof show === 'boolean' ? show : !expand.classList.contains('open');
+    expand.classList.toggle('open', next);
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(next));
+}
+
+// Grand desktop (>=1920px, cf mockup) : le panneau "Ajouter à ma collection" reste
+// déplié par défaut pour remplir la fiche, au lieu de nécessiter un clic.
+function isAddPanelDefaultOpen() {
+    return window.matchMedia('(min-width: 1920px)').matches;
+}
+
+if (isAddPanelDefaultOpen()) toggleAddPanel(true);
+
+function stepAddQuantity(delta) {
+    const input = document.getElementById('card-quantity');
+    if (!input) return;
+    const min = Number(input.min) || 1;
+    const max = Number(input.max) || 100;
+    const next = Math.min(max, Math.max(min, (parseInt(input.value, 10) || min) + delta));
+    input.value = next;
+}
+
+function markResultSelected(el) {
+    document.querySelectorAll('.search-result-item.selected').forEach(item => item.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function onSearchResultClick(card, el) {
+    selectCard(card);
+    markResultSelected(el);
+    toggleAddPanel(isAddPanelDefaultOpen());
+}
+
+// ===== PHASE 3 CATALOGUE : tri, vue grille/liste, filtres avancés =====
+// Filtrage/tri purement côté client sur lastSearchResults (déjà chargé par searchCards()).
+// N'appelle ni ne modifie addCard()/selectCard()/performCardAdd() : aucune donnée persistée
+// n'est lue ni écrite ici.
+
+let activeSort = 'set-asc';
+
+function getSearchResultPrice(card) {
+    if (card.pricing?.cardmarket?.avg) return card.pricing.cardmarket.avg;
+    if (card.pricing?.cardmarket?.['avg-holo']) return card.pricing.cardmarket['avg-holo'];
+    return 0;
+}
+
+function sortSearchResults(cards) {
+    const sorted = [...cards];
+    if (activeSort === 'name-asc') {
+        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    } else if (activeSort === 'price-desc') {
+        sorted.sort((a, b) => getSearchResultPrice(b) - getSearchResultPrice(a));
+    } else {
+        sorted.sort((a, b) => (a.set?.name || '').localeCompare(b.set?.name || ''));
+    }
+    return sorted;
+}
+
+function updateCatalogueResultsInfo(count) {
+    const label = document.getElementById('catalogue-results-label');
+    const countEl = document.getElementById('catalogue-results-count');
+    const query = document.getElementById('card-search').value.trim();
+    if (label) {
+        if (query) {
+            const escaped = query.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            label.innerHTML = `Résultats pour : <span class="catalogue-toolbar-query-highlight">${escaped}</span>`;
+        } else {
+            label.textContent = '';
+        }
+    }
+    if (countEl) countEl.textContent = query ? `${count} carte${count !== 1 ? 's' : ''} trouvée${count !== 1 ? 's' : ''}` : '';
+}
+
+function setSearchSort(value) {
+    activeSort = value;
+    applySearchFilters();
+}
+
+function setCatalogueView(mode) {
+    const grid = document.getElementById('search-results');
+    if (grid) grid.classList.toggle('list-view', mode === 'list');
+    document.querySelectorAll('.catalogue-view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+}
+
+function toggleCatalogueFilterPopover(event) {
+    if (event) event.stopPropagation();
+    document.getElementById('catalogue-filter-popover').classList.toggle('active');
+}
+
+document.addEventListener('click', (e) => {
+    const popover = document.getElementById('catalogue-filter-popover');
+    if (popover && popover.classList.contains('active') && !e.target.closest('.catalogue-filter-popover-wrap')) {
+        popover.classList.remove('active');
+    }
+});

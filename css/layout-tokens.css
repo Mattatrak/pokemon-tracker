@@ -1,0 +1,13 @@
+/* LAYOUT TOKENS
+   Source de verite unique pour la largeur de la scene desktop (.container).
+   2560x1440 est la resolution de reference : au-dela de 1440px physiques,
+   la scene s'elargit par paliers plutot que de rester figee a 1440px.
+   Toute nouvelle contrainte de largeur "scene" (pas les largeurs de lecture
+   locales : hero-content, modales, fiches) doit consommer ces tokens. */
+
+:root {
+    --layout-scene-max-width: 1440px;      /* defaut, ecrans <= 1439px */
+    --layout-scene-max-width-lg: 1680px;   /* >= 1440px */
+    --layout-scene-max-width-xl: 1920px;   /* >= 1920px */
+    --layout-scene-max-width-2xl: 2160px;  /* >= 2560px - resolution de reference */
+}

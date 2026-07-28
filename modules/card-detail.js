@@ -79,6 +79,7 @@ function showCardDetail(cardId) {
                 </div>
 
                 ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-line"><span class="modal-meta-label">Type</span> ${card.type}</div>` : ''}
+                ${card.illustrator ? `<div class="modal-meta-line"><span class="modal-meta-label">Illustrateur</span> ${escapeHtml(card.illustrator)}</div>` : ''}
                 <div class="modal-meta-line"><span class="modal-meta-label">Quantité</span> ${qty}</div>
                 ${card.date_added ? `<div class="modal-meta-line"><span class="modal-meta-label">Ajoutée le</span> ${card.date_added}</div>` : ''}
                 ${card.notes ? `<div class="modal-note"><i class="ti ti-note" aria-hidden="true"></i> ${escapeHtml(card.notes)}</div>` : ''}

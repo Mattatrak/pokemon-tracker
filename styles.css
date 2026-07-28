@@ -1,10 +1,10 @@
 :root {
-    --ink-navy: #161B29;
-    --ink-navy-light: #232B42;
-    --bg: #0D0F17;
-    --panel: #212A44;
-    --panel-light: #293356;
-    --border: rgba(255,255,255,0.08);
+    --ink-navy: #121214;
+    --ink-navy-light: #1C1C20;
+    --bg: #0A0A0B;
+    --panel: #1A1A1E;
+    --panel-light: #202024;
+    --border: rgba(255,255,255,0.07);
     --parchment: #F7F3EA;
     --text-primary: #EDEFF5;
     --gold: #E8A93B;
@@ -34,9 +34,9 @@ html {
     overflow-x: hidden;
 }
 
-body {
-    overflow-x: hidden;
-}
+/* Pas de overflow-x ici en plus de html : avoir les deux force overflow-y:auto sur les
+   deux (normalisation du navigateur), ce qui crée deux racines de scroll ambiguës et
+   casse position:sticky pour tous les descendants (cf .catalogue-sheet-sticky). */
 
 ::-webkit-scrollbar {
     width: 8px;
@@ -64,9 +64,31 @@ body {
 }
 
 .container {
-    max-width: 1440px;
+    max-width: var(--layout-scene-max-width);
     margin: 0 auto;
     padding: 2rem clamp(1rem, 4vw, 3rem);
+}
+
+/* 2560x1440 est la resolution de reference desktop : la scene s'elargit par
+   paliers au-dela de 1440px physiques au lieu de rester figee (cf css/layout-tokens.css).
+   Les grilles internes (fr / auto-fill minmax) sont deja fluides et en profitent
+   automatiquement ; aucune autre regle a toucher. */
+@media (min-width: 1440px) {
+    .container {
+        max-width: var(--layout-scene-max-width-lg);
+    }
+}
+
+@media (min-width: 1920px) {
+    .container {
+        max-width: var(--layout-scene-max-width-xl);
+    }
+}
+
+@media (min-width: 2560px) {
+    .container {
+        max-width: var(--layout-scene-max-width-2xl);
+    }
 }
 
 .login-gate {
@@ -335,6 +357,13 @@ header p {
     animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
 }
 
+/* L'animation d'entrée laisse un transform: translateY(0) collé en permanence sur l'ancêtre
+   (fill-mode both) une fois finie, ce qui casse position:sticky pour tous les descendants
+   (cf .catalogue-sheet-sticky). On la désactive pour cet onglet, où le sticky est requis. */
+#tab-add.tab-content.active {
+    animation: none;
+}
+
 .stat-card {
     background: linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
     padding: 1.5rem;
@@ -442,23 +471,11 @@ header p {
     }
 }
 
-.search-form {
-    display: grid;
-    grid-template-columns: minmax(0, 420px) 150px;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
 .search-results {
-    background: rgba(35, 43, 66, 0.3);
-    backdrop-filter: blur(6px);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    max-height: 480px;
-    max-width: 540px;
-    overflow-y: auto;
-    margin-bottom: 1rem;
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 1rem;
+    align-content: start;
 }
 
 .search-results {
@@ -473,43 +490,107 @@ header p {
     background: rgba(232, 169, 59, 0.5);
 }
 
-.search-results.active {
-    display: block;
+.search-results:empty::before {
+    content: 'Lancez une recherche depuis le Hero pour explorer le catalogue.';
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--slate);
+    font-size: 0.9rem;
+    padding: 3rem 1rem;
 }
 
 .search-result-item {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
+    padding: 0.85rem;
+    border: 1px solid transparent;
+    border-radius: 14px;
     cursor: pointer;
     display: flex;
-    gap: 1rem;
-    align-items: center;
-    transition: background 0.2s;
+    flex-direction: column;
+    gap: 0.7rem;
+    background: rgba(255,255,255,0.03);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.catalogue-load-more-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.catalogue-load-more-btn {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid rgba(232, 169, 59, 0.35);
+    padding: 0.7rem 1.75rem;
+    border-radius: 30px;
+}
+
+.catalogue-load-more-btn:hover {
+    background: rgba(232, 169, 59, 0.1);
 }
 
 .search-result-item:hover {
     background: rgba(232, 169, 59, 0.08);
+    transform: translateY(-2px);
+}
+
+.search-result-item.selected {
+    border-color: var(--gold);
+    background: rgba(232, 169, 59, 0.12);
+    box-shadow: 0 0 0 1px rgba(232, 169, 59, 0.35);
 }
 
 .search-result-img {
-    width: 50px;
-    height: 70px;
+    width: 100%;
+    aspect-ratio: 5 / 7;
+    height: auto;
     object-fit: cover;
-    border-radius: 4px;
-    flex-shrink: 0;
+    border-radius: 8px;
     background: var(--ink-navy);
     transition: transform 0.2s ease;
 }
 
 .search-result-item:hover .search-result-img {
-    transform: scale(1.08);
+    transform: scale(1.03);
+}
+
+.search-results .no-image-placeholder.small {
+    width: 100%;
+    aspect-ratio: 5 / 7;
+    height: auto;
+}
+
+/* VUE LISTE (bascule via .list-view, cf setCatalogueView()) */
+.search-results.list-view {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+}
+
+.search-results.list-view .search-result-item {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.6rem 0.9rem;
+}
+
+.search-results.list-view .search-result-img,
+.search-results.list-view .no-image-placeholder.small {
+    width: 46px;
+    height: 64px;
+    aspect-ratio: auto;
+    flex-shrink: 0;
+}
+
+.search-results.list-view .search-result-item:hover {
+    transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .search-result-img {
+    .search-result-img,
+    .search-result-item {
         transition: none;
     }
-    .search-result-item:hover .search-result-img {
+    .search-result-item:hover .search-result-img,
+    .search-result-item:hover {
         transform: none;
     }
 }
@@ -585,6 +666,22 @@ header p {
 
 .search-result-info {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.search-result-text {
+    min-width: 0;
+}
+
+.search-result-series-logo {
+    height: 26px;
+    width: auto;
+    max-width: 48px;
+    flex-shrink: 0;
+    object-fit: contain;
 }
 
 .search-result-name {
@@ -608,53 +705,449 @@ header p {
     flex-shrink: 0;
 }
 
-/* AJOUTER : IMAGE + FORMULAIRE COTE A COTE */
-.add-card-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 1.75rem;
-    align-items: start;
+/* ===== CATALOGUE (Phase 2) : panneau unique filtres + résultats + fiche ===== */
+
+.catalogue-panel {
+    position: relative;
+    z-index: 2;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: 2rem;
+}
+
+.catalogue-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
     margin-bottom: 1.25rem;
 }
 
-.add-card-form-col {
+.catalogue-toolbar-info {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
     min-width: 0;
 }
 
-/* APERCU CARTE / ZONE IMAGE */
+.catalogue-toolbar-query {
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.catalogue-toolbar-query-highlight {
+    color: var(--gold);
+}
+
+.catalogue-toolbar-count {
+    font-size: 0.85rem;
+    color: var(--slate);
+    white-space: nowrap;
+}
+
+.catalogue-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.catalogue-view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.catalogue-view-btn {
+    background: transparent;
+    color: var(--slate);
+    border: none;
+    border-radius: 0;
+    padding: 0.55rem 0.7rem;
+}
+
+.catalogue-view-btn:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.catalogue-view-btn.active {
+    background: var(--panel-light);
+    color: var(--gold);
+}
+
+.catalogue-sort-select {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.85rem;
+    width: auto;
+}
+
+.catalogue-filter-popover-wrap {
+    position: relative;
+}
+
+.catalogue-filter-btn {
+    background: transparent;
+    color: var(--slate);
+    border: 1px solid var(--border);
+    padding: 0.55rem 0.7rem;
+}
+
+.catalogue-filter-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+
+.catalogue-filter-popover {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    padding: 0.9rem;
+    min-width: 240px;
+    z-index: 50;
+}
+
+.catalogue-filter-popover.active {
+    display: block;
+}
+
+.catalogue-filter-popover .filters {
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+.catalogue-scene {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(460px, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.catalogue-grid-col {
+    min-width: 0;
+    background: rgba(18, 14, 12, 0.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(232, 169, 59, 0.16);
+    border-radius: 22px;
+    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    padding: 1.5rem;
+}
+
+/* Slot transparent : étiré à la hauteur du catalogue (colonne de gauche) pour donner
+   au wrapper sticky ci-dessous la place de "voyager" pendant le scroll. Pas de style
+   visuel ici, tout est sur .catalogue-sheet-sticky. */
+.catalogue-sheet-col {
+    align-self: stretch;
+}
+
+.catalogue-sheet-sticky {
+    position: sticky;
+    top: 1.5rem;
+    background: rgba(18, 14, 12, 0.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(232, 169, 59, 0.16);
+    border-radius: 22px;
+    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    padding: 1.5rem;
+}
+
+/* SECTION "AJOUTER À MA COLLECTION" — sa propre carte à bords arrondis dans le panneau fiche */
+.add-panel {
+    margin-top: 1.75rem;
+    background:
+        linear-gradient(180deg, rgba(232, 169, 59, 0.14) 0%, transparent 60%),
+        rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(232, 169, 59, 0.3);
+    border-radius: 18px;
+    padding: 0.5rem 1.25rem 1.25rem;
+    overflow: hidden;
+}
+
+.add-panel-header {
+    width: calc(100% + 2.5rem);
+    margin: -0.5rem -1.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.75rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 17px 17px 0 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.add-panel-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.add-panel-header-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(232, 169, 59, 0.15);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.add-panel-header-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.add-panel-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.add-panel-subtitle {
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
+.add-panel-chevron {
+    color: var(--slate);
+    transition: transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.add-panel-header[aria-expanded="true"] .add-panel-chevron {
+    transform: rotate(180deg);
+}
+
+.catalogue-sheet-col .preview-info-value {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.catalogue-sheet-col .preview-image {
+    box-shadow: none;
+}
+
+.catalogue-add-expand {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.25s var(--motion-ease-standard), opacity 0.2s var(--motion-ease-standard);
+}
+
+.catalogue-add-expand-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.catalogue-add-expand.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+.catalogue-add-expand.open .catalogue-add-expand-inner {
+    padding-bottom: 0.25rem;
+    padding-top: 1.1rem;
+}
+
+.add-panel-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.add-panel-row-4 > .form-group {
+    flex: 1 1 110px;
+    min-width: 0;
+}
+
+.add-panel-row-2 {
+    align-items: flex-end;
+}
+
+.add-panel-row-2 > .add-panel-qty-group {
+    flex: 0 0 auto;
+}
+
+.add-panel-row-2 > .form-group:not(.add-panel-qty-group) {
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+.add-panel-qty-stepper {
+    display: inline-flex;
+    align-items: stretch;
+    height: 48px;
+    gap: 0;
+    background: var(--ink-navy);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0;
+    width: fit-content;
+    box-sizing: border-box;
+}
+
+.add-panel-qty-stepper button {
+    width: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
+    border-radius: 6px;
+}
+
+.add-panel-qty-stepper button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.add-panel-qty-stepper input {
+    width: 32px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-weight: 600;
+    padding: 0.3rem 0;
+    -moz-appearance: textfield;
+}
+
+.add-panel-qty-stepper input::-webkit-outer-spin-button,
+.add-panel-qty-stepper input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.add-panel-qty-stepper input:focus {
+    box-shadow: none;
+}
+
+.add-panel-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--slate);
+    margin-bottom: 1.5rem;
+}
+
+.add-panel-hint i {
+    margin-top: 0.15rem;
+    color: var(--gold);
+}
+
+.add-panel-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.add-panel-submit {
+    flex: 1.6;
+}
+
+.add-panel-wishlist {
+    flex: 1;
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.add-panel-wishlist:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .catalogue-add-expand {
+        transition: none;
+    }
+}
+
+/* Grand desktop (2560x1440 = reference) : 4 cartes/ligne, cartes plus grandes.
+   Pas de align-items:stretch ici : la fiche doit pouvoir rester en position:sticky
+   et suivre le scroll quand "Charger plus" allonge le catalogue (cf .catalogue-sheet-col). */
+@media (min-width: 1920px) {
+    .search-results {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.5rem;
+    }
+
+    .search-result-item {
+        padding: 1rem;
+        gap: 0.5rem;
+    }
+
+    .search-result-set {
+        display: none;
+    }
+
+    .card-preview .preview-image {
+        flex: 0 0 38%;
+    }
+}
+
+@media (max-width: 960px) {
+    .catalogue-scene {
+        grid-template-columns: 1fr;
+    }
+
+    .catalogue-sheet-col {
+        max-width: none;
+    }
+
+    .catalogue-sheet-sticky {
+        position: static;
+    }
+
+    .catalogue-toolbar-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* APERCU CARTE / ZONE IMAGE — le "cadre carte" vient du parent .catalogue-sheet-sticky, pas d'ici */
 .card-preview {
     display: block;
 }
 
+.preview-main {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 1.75rem;
+}
+
 .card-preview .preview-image {
+    flex: 0 0 36%;
+    max-height: 380px;
     background: var(--ink-navy);
     border-radius: 12px;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.search-card-section {
-    position: relative;
-    overflow: hidden;
-}
-
-.add-collection-section {
-    background: radial-gradient(circle at 100% 0%, rgba(232, 169, 59, 0.1), transparent 55%), #141826;
-}
-
-.search-card-section > *:not(.search-pokeball-decor) {
-    position: relative;
-    z-index: 1;
-}
-
-.search-pokeball-decor {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: right center;
-    pointer-events: none;
-    z-index: 0;
+.preview-details {
+    flex: 1;
+    min-width: 0;
 }
 
 .no-image-placeholder.large.upload-placeholder {
@@ -695,47 +1188,150 @@ header p {
     border-radius: 30px;
 }
 
-/* CONSEIL */
-.add-tip-box {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.9rem;
-    background: rgba(232, 169, 59, 0.08);
-    border: 1px solid rgba(232, 169, 59, 0.25);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    margin-top: 1rem;
+/* ===== HERO CATALOGUE (Ajouter) ===== */
+
+.catalogue-hero {
+    position: relative;
+    padding-top: 5.5rem;
+    margin-bottom: 2rem;
+    background-image:
+        linear-gradient(90deg, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.58) 40%, rgba(10,12,20,0.38) 62%, rgba(10,12,20,0.64) 100%),
+        url('images/catalogue.png');
+    background-size: 100% auto;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-color: var(--panel);
+    border-radius: 24px;
+    overflow: hidden;
+    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
-.add-tip-icon {
-    width: 52px;
-    height: 52px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: rgba(232, 169, 59, 0.2);
+.catalogue-hero::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 130px;
+    background: linear-gradient(180deg, transparent 0%, rgba(8,7,6,0.45) 100%);
+    pointer-events: none;
+}
+
+.catalogue-hero-stage {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    align-items: end;
+    gap: 2rem;
+    min-height: 300px;
+    padding: 1.5rem 2.5rem 1rem;
+}
+
+.catalogue-hero-decor {
+    position: absolute;
+    right: -70px;
+    bottom: -90px;
+    width: 480px;
+    height: 480px;
+    background: url('images/goldpokeball.png') center/contain no-repeat;
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.catalogue-hero-main {
+    position: relative;
+    z-index: 1;
+    text-align: left;
+}
+
+.catalogue-hero-eyebrow {
     color: var(--gold);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+}
+
+.catalogue-hero-title {
+    color: var(--text-primary);
+    font-size: clamp(1.9rem, 2.8vw, 2.5rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.1rem;
+}
+
+.catalogue-hero-title-accent {
+    color: var(--gold);
+}
+
+.catalogue-hero-search-form {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    gap: 0.75rem;
+    max-width: 640px;
+    margin: 0 0 1.25rem;
+}
+
+.catalogue-hero-input {
+    flex: 1;
+}
+
+.catalogue-hero-input input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 2.75rem;
+    font-size: 1.05rem;
+    border-radius: 14px;
+    background: var(--ink-navy);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.catalogue-hero-input i {
+    left: 1rem;
     font-size: 1.1rem;
 }
 
-.add-tip-icon-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.catalogue-hero-search-form #search-btn {
+    padding: 0 1.75rem;
+    border-radius: 14px;
+    flex-shrink: 0;
 }
 
-.add-tip-title {
-    font-weight: 600;
-    color: var(--gold);
-    margin-bottom: 0.2rem;
+@media (max-width: 960px) {
+    .catalogue-hero-stage {
+        grid-template-columns: 1fr;
+        min-height: 0;
+        padding-bottom: 3rem;
+    }
+
+    .catalogue-hero-decor {
+        display: none;
+    }
 }
 
-.add-tip-text {
-    font-size: 0.9rem;
-    color: var(--slate);
+@media (max-width: 640px) {
+    .catalogue-hero {
+        padding-top: 2.25rem;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .catalogue-hero-stage {
+        padding: 1.25rem 1.25rem 2.5rem;
+    }
+
+    .catalogue-hero-search-form {
+        flex-direction: column;
+        max-width: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .catalogue-hero {
+        animation: none;
+    }
 }
 
 /* STATS DU BAS */
@@ -864,15 +1460,71 @@ header p {
 
 .preview-image img {
     max-width: 100%;
+    max-height: 380px;
     height: auto;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.preview-info {
+.preview-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+}
+
+.preview-breadcrumb-logo {
+    height: 56px;
+    width: auto;
+    max-width: 90px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.preview-breadcrumb-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
+.preview-breadcrumb-number {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.preview-heading {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.1rem;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+}
+
+.preview-meta-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--slate);
+    margin-bottom: 0.75rem;
+}
+
+.preview-meta-box {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: 1.25rem 2rem;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(232, 169, 59, 0.14);
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.preview-meta-item-full {
+    grid-column: 1 / -1;
 }
 
 .preview-info-label {
@@ -886,6 +1538,19 @@ header p {
     font-weight: 600;
     display: flex;
     align-items: center;
+    gap: 0.35rem;
+}
+
+.preview-info-value-clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: color var(--motion-duration-fast) var(--motion-ease-standard), text-decoration-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.preview-info-value-clickable:hover {
+    color: var(--gold);
+    text-decoration-color: var(--gold);
 }
 
 /* FORMULAIRES */
@@ -909,12 +1574,12 @@ label {
 }
 
 input, select, textarea {
-    padding: 0.75rem;
+    padding: 0.8rem 0.9rem;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 10px;
     font-size: 1rem;
     font-family: inherit;
-    background: var(--panel);
+    background: var(--ink-navy);
     color: var(--text-primary);
     transition:
         border-color var(--motion-duration-fast) var(--motion-ease-standard),
@@ -3152,14 +3817,6 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 
-    .search-form {
-        grid-template-columns: 1fr;
-    }
-
-    .add-card-layout {
-        grid-template-columns: 1fr;
-    }
-
     .no-image-placeholder.large.upload-placeholder {
         height: 220px;
     }
@@ -3481,6 +4138,16 @@ body.page-collection header {
 
 body.page-collection .stats-bottom {
     display: none;
+}
+
+/* Onglet Ajouter : la page devient le catalogue Pokémon, les KPI de collection n'ont plus leur place,
+   le header global laisse place à la nav intégrée dans le Hero (comme les autres onglets) */
+body.page-add .stats-bottom {
+    display: none;
+}
+
+body.page-add header {
+    display: none !important;
 }
 
 #collection-stats-bottom {

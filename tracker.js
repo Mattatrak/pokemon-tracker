@@ -291,7 +291,8 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
             date_added: dateAddedStr,
             created_at: acquisitionDate.toISOString(),
-            finish
+            finish,
+            illustrator: card.illustrator || null
         }]),
         recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
     ]);
