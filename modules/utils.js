@@ -333,6 +333,13 @@ function getRarityIconHtml(rarity, sizePx = 16) {
     return `<img src="images/rarity/${filename}" alt="" class="rarity-icon" style="width:${sizePx}px;height:${sizePx}px;">`;
 }
 
+// Clé de regroupement pour les filtres de rareté : deux libellés qui partagent la même icône
+// (variantes historiques TCGdex, ex "Rare Holo"/"Holo Rare"/"Holographique" -> holo.webp) doivent
+// tomber dans le même bouton de filtre. Sans icône mappée, chaque libellé reste son propre groupe.
+function getRarityGroupKey(rarity) {
+    return RARITY_ICON_MAP[normalizeForMatch(rarity)] || normalizeForMatch(rarity);
+}
+
 // Logos de type (énergie) uploadés par l'utilisateur dans Supabase Storage, un fichier par type
 // (ex: card-images/energy/dragon.png). Nom de fichier déduit du type normalisé (minuscule, sans accent) ;
 // si le fichier n'existe pas pour un type donné, l'icône est simplement retirée au chargement (onerror),
@@ -351,16 +358,25 @@ function getTypesIconsHtml(typeString, sizePx = 22) {
     return typeString.split(',').map(t => t.trim()).filter(Boolean).map(t => getTypeIconHtml(t, sizePx)).join('');
 }
 
-// Construit une ligne de boutons icônes pour filtrer par rareté (multi-sélection possible)
-function buildRarityFilterRowHtml(rarities, activeValues, clickHandlerName) {
+// Construit une ligne de boutons icônes pour filtrer par rareté (multi-sélection possible).
+// Les libellés qui partagent la même icône sont regroupés sous un seul bouton (cf getRarityGroupKey) ;
+// activeValues stocke des clés de groupe, pas les libellés bruts.
+function buildRarityFilterRowHtml(rarities, activeValues, clickHandlerName, iconSizePx = 20) {
     const allBtn = `<button class="rarity-filter-btn ${activeValues.size === 0 ? 'active' : ''}" onclick="${clickHandlerName}('')" data-tooltip="Toutes les raretés" aria-label="Toutes les raretés"><i class="ti ti-asterisk" aria-hidden="true"></i></button>`;
 
-    const rarityBtns = rarities.map(r => {
-        const icon = getRarityIconHtml(r, 20);
-        const isActive = activeValues.has(r);
-        const safeR = r.replace(/'/g, "\\'");
+    // Un seul bouton représentatif par groupe (première rareté rencontrée pour ce groupe)
+    const groups = new Map();
+    rarities.forEach(r => {
+        const key = getRarityGroupKey(r);
+        if (!groups.has(key)) groups.set(key, r);
+    });
+
+    const rarityBtns = [...groups.entries()].map(([groupKey, r]) => {
+        const icon = getRarityIconHtml(r, iconSizePx);
+        const isActive = activeValues.has(groupKey);
+        const safeKey = groupKey.replace(/'/g, "\\'");
         const content = icon || `<span class="rarity-filter-text">${r}</span>`;
-        return `<button class="rarity-filter-btn ${isActive ? 'active' : ''} ${icon ? '' : 'rarity-filter-btn-text'}" onclick="${clickHandlerName}('${safeR}')" data-tooltip="${r}" aria-label="${r}">${content}</button>`;
+        return `<button class="rarity-filter-btn ${isActive ? 'active' : ''} ${icon ? '' : 'rarity-filter-btn-text'}" onclick="${clickHandlerName}('${safeKey}')" data-tooltip="${r}" aria-label="${r}">${content}</button>`;
     }).join('');
 
     return allBtn + rarityBtns;

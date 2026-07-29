@@ -595,7 +595,7 @@ async function renderProgressionCardsGrid() {
     }
 
     if (progressionRarityFilterValues.size > 0) {
-        cards = cards.filter(c => progressionRarityFilterValues.has(c.rarity));
+        cards = cards.filter(c => progressionRarityFilterValues.has(getRarityGroupKey(c.rarity)));
     }
 
     cards = [...cards].sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));

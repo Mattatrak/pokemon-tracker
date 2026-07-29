@@ -30,7 +30,7 @@ async function recordValueSnapshot() {
     renderHeroValueCard();
 }
 
-let heroSparklineChart = null;
+const heroSparklineCharts = {};
 
 async function renderHeroValueCard() {
     const { value } = updateStats();
@@ -50,14 +50,16 @@ async function renderHeroValueCard() {
 
     const data = recentDesc.slice().reverse(); // remis en ordre chronologique (ascendant)
 
-    // Mini-graphique en fond (sparkline)
-    const canvas = document.getElementById('hero-sparkline');
-    if (canvas && typeof Chart !== 'undefined') {
+    // Mini-graphique en fond (sparkline) — dupliqué sur chaque page qui affiche la carte valeur
+    ['hero-sparkline', 'collection-hero-sparkline'].forEach(canvasId => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || typeof Chart === 'undefined') return;
+
         const values = data.map(d => Number(d.total_value));
         const trendUp = values[values.length - 1] >= values[0];
 
-        if (heroSparklineChart) heroSparklineChart.destroy();
-        heroSparklineChart = new Chart(canvas, {
+        if (heroSparklineCharts[canvasId]) heroSparklineCharts[canvasId].destroy();
+        heroSparklineCharts[canvasId] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: values.map((_, i) => i),
@@ -82,7 +84,7 @@ async function renderHeroValueCard() {
                 }
             }
         });
-    }
+    });
 
     // Fluctuation sur les dernières 24h
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000;

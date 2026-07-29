@@ -95,7 +95,7 @@ function setCollectionRarityFilter(value) {
 function renderCollectionRarityRow() {
     const rarities = sortRaritiesByTier([...new Set(allCollectionCards.map(c => c.rarity).filter(Boolean))]);
     document.getElementById('filter-collection-rarity-row').innerHTML =
-        buildRarityFilterRowHtml(rarities, collectionRarityFilterValues, 'setCollectionRarityFilter');
+        buildRarityFilterRowHtml(rarities, collectionRarityFilterValues, 'setCollectionRarityFilter', 24);
 }
 
 function populateCollectionFilters() {
@@ -108,9 +108,9 @@ function populateCollectionFilters() {
     const series = [...new Set(allCollectionCards.map(c => c.series).filter(Boolean))].sort();
     const types = [...new Set(allCollectionCards.map(c => c.type).filter(Boolean))].sort();
 
-    seriesSelect.innerHTML = '<option value="">Toutes les séries</option>' +
+    seriesSelect.innerHTML = '<option value="">Toutes</option>' +
         series.map(s => `<option value="${s}">${s}</option>`).join('');
-    typeSelect.innerHTML = '<option value="">Tous les types</option>' +
+    typeSelect.innerHTML = '<option value="">Tous</option>' +
         types.map(t => `<option value="${t}">${t}</option>`).join('');
 
     renderCollectionRarityRow();
@@ -141,6 +141,32 @@ function toggleDuplicatesFilter() {
     filterAndDisplay();
 }
 
+// Un filtre du panneau (hors recherche, hors tri) est actif : condition/série/type/rareté/doublons
+function hasActiveCollectionFilters() {
+    return !!document.getElementById('filter-condition').value ||
+        !!document.getElementById('filter-collection-series').value ||
+        !!document.getElementById('filter-collection-type').value ||
+        collectionRarityFilterValues.size > 0 ||
+        duplicatesOnlyFilter;
+}
+
+function updateResetFiltersButtonVisibility() {
+    const btn = document.getElementById('collection-reset-filters-btn');
+    if (!btn) return;
+    btn.style.display = hasActiveCollectionFilters() ? 'inline-flex' : 'none';
+}
+
+function resetCollectionFilters() {
+    document.getElementById('filter-condition').value = '';
+    document.getElementById('filter-collection-series').value = '';
+    document.getElementById('filter-collection-type').value = '';
+    collectionRarityFilterValues.clear();
+    duplicatesOnlyFilter = false;
+    document.getElementById('filter-duplicates-btn').classList.remove('active');
+    renderCollectionRarityRow();
+    filterAndDisplay();
+}
+
 function getFilteredSortedCollection() {
     const searchTerm = document.getElementById('search-collection').value.toLowerCase();
     const conditionFilter = document.getElementById('filter-condition').value;
@@ -161,7 +187,7 @@ function getFilteredSortedCollection() {
         filtered = filtered.filter(c => c.series === seriesFilter);
     }
     if (collectionRarityFilterValues.size > 0) {
-        filtered = filtered.filter(c => collectionRarityFilterValues.has(c.rarity));
+        filtered = filtered.filter(c => collectionRarityFilterValues.has(getRarityGroupKey(c.rarity)));
     }
     if (typeFilter) {
         filtered = filtered.filter(c => c.type === typeFilter);
@@ -331,19 +357,16 @@ function updateCollectionSummary(filtered, page) {
 function renderCollectionHeaderKpis(filtered) {
     const totalEl = document.getElementById('collection-kpi-total');
     const valueEl = document.getElementById('collection-kpi-value');
-    const displayedEl = document.getElementById('collection-kpi-displayed');
-    if (!totalEl || !valueEl || !displayedEl) return;
+    const spentEl = document.getElementById('collection-kpi-spent');
+    if (!totalEl || !valueEl || !spentEl) return;
 
+    const totalCards = allCollectionCards.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+    const totalSpent = allCollectionCards.reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
 
-    totalEl.textContent = allCollectionCards.length;
-    valueEl.textContent = new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(totalValue);
-    displayedEl.textContent = filtered.length;
+    totalEl.textContent = totalCards;
+    valueEl.textContent = totalValue.toFixed(2) + '€';
+    spentEl.textContent = totalSpent.toFixed(2) + '€';
 }
 
 function renderFilteredCollection() {
@@ -352,6 +375,7 @@ function renderFilteredCollection() {
 
     updateCollectionSummary(filtered, page);
     renderCollectionHeaderKpis(filtered);
+    updateResetFiltersButtonVisibility();
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     if (collectionViewMode === 'table') {

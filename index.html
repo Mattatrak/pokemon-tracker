@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-07-29-30">
+    <link rel="stylesheet" href="styles.css?t=2026-07-29-37">
     <link rel="stylesheet" href="css/layout-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-components.css?v=1">
@@ -133,26 +133,27 @@
             </div>
         </div>
 
-        <div id="collection-stats-bottom" class="stats-bottom">
+        <div id="collection-stats-bottom">
             <div class="stat-card-icon stat-card-cartes">
                 <img src="images/total-cartes.png" alt="" class="stat-icon-img">
                 <div class="stat-icon-text">
                     <div class="stat-number" id="collection-kpi-total">0</div>
-                    <div class="stat-label">Cartes au total</div>
+                    <div class="stat-label">Total de cartes</div>
                 </div>
             </div>
-            <div class="stat-card-icon stat-card-value">
+            <div class="stat-card-icon stat-card-value" onclick="showTopMoversModal()">
+                <canvas id="collection-hero-sparkline" class="hero-sparkline-canvas"></canvas>
                 <img src="images/total-valeur.png" alt="" class="stat-icon-img">
                 <div class="stat-icon-text">
                     <div class="stat-number" id="collection-kpi-value">0€</div>
-                    <div class="stat-label">Valeur estimée</div>
+                    <div class="stat-label">Valeur totale (marché)</div>
                 </div>
             </div>
             <div class="stat-card-icon stat-card-achat">
                 <img src="images/total-achat.png" alt="" class="stat-icon-img">
                 <div class="stat-icon-text">
-                    <div class="stat-number" id="collection-kpi-displayed">0</div>
-                    <div class="stat-label">Cartes affichées</div>
+                    <div class="stat-number" id="collection-kpi-spent">0€</div>
+                    <div class="stat-label">Total dépensé</div>
                 </div>
             </div>
         </div>
@@ -373,61 +374,91 @@
 
         <!-- ONGLET MA COLLECTION -->
         <div id="tab-collection" class="tab-content">
-            <div class="filters">
-                <select id="filter-condition">
-                    <option value="">Tous les états</option>
-                    <option value="NM">Neuf (NM)</option>
-                    <option value="LP">Très bon (LP)</option>
-                    <option value="MP">Bon (MP)</option>
-                    <option value="HP">Mauvais état (HP)</option>
-                </select>
-                <select id="filter-collection-series">
-                    <option value="">Toutes les séries</option>
-                </select>
-                <select id="filter-collection-type">
-                    <option value="">Tous les types</option>
-                </select>
-                <button id="filter-duplicates-btn" class="filter-toggle-btn" onclick="toggleDuplicatesFilter()"><i class="ti ti-copy" aria-hidden="true"></i> Doublons uniquement</button>
-            </div>
-
-            <div class="view-toggle-row">
-                <div class="toolbar-group toolbar-group-view">
-                    <div class="view-toggle">
-                        <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
-                        <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
-                    </div>
-                </div>
-
-                <div class="toolbar-group toolbar-group-rarities">
-                    <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
-                </div>
-
-                <div class="toolbar-group toolbar-group-actions">
-                    <select id="grid-sort" class="grid-sort-select">
-                        <option value="">Trier par...</option>
-                        <option value="name-asc">Nom (A→Z)</option>
-                        <option value="rarity-asc">Rareté (A→Z)</option>
-                        <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
-                        <option value="value-asc">Valeur (moins cher d'abord)</option>
-                        <option value="quantity-desc">Quantité (plus d'abord)</option>
-                    </select>
-                    <div class="csv-dropdown-wrap">
-                        <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
-                        <div class="csv-dropdown-menu" id="csv-dropdown-menu">
-                            <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
-                            <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
-                            <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
-                            <div class="csv-dropdown-divider"></div>
-                            <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
-                            <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
-                            <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
+            <div class="collection-filters-panel">
+                <div class="cfp-group cfp-group-filters">
+                    <div class="cfp-group-title"><i class="ti ti-filter" aria-hidden="true"></i> Filtres</div>
+                    <div class="cfp-group-body">
+                        <div class="cfp-field">
+                            <label for="filter-condition">État</label>
+                            <select id="filter-condition">
+                                <option value="">Tous</option>
+                                <option value="NM">Neuf (NM)</option>
+                                <option value="LP">Très bon (LP)</option>
+                                <option value="MP">Bon (MP)</option>
+                                <option value="HP">Mauvais état (HP)</option>
+                            </select>
                         </div>
-                        <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+                        <div class="cfp-field">
+                            <label for="filter-collection-series">Série</label>
+                            <select id="filter-collection-series">
+                                <option value="">Toutes</option>
+                            </select>
+                        </div>
+                        <div class="cfp-field">
+                            <label for="filter-collection-type">Type</label>
+                            <select id="filter-collection-type">
+                                <option value="">Tous</option>
+                            </select>
+                        </div>
+                        <div class="cfp-field cfp-field-toggle">
+                            <label class="cfp-field-label-spacer" aria-hidden="true">&nbsp;</label>
+                            <button id="filter-duplicates-btn" class="filter-toggle-btn" onclick="toggleDuplicatesFilter()"><i class="ti ti-copy" aria-hidden="true"></i> Doublons</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cfp-separator"></div>
+
+                <div class="cfp-group cfp-group-rarity">
+                    <div class="cfp-group-title"><i class="ti ti-star" aria-hidden="true"></i> Rareté</div>
+                    <div class="cfp-group-body">
+                        <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
+                    </div>
+                </div>
+
+                <div class="cfp-separator"></div>
+
+                <div class="cfp-group cfp-group-display">
+                    <div class="cfp-group-title"><i class="ti ti-eye" aria-hidden="true"></i> Affichage</div>
+                    <div class="cfp-group-body">
+                        <div class="view-toggle">
+                            <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
+                            <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
+                        </div>
+                        <div class="cfp-field">
+                            <label for="grid-sort">Tri</label>
+                            <select id="grid-sort" class="grid-sort-select">
+                                <option value="">Trier par...</option>
+                                <option value="name-asc">Nom (A→Z)</option>
+                                <option value="rarity-asc">Rareté (A→Z)</option>
+                                <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
+                                <option value="value-asc">Valeur (moins cher d'abord)</option>
+                                <option value="quantity-desc">Quantité (plus d'abord)</option>
+                            </select>
+                        </div>
+                        <div class="csv-dropdown-wrap">
+                            <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                            <div class="csv-dropdown-menu" id="csv-dropdown-menu">
+                                <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
+                                <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
+                                <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
+                                <div class="csv-dropdown-divider"></div>
+                                <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
+                                <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
+                                <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
+                            </div>
+                            <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="collection-summary" id="collection-summary"></div>
+            <div class="collection-summary-row">
+                <div class="collection-summary" id="collection-summary"></div>
+                <button class="collection-reset-filters-btn" id="collection-reset-filters-btn" onclick="resetCollectionFilters()" style="display:none;">
+                    <i class="ti ti-refresh" aria-hidden="true"></i> Réinitialiser les filtres
+                </button>
+            </div>
 
             <div class="collection-display-case" id="collection-grid-wrapper">
                 <div class="collection-grid" id="collection-grid"></div>
@@ -698,19 +729,19 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="modules/utils.js?v=3"></script>
+    <script src="modules/utils.js?v=5"></script>
     <script src="components/navigation/DesktopNavbar.js?v=1"></script>
     <script src="components/navigation/MobileBottomNavigation.js?v=3"></script>
     <script src="modules/storage.js?v=1"></script>
     <script src="modules/cards.js?v=12"></script>
     <script src="modules/stats.js?v=1"></script>
-    <script src="modules/collection.js?v=3"></script>
+    <script src="modules/collection.js?v=6"></script>
     <script src="modules/import-export.js?v=1"></script>
     <script src="modules/card-detail.js?v=2"></script>
     <script src="modules/ui.js?v=1"></script>
     <script src="modules/wishlist.js?v=1"></script>
     <script src="modules/stats-render.js?v=2"></script>
-    <script src="modules/progression.js?v=6"></script>
+    <script src="modules/progression.js?v=7"></script>
     <script src="modules/dashboard.js?v=6"></script>
     <script src="tracker.js?v=61"></script>
     <script src="modules/auth.js?v=1"></script>
