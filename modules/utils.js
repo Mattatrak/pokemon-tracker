@@ -333,6 +333,24 @@ function getRarityIconHtml(rarity, sizePx = 16) {
     return `<img src="images/rarity/${filename}" alt="" class="rarity-icon" style="width:${sizePx}px;height:${sizePx}px;">`;
 }
 
+// Logos de type (énergie) uploadés par l'utilisateur dans Supabase Storage, un fichier par type
+// (ex: card-images/energy/dragon.png). Nom de fichier déduit du type normalisé (minuscule, sans accent) ;
+// si le fichier n'existe pas pour un type donné, l'icône est simplement retirée au chargement (onerror),
+// le texte du type reste affiché tel quel à côté.
+const TYPE_ICON_BASE_URL = 'https://mmdcpkwygqsdaqnkimwb.supabase.co/storage/v1/object/public/card-images/energy/';
+
+function getTypeIconHtml(type, sizePx = 26) {
+    if (!type) return '';
+    const filename = `${normalizeForMatch(type)}.png`;
+    return `<img src="${TYPE_ICON_BASE_URL}${filename}" alt="" class="type-icon" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.remove()">`;
+}
+
+// card.type peut contenir plusieurs types joints par ", " (ex: "Feu, Vol") : une icône par type
+function getTypesIconsHtml(typeString, sizePx = 22) {
+    if (!typeString || typeString === 'N/A') return '';
+    return typeString.split(',').map(t => t.trim()).filter(Boolean).map(t => getTypeIconHtml(t, sizePx)).join('');
+}
+
 // Construit une ligne de boutons icônes pour filtrer par rareté (multi-sélection possible)
 function buildRarityFilterRowHtml(rarities, activeValues, clickHandlerName) {
     const allBtn = `<button class="rarity-filter-btn ${activeValues.size === 0 ? 'active' : ''}" onclick="${clickHandlerName}('')" data-tooltip="Toutes les raretés" aria-label="Toutes les raretés"><i class="ti ti-asterisk" aria-hidden="true"></i></button>`;

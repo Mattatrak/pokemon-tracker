@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-07-29-19">
+    <link rel="stylesheet" href="styles.css?t=2026-07-29-30">
     <link rel="stylesheet" href="css/layout-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-components.css?v=1">
@@ -255,24 +255,38 @@
                                     </div>
 
                                     <div class="preview-heading" id="preview-name">-</div>
+                                    <div class="preview-rarity-badge" id="preview-rarity-badge"></div>
 
-                                    <div class="preview-meta-label">Détails de la carte</div>
-                                    <div class="preview-meta-box">
-                                        <div class="preview-meta-item">
-                                            <div class="preview-info-label">Rareté</div>
-                                            <div class="preview-info-value" id="preview-rarity">-</div>
+                                    <div class="preview-details-card">
+                                        <div class="preview-price-box" id="preview-price-box" style="display:none;">
+                                            <div class="preview-price-box-left">
+                                                <div class="preview-price-box-label">Estimation du prix</div>
+                                                <div class="preview-price-box-value" id="preview-price-big">-</div>
+                                            </div>
+                                            <div class="preview-price-box-right">
+                                                <span class="hero-fluctuation" id="preview-price-trend"></span>
+                                                <div class="preview-price-box-caption">sur 30 jours</div>
+                                            </div>
                                         </div>
-                                        <div class="preview-meta-item">
-                                            <div class="preview-info-label">Type</div>
-                                            <div class="preview-info-value" id="preview-type">-</div>
-                                        </div>
-                                        <div class="preview-meta-item">
-                                            <div class="preview-info-label">Illustrateur</div>
-                                            <div class="preview-info-value" id="preview-illustrator" onclick="searchByIllustrator()">-</div>
-                                        </div>
-                                        <div class="preview-meta-item preview-meta-item-full">
-                                            <div class="preview-info-label">Prix (CardMarket)</div>
-                                            <div class="preview-info-value" id="preview-price">-</div>
+
+                                        <div class="preview-meta-label">Détails de la carte</div>
+                                        <div class="preview-meta-box">
+                                            <div class="preview-meta-item">
+                                                <div class="preview-info-label">Rareté</div>
+                                                <div class="preview-info-value" id="preview-rarity">-</div>
+                                            </div>
+                                            <div class="preview-meta-item">
+                                                <div class="preview-info-label">Type</div>
+                                                <div class="preview-info-value" id="preview-type">-</div>
+                                            </div>
+                                            <div class="preview-meta-item preview-meta-item-full">
+                                                <div class="preview-info-label">Illustrateur</div>
+                                                <div class="preview-info-value" id="preview-illustrator" onclick="searchByIllustrator()">-</div>
+                                            </div>
+                                            <div class="preview-meta-item preview-meta-item-full">
+                                                <div class="preview-info-label">Prix (CardMarket)</div>
+                                                <div class="preview-info-value" id="preview-price">-</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -684,15 +698,15 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="modules/utils.js?v=1"></script>
+    <script src="modules/utils.js?v=3"></script>
     <script src="components/navigation/DesktopNavbar.js?v=1"></script>
     <script src="components/navigation/MobileBottomNavigation.js?v=3"></script>
     <script src="modules/storage.js?v=1"></script>
-    <script src="modules/cards.js?v=7"></script>
+    <script src="modules/cards.js?v=12"></script>
     <script src="modules/stats.js?v=1"></script>
     <script src="modules/collection.js?v=3"></script>
     <script src="modules/import-export.js?v=1"></script>
-    <script src="modules/card-detail.js?v=1"></script>
+    <script src="modules/card-detail.js?v=2"></script>
     <script src="modules/ui.js?v=1"></script>
     <script src="modules/wishlist.js?v=1"></script>
     <script src="modules/stats-render.js?v=2"></script>

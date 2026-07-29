@@ -78,7 +78,7 @@ function showCardDetail(cardId) {
                     ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2)}€ (×${qty})</div>` : ''}
                 </div>
 
-                ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-line"><span class="modal-meta-label">Type</span> ${card.type}</div>` : ''}
+                ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-line"><span class="modal-meta-label">Type</span> ${getTypesIconsHtml(card.type)} ${card.type}</div>` : ''}
                 ${card.illustrator ? `<div class="modal-meta-line"><span class="modal-meta-label">Illustrateur</span> ${escapeHtml(card.illustrator)}</div>` : ''}
                 <div class="modal-meta-line"><span class="modal-meta-label">Quantité</span> ${qty}</div>
                 ${card.date_added ? `<div class="modal-meta-line"><span class="modal-meta-label">Ajoutée le</span> ${card.date_added}</div>` : ''}

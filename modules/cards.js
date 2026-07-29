@@ -244,11 +244,48 @@ function renderSearchResults(cards) {
 
 // ===== APERCU DE CARTE =====
 
+let selectionToken = 0;
+
+// Transition en deux temps : si une carte était déjà affichée, on atténue l'ancien contenu
+// (~90ms) avant de remplacer les données dans le DOM, puis on fait entrer le nouveau contenu.
+// selectedCard est mis à jour immédiatement (synchrone) pour que le reste de l'app (ajout,
+// double-clic rapide...) travaille toujours sur la bonne carte, même pendant la transition visuelle.
 function selectCard(card) {
+    const myToken = ++selectionToken;
+    const hadPreviousCard = !!selectedCard;
     selectedCard = card;
     customPreviewImage = null;
     document.getElementById('search-results').classList.remove('active');
 
+    const imageEl = document.querySelector('.preview-image');
+    const detailsEl = document.querySelector('.preview-details');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (hadPreviousCard && !reduceMotion) {
+        imageEl.classList.remove('card-swap-enter');
+        detailsEl.classList.remove('card-swap-enter');
+        imageEl.classList.add('card-swap-exit');
+        detailsEl.classList.add('card-swap-exit');
+
+        setTimeout(() => {
+            // Une sélection plus récente a pris le relais entre-temps : on abandonne celle-ci
+            if (myToken !== selectionToken) return;
+            imageEl.classList.remove('card-swap-exit');
+            detailsEl.classList.remove('card-swap-exit');
+            applyCardToPreview(card);
+            replaySelectionEntrance(imageEl);
+            replaySelectionEntrance(detailsEl);
+        }, 90);
+    } else {
+        applyCardToPreview(card);
+        if (!reduceMotion) {
+            replaySelectionEntrance(imageEl);
+            replaySelectionEntrance(detailsEl);
+        }
+    }
+}
+
+function applyCardToPreview(card) {
     // Vérifier si cette carte est déjà dans la collection (par identifiant TCGdex)
     const duplicateAlert = document.getElementById('preview-duplicate-alert');
     const ownedRows = card.id ? allCollectionCards.filter(c => c.tcgdex_id === card.id) : [];
@@ -321,29 +358,63 @@ function selectCard(card) {
     if (card.types && Array.isArray(card.types)) {
         types = card.types.join(', ');
     }
-    document.getElementById('preview-type').textContent = types;
+    document.getElementById('preview-type').innerHTML = `${getTypesIconsHtml(types)} ${types}`;
 
     const illustratorEl = document.getElementById('preview-illustrator');
     illustratorEl.textContent = card.illustrator || '-';
     illustratorEl.classList.toggle('preview-info-value-clickable', !!card.illustrator);
 
     document.getElementById('preview-rarity').innerHTML = `${getRarityIconHtml(card.rarity)} ${card.rarity || '-'}`;
+    document.getElementById('preview-rarity-badge').innerHTML = card.rarity
+        ? `${getRarityIconHtml(card.rarity)} ${card.rarity}`
+        : '';
 
     let price = 0;
+    let avg30 = 0;
     if (card.pricing?.cardmarket?.avg) {
         price = card.pricing.cardmarket.avg;
+        avg30 = card.pricing.cardmarket.avg30 || 0;
     } else if (card.pricing?.cardmarket?.['avg-holo']) {
         price = card.pricing.cardmarket['avg-holo'];
+        avg30 = card.pricing.cardmarket['avg30-holo'] || 0;
     }
     currentMarketValue = price;
     document.getElementById('preview-price').textContent = price > 0 ? price.toFixed(2) + '€' : '-';
     document.getElementById('card-value').value = price > 0 ? price.toFixed(2) : '';
+
+    const priceBox = document.getElementById('preview-price-box');
+    const trendEl = document.getElementById('preview-price-trend');
+    if (price > 0) {
+        priceBox.style.display = '';
+        document.getElementById('preview-price-big').textContent = `${price.toFixed(2)} €`;
+        if (avg30 > 0) {
+            const deltaPct = ((price - avg30) / avg30) * 100;
+            const arrow = deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '';
+            trendEl.textContent = `${arrow} ${Math.abs(deltaPct).toFixed(1)}%`;
+            trendEl.className = 'hero-fluctuation ' + (deltaPct > 0 ? 'positive' : deltaPct < 0 ? 'negative' : 'neutral');
+        } else {
+            trendEl.textContent = '';
+            trendEl.className = 'hero-fluctuation';
+        }
+    } else {
+        priceBox.style.display = 'none';
+    }
 
     // Réinitialiser le mode d'obtention à "Achetée" par défaut pour chaque nouvelle carte
     document.getElementById('card-acquisition').value = 'achat';
     document.getElementById('purchase-price-group').style.display = '';
 
     document.getElementById('card-preview').classList.add('active');
+}
+
+// Rejoue l'animation d'entrée CSS (.card-swap-enter) sur un élément après un changement de
+// sélection de carte : reflow forcé pour redémarrer même si la classe était déjà présente
+// (sélections rapides successives -> la dernière gagne, pas d'accumulation).
+function replaySelectionEntrance(el) {
+    if (!el) return;
+    el.classList.remove('card-swap-enter');
+    void el.offsetWidth;
+    el.classList.add('card-swap-enter');
 }
 
 function showPreviewUploadPlaceholder() {
