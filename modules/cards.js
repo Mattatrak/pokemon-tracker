@@ -354,6 +354,17 @@ function applyCardToPreview(card) {
         ? (totalCards ? `${card.localId}/${totalCards}` : card.localId)
         : '-';
 
+    const favStarEl = document.getElementById('preview-favorite-star');
+    if (favStarEl) {
+        if (card.id) {
+            favStarEl.style.display = 'inline-flex';
+            favStarEl.onclick = () => toggleFavorite(card.id, favStarEl);
+            applyFavoriteButtonState(favStarEl, isFavorite(card.id));
+        } else {
+            favStarEl.style.display = 'none';
+        }
+    }
+
     let types = 'N/A';
     if (card.types && Array.isArray(card.types)) {
         types = card.types.join(', ');

@@ -307,10 +307,12 @@ async function loadValueHistoryData() {
     const { data, error } = await supabaseClient
         .from('value_history')
         .select('*')
-        .order('recorded_at', { ascending: true })
+        .order('recorded_at', { ascending: false })
         .limit(500);
 
-    valueHistoryRawData = (!error && data) ? data : [];
+    // Idem dashboard.js : trier descendant avant le limit pour garder les 500 PLUS RECENTS points,
+    // puis remettre en ordre chronologique pour l'affichage.
+    valueHistoryRawData = (!error && data) ? data.slice().reverse() : [];
 }
 
 function setValueHistoryRange(event, days) {

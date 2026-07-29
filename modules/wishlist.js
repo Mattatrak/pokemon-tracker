@@ -57,7 +57,7 @@ async function deleteWishlist(wishlistId) {
     const current = allWishlists.find(w => w.id === wishlistId);
     if (!current) return;
 
-    if (!await showConfirmModal(`Supprimer la liste "${current.name}" et toutes les cartes qu'elle contient ?`, 'Supprimer')) return;
+    if (!await showConfirmModal(`Supprimer la liste "${escapeHtml(current.name)}" et toutes les cartes qu'elle contient ?`, 'Supprimer')) return;
 
     const { error } = await supabaseClient.from('wishlists').delete().eq('id', wishlistId);
     if (error) {

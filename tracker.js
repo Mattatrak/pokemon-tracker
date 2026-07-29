@@ -33,9 +33,17 @@ let allCollectionCards = [];   // Cache local de la collection chargée depuis S
 // (ajout/suppression/quantité/prix) et loadWishlists() (souhaits) : pas de recalcul inutile ailleurs.
 let dashboardNeedsRefresh = true;
 
+// Passe à true à la toute fin de init() (auth.js). Tant que c'est false, markDashboardDirty() ne
+// déclenche aucun rendu immédiat : pendant le chargement initial, refreshCollection()/loadWishlists()/
+// le chargement des séries appellent chacun markDashboardDirty(), et tab-dashboard est actif par
+// défaut dans le HTML — sans ce garde-fou, le hero se re-rendait 2-3 fois pendant init() avec des
+// données encore incomplètes (favoris pas chargés, etc.), d'où un flash visible du mauvais thème/carte
+// avant l'affichage final correct.
+let appReady = false;
+
 function markDashboardDirty() {
     dashboardNeedsRefresh = true;
-    if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
+    if (appReady && document.getElementById('tab-dashboard')?.classList.contains('active')) {
         renderDashboard();
     }
 }
@@ -46,7 +54,7 @@ function markDashboardDirty() {
 // sanitizeForPath, getTcgdexImagePath, getSeriesLogoPath, resizeImageToWebpBlob, getSeriesSymbolPath
 
 // Fonctions chargées depuis modules/storage.js : uploadSeriesSymbolManually, uploadSeriesLogoManually,
-// checkExistingSeriesLogo, fetchAndUploadSeriesSymbol, fetchAndUploadSeriesLogo, checkExistingImage,
+// fetchAndUploadSeriesSymbol, fetchAndUploadSeriesLogo, checkExistingImage,
 // fetchAndUploadExternalImage, uploadImageToStorage, getStoredImageFilenames, findExistingCardRow
 
 // Fonctions chargées depuis modules/cards.js : showSearchResultsSkeleton, searchCards, displaySearchResults,
@@ -400,7 +408,7 @@ async function changeQuantity(id, delta) {
 // confirmAndProcessJsonRestore, downloadCsvTemplate, findTcgdexMatch, handleCsvImport, processCsvImportRows
 // chargées depuis modules/import-export.js
 
-// filterAndDisplay, renderCollectionTable, getGridNoImageHtml, renderCollectionGrid, changeQuantityInModal
+// filterAndDisplay, renderCollectionTable, getGridNoImageHtml, renderCollectionGrid
 // chargées depuis modules/collection.js
 
 // showCardDetail, renderCardPriceChart, showCardEditForm, toggleEditPurchasePriceField, saveCardEdits,
@@ -442,10 +450,6 @@ function navigateToTab(tabId) {
 
 // ===== ONGLETS =====
 
-function switchTab(event, tabId) {
-    navigateToTab(tabId);
-}
-
 // Rendu paresseux propre à un onglet, extrait de switchTab pour être réutilisable sans évènement de
 // clic (ex: boutons de navigation internes au Dashboard)
 function activateTabContent(tabId) {
@@ -475,22 +479,7 @@ function activateTabContent(tabId) {
 // ===== INITIALISATION =====
 // ===== RAFRAICHISSEMENT DES PRIX MARCHE =====
 
-function updateLastRefreshLabel() {
-    const status = document.getElementById('refresh-prices-status');
-    if (!status) return;
-    const last = localStorage.getItem('lastPriceRefresh');
-    if (last) {
-        const date = new Date(last);
-        status.textContent = `${date.toLocaleDateString('fr-FR')} à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
-    } else {
-        status.textContent = 'Jamais rafraîchi';
-    }
-}
-
 async function refreshAllMarketPrices() {
-    const btn = document.getElementById('refresh-prices-btn');
-    const status = document.getElementById('refresh-prices-status');
-
     const cardsWithId = allCollectionCards.filter(c => c.tcgdex_id);
     if (cardsWithId.length === 0) {
         showMessage('Aucune carte avec un identifiant TCGdex à rafraîchir', 'error');
@@ -501,10 +490,6 @@ async function refreshAllMarketPrices() {
     const priceMap = {};
     const pricingDetailMap = {};
     const setInfoMap = {};
-    let done = 0;
-
-    btn.disabled = true;
-    const originalText = btn.innerHTML;
 
     // Traiter par lots de 5 pour ne pas surcharger l'API
     const batchSize = 5;
@@ -530,8 +515,6 @@ async function refreshAllMarketPrices() {
             } catch (error) {
                 console.error(`Erreur récupération prix pour ${id}:`, error);
             }
-            done++;
-            btn.innerHTML = `<span class="loading"></span>Rafraîchissement... ${done}/${uniqueIds.length}`;
         }));
     }
 
@@ -648,11 +631,7 @@ async function refreshAllMarketPrices() {
     });
     localStorage.setItem('lastPriceMovers', JSON.stringify(Object.values(moversByKey)));
 
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-
     localStorage.setItem('lastPriceRefresh', new Date().toISOString());
-    updateLastRefreshLabel();
 
     const failCount = uniqueIds.length - Object.keys(priceMap).length;
     if (failCount > 0) {

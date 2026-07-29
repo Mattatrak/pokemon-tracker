@@ -32,6 +32,59 @@ async function recordValueSnapshot() {
 
 const heroSparklineCharts = {};
 
+// Variation de valeur sur une fenêtre de temps, basée uniquement sur card_price_history (prix marché
+// par carte, alimenté seulement par les rafraîchissements de prix) plutôt que sur value_history (qui
+// bouge aussi à chaque ajout/suppression/changement de quantité). La quantité ACTUELLE de chaque carte
+// est utilisée des deux côtés du calcul (avant/après), ce qui neutralise tout changement de composition
+// de la collection : seul un vrai mouvement de prix côté marché fait bouger ce chiffre.
+async function computeMarketFluctuation(windowMs) {
+    const uniqueIds = [...new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id))];
+    if (uniqueIds.length === 0) return null;
+
+    const { data, error } = await supabaseClient
+        .from('card_price_history')
+        .select('*')
+        .in('tcgdex_id', uniqueIds)
+        .order('recorded_at', { ascending: true });
+
+    if (error || !data || data.length === 0) return null;
+
+    const historyByCard = {};
+    data.forEach(point => {
+        if (!historyByCard[point.tcgdex_id]) historyByCard[point.tcgdex_id] = [];
+        historyByCard[point.tcgdex_id].push(point);
+    });
+
+    const qtyByCard = {};
+    const currentPriceByCard = {};
+    allCollectionCards.forEach(c => {
+        if (!c.tcgdex_id) return;
+        qtyByCard[c.tcgdex_id] = (qtyByCard[c.tcgdex_id] || 0) + Number(c.quantity || 1);
+        if (!(c.tcgdex_id in currentPriceByCard)) currentPriceByCard[c.tcgdex_id] = Number(c.market_value || 0);
+    });
+
+    const cutoff = Date.now() - windowMs;
+    let baselineTotal = 0;
+    let currentTotal = 0;
+
+    uniqueIds.forEach(id => {
+        const points = historyByCard[id];
+        if (!points || points.length === 0) return;
+
+        let baseline = points[0];
+        for (const point of points) {
+            if (new Date(point.recorded_at).getTime() <= cutoff) baseline = point;
+            else break;
+        }
+
+        const qty = qtyByCard[id] || 0;
+        baselineTotal += Number(baseline.market_value) * qty;
+        currentTotal += (currentPriceByCard[id] || 0) * qty;
+    });
+
+    return { delta: currentTotal - baselineTotal, baselineTotal, currentTotal };
+}
+
 async function renderHeroValueCard() {
     const { value } = updateStats();
 
@@ -86,22 +139,17 @@ async function renderHeroValueCard() {
         });
     });
 
-    // Fluctuation sur les dernières 24h
-    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    let baseline = data[0]; // par défaut : tout premier point connu (si collection < 24h)
-    for (const point of data) {
-        if (new Date(point.recorded_at).getTime() <= dayAgo) {
-            baseline = point;
-        } else {
-            break;
-        }
-    }
-
-    const delta = value - Number(baseline.total_value);
+    // Fluctuation sur les dernières 24h (prix marché uniquement, cf. computeMarketFluctuation)
+    const fluctuation = await computeMarketFluctuation(24 * 60 * 60 * 1000);
     if (fluctEl) {
-        const sign = delta > 0 ? '+' : '';
-        fluctEl.textContent = `${sign}${delta.toFixed(2)}€ (24h)`;
-        fluctEl.className = 'hero-fluctuation ' + (delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral');
+        if (!fluctuation) {
+            fluctEl.textContent = '';
+            fluctEl.className = 'hero-fluctuation';
+        } else {
+            const sign = fluctuation.delta > 0 ? '+' : '';
+            fluctEl.textContent = `${sign}${fluctuation.delta.toFixed(2)}€ (24h)`;
+            fluctEl.className = 'hero-fluctuation ' + (fluctuation.delta > 0 ? 'positive' : fluctuation.delta < 0 ? 'negative' : 'neutral');
+        }
     }
 }
 

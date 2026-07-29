@@ -40,19 +40,6 @@ async function uploadSeriesLogoManually(file, setId) {
     return logoUrl;
 }
 
-// Vérifie si un logo existe déjà en stockage pour ce set (auto ou uploadé manuellement)
-async function checkExistingSeriesLogo(setId) {
-    const { data } = await supabaseClient.storage
-        .from('card-images')
-        .list('logos', { search: `${sanitizeForPath(setId)}.webp` });
-
-    if (data && data.length > 0) {
-        const { data: urlData } = supabaseClient.storage.from('card-images').getPublicUrl(getSeriesLogoPath(setId));
-        return urlData.publicUrl;
-    }
-    return null;
-}
-
 // Télécharge le logo d'une série (une seule fois par set, réutilisé pour toutes ses cartes)
 async function fetchAndUploadSeriesSymbol(symbolBaseUrl, setId) {
     const path = getSeriesSymbolPath(setId);

@@ -253,13 +253,6 @@
     height: 30px;
 }
 
-.login-footer {
-    text-align: center;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
-}
-
 .login-link {
     color: #E8A93B;
     text-decoration: none;

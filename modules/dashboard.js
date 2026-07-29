@@ -202,6 +202,33 @@ function dashboardGetLastMovers() {
     }
 }
 
+// Rotation du favori mis en avant sur le hero : change automatiquement chaque jour (index basé sur le
+// jour de l'année), sauf si l'utilisateur a cliqué sur "suivant" aujourd'hui, auquel cas ce choix
+// manuel reste affiché jusqu'à minuit (stocké dans localStorage avec la date du jour).
+const DASHBOARD_FEATURED_FAVORITE_KEY = 'dashboardFeaturedFavorite';
+
+function dashboardGetFeaturedFavoriteIndex(count) {
+    const today = new Date().toISOString().slice(0, 10);
+
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_FEATURED_FAVORITE_KEY) || 'null');
+        if (stored && stored.date === today && Number.isInteger(stored.index)) {
+            return stored.index % count;
+        }
+    } catch (e) { /* stockage corrompu, on retombe sur la rotation par défaut */ }
+
+    const startOfYear = new Date(new Date().getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((Date.now() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+    return dayOfYear % count;
+}
+
+function dashboardShowNextFavorite(count) {
+    const today = new Date().toISOString().slice(0, 10);
+    const nextIndex = (dashboardGetFeaturedFavoriteIndex(count) + 1) % count;
+    localStorage.setItem(DASHBOARD_FEATURED_FAVORITE_KEY, JSON.stringify({ date: today, index: nextIndex }));
+    renderDashboardHero();
+}
+
 function renderDashboardHero() {
     const el = document.getElementById('dashboard-hero');
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
@@ -212,28 +239,32 @@ function renderDashboardHero() {
         ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
         : '';
 
-    // Variation sur 7 jours, calculée à partir de value_history si on a un point suffisamment ancien
-    let variationHtml = '';
-    if (dashboardValueHistoryData && dashboardValueHistoryData.length > 0) {
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        let baseline = dashboardValueHistoryData[0];
-        for (const point of dashboardValueHistoryData) {
-            if (new Date(point.recorded_at).getTime() <= weekAgo) baseline = point;
-            else break;
-        }
-        const baselineValue = Number(baseline.total_value);
-        const delta = totalValue - baselineValue;
-        const pct = baselineValue > 0 ? (delta / baselineValue) * 100 : 0;
-        const cls = delta > 0 ? 'dashboard-positive' : delta < 0 ? 'dashboard-negative' : 'dashboard-neutral';
-        const sign = delta > 0 ? '+' : '';
-        variationHtml = `<div class="dashboard-hero-variation ${cls}"><i class="ti ${delta >= 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€ (${sign}${pct.toFixed(2)}%) sur 7 jours</div>`;
-    }
+    // Variation sur 7 jours : placeholder rempli après coup par dashboardUpdateHeroVariation (prix
+    // marché uniquement, cf. computeMarketFluctuation dans stats.js — ne bouge pas avec les
+    // ajouts/suppressions de cartes)
+    const variationHtml = '<div class="dashboard-hero-variation" id="dashboard-hero-variation"></div>';
 
-    // Carte mise à l'honneur : la plus chère, sinon la dernière ajoutée, sinon état vide
+    // Carte mise à l'honneur : un favori possédé (rotation quotidienne, cf. dashboardGetFeaturedFavoriteIndex),
+    // sinon la plus chère de la collection, sinon la première, sinon état vide
     let featured = null;
+    let favoriteCount = 0;
     if (allCollectionCards.length > 0) {
-        const withValue = [...allCollectionCards].filter(c => Number(c.market_value || 0) > 0).sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
-        featured = withValue.length > 0 ? withValue[0] : allCollectionCards[0];
+        const favoritedOwned = [];
+        const seenFavoriteIds = new Set();
+        allCollectionCards.forEach(c => {
+            if (c.tcgdex_id && isFavorite(c.tcgdex_id) && !seenFavoriteIds.has(c.tcgdex_id)) {
+                seenFavoriteIds.add(c.tcgdex_id);
+                favoritedOwned.push(c);
+            }
+        });
+
+        if (favoritedOwned.length > 0) {
+            favoriteCount = favoritedOwned.length;
+            featured = favoritedOwned[dashboardGetFeaturedFavoriteIndex(favoriteCount)];
+        } else {
+            const withValue = [...allCollectionCards].filter(c => Number(c.market_value || 0) > 0).sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
+            featured = withValue.length > 0 ? withValue[0] : allCollectionCards[0];
+        }
     }
 
     // Média (image / placeholder) et métadonnées de la carte mise à l'honneur, ou état vide de collection
@@ -258,8 +289,16 @@ function renderDashboardHero() {
             ? `<div class="dashboard-hero-card-value">${Number(featured.market_value).toFixed(2)}€</div>`
             : `<div class="dashboard-hero-card-value dashboard-hero-card-value--empty">Valeur indisponible</div>`;
 
+        // Bouton "suivant" : uniquement utile s'il y a plusieurs favoris à faire tourner
+        const nextFavoriteHtml = favoriteCount > 1
+            ? `<button type="button" class="dashboard-hero-card-next" onclick="dashboardShowNextFavorite(${favoriteCount})" title="Voir un autre favori" aria-label="Voir un autre favori"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>`
+            : '';
+
         metaHtml = `
-            <div class="dashboard-hero-card-label">Carte du jour</div>
+            <div class="dashboard-hero-card-label-row">
+                <div class="dashboard-hero-card-label">${favoriteCount > 0 ? 'Favori du jour' : 'Carte du jour'}</div>
+                ${nextFavoriteHtml}
+            </div>
             <div class="dashboard-hero-card-name">${escapeHtml(featured.name)}</div>
             ${featured.series ? `<div class="dashboard-hero-card-set">${escapeHtml(featured.series)}</div>` : ''}
             ${valueHtml}
@@ -303,6 +342,27 @@ function renderDashboardHero() {
     const themeClass = getHeroThemeClass(featured);
     THEME_CLASSES.forEach(cls => el.classList.remove(cls));
     el.classList.add(themeClass);
+
+    dashboardUpdateHeroVariation();
+}
+
+// Remplit après coup le placeholder de variation 7j (nécessite un appel réseau à computeMarketFluctuation)
+async function dashboardUpdateHeroVariation() {
+    const variationEl = document.getElementById('dashboard-hero-variation');
+    if (!variationEl) return;
+
+    const fluctuation = await computeMarketFluctuation(7 * 24 * 60 * 60 * 1000);
+    if (!fluctuation) {
+        variationEl.innerHTML = '';
+        return;
+    }
+
+    const { delta, baselineTotal } = fluctuation;
+    const pct = baselineTotal > 0 ? (delta / baselineTotal) * 100 : 0;
+    const cls = delta > 0 ? 'dashboard-positive' : delta < 0 ? 'dashboard-negative' : 'dashboard-neutral';
+    const sign = delta > 0 ? '+' : '';
+    variationEl.className = `dashboard-hero-variation ${cls}`;
+    variationEl.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€ (${sign}${pct.toFixed(2)}%) sur 7 jours`;
 }
 
 // ===== KPI =====
@@ -474,10 +534,13 @@ async function dashboardLoadValueHistory() {
     const { data, error } = await supabaseClient
         .from('value_history')
         .select('*')
-        .order('recorded_at', { ascending: true })
+        .order('recorded_at', { ascending: false })
         .limit(200);
 
-    dashboardValueHistoryData = (!error && data) ? data : [];
+    // .limit() s'applique après le tri : il faut trier descendant pour garder les 200 PLUS RECENTS
+    // points (sinon sur une collection active on récupère les 200 plus vieux et les derniers jours
+    // manquent entièrement), puis remettre en ordre chronologique pour l'affichage.
+    dashboardValueHistoryData = (!error && data) ? data.slice().reverse() : [];
 }
 
 function renderDashboardValueChart() {

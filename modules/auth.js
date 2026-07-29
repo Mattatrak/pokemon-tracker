@@ -1,15 +1,22 @@
 // Authentification - Pokémon Tracker
 // Dépend de: supabaseClient (tracker.js), refreshCollection/loadWishlists/renderStatsCharts/renderHeroValueCard/
-// updateLastRefreshLabel/initDatePicker (autres modules + tracker.js). Charge en dernier : par le temps que ce
+// loadFavorites/initDatePicker (autres modules + tracker.js). Charge en dernier : par le temps que ce
 // script s'exécute, tous les autres modules sont déjà chargés (init() peut donc référencer leurs fonctions).
 
 async function init() {
+    await loadFavorites();
     await refreshCollection();
+
+    // Peint le hero dès que ses seules dépendances réelles (favoris + collection) sont prêtes, sans
+    // attendre loadWishlists/renderStatsCharts/etc. plus bas (inutiles pour le hero) : évite de garder
+    // le placeholder "carte" affiché plus longtemps que nécessaire.
+    if (document.getElementById('dashboard-hero')) renderDashboardHero();
+
     await loadWishlists();
     await renderStatsCharts();
     await renderHeroValueCard();
     await renderDashboard();
-    updateLastRefreshLabel();
+    appReady = true; // autorise markDashboardDirty() à re-rendre immédiatement à partir de maintenant
     initDatePicker('#card-date-added');
     updateMobileBottomNav('tab-dashboard');
 

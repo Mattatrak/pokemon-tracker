@@ -40,7 +40,10 @@ function showCardDetail(cardId) {
                 ` : ''}
             </div>
             <div class="modal-info">
-                <div class="modal-title">${card.name}</div>
+                <div class="modal-title-row">
+                    <div class="modal-title">${card.name}</div>
+                    ${card.tcgdex_id ? favoriteStarHtml(card.tcgdex_id) : ''}
+                </div>
                 ${card.series_logo
                     ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">`
                     : (card.tcgdex_id ? `

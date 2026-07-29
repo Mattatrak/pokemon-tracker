@@ -509,18 +509,6 @@ function renderCollectionGrid(filtered) {
     replayEntrance(grid);
 }
 
-// Change la quantité depuis la fiche détail sans fermer la fenêtre (la ferme seulement si la carte a été supprimée)
-async function changeQuantityInModal(id, delta) {
-    await changeQuantity(id, delta);
-
-    const stillExists = allCollectionCards.find(c => c.id === id);
-    if (stillExists) {
-        showCardDetail(id);
-    } else {
-        closeCardDetail();
-    }
-}
-
 let collectionViewMode = 'grid';
 
 function setCollectionView(mode) {
