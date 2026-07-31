@@ -158,6 +158,38 @@
             </div>
         </div>
 
+        <div id="wishlist-stats-bottom">
+            <div class="stat-card-icon stat-card-cartes">
+                <span class="stat-card-emoji" aria-hidden="true">📄</span>
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="wishlist-kpi-count">0</div>
+                    <div class="stat-label">Cartes dans les wishlists</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-value">
+                <span class="stat-card-emoji" aria-hidden="true">💰</span>
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="wishlist-kpi-value">0€</div>
+                    <div class="stat-label">Valeur estimée</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-lists">
+                <span class="stat-card-emoji" aria-hidden="true">📋</span>
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="wishlist-kpi-lists">0</div>
+                    <div class="stat-label">Listes</div>
+                </div>
+            </div>
+            <div class="stat-card-icon stat-card-top">
+                <img id="wishlist-kpi-top-img" class="stat-card-top-img" alt="" style="display:none;">
+                <span class="stat-card-emoji" id="wishlist-kpi-top-emoji" aria-hidden="true">⭐</span>
+                <div class="stat-icon-text">
+                    <div class="stat-number" id="wishlist-kpi-top-price">0€</div>
+                    <div class="stat-label" id="wishlist-kpi-top-name">Carte la plus chère</div>
+                </div>
+            </div>
+        </div>
+
         <div id="message-container" class="global-message-container"></div>
 
         <!-- ONGLET DASHBOARD -->
@@ -677,10 +709,20 @@
 
         <!-- ONGLET SOUHAITS -->
         <div id="tab-wishlist" class="tab-content">
-            <div class="form-section">
-                <div class="stats-chart-header">
-                    <h2><i class="ti ti-star" aria-hidden="true"></i> Listes de souhaits</h2>
-                    <button class="filter-toggle-btn" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+            <div class="wishlist-panel">
+                <div class="catalogue-toolbar wishlist-toolbar">
+                    <div class="input-with-icon wishlist-search">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="wishlist-search-input" placeholder="Chercher une carte dans mes listes..." oninput="filterWishlist(this.value)">
+                    </div>
+                    <div class="catalogue-toolbar-actions">
+                        <select id="wishlist-sort-select" class="catalogue-sort-select" onchange="setWishlistSort(this.value)">
+                            <option value="date-desc">Ajout récent</option>
+                            <option value="name-asc">Nom (A→Z)</option>
+                            <option value="price-desc">Prix (plus cher d'abord)</option>
+                        </select>
+                        <button class="filter-toggle-btn" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+                    </div>
                 </div>
                 <div id="wishlists-container">
                     <p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l'instant</p>
@@ -698,6 +740,18 @@
     <div class="modal-overlay" id="text-prompt-overlay" onclick="if(event.target===this) closeTextPrompt()">
         <div class="modal-card" id="text-prompt-content" style="max-width: 380px;"></div>
     </div>
+
+    <!-- MODALE EDITION LISTE DE SOUHAITS (nom + icone + couleur) -->
+    <div class="modal-overlay" id="wishlist-edit-overlay" onclick="if(event.target===this) closeWishlistEditModal()">
+        <div class="modal-card" id="wishlist-edit-content" style="max-width: 380px;"></div>
+    </div>
+
+    <!-- POPOVER PARTAGE D'ACTION SUR MINIATURE WISHLIST -->
+    <!-- Un seul menu partagé, positionné en fixed via JS (getBoundingClientRect) et rendu ici, en
+         dehors de chaque .wishlist-list-card : ces cartes ont un backdrop-filter qui crée chacune
+         son propre contexte d'empilement, donc un menu imbriqué dans une carte ne peut jamais
+         dépasser (en z-index) une carte suivante dans le DOM. Voir toggleWishlistThumbMenu (wishlist.js). -->
+    <div class="wishlist-thumb-menu" id="wishlist-thumb-menu-shared"></div>
 
     <!-- MODALE DE CONFIRMATION (remplace confirm() natif) -->
     <div class="modal-overlay" id="confirm-modal-overlay" onclick="if(event.target===this) closeConfirmModal(false)">
