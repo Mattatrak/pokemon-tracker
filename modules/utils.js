@@ -5,6 +5,19 @@ function toLocalDateInputValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+// Handler onerror générique pour les <img> pointant vers TCGdex : certains sets n'ont pas
+// leurs assets en /fr/, on retente une fois en /en/ avant d'abandonner (fallback appelé au 2e échec).
+function handleTcgdexImgError(img, fallback) {
+    if (!img.dataset.localeRetried && img.src.includes('/fr/')) {
+        img.dataset.localeRetried = '1';
+        img.src = img.src.replace('/fr/', '/en/');
+        return;
+    }
+    if (typeof fallback === 'function') fallback(img);
+    else if (fallback) img.outerHTML = fallback;
+    else img.style.display = 'none';
+}
+
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -19,7 +32,8 @@ function showMessage(text, type = 'error') {
     const container = document.getElementById('message-container');
     const div = document.createElement('div');
     div.className = `message ${type}`;
-    div.textContent = text;
+    const icon = type === 'success' ? 'ti-circle-check' : 'ti-alert-circle';
+    div.innerHTML = `<i class="ti ${icon} message-icon" aria-hidden="true"></i><span>${escapeHtml(text)}</span>`;
     container.innerHTML = '';
     container.appendChild(div);
     setTimeout(() => {
@@ -130,6 +144,24 @@ function getSetIdFromTcgdexId(tcgdexId) {
 
 function normalizeForMatch(str) {
     return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+// Fallback recherche par nom (utilisé seulement quand cardmarket_id est absent, cf. getCardmarketUrl
+// ci-dessous). Un idProduct seul suffit pour un lien produit direct (voir card-detail.js), donc ce
+// fallback n'est plus la voie principale - juste un filet de sécurité pour les items sans idProduct
+// stocké (ex: anciens items wishlist ajoutés avant la colonne cardmarket_id).
+function getCardmarketSearchUrl(name) {
+    return `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(name || '')}&exactMatch=1`;
+}
+
+// Meme logique que le bouton Cardmarket de la collection (card-detail.js:95-97, volontairement pas
+// touche) : lien direct vers la fiche produit exacte si on a l'idProduct Cardmarket, sinon recherche
+// par nom en secours.
+function getCardmarketUrl(cardmarketId, name) {
+    if (cardmarketId) {
+        return `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${cardmarketId}`;
+    }
+    return getCardmarketSearchUrl(name);
 }
 
 // Correspondance entre le texte de rareté (tel que renvoyé par TCGdex) et l'icône fournie par l'utilisateur.

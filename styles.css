@@ -939,6 +939,26 @@ header p {
     color: var(--text-primary);
 }
 
+.preview-cardmarket-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    padding: 0.4rem 0.85rem;
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid rgba(232, 169, 59, 0.35);
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.preview-cardmarket-btn:hover {
+    background: rgba(232, 169, 59, 0.1);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .catalogue-add-expand {
         transition: none;
@@ -1505,6 +1525,18 @@ header p {
 
 .preview-meta-item-full {
     grid-column: 1 / -1;
+}
+
+.preview-meta-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.preview-meta-item-align-end {
+    display: flex;
+    align-items: flex-end;
 }
 
 .preview-info-label {
@@ -4018,25 +4050,39 @@ tbody tr:hover {
     }
 }
 
-.global-message-container:empty {
-    margin-bottom: 0;
-}
-
-.global-message-container:not(:empty) {
-    margin-bottom: 1.5rem;
+.global-message-container {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(420px, calc(100vw - 2rem));
+    pointer-events: none;
 }
 
 .message {
-    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.9rem 1.1rem;
     border-radius: 10px;
     margin-bottom: 1rem;
-    background: var(--ink-navy-light);
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 14px rgba(22, 27, 41, 0.25);
+    background: #14171f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-weight: 500;
     animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
     transition:
         opacity var(--motion-duration-normal) var(--motion-ease-standard),
         transform var(--motion-duration-normal) var(--motion-ease-standard);
+    pointer-events: auto;
+}
+
+.message-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
 }
 
 .message--leaving {
@@ -4045,14 +4091,18 @@ tbody tr:hover {
 }
 
 .message.error {
-    background: rgba(255, 107, 107, 0.12);
-    border: 1px solid rgba(255, 107, 107, 0.35);
-    color: #ff8f8f;
+    border-left-color: #ff6b6b;
+}
+
+.message.error .message-icon {
+    color: #ff6b6b;
 }
 
 .message.success {
-    background: rgba(232, 169, 59, 0.12);
-    border: 1px solid rgba(232, 169, 59, 0.35);
+    border-left-color: var(--gold);
+}
+
+.message.success .message-icon {
     color: var(--gold);
 }
 

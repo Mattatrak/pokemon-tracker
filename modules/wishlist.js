@@ -455,6 +455,7 @@ function toggleWishlistThumbMenu(event, itemId) {
     const otherLists = allWishlists.filter(l => l.id !== item.wishlist_id);
 
     const gotMenu = owned ? '' : `<div class="wishlist-thumb-menu-item" onclick="markWishlistItemOwned(${itemId}); closeWishlistThumbMenus();"><i class="ti ti-check" aria-hidden="true"></i> Je l'ai !</div>`;
+    const cardmarketMenu = `<div class="wishlist-thumb-menu-item" onclick="openWishlistItemCardmarket(${itemId}); closeWishlistThumbMenus();"><i class="ti ti-external-link" aria-hidden="true"></i> Voir sur Cardmarket</div>`;
     const moveMenu = otherLists.length > 0
         ? `<div class="wishlist-thumb-menu-item wishlist-thumb-menu-move" onclick="event.stopPropagation(); toggleWishlistMoveSubmenu(event)"><i class="ti ti-arrow-right" aria-hidden="true"></i> Déplacer vers...`
             + `<div class="wishlist-thumb-submenu">`
@@ -464,6 +465,7 @@ function toggleWishlistThumbMenu(event, itemId) {
 
     menu.innerHTML = `
         ${gotMenu}
+        ${cardmarketMenu}
         ${moveMenu}
         <div class="wishlist-thumb-menu-item wishlist-thumb-menu-danger" onclick="deleteWishlistItem(${itemId}); closeWishlistThumbMenus();"><i class="ti ti-trash" aria-hidden="true"></i> Retirer</div>
     `;
@@ -473,6 +475,12 @@ function toggleWishlistThumbMenu(event, itemId) {
     menu.style.top = (rect.bottom + 4) + 'px';
     menu.style.left = rect.left + 'px';
     menu.classList.add('active');
+}
+
+function openWishlistItemCardmarket(itemId) {
+    const item = allWishlistItems.find(i => i.id === itemId);
+    if (!item) return;
+    window.open(getCardmarketUrl(item.cardmarket_id, item.name), '_blank', 'noopener');
 }
 
 function closeWishlistThumbMenus() {
@@ -601,10 +609,24 @@ function renderWishlistPicker() {
 async function addCardToSpecificWishlist(wishlistId) {
     if (!selectedCard) return;
 
-    let imageUrl = customPreviewImage || (selectedCard.image ? `${selectedCard.image}/high.png` : '');
+    // Image : si déjà hébergée sur Supabase (dédup rapide) on l'utilise tout de suite, sinon on part
+    // sur le lien TCGdex brut pour ne pas bloquer l'ajout, et l'upload se termine en tâche de fond.
+    let imageUrl = customPreviewImage || '';
+    let tcgdexFallbackUrl = '';
+    let imageNeedsBackgroundUpload = false;
+    if (!imageUrl && selectedCard.image) {
+        tcgdexFallbackUrl = `${selectedCard.image}/high.webp`;
+        const existingUrl = selectedCard.id ? await checkExistingImage(selectedCard.id) : null;
+        if (existingUrl) {
+            imageUrl = existingUrl;
+        } else {
+            imageUrl = tcgdexFallbackUrl;
+            imageNeedsBackgroundUpload = true;
+        }
+    }
     const logoUrl = selectedCard.set?.logo ? `${selectedCard.set.logo}.webp` : null;
 
-    const { error } = await supabaseClient.from('wishlist').insert([{
+    const { data, error } = await supabaseClient.from('wishlist').insert([{
         wishlist_id: wishlistId,
         tcgdex_id: selectedCard.id || null,
         name: selectedCard.name || '?',
@@ -612,13 +634,21 @@ async function addCardToSpecificWishlist(wishlistId) {
         number: selectedCard.localId || '?',
         rarity: selectedCard.rarity || 'N/A',
         image: imageUrl,
-        series_logo: logoUrl
-    }]);
+        series_logo: logoUrl,
+        cardmarket_id: selectedCard.pricing?.cardmarket?.idProduct || null
+    }]).select().single();
 
     if (error) {
         showMessage('Erreur lors de l\'ajout à la liste de souhaits', 'error');
         console.error(error);
         return;
+    }
+
+    if (imageNeedsBackgroundUpload) {
+        fetchAndUploadExternalImage(tcgdexFallbackUrl, selectedCard.id)
+            .then(url => supabaseClient.from('wishlist').update({ image: url }).eq('id', data.id))
+            .then(({ error: updateError }) => { if (updateError) console.error('Erreur mise à jour image wishlist (arrière-plan):', updateError); })
+            .catch(err => console.error('Echec hébergement image wishlist (arrière-plan):', err));
     }
 
     showMessage('Ajoutée à ta liste de souhaits !', 'success');

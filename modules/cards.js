@@ -210,12 +210,12 @@ function renderSearchResults(cards) {
     }
 
     container.innerHTML = cards.map(card => {
-        const imageUrl = card.image ? `${card.image}/high.png` : (card._localImage || '');
+        const imageUrl = card.image ? `${card.image}/high.webp` : (card._localImage || '');
         const setName = card.set?.name || card.set?.id || 'N/A';
         const cardNumber = card.localId || '?';
         const logoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
         const imgHtml = imageUrl
-            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="this.outerHTML='<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
+            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="handleTcgdexImgError(this, '<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>')">`
             : '<div class="no-image-placeholder small"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 
         let price = 0;
@@ -304,7 +304,7 @@ function applyCardToPreview(card) {
         duplicateAlert.innerHTML = '';
     }
 
-    const imageUrl = card.image ? `${card.image}/high.png` : '';
+    const imageUrl = card.image ? `${card.image}/high.webp` : '';
     const previewImageContainer = document.querySelector('.preview-image');
 
     document.getElementById('card-finish').innerHTML = buildFinishOptionsHtml(card, 'normal');
@@ -313,7 +313,7 @@ function applyCardToPreview(card) {
         previewImageContainer.innerHTML = '<img id="preview-img" src="" alt="Carte">';
         const img = document.getElementById('preview-img');
         img.onerror = function() {
-            showPreviewUploadPlaceholder();
+            handleTcgdexImgError(img, showPreviewUploadPlaceholder);
         };
         img.src = imageUrl;
     } else if (card._localImage) {
@@ -411,6 +411,10 @@ function applyCardToPreview(card) {
         priceBox.style.display = 'none';
     }
 
+    const cardmarketLink = document.getElementById('preview-cardmarket-link');
+    cardmarketLink.href = getCardmarketUrl(card.pricing?.cardmarket?.idProduct, card.name);
+    cardmarketLink.style.display = '';
+
     // Réinitialiser le mode d'obtention à "Achetée" par défaut pour chaque nouvelle carte
     document.getElementById('card-acquisition').value = 'achat';
     document.getElementById('purchase-price-group').style.display = '';
@@ -493,8 +497,7 @@ async function addCard() {
             purchasePrice,
             customImage: customPreviewImage,
             customDate,
-            finish,
-            onImageUploadStart: () => { addBtn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
+            finish
         });
     } catch (error) {
         addBtn.disabled = false;

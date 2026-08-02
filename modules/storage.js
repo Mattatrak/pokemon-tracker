@@ -40,6 +40,16 @@ async function uploadSeriesLogoManually(file, setId) {
     return logoUrl;
 }
 
+// Essaie l'URL telle quelle (généralement /fr/) puis, si absente sur le CDN TCGdex, retente en /en/
+// (certains sets récents n'ont pas leurs assets fr, le fetch échoue alors avec une erreur CORS opaque)
+async function fetchWithLocaleFallback(url) {
+    try {
+        const response = await fetch(url);
+        if (response.ok) return response;
+    } catch (e) { /* on retente en anglais ci-dessous */ }
+    return fetch(url.replace('/fr/', '/en/'));
+}
+
 // Télécharge le logo d'une série (une seule fois par set, réutilisé pour toutes ses cartes)
 async function fetchAndUploadSeriesSymbol(symbolBaseUrl, setId) {
     const path = getSeriesSymbolPath(setId);
@@ -80,7 +90,7 @@ async function fetchAndUploadSeriesLogo(logoBaseUrl, setId) {
         return data.publicUrl;
     }
 
-    const response = await fetch(`${logoBaseUrl}.webp`);
+    const response = await fetchWithLocaleFallback(`${logoBaseUrl}.webp`);
     if (!response.ok) throw new Error('Logo introuvable sur TCGdex');
 
     const blob = await response.blob();
@@ -118,7 +128,7 @@ async function fetchAndUploadExternalImage(externalUrl, tcgdexId) {
 
     const path = getTcgdexImagePath(tcgdexId);
 
-    const response = await fetch(externalUrl);
+    const response = await fetchWithLocaleFallback(externalUrl);
     if (!response.ok) throw new Error('Impossible de télécharger l\'image source');
 
     const blob = await response.blob();

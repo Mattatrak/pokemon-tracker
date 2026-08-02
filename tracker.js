@@ -190,57 +190,52 @@ async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardNa
     }
 }
 
-async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart, customDate, finish = 'normal' }) {
+// Termine l'hébergement Supabase de l'image en tâche de fond (sans bloquer l'ajout) et met à jour la ligne une fois prête
+function hostImageInBackground(tcgdexUrl, tcgdexId, rowId) {
+    fetchAndUploadExternalImage(tcgdexUrl, tcgdexId)
+        .then(url => supabaseClient.from('cards').update({ image: url }).eq('id', rowId))
+        .then(({ error }) => { if (error) console.error('Erreur mise à jour image (arrière-plan):', error); })
+        .catch(error => console.error('Echec hébergement image (arrière-plan):', error));
+}
+
+// Idem pour le logo/symbole de série (une fois par set, réutilisé ensuite via le cache Supabase)
+function hostSeriesAssetsInBackground(card, rowId, hasLogo, hasSymbol) {
+    if (!hasLogo && card.set?.logo && card.set?.id) {
+        fetchAndUploadSeriesLogo(card.set.logo, card.set.id)
+            .then(url => supabaseClient.from('cards').update({ series_logo: url }).eq('id', rowId))
+            .then(({ error }) => { if (error) console.error('Erreur mise à jour logo (arrière-plan):', error); })
+            .catch(error => console.error('Logo de série non récupéré (arrière-plan):', error));
+    }
+    if (!hasSymbol && card.set?.symbol && card.set?.id) {
+        fetchAndUploadSeriesSymbol(card.set.symbol, card.set.id)
+            .then(url => supabaseClient.from('cards').update({ series_symbol: url }).eq('id', rowId))
+            .then(({ error }) => { if (error) console.error('Erreur mise à jour symbole (arrière-plan):', error); })
+            .catch(error => console.error('Symbole de set non récupéré (arrière-plan):', error));
+    }
+}
+
+async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, customDate, finish = 'normal' }) {
     const name = card.name || '?';
     const series = card.set?.name || 'N/A';
     const number = card.localId || '?';
 
-    // Image, logo de série et recherche de doublon ne dépendent pas les uns des autres : on les lance en parallèle
-    const imagePromise = (async () => {
-        if (customImage) return customImage;
-        if (card.image) {
-            const tcgdexUrl = `${card.image}/high.png`;
-            if (onImageUploadStart) onImageUploadStart();
-            try {
-                return await fetchAndUploadExternalImage(tcgdexUrl, card.id);
-            } catch (error) {
-                console.error('Echec hébergement image, fallback lien TCGdex:', error);
-                return tcgdexUrl;
-            }
-        } else if (card.id) {
-            const existingUrl = await checkExistingImage(card.id);
-            return existingUrl || '';
+    // Image : si déjà hébergée sur Supabase (dédup rapide) on l'utilise tout de suite, sinon on part
+    // sur le lien TCGdex brut pour ne pas bloquer l'ajout, et l'upload se termine en tâche de fond.
+    let imageUrl = customImage || '';
+    let tcgdexFallbackUrl = '';
+    let imageNeedsBackgroundUpload = false;
+    if (!imageUrl && card.image) {
+        tcgdexFallbackUrl = `${card.image}/high.webp`;
+        const existingUrl = card.id ? await checkExistingImage(card.id) : null;
+        if (existingUrl) {
+            imageUrl = existingUrl;
+        } else {
+            imageUrl = tcgdexFallbackUrl;
+            imageNeedsBackgroundUpload = true;
         }
-        return '';
-    })();
+    }
 
-    const logoPromise = (async () => {
-        if (card.set?.logo && card.set?.id) {
-            try {
-                return await fetchAndUploadSeriesLogo(card.set.logo, card.set.id);
-            } catch (error) {
-                console.error('Logo de série non récupéré:', error);
-                return null;
-            }
-        }
-        return null;
-    })();
-
-    const symbolPromise = (async () => {
-        if (card.set?.symbol && card.set?.id) {
-            try {
-                return await fetchAndUploadSeriesSymbol(card.set.symbol, card.set.id);
-            } catch (error) {
-                console.error('Symbole de set non récupéré:', error);
-                return null;
-            }
-        }
-        return null;
-    })();
-
-    const existingRowPromise = findExistingCardRow(card.id, name, series, number, condition, finish);
-
-    const [imageUrl, seriesLogoUrl, seriesSymbolUrl, existingRow] = await Promise.all([imagePromise, logoPromise, symbolPromise, existingRowPromise]);
+    const existingRow = await findExistingCardRow(card.id, name, series, number, condition, finish);
 
     const marketValue = getMarketValueForFinish(card, finish);
 
@@ -252,8 +247,6 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         const newQuantity = Number(existingRow.quantity || 1) + quantity;
         const updatePayload = { quantity: newQuantity, market_value: marketValue };
         if (!existingRow.image && imageUrl) updatePayload.image = imageUrl;
-        if (!existingRow.series_logo && seriesLogoUrl) updatePayload.series_logo = seriesLogoUrl;
-        if (!existingRow.series_symbol && seriesSymbolUrl) updatePayload.series_symbol = seriesSymbolUrl;
         if (!existingRow.cardmarket_id && card.pricing?.cardmarket?.idProduct) {
             updatePayload.cardmarket_id = card.pricing.cardmarket.idProduct;
         }
@@ -264,6 +257,9 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
         ]);
         if (updateResult.error) throw updateResult.error;
+
+        if (imageNeedsBackgroundUpload) hostImageInBackground(tcgdexFallbackUrl, card.id, existingRow.id);
+        hostSeriesAssetsInBackground(card, existingRow.id, !!existingRow.series_logo, !!existingRow.series_symbol);
 
         // Simple instantané (pas de pré-remplissage, la carte existe déjà dans l'historique)
         if (card.id && marketValue > 0) {
@@ -293,18 +289,20 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             acquisition_type: acquisitionType,
             quantity,
             image: imageUrl,
-            series_logo: seriesLogoUrl,
-            series_symbol: seriesSymbolUrl,
             tcgdex_id: card.id || null,
             cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
             date_added: dateAddedStr,
             created_at: acquisitionDate.toISOString(),
             finish,
             illustrator: card.illustrator || null
-        }]),
+        }]).select().single(),
         recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
     ]);
     if (insertResult.error) throw insertResult.error;
+
+    const newRowId = insertResult.data.id;
+    if (imageNeedsBackgroundUpload) hostImageInBackground(tcgdexFallbackUrl, card.id, newRowId);
+    hostSeriesAssetsInBackground(card, newRowId, false, false);
 
     // Nouvelle carte : on pré-remplit l'historique avec les moyennes TCGdex (avg1/avg7/avg30) en plus
     // de l'instantané actuel, pour avoir un vrai repère de tendance dès le premier ajout

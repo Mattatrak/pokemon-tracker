@@ -110,6 +110,27 @@ let currentProgressionStoredFilenames = new Set();
 let progressionStoredLogoFilenames = new Set();
 let progressionLogosLoaded = false;
 let progressionOpenSeriesIds = new Set(); // chapitres actuellement ouverts dans le catalogue
+let progressionLogoCachingTriggered = new Set(); // évite de relancer un upload déjà en cours pendant la session
+
+// Logo d'un set/série : sert la version Supabase déjà cachée en priorité (rapide), sinon le lien TCGdex
+// brut en attendant, et déclenche un hébergement en tâche de fond pour que le prochain chargement soit rapide.
+function resolveCachedLogoUrl(id, rawLogoBase) {
+    const filename = `${sanitizeForPath(id)}.webp`;
+    if (progressionStoredLogoFilenames.has(filename)) {
+        const { data } = supabaseClient.storage.from('card-images').getPublicUrl(`logos/${filename}`);
+        return data.publicUrl;
+    }
+    if (rawLogoBase) {
+        if (!progressionLogoCachingTriggered.has(id)) {
+            progressionLogoCachingTriggered.add(id);
+            fetchAndUploadSeriesLogo(rawLogoBase, id)
+                .then(() => progressionStoredLogoFilenames.add(filename))
+                .catch(error => console.error('Logo de série non récupéré (arrière-plan):', error));
+        }
+        return `${rawLogoBase}.webp`;
+    }
+    return '';
+}
 
 async function loadSeriesProgress() {
     const container = document.getElementById('progression-series-list');
@@ -263,17 +284,10 @@ function renderProgressionSeriesList() {
             const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
             const safeName = (set.name || '').replace(/'/g, "\\'");
 
-            let logoUrl = set.logo ? `${set.logo}.webp` : '';
-            if (!logoUrl) {
-                const filename = `${sanitizeForPath(set.id)}.webp`;
-                if (progressionStoredLogoFilenames.has(filename)) {
-                    const { data } = supabaseClient.storage.from('card-images').getPublicUrl(`logos/${filename}`);
-                    logoUrl = data.publicUrl;
-                }
-            }
+            const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
 
             const logoHtml = logoUrl
-                ? `<img src="${logoUrl}" class="progression-set-logo" alt="" onerror="this.remove()">`
+                ? `<img src="${logoUrl}" class="progression-set-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">`
                 : `<div class="progression-set-logo-upload" onclick="event.stopPropagation(); document.getElementById('proglogo-${set.id}').click()" title="Ajouter un logo">
                     <i class="ti ti-tag" aria-hidden="true"></i>
                     <input type="file" id="proglogo-${set.id}" accept="image/*" style="display:none" onchange="event.stopPropagation(); handleProgressionSeriesLogoUpload(event, '${set.id}')">
@@ -311,12 +325,12 @@ function renderProgressionSeriesList() {
         const genTotal = sets.reduce((sum, set) => sum + (set.cardCount?.total || set.cardCount?.official || 0), 0);
         const genPct = genTotal > 0 ? Math.round((genOwned / genTotal) * 100) : 0;
 
-        const seriesLogoUrl = series.logo ? `${series.logo}.webp` : '';
+        const seriesLogoUrl = resolveCachedLogoUrl(series.id, series.logo);
 
         return `
             <div class="progression-series-block ${isOpen ? 'is-open' : 'is-closed'}">
                 <div class="progression-series-header" onclick="toggleProgressionSeries('${series.id}')">
-                    ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="progression-series-logo" alt="" onerror="this.remove()">` : ''}
+                    ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="progression-series-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">` : ''}
                     <div class="progression-series-info">
                         <div class="progression-series-name">${series.name}</div>
                         <div class="progression-series-meta">${sets.length} extension${sets.length > 1 ? 's' : ''} · ${genOwned}/${genOfficial} cartes</div>
@@ -410,17 +424,10 @@ function renderFollowedSetsSection() {
         const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
         const safeName = (set.name || '').replace(/'/g, "\\'");
 
-        let logoUrl = set.logo ? `${set.logo}.webp` : '';
-        if (!logoUrl) {
-            const filename = `${sanitizeForPath(set.id)}.webp`;
-            if (progressionStoredLogoFilenames.has(filename)) {
-                const { data } = supabaseClient.storage.from('card-images').getPublicUrl(`logos/${filename}`);
-                logoUrl = data.publicUrl;
-            }
-        }
+        const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
 
         const logoHtml = logoUrl
-            ? `<img src="${logoUrl}" class="followed-set-logo" alt="" onerror="this.remove()">`
+            ? `<img src="${logoUrl}" class="followed-set-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">`
             : `<div class="followed-set-logo-placeholder"><i class="ti ti-cards" aria-hidden="true"></i></div>`;
 
         return `
@@ -632,7 +639,7 @@ async function renderProgressionCardsGrid() {
         return `
             <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
-                    ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="this.style.display='none'">`
+                    ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="handleTcgdexImgError(this)">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
@@ -840,7 +847,7 @@ function showAddCardModal(card) {
         marketPrice = card.pricing.cardmarket['avg-holo'];
     }
 
-    const imageUrl = card.image ? `${card.image}/high.png` : '';
+    const imageUrl = card.image ? `${card.image}/high.webp` : '';
 
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
@@ -849,7 +856,7 @@ function showAddCardModal(card) {
             <div class="modal-image-wrap">
                 <div id="quickadd-image-slot">
                     ${imageUrl
-                        ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                        ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
                         : getQuickAddUploadPlaceholderHtml(card.id)
                     }
                 </div>
@@ -941,8 +948,7 @@ async function submitQuickAdd(card) {
             purchasePrice,
             customImage: customQuickAddImage,
             customDate,
-            finish,
-            onImageUploadStart: () => { btn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
+            finish
         });
     } catch (error) {
         btn.disabled = false;
