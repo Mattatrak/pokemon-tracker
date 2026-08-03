@@ -22,89 +22,129 @@ function showCardDetail(cardId) {
 
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
-        <button class="modal-close" onclick="closeCardDetail()">✕</button>
+        <button class="modal-close" onclick="closeCardDetail()"><i class="ti ti-x" aria-hidden="true"></i></button>
         <div class="modal-body">
             <div class="modal-image-wrap">
-                ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
-                    : getModalUploadPlaceholder(card.id)
-                }
+                <div class="modal-stand">
+                    ${card.image
+                        ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                        : getModalUploadPlaceholder(card.id)
+                    }
+                </div>
                 ${card.tcgdex_id ? `
                     <div class="card-price-chart-wrap">
-                        <div class="card-price-chart-title">Historique de prix</div>
-                        <canvas id="card-price-chart"></canvas>
-                        <p id="card-price-chart-empty" class="card-price-chart-empty" style="display:none;">Historique pas encore disponible</p>
-                        <div id="card-price-chart-range" class="card-price-chart-range"></div>
-                        <div id="card-price-periods" class="card-price-periods"></div>
+                        <div class="card-price-chart-header">
+                            <div class="card-price-chart-title">Historique des prix</div>
+                            <div class="card-price-chart-periods" id="card-price-chart-periods">
+                                <button class="chart-period-btn" data-days="1" onclick="setCardPriceChartPeriod(1, this)">1J</button>
+                                <button class="chart-period-btn" data-days="7" onclick="setCardPriceChartPeriod(7, this)">7J</button>
+                                <button class="chart-period-btn active" data-days="30" onclick="setCardPriceChartPeriod(30, this)">30J</button>
+                            </div>
+                        </div>
+                        <div class="card-price-chart-body">
+                            <div class="card-price-chart-plot">
+                                <canvas id="card-price-chart"></canvas>
+                                <p id="card-price-chart-empty" class="card-price-chart-empty" style="display:none;">Historique pas encore disponible</p>
+                                <div id="card-price-chart-range" class="card-price-chart-range"></div>
+                            </div>
+                            <div id="card-price-stat" class="card-price-stat"></div>
+                        </div>
                     </div>
                 ` : ''}
             </div>
             <div class="modal-info">
-                <div class="modal-title-row">
-                    <div class="modal-title">${card.name}</div>
-                    ${card.tcgdex_id ? favoriteStarHtml(card.tcgdex_id) : ''}
-                </div>
-                ${card.series_logo
-                    ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">`
-                    : (card.tcgdex_id ? `
-                        <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
-                            <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
-                        </div>
-                        <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
-                    ` : '')
-                }
-                <div class="modal-subtitle">${card.series} · #${card.number}</div>
-
-                <div class="modal-badges">
-                    <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
-                    <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
-                    ${renderFinishBadge(card.finish, 'modal-pill finish-pill', 14)}
-                    <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
-                    ${!card.series_symbol && card.tcgdex_id ? `
-                        <span class="modal-pill symbol-upload-pill" onclick="document.getElementById('modal-symbol-upload-input').click()">
-                            <i class="ti ti-plus" aria-hidden="true"></i> Symbole du set
-                        </span>
-                        <input type="file" id="modal-symbol-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesSymbolUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
-                    ` : ''}
-                </div>
-
-                <div class="modal-price-row">
-                    <div class="modal-price-line">
-                        <span class="modal-price-label">Valeur marché</span>
-                        <span class="modal-price">${marketValue.toFixed(2)}€</span>
+                <div class="modal-main-col">
+                    <div class="modal-title-row">
+                        <div class="modal-title">${card.name}</div>
+                        ${card.tcgdex_id ? favoriteStarHtml(card.tcgdex_id) : ''}
                     </div>
-                    ${!isPack ? `
-                    <div class="modal-price-line">
-                        <span class="modal-price-label">Prix payé</span>
-                        <span class="modal-price-secondary">${purchasePrice.toFixed(2)}€</span>
-                    </div>` : ''}
-                    ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2)}€ (×${qty})</div>` : ''}
-                </div>
+                    ${card.series_logo
+                        ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">`
+                        : (card.tcgdex_id ? `
+                            <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
+                                <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
+                            </div>
+                            <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
+                        ` : '')
+                    }
+                    <div class="modal-subtitle">${card.series} · #${card.number}</div>
 
-                ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-line"><span class="modal-meta-label">Type</span> ${getTypesIconsHtml(card.type)} ${card.type}</div>` : ''}
-                ${card.illustrator ? `<div class="modal-meta-line"><span class="modal-meta-label">Illustrateur</span> ${escapeHtml(card.illustrator)}</div>` : ''}
-                <div class="modal-meta-line"><span class="modal-meta-label">Quantité</span> ${qty}</div>
-                ${card.date_added ? `<div class="modal-meta-line"><span class="modal-meta-label">Ajoutée le</span> ${card.date_added}</div>` : ''}
-                ${card.notes ? `<div class="modal-note"><i class="ti ti-note" aria-hidden="true"></i> ${escapeHtml(card.notes)}</div>` : ''}
+                    <div class="modal-badges">
+                        <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
+                        <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
+                        ${renderFinishBadge(card.finish, 'modal-pill finish-pill', 14)}
+                        <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
+                        ${!card.series_symbol && card.tcgdex_id ? `
+                            <span class="modal-pill symbol-upload-pill" onclick="document.getElementById('modal-symbol-upload-input').click()">
+                                <i class="ti ti-plus" aria-hidden="true"></i> Symbole du set
+                            </span>
+                            <input type="file" id="modal-symbol-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesSymbolUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
+                        ` : ''}
+                    </div>
 
-                <div class="modal-action-toolbar">
-                    <button class="toolbar-action-btn" onclick="showCardEditForm(${card.id})">
-                        <i class="ti ti-edit toolbar-action-icon" style="color: var(--gold);" aria-hidden="true"></i>
-                        <span>Modifier</span>
-                    </button>
-                    <a href="${card.cardmarket_id
-                        ? `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${card.cardmarket_id}`
-                        : `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name || '')}`
-                    }" target="_blank" rel="noopener noreferrer" class="toolbar-action-btn">
-                        <i class="ti ti-external-link toolbar-action-icon" style="color: var(--teal);" aria-hidden="true"></i>
-                        <span>${card.cardmarket_id ? 'Cardmarket' : 'Chercher'}</span>
-                    </a>
+                    <div class="modal-value-block">
+                        <div class="modal-value-label">Valeur estimée</div>
+                        <div class="modal-value-row">
+                            <span class="modal-price">${marketValue.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-trend-dot"><i class="ti ti-chart-line" aria-hidden="true"></i></span>
+                        </div>
+                        ${!isPack ? `
+                        <div class="modal-price-line">
+                            <span class="modal-price-label">Prix payé</span>
+                            <span class="modal-price-secondary">${purchasePrice.toFixed(2).replace('.', ',')}€</span>
+                        </div>` : ''}
+                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2).replace('.', ',')}€ (×${qty})</div>` : ''}
+                    </div>
+
+                    <div class="modal-meta-actions-row">
+                        <div class="modal-meta-list">
+                            ${card.type && card.type !== 'N/A' ? `<div class="modal-meta-row"><span class="modal-meta-key">${getTypesIconsHtml(card.type, 20)} Type</span><span class="modal-meta-val">${card.type}</span></div>` : ''}
+                            <div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-stack-2" aria-hidden="true"></i> Quantité</span><span class="modal-meta-val">${qty}</span></div>
+                            ${card.date_added ? `<div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-calendar" aria-hidden="true"></i> Ajoutée le</span><span class="modal-meta-val">${card.date_added}</span></div>` : ''}
+                            <div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-hash" aria-hidden="true"></i> Numéro</span><span class="modal-meta-val">${card.number}</span></div>
+                            ${card.illustrator ? `<div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-user" aria-hidden="true"></i> Illustrateur</span><span class="modal-meta-val">${escapeHtml(card.illustrator)}</span></div>` : ''}
+                        </div>
+
+                        <div class="modal-actions-col">
+                            <button class="modal-action-row" onclick="showCardEditForm(${card.id})">
+                                <span class="modal-action-icon" style="color: #e3bc84;"><i class="ti ti-edit" aria-hidden="true"></i></span>
+                                <span class="modal-action-text">
+                                    <span class="modal-action-title" style="color: #e3bc84;">Modifier</span>
+                                    <span class="modal-action-subtitle">Mettre à jour les informations</span>
+                                </span>
+                                <i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>
+                            </button>
+                            <a href="${card.cardmarket_id
+                                ? `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${card.cardmarket_id}`
+                                : `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name || '')}`
+                            }" target="_blank" rel="noopener noreferrer" class="modal-action-row">
+                                <span class="modal-action-icon" style="color: #6bcbff;"><i class="ti ti-external-link" aria-hidden="true"></i></span>
+                                <span class="modal-action-text">
+                                    <span class="modal-action-title" style="color: #6bcbff;">${card.cardmarket_id ? 'Ouvrir sur Cardmarket' : 'Chercher sur Cardmarket'}</span>
+                                    <span class="modal-action-subtitle">Voir l'annonce correspondante</span>
+                                </span>
+                                <i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>
+                            </a>
+                            <button class="modal-action-row modal-action-row-danger" onclick="deleteCard(${card.id}); closeCardDetail();">
+                                <span class="modal-action-icon"><i class="ti ti-trash" aria-hidden="true"></i></span>
+                                <span class="modal-action-text">
+                                    <span class="modal-action-title">Retirer de la collection</span>
+                                    <span class="modal-action-subtitle">Supprimer cette carte</span>
+                                </span>
+                                <i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${card.notes ? `<div class="modal-note"><i class="ti ti-note" aria-hidden="true"></i> ${escapeHtml(card.notes)}</div>` : ''}
                 </div>
-                <button class="modal-delete-btn-v2" onclick="deleteCard(${card.id}); closeCardDetail();">
-                    <i class="ti ti-trash" aria-hidden="true"></i>
-                    <span>Supprimer de la collection</span>
-                </button>
             </div>
+        </div>
+        <div class="modal-disclaimer">
+            <span class="modal-disclaimer-icon"><i class="ti ti-info-circle" aria-hidden="true"></i></span>
+            <span class="modal-disclaimer-text">
+                <span class="modal-disclaimer-title">Les prix sont fournis à titre indicatif par Cardmarket.</span>
+                <span class="modal-disclaimer-sub">Mise à jour quotidienne.</span>
+            </span>
         </div>
     `;
 
@@ -116,44 +156,62 @@ function showCardDetail(cardId) {
 }
 
 let cardPriceChartInstance = null;
+let cardPriceChartData = null;
 
 async function renderCardPriceChart(tcgdexId) {
     const canvas = document.getElementById('card-price-chart');
-    const emptyMsg = document.getElementById('card-price-chart-empty');
-    const rangeLabel = document.getElementById('card-price-chart-range');
-    const periodsContainer = document.getElementById('card-price-periods');
     if (!canvas || typeof Chart === 'undefined') return;
 
+    // .not(...'is', null) : une ligne avec recorded_at absent (ancien point mal formé, ex. tout
+    // premier insert avant l'ajout de cette colonne) trierait en dernier même en ordre croissant
+    // (comportement NULLS LAST de Postgres), et serait alors prise à tort pour "la valeur actuelle"
+    // par values[values.length - 1] plus bas.
     const { data, error } = await supabaseClient
         .from('card_price_history')
         .select('*')
         .eq('tcgdex_id', tcgdexId)
+        .not('recorded_at', 'is', null)
         .order('recorded_at', { ascending: true })
         .limit(100);
+
+    cardPriceChartData = (!error && data) ? data : [];
+    renderCardPriceChartForPeriod(30);
+}
+
+function renderCardPriceChartForPeriod(days) {
+    const canvas = document.getElementById('card-price-chart');
+    const emptyMsg = document.getElementById('card-price-chart-empty');
+    const rangeLabel = document.getElementById('card-price-chart-range');
+    const statBlock = document.getElementById('card-price-stat');
+    if (!canvas) return;
+
+    const all = cardPriceChartData || [];
+    const cutoff = days > 0 ? Date.now() - days * 24 * 60 * 60 * 1000 : 0;
+    const data = days > 0 ? all.filter(d => new Date(d.recorded_at).getTime() >= cutoff) : all;
 
     if (cardPriceChartInstance) {
         cardPriceChartInstance.destroy();
         cardPriceChartInstance = null;
     }
 
-    if (error || !data || data.length < 2) {
+    if (!data || data.length < 2) {
         canvas.style.display = 'none';
         if (rangeLabel) rangeLabel.style.display = 'none';
-        if (periodsContainer) {
-            periodsContainer.innerHTML = '';
-            periodsContainer.style.display = 'none';
+        if (statBlock) {
+            statBlock.innerHTML = '';
+            statBlock.style.display = 'none';
         }
-        emptyMsg.style.display = 'block';
+        if (emptyMsg) emptyMsg.style.display = 'block';
         return;
     }
 
     canvas.style.display = 'block';
-    emptyMsg.style.display = 'none';
+    if (emptyMsg) emptyMsg.style.display = 'none';
 
     const values = data.map(d => Number(d.market_value));
     const trendUp = values[values.length - 1] >= values[0];
-    const lineColor = trendUp ? '#4ade80' : '#ff6b6b';
-    const fillColor = trendUp ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 107, 107, 0.1)';
+    const lineColor = trendUp ? '#7ED9A7' : '#ff6b6b';
+    const fillColor = trendUp ? 'rgba(74, 222, 128, 0.07)' : 'rgba(255, 107, 107, 0.06)';
 
     const minVal = Math.min(...values);
     const maxVal = Math.max(...values);
@@ -164,52 +222,29 @@ async function renderCardPriceChart(tcgdexId) {
             : `<span>Min ${minVal.toFixed(2)}€</span><span>Max ${maxVal.toFixed(2)}€</span>`;
     }
 
-    if (periodsContainer) {
+    if (statBlock) {
+        const baseValue = values[0];
         const currentValue = values[values.length - 1];
-        const now = Date.now();
-        const periods = [
-            { label: '1 jour', ms: 1 * 24 * 60 * 60 * 1000 },
-            { label: '7 jours', ms: 7 * 24 * 60 * 60 * 1000 },
-            { label: '30 jours', ms: 30 * 24 * 60 * 60 * 1000 }
-        ];
+        const periodLabel = days === 0 ? 'depuis le début' : `${days} derniers jours`;
 
-        const rowsHtml = periods.map(p => {
-            const cutoff = now - p.ms;
-            // Point de référence : la donnée la plus récente à ou avant cette date
-            let basePoint = null;
-            for (const point of data) {
-                if (new Date(point.recorded_at).getTime() <= cutoff) {
-                    basePoint = point;
-                } else {
-                    break;
-                }
-            }
-
-            if (!basePoint || Number(basePoint.market_value) === 0) {
-                return `
-                    <div class="period-row">
-                        <span class="period-label">Depuis ${p.label}</span>
-                        <span class="period-value neutral">—</span>
-                    </div>
-                `;
-            }
-
-            const baseValue = Number(basePoint.market_value);
+        if (baseValue === 0) {
+            statBlock.style.display = 'flex';
+            statBlock.innerHTML = `
+                <span class="card-price-stat-pct neutral">—</span>
+                <span class="card-price-stat-caption">${periodLabel}</span>
+            `;
+        } else {
             const pct = ((currentValue - baseValue) / baseValue) * 100;
-            const deltaValue = currentValue - baseValue;
+            const delta = currentValue - baseValue;
             const cls = pct > 0 ? 'positive' : pct < 0 ? 'negative' : 'neutral';
             const sign = pct > 0 ? '+' : '';
-
-            return `
-                <div class="period-row">
-                    <span class="period-label">Depuis ${p.label}</span>
-                    <span class="period-value ${cls}">${sign}${pct.toFixed(0)}% <span class="period-value-abs">(${sign}${deltaValue.toFixed(2)}€)</span></span>
-                </div>
+            statBlock.style.display = 'flex';
+            statBlock.innerHTML = `
+                <span class="card-price-stat-pct ${cls}">${sign}${pct.toFixed(0)}%</span>
+                <span class="card-price-stat-abs ${cls}">(${sign}${delta.toFixed(2).replace('.', ',')}€)</span>
+                <span class="card-price-stat-caption">${periodLabel}</span>
             `;
-        }).join('');
-
-        periodsContainer.style.display = '';
-        periodsContainer.innerHTML = rowsHtml;
+        }
     }
 
     cardPriceChartInstance = new Chart(canvas, {
@@ -221,12 +256,12 @@ async function renderCardPriceChart(tcgdexId) {
                 borderColor: lineColor,
                 backgroundColor: fillColor,
                 fill: true,
-                tension: 0.3,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-                pointBackgroundColor: lineColor,
-                pointBorderColor: '#1B2233',
-                pointBorderWidth: 1.5,
+                tension: 0.25,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                pointHoverBackgroundColor: lineColor,
+                pointHoverBorderColor: 'rgba(0,0,0,0.4)',
+                pointHoverBorderWidth: 1.5,
                 pointHitRadius: 8,
                 borderWidth: 2
             }]
@@ -234,13 +269,16 @@ async function renderCardPriceChart(tcgdexId) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { top: 6, right: 2, bottom: 2, left: 2 }
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     backgroundColor: '#161B29',
                     titleColor: '#8A93A6',
                     bodyColor: '#F7F3EA',
-                    borderColor: 'rgba(255,255,255,0.15)',
+                    borderColor: 'rgba(255,255,255,0.1)',
                     borderWidth: 1,
                     padding: 8,
                     displayColors: false,
@@ -259,6 +297,15 @@ async function renderCardPriceChart(tcgdexId) {
             }
         }
     });
+}
+
+function setCardPriceChartPeriod(days, btn) {
+    const container = document.getElementById('card-price-chart-periods');
+    if (container) {
+        container.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('active'));
+    }
+    if (btn) btn.classList.add('active');
+    renderCardPriceChartForPeriod(days);
 }
 
 // ===== EDITION D'UNE CARTE DEPUIS LA FICHE DETAIL =====
@@ -308,67 +355,80 @@ async function showCardEditForm(cardId) {
     const oldDateInput = document.getElementById('edit-date-added');
     if (oldDateInput && oldDateInput._flatpickr) oldDateInput._flatpickr.destroy();
 
+    const notesValue = card.notes || '';
+
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
-        <button class="modal-close" onclick="closeCardDetail()">✕</button>
-        <div class="modal-body">
+        <button class="modal-close" onclick="closeCardDetail()"><i class="ti ti-x" aria-hidden="true"></i></button>
+        <div class="edit-form-header">
+            <div class="edit-form-title">Informations de collection</div>
+            <div class="edit-form-subtitle">Modifiez les détails de votre exemplaire.</div>
+            <div class="edit-form-breadcrumb">
+                ${card.series_logo ? `<img src="${card.series_logo}" class="edit-breadcrumb-logo" alt="" onerror="this.remove()">` : ''}
+                <span>${card.series}</span>
+                <span class="edit-breadcrumb-dot">·</span>
+                <span>#${card.number}</span>
+            </div>
+        </div>
+        <div class="modal-body edit-form-body">
             <div class="modal-image-wrap">
                 ${card.image
                     ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
                     : getModalUploadPlaceholder(card.id)
                 }
-            </div>
-            <div class="modal-info">
-                <div class="modal-title">${card.name}</div>
-                <div class="modal-subtitle">${card.series} · #${card.number}</div>
-
-                <div class="edit-form-grid">
-                    <div class="form-group">
-                        <label for="edit-condition">État</label>
-                        <select id="edit-condition">
-                            <option value="NM" ${card.condition === 'NM' ? 'selected' : ''}>Neuf (NM)</option>
-                            <option value="LP" ${card.condition === 'LP' ? 'selected' : ''}>Très bon (LP)</option>
-                            <option value="MP" ${card.condition === 'MP' ? 'selected' : ''}>Bon (MP)</option>
-                            <option value="HP" ${card.condition === 'HP' ? 'selected' : ''}>Mauvais état (HP)</option>
-                        </select>
+                <div class="edit-info-box">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    <div class="edit-info-text">
+                        <div class="edit-info-title">Vous éditez votre exemplaire de cette carte.</div>
+                        <div class="edit-info-sub">Ces informations n'affectent pas la carte elle-même.</div>
                     </div>
-                    <div class="form-group">
-                        <label for="edit-finish">Finition</label>
-                        <select id="edit-finish">
-                            ${finishOptionsHtml}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-quantity">Quantité</label>
-                        <input type="number" id="edit-quantity" value="${Number(card.quantity || 1)}" min="1" max="100">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-acquisition">Obtention</label>
-                        <select id="edit-acquisition" onchange="toggleEditPurchasePriceField()">
-                            <option value="achat" ${!isPack ? 'selected' : ''}>Achetée</option>
-                            <option value="pack" ${isPack ? 'selected' : ''}>Sortie d'un booster</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="edit-purchase-price-group" style="${isPack ? 'display:none;' : ''}">
-                        <label for="edit-purchase-price">Prix payé (€)</label>
-                        <input type="number" id="edit-purchase-price" value="${Number(card.purchase_price || 0).toFixed(2)}" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-date-added">Date d'acquisition</label>
-                        <input type="text" id="edit-date-added" value="${card.created_at ? toLocalDateInputValue(new Date(card.created_at)) : ''}">
-                    </div>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label for="edit-notes">Note personnelle</label>
-                    <textarea id="edit-notes" rows="2" placeholder="Cadeau de mamie, trouvée à la brocante...">${escapeHtml(card.notes)}</textarea>
-                </div>
-
-                <div class="modal-edit-actions">
-                    <button class="modal-save-btn" onclick="saveCardEdits(${card.id}, this)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
-                    <button class="modal-cancel-btn" onclick="showCardDetail(${card.id})">Annuler</button>
                 </div>
             </div>
+            <div class="edit-fields-grid">
+                <div class="edit-field-card">
+                    <label class="edit-field-label" for="edit-condition"><i class="ti ti-shield-check" aria-hidden="true"></i> État</label>
+                    <select id="edit-condition">
+                        <option value="NM" ${card.condition === 'NM' ? 'selected' : ''}>Neuf (NM)</option>
+                        <option value="LP" ${card.condition === 'LP' ? 'selected' : ''}>Très bon (LP)</option>
+                        <option value="MP" ${card.condition === 'MP' ? 'selected' : ''}>Bon (MP)</option>
+                        <option value="HP" ${card.condition === 'HP' ? 'selected' : ''}>Mauvais état (HP)</option>
+                    </select>
+                </div>
+                <div class="edit-field-card">
+                    <label class="edit-field-label" for="edit-finish"><i class="ti ti-sparkles" aria-hidden="true"></i> Finition</label>
+                    <select id="edit-finish">
+                        ${finishOptionsHtml}
+                    </select>
+                </div>
+                <div class="edit-field-card">
+                    <label class="edit-field-label" for="edit-quantity"><i class="ti ti-cube" aria-hidden="true"></i> Quantité</label>
+                    <input type="number" id="edit-quantity" value="${Number(card.quantity || 1)}" min="1" max="100">
+                </div>
+                <div class="edit-field-card">
+                    <label class="edit-field-label" for="edit-acquisition"><i class="ti ti-gift" aria-hidden="true"></i> Obtention</label>
+                    <select id="edit-acquisition" onchange="toggleEditPurchasePriceField()">
+                        <option value="achat" ${!isPack ? 'selected' : ''}>Achetée</option>
+                        <option value="pack" ${isPack ? 'selected' : ''}>Sortie d'un booster</option>
+                    </select>
+                </div>
+                <div class="edit-field-card" id="edit-purchase-price-group" style="${isPack ? 'display:none;' : ''}">
+                    <label class="edit-field-label" for="edit-purchase-price"><i class="ti ti-currency-euro" aria-hidden="true"></i> Prix payé (€)</label>
+                    <input type="number" id="edit-purchase-price" value="${Number(card.purchase_price || 0).toFixed(2)}" step="0.01" min="0">
+                </div>
+                <div class="edit-field-card">
+                    <label class="edit-field-label" for="edit-date-added"><i class="ti ti-calendar" aria-hidden="true"></i> Date d'acquisition</label>
+                    <input type="text" id="edit-date-added" value="${card.created_at ? toLocalDateInputValue(new Date(card.created_at)) : ''}">
+                </div>
+                <div class="edit-field-card edit-field-card-wide">
+                    <label class="edit-field-label" for="edit-notes"><i class="ti ti-pencil" aria-hidden="true"></i> Note personnelle</label>
+                    <textarea id="edit-notes" rows="2" maxlength="300" oninput="document.getElementById('edit-note-counter').textContent = this.value.length + ' / 300'" placeholder="Cadeau de mamie, trouvée à la brocante...">${escapeHtml(notesValue)}</textarea>
+                    <div class="edit-note-counter" id="edit-note-counter">${notesValue.length} / 300</div>
+                </div>
+            </div>
+        </div>
+        <div class="edit-form-actions">
+            <button class="modal-cancel-btn" onclick="showCardDetail(${card.id})">Annuler</button>
+            <button class="modal-save-btn" onclick="saveCardEdits(${card.id}, this)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer les modifications</button>
         </div>
     `;
 

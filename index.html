@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-07-29-46">
+    <link rel="stylesheet" href="styles.css?t=2026-08-02-1">
     <link rel="stylesheet" href="css/layout-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-tokens.css?v=1">
     <link rel="stylesheet" href="css/motion-components.css?v=1">
@@ -42,21 +42,75 @@
         <div class="progression-atlas-hero">
             <div id="progression-hero-nav-container"></div>
             <div class="progression-atlas-hero-content">
-                <div class="progression-atlas-hero-eyebrow">Atlas des séries</div>
-                <h1 class="progression-atlas-hero-title">Explorez l'histoire de votre collection</h1>
-                <p class="progression-atlas-hero-subtitle">Parcourez toutes les extensions Pokémon, suivez votre progression et complétez chaque chapitre de votre aventure.</p>
+                <div class="progression-atlas-hero-text">
+                    <div class="progression-atlas-hero-eyebrow">Atlas des séries</div>
+                    <h1 class="progression-atlas-hero-title">Explorez l'histoire de votre collection</h1>
+                    <p class="progression-atlas-hero-subtitle">Parcourez toutes les extensions Pokémon, suivez votre progression et complétez chaque chapitre de votre aventure.</p>
+                </div>
+                <div id="progression-stats-bottom" class="stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-clock" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Sets en cours</div>
+                            <div class="kpi-plaque-value" id="progression-kpi-inprogress">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Sets complétés</div>
+                            <div class="kpi-plaque-value" id="progression-kpi-completed">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-trending-up" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Set le plus avancé</div>
+                            <div class="kpi-plaque-value" id="progression-kpi-advanced-pct">—</div>
+                            <div class="kpi-plaque-sub" id="progression-kpi-advanced-name">Aucun set commencé</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="collection-atlas-hero">
             <div id="collection-hero-nav-container"></div>
             <div class="collection-atlas-hero-content">
-                <div class="collection-atlas-hero-eyebrow">Ma collection</div>
-                <h1 class="collection-atlas-hero-title">Votre Collection</h1>
-                <p class="collection-atlas-hero-subtitle">Explorez, recherchez et gérez chacune de vos cartes Pokémon.</p>
-                <div class="collection-atlas-hero-search input-with-icon">
-                    <i class="ti ti-search" aria-hidden="true"></i>
-                    <input type="text" id="search-collection" placeholder="Chercher dans ma collection...">
+                <div class="collection-atlas-hero-text">
+                    <div class="collection-atlas-hero-eyebrow">Ma collection</div>
+                    <h1 class="collection-atlas-hero-title">Votre Collection</h1>
+                    <p class="collection-atlas-hero-subtitle">Explorez, recherchez et gérez chacune de vos cartes Pokémon.</p>
+                    <div class="collection-atlas-hero-search input-with-icon">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="search-collection" placeholder="Chercher dans ma collection...">
+                    </div>
+                </div>
+                <div id="collection-stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total de cartes</div>
+                            <div class="kpi-plaque-value" id="collection-kpi-total">0</div>
+                            <div class="kpi-plaque-sub" id="collection-kpi-total-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque kpi-plaque--value" onclick="showTopMoversModal()">
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur totale (marché)</div>
+                            <div class="kpi-plaque-value" id="collection-kpi-value">0€</div>
+                            <div class="kpi-plaque-sub" id="collection-kpi-value-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-report-money" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total dépensé</div>
+                            <div class="kpi-plaque-value" id="collection-kpi-spent">0€</div>
+                            <div class="kpi-plaque-sub" id="collection-kpi-spent-sub"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -64,131 +118,86 @@
         <div class="stats-hero">
             <div id="stats-hero-nav-container"></div>
             <div class="stats-hero-content">
-                <div class="stats-hero-eyebrow">Vos statistiques</div>
-                <h1 class="stats-hero-title">Analysez votre collection</h1>
-                <p class="stats-hero-subtitle">Suivez la valeur, les tendances et les temps forts de votre collection.</p>
+                <div class="stats-hero-text">
+                    <div class="stats-hero-eyebrow">Vos statistiques</div>
+                    <h1 class="stats-hero-title">Analysez votre collection</h1>
+                    <p class="stats-hero-subtitle">Suivez la valeur, les tendances et les temps forts de votre collection.</p>
+                </div>
+                <div class="stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total de cartes</div>
+                            <div class="kpi-plaque-value" id="total-cards">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque kpi-plaque--value" onclick="showTopMoversModal()">
+                        <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur totale (marché)</div>
+                            <div class="kpi-plaque-value" id="hero-total-value">0€</div>
+                            <span class="hero-fluctuation kpi-plaque-sub" id="hero-fluctuation"></span>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-report-money" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total dépensé</div>
+                            <div class="kpi-plaque-value" id="total-spent">0€</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="wishlist-hero">
             <div id="wishlist-hero-nav-container"></div>
             <div class="wishlist-hero-content">
-                <div class="wishlist-hero-eyebrow">Souhaits</div>
-                <h1 class="wishlist-hero-title">Vos listes de souhaits</h1>
-                <p class="wishlist-hero-subtitle">Gardez un œil sur les cartes que vous rêvez d'ajouter à votre collection.</p>
+                <div class="wishlist-hero-text">
+                    <div class="wishlist-hero-eyebrow">Souhaits</div>
+                    <h1 class="wishlist-hero-title">Vos listes de souhaits</h1>
+                    <p class="wishlist-hero-subtitle">Gardez un œil sur les cartes que vous rêvez d'ajouter à votre collection.</p>
+                    <div class="wishlist-hero-search input-with-icon">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="wishlist-search-input" placeholder="Chercher une carte dans mes listes..." oninput="filterWishlist(this.value)">
+                    </div>
+                </div>
+                <div id="wishlist-stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-file-text" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Cartes dans les wishlists</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-count">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur estimée</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-value">0€</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-list" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Listes</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-lists">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <img id="wishlist-kpi-top-img" class="stat-card-top-img" alt="" style="display:none;">
+                        <span class="kpi-plaque-icon" id="wishlist-kpi-top-emoji" aria-hidden="true"><i class="ti ti-star"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label" id="wishlist-kpi-top-name">Carte la plus chère</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-top-price">0€</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="progression-followed-sets" class="progression-followed-sets"></div>
-
-        <div class="stats-bottom">
-            <div class="stat-card-icon stat-card-cartes">
-                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="total-cards">0</div>
-                    <div class="stat-label">Total de cartes</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-value" onclick="showTopMoversModal()">
-                <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
-                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number-row">
-                        <div class="stat-number" id="hero-total-value">0€</div>
-                        <span class="hero-fluctuation" id="hero-fluctuation"></span>
-                    </div>
-                    <div class="stat-label">Valeur totale (marché)</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-achat">
-                <img src="images/total-achat.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="total-spent">0€</div>
-                    <div class="stat-label">Total dépensé</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="progression-stats-bottom" class="stats-bottom">
-            <div class="stat-card-icon stat-card-cartes">
-                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="progression-kpi-inprogress">0</div>
-                    <div class="stat-label">Sets en cours</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-achat">
-                <img src="images/total-achat.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="progression-kpi-completed">0</div>
-                    <div class="stat-label">Sets complétés</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-value">
-                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="progression-kpi-advanced-pct">—</div>
-                    <div class="stat-label" id="progression-kpi-advanced-name">Aucun set commencé</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="collection-stats-bottom">
-            <div class="stat-card-icon stat-card-cartes">
-                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="collection-kpi-total">0</div>
-                    <div class="stat-label">Total de cartes</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-value" onclick="showTopMoversModal()">
-                <canvas id="collection-hero-sparkline" class="hero-sparkline-canvas"></canvas>
-                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="collection-kpi-value">0€</div>
-                    <div class="stat-label">Valeur totale (marché)</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-achat">
-                <img src="images/total-achat.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="collection-kpi-spent">0€</div>
-                    <div class="stat-label">Total dépensé</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="wishlist-stats-bottom">
-            <div class="stat-card-icon stat-card-cartes">
-                <span class="stat-card-emoji" aria-hidden="true">📄</span>
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="wishlist-kpi-count">0</div>
-                    <div class="stat-label">Cartes dans les wishlists</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-value">
-                <span class="stat-card-emoji" aria-hidden="true">💰</span>
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="wishlist-kpi-value">0€</div>
-                    <div class="stat-label">Valeur estimée</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-lists">
-                <span class="stat-card-emoji" aria-hidden="true">📋</span>
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="wishlist-kpi-lists">0</div>
-                    <div class="stat-label">Listes</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-top">
-                <img id="wishlist-kpi-top-img" class="stat-card-top-img" alt="" style="display:none;">
-                <span class="stat-card-emoji" id="wishlist-kpi-top-emoji" aria-hidden="true">⭐</span>
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="wishlist-kpi-top-price">0€</div>
-                    <div class="stat-label" id="wishlist-kpi-top-name">Carte la plus chère</div>
-                </div>
-            </div>
-        </div>
 
         <div id="message-container" class="global-message-container"></div>
 
@@ -716,10 +725,6 @@
         <div id="tab-wishlist" class="tab-content">
             <div class="wishlist-panel">
                 <div class="catalogue-toolbar wishlist-toolbar">
-                    <div class="input-with-icon wishlist-search">
-                        <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="wishlist-search-input" placeholder="Chercher une carte dans mes listes..." oninput="filterWishlist(this.value)">
-                    </div>
                     <div class="catalogue-toolbar-actions">
                         <select id="wishlist-sort-select" class="catalogue-sort-select" onchange="setWishlistSort(this.value)">
                             <option value="date-desc">Ajout récent</option>

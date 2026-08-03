@@ -336,7 +336,7 @@ function renderValueHistoryChart() {
     const labels = data.map(d => new Date(d.recorded_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
     const values = data.map(d => Number(d.total_value));
     const trendUp = values[values.length - 1] >= values[0];
-    const lineColor = trendUp ? '#4ade80' : '#ff6b6b';
+    const lineColor = trendUp ? '#7ED9A7' : '#ff6b6b';
     const fillColor = trendUp ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 107, 107, 0.1)';
 
     if (valueHistoryChartInstance) valueHistoryChartInstance.destroy();

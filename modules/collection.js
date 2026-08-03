@@ -363,10 +363,41 @@ function renderCollectionHeaderKpis(filtered) {
     const totalCards = allCollectionCards.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
     const totalSpent = allCollectionCards.reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
+    const uniqueCards = allCollectionCards.length;
+    const gain = totalValue - totalSpent;
+    // Prix moyen calculé uniquement sur les cartes achetées (acquisition_type !== 'pack') : une
+    // carte sortie d'un booster n'a pas de vrai "prix d'achat" individuel, l'inclure dilue la
+    // moyenne à tort.
+    const purchasedCards = allCollectionCards
+        .filter(c => c.acquisition_type !== 'pack')
+        .reduce((sum, c) => sum + Number(c.quantity || 1), 0);
+    const avgPrice = purchasedCards > 0 ? totalSpent / purchasedCards : 0;
 
     totalEl.textContent = totalCards;
     valueEl.textContent = totalValue.toFixed(2) + '€';
     spentEl.textContent = totalSpent.toFixed(2) + '€';
+
+    const totalSubEl = document.getElementById('collection-kpi-total-sub');
+    const valueSubEl = document.getElementById('collection-kpi-value-sub');
+    const spentSubEl = document.getElementById('collection-kpi-spent-sub');
+    if (totalSubEl) totalSubEl.textContent = uniqueCards + ' cartes uniques';
+    if (spentSubEl) spentSubEl.textContent = avgPrice.toFixed(2) + '€ / carte en moyenne';
+
+    // Fluctuation du marché sur 24h (prix uniquement, cf. computeMarketFluctuation dans stats.js) —
+    // remplace l'ancien "vs achat" qui ne reflétait pas un vrai mouvement de marché récent.
+    if (valueSubEl) {
+        valueSubEl.textContent = '...';
+        computeMarketFluctuation(24 * 60 * 60 * 1000).then(fluctuation => {
+            if (!fluctuation) {
+                valueSubEl.textContent = 'Pas de variation sur 24h';
+                valueSubEl.className = 'kpi-plaque-sub';
+                return;
+            }
+            const sign = fluctuation.delta > 0 ? '+' : '';
+            valueSubEl.textContent = `${sign}${fluctuation.delta.toFixed(2)}€ sur 24h`;
+            valueSubEl.className = 'kpi-plaque-sub ' + (fluctuation.delta > 0 ? 'positive' : fluctuation.delta < 0 ? 'negative' : '');
+        });
+    }
 }
 
 function renderFilteredCollection() {
@@ -519,4 +550,38 @@ function setCollectionView(mode) {
     document.getElementById('collection-table-wrapper').style.display = mode === 'table' ? 'block' : 'none';
     document.getElementById('grid-sort').style.display = mode === 'grid' ? 'inline-block' : 'none';
     filterAndDisplay();
+}
+
+// Script de maintenance ponctuel : récupère l'illustrateur (TCGdex) pour les cartes ajoutées
+// avant l'introduction du champ illustrator. A lancer une fois depuis la console (backfillIllustrators()).
+async function backfillIllustrators() {
+    const missing = allCollectionCards.filter(c => c.tcgdex_id && !c.illustrator);
+    if (missing.length === 0) {
+        showMessage('Aucune carte à mettre à jour', 'success');
+        return;
+    }
+
+    showMessage(`Mise à jour de ${missing.length} carte(s)...`, 'success');
+    let updated = 0;
+
+    for (const card of missing) {
+        try {
+            let response = await fetch(`${API_BASE}/cards/${card.tcgdex_id}`);
+            let detail = await response.json();
+            if (!detail || detail.status) {
+                const enResponse = await fetch(`${API_EN}/cards/${card.tcgdex_id}`);
+                detail = await enResponse.json();
+            }
+            if (detail && !detail.status && detail.illustrator) {
+                const { error } = await supabaseClient.from('cards').update({ illustrator: detail.illustrator }).eq('id', card.id);
+                if (!error) updated++;
+            }
+        } catch (error) {
+            console.error('Erreur backfill illustrateur pour carte', card.id, error);
+        }
+        await new Promise(r => setTimeout(r, 150));
+    }
+
+    await refreshCollection();
+    showMessage(`Illustrateur ajouté sur ${updated}/${missing.length} carte(s)`, 'success');
 }

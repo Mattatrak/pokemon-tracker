@@ -41,11 +41,19 @@ async function computeMarketFluctuation(windowMs) {
     const uniqueIds = [...new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id))];
     if (uniqueIds.length === 0) return null;
 
-    const { data, error } = await supabaseClient
+    // Fenêtre + tri décroissant avec limite explicite (voir showTopMoversModal pour l'explication
+    // complète) : même avec un filtre de date, une grosse collection très rafraîchie peut dépasser
+    // la limite par défaut de 1000 lignes de PostgREST. Trier du plus récent au plus ancien garantit
+    // qu'une troncature éventuelle ne sacrifie que les points anciens, jamais les points récents.
+    const windowStart = new Date(Date.now() - windowMs - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: dataDesc, error } = await supabaseClient
         .from('card_price_history')
         .select('*')
         .in('tcgdex_id', uniqueIds)
-        .order('recorded_at', { ascending: true });
+        .gte('recorded_at', windowStart)
+        .order('recorded_at', { ascending: false })
+        .limit(20000);
+    const data = dataDesc ? [...dataDesc].reverse() : dataDesc;
 
     if (error || !data || data.length === 0) return null;
 
@@ -118,7 +126,7 @@ async function renderHeroValueCard() {
                 labels: values.map((_, i) => i),
                 datasets: [{
                     data: values,
-                    borderColor: trendUp ? '#4ade80' : '#ff6b6b',
+                    borderColor: trendUp ? '#7ED9A7' : '#ff6b6b',
                     backgroundColor: trendUp ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 107, 107, 0.12)',
                     borderWidth: 2,
                     fill: true,
@@ -174,11 +182,21 @@ async function showTopMoversModal() {
         return;
     }
 
-    const { data, error } = await supabaseClient
+    // Fenêtre limitée à 3 jours : même avec ce filtre, une grosse collection très rafraîchie peut
+    // encore dépasser la limite par défaut de 1000 lignes de PostgREST (vérifié en pratique). On
+    // trie donc en DESCENDANT (le plus récent d'abord) avec une limite explicite généreuse, pour
+    // que si troncature il y a malgré tout, ce soit les points les plus ANCIENS qui sautent — jamais
+    // les points récents dont on a besoin pour "maintenant" et "il y a ~24h". On ré-inverse ensuite
+    // pour retrouver l'ordre croissant attendu par le reste du code.
+    const windowStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: dataDesc, error } = await supabaseClient
         .from('card_price_history')
         .select('*')
         .in('tcgdex_id', uniqueIds)
-        .order('recorded_at', { ascending: true });
+        .gte('recorded_at', windowStart)
+        .order('recorded_at', { ascending: false })
+        .limit(20000);
+    const data = dataDesc ? [...dataDesc].reverse() : dataDesc;
 
     if (error || !data) {
         content.innerHTML = `
@@ -195,10 +213,13 @@ async function showTopMoversModal() {
         historyByCard[point.tcgdex_id].push(point);
     });
 
-    const currentByCard = {};
+    // Nom/numéro affichés depuis la collection, mais la VALEUR actuelle vient du dernier point de
+    // card_price_history (même source que la fiche carte, cf. renderCardPriceChart) — sinon les deux
+    // vues peuvent se contredire si cards.market_value n'est pas parfaitement synchronisé.
+    const nameByCard = {};
     allCollectionCards.forEach(c => {
-        if (c.tcgdex_id && !(c.tcgdex_id in currentByCard)) {
-            currentByCard[c.tcgdex_id] = { name: c.name, number: c.number, value: Number(c.market_value || 0) };
+        if (c.tcgdex_id && !(c.tcgdex_id in nameByCard)) {
+            nameByCard[c.tcgdex_id] = { name: c.name, number: c.number };
         }
     });
 
@@ -207,10 +228,12 @@ async function showTopMoversModal() {
 
     uniqueIds.forEach(id => {
         const points = historyByCard[id];
-        const current = currentByCard[id];
-        if (!points || points.length === 0 || !current) return;
+        const info = nameByCard[id];
+        if (!points || points.length === 0 || !info) return;
 
-        let baseline = points[0];
+        const current = { ...info, value: Number(points[points.length - 1].market_value) };
+
+        let baseline = null;
         for (const point of points) {
             if (new Date(point.recorded_at).getTime() <= dayAgo) {
                 baseline = point;
@@ -218,6 +241,11 @@ async function showTopMoversModal() {
                 break;
             }
         }
+
+        // Pas de point antérieur à 24h (carte trop récemment suivie) : impossible de calculer
+        // une variation sur cette fenêtre, on n'affiche rien pour cette carte plutôt que de
+        // comparer au premier point disponible (qui pourrait dater de quelques heures).
+        if (!baseline) return;
 
         const baselineValue = Number(baseline.market_value);
         if (baselineValue <= 0) return;
