@@ -2,11 +2,6 @@
 // Dépend de: allCollectionCards/supabaseClient/allWishlistItems/allTcgdexSeries/dashboardNeedsRefresh (tracker.js/wishlist.js/progression.js),
 // escapeHtml/getSetIdFromTcgdexId (utils.js), showCardDetail (card-detail.js), openSetProgression (progression.js),
 // activateTabContent (tracker.js), Chart
-// Etat possédé : dashboardValueChartInstance, dashboardValueHistoryData
-
-let dashboardValueChartInstance = null;
-let dashboardValueHistoryData = null; // null = pas encore chargé, [] = chargé mais vide
-
 // Exécute fn et attrape toute erreur pour qu'une section en échec n'empêche pas le reste du Dashboard
 // de s'afficher (le conteneur reçoit un message d'erreur discret à la place)
 function dashboardRenderSafe(containerId, fn) {
@@ -19,96 +14,19 @@ function dashboardRenderSafe(containerId, fn) {
     }
 }
 
-// Classes de thème disponibles pour le Hero Engine
-const THEME_CLASSES = [
-    'dashboard-hero--electric',
-    'dashboard-hero--fire',
-    'dashboard-hero--water',
-    'dashboard-hero--grass',
-    'dashboard-hero--psychic',
-    'dashboard-hero--dark',
-    'dashboard-hero--dragon',
-    'dashboard-hero--neutral'
-];
-
-// Retourne la classe CSS de thème basée sur le type principal de la carte
-function getHeroThemeClass(card) {
-    if (!card) return 'dashboard-hero--neutral';
-
-    // Extrait le type: peut être une chaîne ou un tableau
-    let type = null;
-    if (typeof card.type === 'string') {
-        type = card.type;
-    } else if (Array.isArray(card.type) && card.type.length > 0) {
-        type = card.type[0];
-    }
-
-    if (!type || typeof type !== 'string') return 'dashboard-hero--neutral';
-
-    // Normalise: minuscules, trim des espaces
-    const normalized = type.trim().toLowerCase();
-
-    // Table de correspondance avec clés normalisées (EN et FR)
-    const typeMap = {
-        'lightning': 'dashboard-hero--electric',
-        'electric': 'dashboard-hero--electric',
-        'fire': 'dashboard-hero--fire',
-        'water': 'dashboard-hero--water',
-        'grass': 'dashboard-hero--grass',
-        'psychic': 'dashboard-hero--psychic',
-        'dark': 'dashboard-hero--dark',
-        'darkness': 'dashboard-hero--dark',
-        'dragon': 'dashboard-hero--dragon',
-        'colorless': 'dashboard-hero--neutral',
-        'normal': 'dashboard-hero--neutral',
-        'bug': 'dashboard-hero--neutral',
-        'flying': 'dashboard-hero--neutral',
-        'ground': 'dashboard-hero--neutral',
-        'rock': 'dashboard-hero--neutral',
-        'ghost': 'dashboard-hero--neutral',
-        'steel': 'dashboard-hero--neutral',
-        'ice': 'dashboard-hero--neutral',
-        'poison': 'dashboard-hero--neutral',
-        'fighting': 'dashboard-hero--neutral',
-        'fairy': 'dashboard-hero--neutral',
-        'feu': 'dashboard-hero--fire',
-        'eau': 'dashboard-hero--water',
-        'électrique': 'dashboard-hero--electric',
-        'plante': 'dashboard-hero--grass',
-        'psy': 'dashboard-hero--psychic',
-        'obscurité': 'dashboard-hero--dark',
-        'combat': 'dashboard-hero--neutral',
-        'incolore': 'dashboard-hero--neutral',
-        'métal': 'dashboard-hero--neutral'
-    };
-
-    return typeMap[normalized] || 'dashboard-hero--neutral';
-}
-
 async function renderDashboard() {
     if (!document.getElementById('dashboard-header')) return; // onglet pas encore présent dans le DOM
 
-    if (!dashboardNeedsRefresh) {
-        if (dashboardValueChartInstance) dashboardValueChartInstance.resize();
-        return;
-    }
+    if (!dashboardNeedsRefresh) return;
 
     dashboardBuildSkeleton();
 
     dashboardRenderSafe('dashboard-header', renderDashboardHeader);
 
-    try {
-        await dashboardLoadValueHistory();
-    } catch (error) {
-        console.error('Erreur chargement historique valeur (Dashboard):', error);
-        dashboardValueHistoryData = [];
-    }
-
     dashboardRenderSafe('dashboard-hero', renderDashboardHero);
     dashboardRenderSafe('dashboard-kpis', renderDashboardKpis);
     dashboardRenderSafe('dashboard-activity-body', renderDashboardActivity);
     dashboardRenderSafe('dashboard-objective-body', renderDashboardObjective);
-    dashboardRenderSafe('dashboard-chart-body', renderDashboardValueChart);
     dashboardRenderSafe('dashboard-movers-body', renderDashboardTopMovers);
     dashboardRenderSafe('dashboard-acquisitions-body', renderDashboardAcquisitions);
     dashboardRenderSafe('dashboard-todo-body', renderDashboardTodo);
@@ -120,14 +38,6 @@ async function renderDashboard() {
 // Structure fixe des 3 zones (header/hero à part, KPI, grille principale, grille basse) : construite une
 // seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne
 function dashboardBuildSkeleton() {
-    document.getElementById('dashboard-kpis').innerHTML = `
-        <div class="dashboard-kpi-card dashboard-kpi-card-cards" id="dashboard-kpi-cards"></div>
-        <div class="dashboard-kpi-card dashboard-kpi-card-series" id="dashboard-kpi-series"></div>
-        <div class="dashboard-kpi-card dashboard-kpi-card-spent" id="dashboard-kpi-spent"></div>
-        <div class="dashboard-kpi-card dashboard-kpi-card-gain" id="dashboard-kpi-gain"></div>
-        <div class="dashboard-kpi-card dashboard-kpi-card-wishlist" id="dashboard-kpi-wishlist"></div>
-    `;
-
     document.getElementById('dashboard-main-grid').innerHTML = `
         <div class="dashboard-widget dashboard-widget-activity">
             <div class="dashboard-widget-header"><h3>Activité récente</h3></div>
@@ -137,30 +47,21 @@ function dashboardBuildSkeleton() {
             <div class="dashboard-widget-header"><h3>Objectif actuel</h3></div>
             <div id="dashboard-objective-body"></div>
         </div>
-        <div class="dashboard-widget dashboard-widget-wide dashboard-widget-chart">
-            <div class="dashboard-widget-header"><h3>Évolution de la valeur (7j)</h3></div>
-            <div id="dashboard-chart-body">
-                <canvas id="dashboard-value-chart"></canvas>
-            </div>
+        <div class="dashboard-widget dashboard-widget-tall">
+            <div class="dashboard-widget-header"><h3>Wishlist à surveiller</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-wishlist')">Voir tout</button></div>
+            <div id="dashboard-wishlist-body"></div>
         </div>
-        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" style="display:none;">
-            <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
-            <div id="dashboard-movers-body"></div>
-        </div>
-    `;
-
-    document.getElementById('dashboard-bottom-grid').innerHTML = `
         <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>Dernières acquisitions</h3></div>
+            <div class="dashboard-widget-header"><h3>Dernières acquisitions</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-collection')">Voir tout</button></div>
             <div id="dashboard-acquisitions-body"></div>
         </div>
         <div class="dashboard-widget">
             <div class="dashboard-widget-header"><h3>À faire aujourd'hui</h3></div>
             <div id="dashboard-todo-body"></div>
         </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>Wishlist à surveiller</h3></div>
-            <div id="dashboard-wishlist-body"></div>
+        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" style="display:none;">
+            <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
+            <div id="dashboard-movers-body"></div>
         </div>
     `;
 }
@@ -316,6 +217,7 @@ function renderDashboardHero() {
         ${generateDesktopNavigation('tab-dashboard')}
 
         <div class="dashboard-hero-summary">
+            ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
             <div class="dashboard-hero-label">Valeur totale de la collection</div>
             <div class="dashboard-hero-value">${totalValue.toFixed(2)}€</div>
             ${variationHtml}
@@ -336,14 +238,17 @@ function renderDashboardHero() {
                 ${metaHtml}
             </div>
         </div>
+
+        <div class="dashboard-kpis" id="dashboard-kpis">
+            <div class="kpi-plaque" id="dashboard-kpi-cards"></div>
+            <div class="kpi-plaque" id="dashboard-kpi-series"></div>
+            <div class="kpi-plaque" id="dashboard-kpi-spent"></div>
+            <div class="kpi-plaque" id="dashboard-kpi-wishlist"></div>
+        </div>
     `;
 
-    // Applique la classe de thème basée sur le type de la carte
-    const themeClass = getHeroThemeClass(featured);
-    THEME_CLASSES.forEach(cls => el.classList.remove(cls));
-    el.classList.add(themeClass);
-
     dashboardUpdateHeroVariation();
+    renderDashboardKpis();
 }
 
 // Remplit après coup le placeholder de variation 7j (nécessite un appel réseau à computeMarketFluctuation)
@@ -375,24 +280,31 @@ function renderDashboardKpis() {
     const gain = totalValue - totalSpent;
     const wishlistCount = typeof allWishlistItems !== 'undefined' ? allWishlistItems.length : 0;
 
-    document.getElementById('dashboard-kpi-cards').innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection');
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cardsThisWeek = allCollectionCards
+        .filter(c => c.created_at && new Date(c.created_at).getTime() >= weekAgo)
+        .reduce((sum, c) => sum + Number(c.quantity || 1), 0);
+    const cardsSub = cardsThisWeek > 0 ? `+${cardsThisWeek} carte${cardsThisWeek > 1 ? 's' : ''} cette semaine` : '';
+
+    const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const spentThisMonth = allCollectionCards
+        .filter(c => c.created_at && new Date(c.created_at).getTime() >= monthAgo)
+        .reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
+    const spentSub = spentThisMonth > 0 ? `+${spentThisMonth.toFixed(2)}€ ce mois` : '';
+
+    document.getElementById('dashboard-kpi-cards').innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection', '', cardsSub);
     document.getElementById('dashboard-kpi-series').innerHTML = dashboardKpiHtml('ti-stack-2', seriesCount, 'séries différentes');
-    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', `${totalSpent.toFixed(2)}€`, 'investis');
-    document.getElementById('dashboard-kpi-gain').innerHTML = dashboardKpiHtml(
-        gain >= 0 ? 'ti-trending-up' : 'ti-trending-down',
-        `${gain >= 0 ? '+' : ''}${gain.toFixed(2)}€`,
-        'plus-value',
-        gain >= 0 ? 'dashboard-positive' : 'dashboard-negative'
-    );
+    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', `${totalSpent.toFixed(2)}€`, 'investis', '', spentSub);
     document.getElementById('dashboard-kpi-wishlist').innerHTML = dashboardKpiHtml('ti-star', wishlistCount, 'cartes en wishlist');
 }
 
-function dashboardKpiHtml(icon, value, label, extraClass = '') {
+function dashboardKpiHtml(icon, value, label, extraClass = '', sub = '') {
     return `
-        <span class="dashboard-kpi-icon"><i class="ti ${icon}" aria-hidden="true"></i></span>
-        <div class="dashboard-kpi-text">
-            <div class="dashboard-kpi-value ${extraClass}">${value}</div>
-            <div class="dashboard-kpi-label">${label}</div>
+        <span class="kpi-plaque-icon"><i class="ti ${icon}" aria-hidden="true"></i></span>
+        <div class="kpi-plaque-text">
+            <div class="kpi-plaque-label">${label}</div>
+            <div class="kpi-plaque-value ${extraClass}">${value}</div>
+            ${sub ? `<div class="kpi-plaque-sub positive">${sub}</div>` : ''}
         </div>
     `;
 }
@@ -508,8 +420,11 @@ function renderDashboardObjective() {
 
     if (!best) {
         el.innerHTML = `
-            <p class="dashboard-empty-text">Aucun objectif sélectionné</p>
-            <p class="dashboard-empty-subtext">Choisissez une série depuis l'onglet Progression.</p>
+            <div class="dashboard-widget-empty-compact">
+                <i class="ti ti-aperture" aria-hidden="true"></i>
+                <p class="dashboard-empty-text" style="padding:0;">Aucun objectif sélectionné</p>
+                <p class="dashboard-empty-subtext">Choisissez une série depuis l'onglet Progression.</p>
+            </div>
         `;
         return;
     }
@@ -526,73 +441,6 @@ function renderDashboardObjective() {
         <div class="dashboard-objective-count">${best.owned} / ${best.total} cartes · ${pctDisplay}%</div>
         <button class="dashboard-btn-primary dashboard-btn-full" onclick="dashboardGoToProgressionSet('${best.setId}', '${safeName}', '${best.logoUrl}')">Continuer la série</button>
     `;
-}
-
-// ===== EVOLUTION DE LA VALEUR (7 JOURS) =====
-
-async function dashboardLoadValueHistory() {
-    const { data, error } = await supabaseClient
-        .from('value_history')
-        .select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(200);
-
-    // .limit() s'applique après le tri : il faut trier descendant pour garder les 200 PLUS RECENTS
-    // points (sinon sur une collection active on récupère les 200 plus vieux et les derniers jours
-    // manquent entièrement), puis remettre en ordre chronologique pour l'affichage.
-    dashboardValueHistoryData = (!error && data) ? data.slice().reverse() : [];
-}
-
-function renderDashboardValueChart() {
-    const body = document.getElementById('dashboard-chart-body');
-    const data = (dashboardValueHistoryData || []).filter(d => new Date(d.recorded_at).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-    if (data.length < 2) {
-        body.innerHTML = '<p class="dashboard-empty-text">Historique pas encore disponible</p>';
-        dashboardValueChartInstance = null;
-        return;
-    }
-
-    body.innerHTML = '<canvas id="dashboard-value-chart"></canvas>';
-    const canvas = document.getElementById('dashboard-value-chart');
-    if (!canvas || typeof Chart === 'undefined') return;
-
-    const labels = data.map(d => new Date(d.recorded_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
-    const values = data.map(d => Number(d.total_value));
-    const trendUp = values[values.length - 1] >= values[0];
-    const lineColor = trendUp ? '#7ED9A7' : '#ff6b6b';
-    const fillColor = trendUp ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 107, 107, 0.1)';
-
-    if (dashboardValueChartInstance) dashboardValueChartInstance.destroy();
-
-    dashboardValueChartInstance = new Chart(canvas, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                borderColor: lineColor,
-                backgroundColor: fillColor,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 0,
-                pointHitRadius: 10,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y.toFixed(2)}€` } }
-            },
-            scales: {
-                y: { beginAtZero: true },
-                x: { ticks: { maxTicksLimit: 7, autoSkip: true } }
-            }
-        }
-    });
 }
 
 // ===== TOP HAUSSES =====
@@ -702,14 +550,21 @@ function renderDashboardWishlist() {
     }
 
     const ownedTcgdexIds = new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id));
-    const items = allWishlistItems.filter(i => !(i.tcgdex_id && ownedTcgdexIds.has(i.tcgdex_id))).slice(0, 3);
+    const items = allWishlistItems.filter(i => !(i.tcgdex_id && ownedTcgdexIds.has(i.tcgdex_id))).slice(0, 6);
 
     if (items.length === 0) {
         el.innerHTML = dashboardWishlistEmptyHtml('Toutes vos cartes en wishlist sont déjà possédées');
         return;
     }
 
-    el.innerHTML = items.map(item => `
+    el.innerHTML = items.map(item => {
+        const price = (typeof wishlistPriceMap !== 'undefined' && item.tcgdex_id && wishlistPriceMap[item.tcgdex_id])
+            ? Number(wishlistPriceMap[item.tcgdex_id])
+            : Number(item.market_value || 0);
+        const priceHtml = price > 0 ? `<div class="dashboard-wishlist-price">${price.toFixed(2)}€</div>` : '';
+        const trendHtml = item.tcgdex_id ? `<div class="dashboard-wishlist-trend" id="dashboard-wishlist-trend-${item.tcgdex_id}"></div>` : '';
+
+        return `
         <div class="dashboard-wishlist-row">
             ${item.image
                 ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="dashboard-wishlist-img" onerror="this.style.display='none'">`
@@ -719,6 +574,51 @@ function renderDashboardWishlist() {
                 <div class="dashboard-wishlist-name">${escapeHtml(item.name)}</div>
                 <div class="dashboard-wishlist-set">${escapeHtml(item.series || '')}</div>
             </div>
+            <div class="dashboard-wishlist-right">
+                ${priceHtml}
+                ${trendHtml}
+            </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
+
+    dashboardUpdateWishlistTrends(items.filter(i => i.tcgdex_id));
+}
+
+// Remplit après coup la variation 24h de chaque carte en wishlist (nécessite un appel réseau
+// à card_price_history, cf. même pattern que dashboardUpdateHeroVariation)
+async function dashboardUpdateWishlistTrends(items) {
+    if (items.length === 0) return;
+
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const tcgdexIds = items.map(i => i.tcgdex_id);
+
+    const { data, error } = await supabaseClient
+        .from('card_price_history')
+        .select('tcgdex_id, market_value, recorded_at')
+        .in('tcgdex_id', tcgdexIds)
+        .lte('recorded_at', cutoff)
+        .order('recorded_at', { ascending: false });
+
+    if (error || !data) return;
+
+    items.forEach(item => {
+        const el = document.getElementById(`dashboard-wishlist-trend-${item.tcgdex_id}`);
+        if (!el) return;
+
+        const basePoint = data.find(d => d.tcgdex_id === item.tcgdex_id);
+        if (!basePoint) return;
+
+        const baseValue = Number(basePoint.market_value);
+        const currentValue = (typeof wishlistPriceMap !== 'undefined' && wishlistPriceMap[item.tcgdex_id])
+            ? Number(wishlistPriceMap[item.tcgdex_id])
+            : Number(item.market_value || 0);
+        if (baseValue === 0) return;
+
+        const delta = currentValue - baseValue;
+        const cls = delta > 0 ? 'dashboard-positive' : delta < 0 ? 'dashboard-negative' : '';
+        const sign = delta > 0 ? '+' : '';
+        el.className = `dashboard-wishlist-trend ${cls}`;
+        el.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-arrow-up' : 'ti-arrow-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€`;
+    });
 }

@@ -1832,44 +1832,26 @@ button:disabled {
     gap: 1.75rem;
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 22px 1.75rem;
     margin-bottom: 1rem;
-    box-shadow: 0 20px 45px -30px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
 
+/* Verre fumé (même formule que .stx-panel côté Statistiques). Contour doré conique + liseré bas
+   remplacés par un unique reflet neutre en haut. */
 .collection-filters-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-.collection-filters-panel::after {
     content: '';
     position: absolute;
     left: 1.75rem;
     right: 1.75rem;
-    bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(230, 192, 123, 0.3);
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
     pointer-events: none;
 }
 
@@ -3017,6 +2999,144 @@ tbody tr:hover {
     gap: 0.4rem;
 }
 
+.profile-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.profile-avatar-fallback {
+    background: rgba(227, 188, 132, 0.13);
+    border: 1px solid rgba(227, 188, 132, 0.4);
+    line-height: 1;
+}
+
+.profile-menu-wrap {
+    position: relative;
+}
+
+.profile-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 190px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.7);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    border: 1px solid transparent;
+    border-radius: 16px;
+    padding: 0.4rem;
+    box-shadow: 0 16px 32px -12px rgba(0,0,0,0.6), 0 0 14px rgba(227, 188, 132, 0.12);
+    z-index: 20;
+}
+
+.profile-menu::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 200deg at 50% 50%,
+        rgba(230,192,123,0.15),
+        rgba(230,192,123,0.85) 12%,
+        rgba(230,192,123,0.15) 30%,
+        rgba(230,192,123,0.15) 60%,
+        rgba(230,192,123,0.75) 78%,
+        rgba(230,192,123,0.15));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.profile-menu.active {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.profile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: none;
+    border: none;
+    padding: 0.6rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+
+.profile-menu-item:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.profile-menu-item i {
+    color: #e3bc84;
+    font-size: 1rem;
+}
+
+.profile-menu-item-danger {
+    color: #ff6b6b;
+}
+
+.profile-menu-item-danger i {
+    color: #ff6b6b;
+}
+
+.profile-modal-preview {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.profile-member-since {
+    text-align: center;
+    color: var(--slate);
+    font-size: 0.8rem;
+    margin-bottom: 1.25rem;
+    text-transform: capitalize;
+}
+
+.profile-avatar-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.profile-avatar-swatch {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    overflow: hidden;
+    background: var(--panel-light);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.profile-avatar-swatch img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.profile-avatar-swatch.selected {
+    border-color: #e3bc84;
+}
+
 .wishlist-edit-icon-swatch {
     width: 2.1rem;
     height: 2.1rem;
@@ -3180,14 +3300,23 @@ tbody tr:hover {
 .movers-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 2rem;
+}
+
+.movers-column + .movers-column {
+    border-left: 1px solid var(--border);
+    padding-left: 2rem;
 }
 
 .movers-heading {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.02em;
-    margin-bottom: 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
 }
 
 .movers-heading.up {
@@ -3263,14 +3392,32 @@ tbody tr:hover {
 
 /* PROGRESSION PAR SERIE — chapitres de l'Atlas */
 .progression-series-block {
-    background: linear-gradient(180deg, rgba(20,16,10,0.35) 0%, rgba(20,16,10,0.12) 100%);
-    border: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
     border-left: 2px solid transparent;
     border-radius: 12px;
     margin-bottom: 1.75rem;
     overflow: hidden;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 24px -18px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
     transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
+.progression-series-block::before {
+    content: '';
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
+    pointer-events: none;
+    z-index: 1;
 }
 
 .progression-series-block.is-open {
@@ -3286,7 +3433,7 @@ tbody tr:hover {
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background: rgba(20,16,10,0.42);
+    background: rgba(255,255,255,0.03);
     border-bottom: 1px solid rgba(255,255,255,0.06);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
     cursor: pointer;
@@ -3294,7 +3441,7 @@ tbody tr:hover {
 }
 
 .progression-series-block.is-open .progression-series-header {
-    background: linear-gradient(180deg, rgba(224,201,155,0.05), transparent 70%), rgba(20,16,10,0.42);
+    background: rgba(255,255,255,0.05);
 }
 
 .progression-series-block.is-closed .progression-series-header {
@@ -4081,42 +4228,24 @@ tbody tr:hover {
     padding: 1.25rem 1.3rem 1.1rem;
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
 
+/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
 .card-price-chart-wrap::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-.card-price-chart-wrap::after {
     content: '';
     position: absolute;
     left: 24px;
     right: 24px;
-    bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(230, 192, 123, 0.3);
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
+    pointer-events: none;
 }
 
 .card-price-chart-header {
@@ -6090,13 +6219,29 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-bottom: 1.5rem;
     padding: 1.5rem 1.5rem 1.25rem;
     border-radius: 16px;
-    border: 1px solid rgba(232,169,59,0.08);
-    background: linear-gradient(180deg, rgba(20,16,10,0.35) 0%, rgba(20,16,10,0.12) 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
 
 body.page-progression .progression-followed-sets {
     display: block;
+}
+
+/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
+.progression-followed-sets::before {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    right: 1.5rem;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
+    pointer-events: none;
 }
 
 .followed-sets-heading {
@@ -6375,27 +6520,10 @@ body.page-progression .progression-followed-sets {
 }
 
 .dashboard-add-btn {
-    background: linear-gradient(135deg, var(--gold) 0%, #f4c766 100%);
-    color: var(--ink-navy);
-    border: none;
     border-radius: 30px;
     padding: 0.7rem 1.3rem;
-    font-weight: 700;
     font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
     min-height: 44px;
-    box-shadow: 0 6px 16px rgba(232,169,59,0.25);
-    transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.dashboard-add-btn:hover {
-    background: linear-gradient(135deg, var(--gold) 0%, #f4c766 100%);
-    filter: brightness(1.05);
-    transform: translateY(-1px);
-    box-shadow: 0 8px 22px rgba(232,169,59,0.35);
 }
 
 /* ----- Hero 2.0 (reconstruction complète, cf. Sprint Hero 2.0) ----- */
@@ -6411,74 +6539,25 @@ body.page-progression .progression-followed-sets {
 }
 
 
-/* Thèmes du Hero Engine - Extension par type Pokémon */
-.dashboard-hero--electric {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/electrique.png') !important;
-}
-
-.dashboard-hero--fire {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/feu.png') !important;
-}
-
-.dashboard-hero--water {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/eau.png') !important;
-}
-
-.dashboard-hero--grass {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/plante.png') !important;
-}
-
-.dashboard-hero--psychic {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/psy.png') !important;
-}
-
-.dashboard-hero--dark {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/tenebre.png') !important;
-}
-
-.dashboard-hero--dragon {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/dragon.png') !important;
-}
-
-.dashboard-hero--neutral {
-    background-image:
-        linear-gradient(90deg, rgba(10,10,16,0.90) 0%, rgba(10,10,16,0.72) 24%, rgba(10,10,16,0.40) 46%, rgba(10,10,16,0.14) 68%, rgba(10,10,16,0.06) 100%),
-        url('images/cards-hero/normal.png') !important;
-}
-
 .dashboard-hero {
-    --dashboard-hero-theme-image: none;
     position: relative;
     display: grid;
     grid-template-columns: 55% 45%;
     align-items: center;
-    gap: 2rem;
-    min-height: 500px;
+    column-gap: 2rem;
+    row-gap: 0.5rem;
+    min-height: 600px;
     padding: 104px 40px 40px 40px;
     border-radius: 24px;
     overflow: hidden;
     background-image:
         linear-gradient(90deg, rgba(5,8,15,0.94) 0%, rgba(5,8,15,0.84) 24%, rgba(5,8,15,0.42) 43%, rgba(5,8,15,0.08) 62%, transparent 78%),
-        var(--dashboard-hero-theme-image);
+        url('images/dashboard.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.14),
+        inset 0 1px 0 rgba(255,255,255,0.10),
         inset 0 2px 16px rgba(0,0,0,0.25),
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
@@ -6545,6 +6624,19 @@ body.page-progression .progression-followed-sets {
     max-width: 520px;
 }
 
+.dashboard-hero-greeting {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-hero-greeting-name {
+    color: #e3bc84;
+    font-size: 1.15em;
+}
+
 .dashboard-hero-label {
     color: #B7C0D6;
     font-size: 0.8rem;
@@ -6600,44 +6692,9 @@ body.page-progression .progression-followed-sets {
 
 .dashboard-btn-primary,
 .dashboard-btn-secondary {
-    border-radius: 10px;
     padding: 0.7rem 1.1rem;
-    font-weight: 600;
     font-size: 0.85rem;
-    cursor: pointer;
     min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.dashboard-btn-primary {
-    background: linear-gradient(135deg, var(--gold) 0%, #f4c766 100%);
-    color: var(--ink-navy);
-    border: none;
-    box-shadow: 0 6px 16px rgba(232,169,59,0.25);
-}
-
-.dashboard-btn-secondary {
-    background: rgba(255,255,255,0.04);
-    color: var(--text-primary);
-    border: 1px solid rgba(255,255,255,0.14);
-}
-
-.dashboard-btn-primary:hover {
-    background: linear-gradient(135deg, var(--gold) 0%, #f4c766 100%);
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-    box-shadow: 0 8px 22px rgba(232,169,59,0.35);
-}
-
-.dashboard-btn-secondary:hover {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-    border-color: rgba(255,255,255,0.25);
-    background: rgba(255,255,255,0.07);
 }
 
 .dashboard-btn-primary:active,
@@ -6676,7 +6733,7 @@ body.page-progression .progression-followed-sets {
     width: fit-content;
     height: 100%;
     min-height: 240px;
-    transform: translateY(-42px);
+    transform: translateY(30px);
 }
 
 .dashboard-hero-halo {
@@ -6768,6 +6825,7 @@ body.page-progression .progression-followed-sets {
     gap: 0.35rem;
     max-width: 220px;
     margin-left: 1.5rem;
+    transform: translateY(30px);
     padding: 18px 20px;
 }
 
@@ -6874,7 +6932,7 @@ body.page-progression .progression-followed-sets {
     text-align: center;
 }
 
-@media (max-width: 1199px) and (min-width: 641px) {
+@media (max-width: 1199px) and (min-width: 769px) {
     .dashboard-hero {
         min-height: 340px;
         grid-template-columns: 52% 48%;
@@ -6882,13 +6940,33 @@ body.page-progression .progression-followed-sets {
     }
 }
 
+/* Nav flottante masquée sous 768px (barre mobile à la place) : plus besoin de la marge
+   du haut prévue pour elle, sinon le contenu du Hero se retrouve comprimé. */
+@media (max-width: 768px) and (min-width: 641px) {
+    .dashboard-hero {
+        min-height: 340px;
+        padding: 24px 32px;
+    }
+}
+
 /* ----- KPI ----- */
 
-.dashboard-kpis {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 1.1rem;
-    margin-bottom: 2rem;
+/* Déplacés dans le Hero (comme les autres pages) : rangée en pied de Hero, plus un bloc séparé
+   sous la photo. Réutilise .kpi-plaque (PT-001, verre fumé) au lieu de l'ancien .dashboard-kpi-card. */
+.dashboard-hero .dashboard-kpis {
+    grid-column: 1 / -1;
+    align-self: end;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0;
+}
+
+.dashboard-hero .kpi-plaque {
+    flex: 0 1 210px;
+    min-width: 160px;
 }
 
 .dashboard-kpi-card {
@@ -6980,37 +7058,70 @@ body.page-progression .progression-followed-sets {
 
 .dashboard-main-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    align-items: start;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
     gap: 1.25rem;
     margin-bottom: 2rem;
 }
 
-.dashboard-bottom-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-    gap: 1.25rem;
+.dashboard-widget-activity,
+.dashboard-widget-objective,
+.dashboard-widget-tall {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-widget-activity > div:last-child,
+.dashboard-widget-objective > div:last-child,
+.dashboard-widget-tall > div:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-widget-objective > div:last-child {
+    justify-content: center;
+}
+
+.dashboard-widget-tall {
+    grid-row: span 2;
 }
 
 .dashboard-widget {
-    background: var(--panel);
-    border: 1px solid rgba(255,255,255,0.10);
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 1.4rem;
     min-width: 0;
-    box-shadow: 0 8px 20px -14px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
     animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
     animation-delay: calc(var(--motion-stagger-normal) * 3);
     transition:
         transform var(--motion-duration-fast) var(--motion-ease-standard),
-        border-color var(--motion-duration-fast) var(--motion-ease-standard),
         box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+/* Verre fumé (même formule que .stx-panel côté Statistiques), généralisé à tous les widgets
+   du Dashboard. Contour doré conique remplacé par un reflet neutre en haut. */
+.dashboard-widget::before {
+    content: '';
+    position: absolute;
+    left: 1.4rem;
+    right: 1.4rem;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
+    pointer-events: none;
 }
 
 .dashboard-widget:hover {
     transform: translateY(-2px);
-    border-color: rgba(255,255,255,0.2);
     box-shadow: 0 16px 32px -14px rgba(0,0,0,0.6);
 }
 
@@ -7020,24 +7131,6 @@ body.page-progression .progression-followed-sets {
 
 .dashboard-widget-full {
     grid-column: 1 / -1;
-}
-
-/* Légère variation de fond par widget, pour éviter l'impression de blocs identiques */
-.dashboard-widget-activity {
-    background: linear-gradient(160deg, rgba(107,203,255,0.05), var(--panel) 55%);
-}
-
-.dashboard-widget-objective {
-    background: linear-gradient(160deg, rgba(199,125,255,0.06), var(--panel) 55%);
-}
-
-.dashboard-widget-chart {
-    background: linear-gradient(160deg, rgba(139,92,246,0.08), var(--panel) 60%);
-    box-shadow: inset 0 2px 0 rgba(139,92,246,0.35), 0 8px 20px -14px rgba(0,0,0,0.5);
-}
-
-.dashboard-widget-chart:hover {
-    box-shadow: inset 0 2px 0 rgba(139,92,246,0.4), 0 16px 32px -14px rgba(0,0,0,0.6);
 }
 
 .dashboard-widget-header {
@@ -7051,16 +7144,21 @@ body.page-progression .progression-followed-sets {
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.01em;
+    color: #e3bc84;
 }
 
-#dashboard-chart-body {
-    height: 220px;
-    position: relative;
+.dashboard-widget-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--slate);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
 }
 
-#dashboard-chart-body canvas {
-    width: 100% !important;
-    height: 100% !important;
+.dashboard-widget-link:hover {
+    color: #e3bc84;
 }
 
 /* ----- Activite recente ----- */
@@ -7179,6 +7277,7 @@ body.page-progression .progression-followed-sets {
 
 .dashboard-acquisitions-scroll {
     display: flex;
+    justify-content: center;
     gap: 1rem;
     overflow-x: auto;
     padding: 0.85rem 0.75rem 0.6rem;
@@ -7192,8 +7291,8 @@ body.page-progression .progression-followed-sets {
     cursor: pointer;
     text-align: center;
     transition: transform 0.15s ease;
-    flex: 0 0 158px;
-    width: 158px;
+    flex: 0 0 100px;
+    width: 100px;
 }
 
 /* Halo discret derrière chaque miniature, visible au repos */
@@ -7309,7 +7408,7 @@ body.page-progression .progression-followed-sets {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.55rem 0.5rem;
+    padding: 0.6rem 0.5rem;
     margin: 0 -0.5rem;
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -7334,14 +7433,45 @@ body.page-progression .progression-followed-sets {
     box-shadow: 0 4px 10px -6px rgba(0,0,0,0.5);
 }
 
+.dashboard-wishlist-text {
+    flex: 1;
+    min-width: 0;
+}
+
 .dashboard-wishlist-name {
     font-size: 0.83rem;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dashboard-wishlist-set {
     color: #A9B3C9;
     font-size: 0.72rem;
+}
+
+.dashboard-wishlist-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1.25rem;
+}
+
+.dashboard-wishlist-price {
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.dashboard-wishlist-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .dashboard-widget-empty-compact {
@@ -7382,14 +7512,17 @@ body.page-progression .progression-followed-sets {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .dashboard-main-grid,
-    .dashboard-bottom-grid {
+    .dashboard-main-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .dashboard-widget-wide,
     .dashboard-widget-full {
         grid-column: span 2;
+    }
+
+    .dashboard-widget-tall {
+        grid-row: auto;
     }
 }
 
@@ -7409,7 +7542,19 @@ body.page-progression .progression-followed-sets {
 
     .dashboard-hero-showcase {
         flex-direction: column;
+        height: auto;
         margin-top: 0.5rem;
+    }
+
+    .dashboard-hero-card-stage {
+        height: auto;
+        min-height: 0;
+        transform: none;
+    }
+
+    .dashboard-hero-card-img-wrap {
+        animation: none;
+        transform: none;
     }
 
     .dashboard-hero-card-meta {
@@ -7417,7 +7562,9 @@ body.page-progression .progression-followed-sets {
         text-align: center;
         max-width: 100%;
         margin-left: 0;
+        margin-top: 1rem;
         padding: 12px 14px;
+        transform: none;
     }
 
     .dashboard-hero-card-meta::before {
@@ -7426,6 +7573,15 @@ body.page-progression .progression-followed-sets {
 
     .dashboard-hero-card-delta {
         justify-content: center;
+    }
+
+    .dashboard-hero .dashboard-kpis {
+        flex-direction: column;
+    }
+
+    .dashboard-hero .kpi-plaque {
+        flex: 1 1 100%;
+        min-width: 100%;
     }
 
     .dashboard-hero-card-img {
@@ -7494,8 +7650,7 @@ body.page-progression .progression-followed-sets {
         font-size: 1.15rem;
     }
 
-    .dashboard-main-grid,
-    .dashboard-bottom-grid {
+    .dashboard-main-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 
@@ -7560,5 +7715,851 @@ body.page-progression .progression-followed-sets {
     .dashboard-btn-secondary:active,
     .dashboard-add-btn:active {
         transform: none;
+    }
+}
+
+/* ===========================================================
+   STATISTIQUES V2 — refonte structurelle (2026-08-04)
+   Préfixe .stx- pour ne rien casser sur les autres pages.
+   Surfaces PT-006 : .stx-panel = Surface 02 (graphite mat),
+   .kpi-plaque (existant) = Surface 01 (verre fumé).
+   =========================================================== */
+
+.stx-section {
+    margin-bottom: 3.5rem;
+}
+
+.stx-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.stx-section-badge {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(227, 188, 132, 0.1);
+    border: 1px solid rgba(227, 188, 132, 0.3);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+}
+
+.stx-section-title {
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    font-weight: 600;
+}
+
+.stx-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+}
+
+/* Verre fumé (PT-006 Surface 01), validé sur "Par rareté" puis généralisé à tous les panneaux
+   de la page Statistiques. */
+.stx-panel {
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+}
+
+.stx-panel::after {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    right: 1.5rem;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
+    pointer-events: none;
+}
+
+.stx-panel h3 {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stx-composition-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+/* Panneaux de la section 2 uniquement (scope par ancêtre) — davantage de respiration,
+   contour neutre discret, total de cartes ancré en bas via flex column. */
+.stx-composition-grid .stx-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+    padding: 2rem;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.stx-composition-grid .stx-panel h3 {
+    margin-bottom: 1.6rem;
+}
+
+.stx-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.stx-composition-grid .stx-donut-wrap {
+    flex: 1;
+    gap: 1.75rem;
+}
+
+.stx-donut-canvas-wrap {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    flex-shrink: 0;
+}
+
+.stx-composition-grid .stx-donut-canvas-wrap {
+    width: 168px;
+    height: 168px;
+}
+
+.stx-legend {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    font-size: 0.76rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.stx-composition-grid .stx-legend {
+    gap: 0.9rem;
+    font-size: 0.8rem;
+}
+
+.stx-legend li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+
+.stx-composition-grid .stx-legend li {
+    gap: 0.75rem;
+}
+
+.stx-legend li > span:first-child {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stx-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+}
+
+.stx-legend-pct {
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.stx-composition-grid .stx-legend-pct {
+    min-width: 3.4em;
+    text-align: right;
+}
+
+.stx-legend-total {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--slate);
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+}
+
+.stx-legend-total span {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+.stx-composition-grid .stx-legend-total {
+    margin-top: 1.5rem;
+}
+
+.stx-barlist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.stx-composition-grid .stx-barlist {
+    flex: 1;
+    justify-content: center;
+    gap: 1.15rem;
+}
+
+/* "Par type" et "Par extension" — icône/point + nom + barre alignés sur une seule ligne
+   (scopé par id, chacun garde son marqueur : icône réelle pour le type, point coloré pour
+   l'extension puisqu'il n'existe pas de logo unitaire fiable par série ici). */
+#type-barlist .stx-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+#type-barlist .stx-type-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    flex-shrink: 0;
+}
+
+#type-barlist .stx-type-icon img {
+    display: block;
+}
+
+#type-barlist .stx-type-name {
+    flex: 0 0 78px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#type-barlist .stx-type-track {
+    flex: 1;
+    min-width: 0;
+    height: 18px;
+    border-radius: 6px;
+    background: var(--panel-light);
+    overflow: hidden;
+}
+
+#type-barlist .stx-type-fill {
+    height: 100%;
+    border-radius: 6px;
+}
+
+#type-barlist .stx-type-pct {
+    flex: 0 0 auto;
+    min-width: 3.2em;
+    color: var(--slate);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* "Par extension" — même traitement que "Par type" (ligne unique, barre épaisse), point coloré
+   à la place d'une icône (les séries n'ont pas de logo unitaire fiable ici). */
+#ext-barlist .stx-ext-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+#ext-barlist .stx-ext-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+#ext-barlist .stx-ext-name {
+    flex: 0 0 170px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#ext-barlist .stx-ext-track {
+    flex: 1;
+    min-width: 0;
+    height: 18px;
+    border-radius: 6px;
+    background: var(--panel-light);
+    overflow: hidden;
+}
+
+#ext-barlist .stx-ext-fill {
+    height: 100%;
+    border-radius: 6px;
+}
+
+#ext-barlist .stx-ext-pct {
+    flex: 0 0 auto;
+    min-width: 3.2em;
+    color: var(--slate);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Section 3 — hiérarchie visuelle : "Évolution de la valeur" occupe toute la largeur en tête
+   (panneau dominant) ; répartition / ROI / hausses-baisses forment une rangée secondaire de
+   poids égal en dessous. Toujours quatre panneaux, plus jamais quatre blocs équivalents. */
+.stx-value-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr;
+    grid-template-areas: "evo repartition movers";
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.stx-panel-value-history { grid-area: evo; }
+.stx-panel-series-value { grid-area: repartition; }
+.stx-value-grid .stx-movers-panel { grid-area: movers; }
+
+.stx-value-grid .stx-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.stx-value-grid .stx-panel h3 {
+    margin-bottom: 1.5rem;
+}
+
+.stx-panel-value-history .stats-chart-header {
+    margin-bottom: 1.5rem;
+}
+
+.stx-evo-readout {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.stx-evo-value {
+    font-size: 1.7rem;
+    font-weight: 400;
+    color: var(--text-primary);
+}
+
+.stx-evo-delta {
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
+.stx-evo-delta.positive { color: var(--positive); }
+.stx-evo-delta.negative { color: #ff6b6b; }
+
+.stx-panel-value-history canvas {
+    max-height: 340px;
+    flex: 1;
+}
+
+.stx-panel canvas {
+    max-height: 220px;
+}
+
+.stx-panel-series-value .stx-donut-wrap {
+    flex: 1;
+}
+
+.stx-movers-panel h4 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+}
+
+.stx-movers-second {
+    margin-top: 1.4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.stx-value-grid .stx-movers-panel .mover-row {
+    padding: 0.65rem 0;
+}
+
+.stx-value-grid .stx-movers-panel .mover-row:last-child {
+    border-bottom: none;
+}
+
+.stx-habits-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+}
+
+/* Section 4 — cartes d'insight dédiées, indépendantes de .kpi-plaque (composant partagé avec
+   Hero/Dashboard/Collection/Wishlist, jamais modifié ici). Même matière graphite que les
+   panneaux Composition/Valeur : fond var(--panel), bordure neutre très légère, même rayon. */
+.stx-habit-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.75rem 1.5rem;
+    min-width: 0;
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+}
+
+.stx-habit-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--slate);
+    font-size: 1.1rem;
+}
+
+.stx-habit-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.stx-habit-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+    margin-bottom: 0.7rem;
+}
+
+.stx-habit-value {
+    font-size: 1.55rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    line-height: 1.25;
+    overflow-wrap: break-word;
+}
+
+.stx-habit-value-sm {
+    font-size: 1.15rem;
+    color: var(--slate);
+}
+
+.stx-habit-sub {
+    font-size: 0.76rem;
+    color: var(--slate);
+    margin-top: 0.4rem;
+}
+
+.stx-records-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 1920px) {
+    .stx-records-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* Section 5 — cartes-trophées : miniature réelle en tête, même gabarit pour les six (y compris
+   l'état indisponible "plus rare"). Même matière graphite que Composition/Valeur/Habitudes :
+   fond var(--panel), bordure neutre légère, même rayon 16px, aucun contour doré. */
+.stx-trophy-card {
+    display: flex;
+    flex-direction: column;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    transition: transform var(--motion-duration-fast, 150ms) ease, border-color var(--motion-duration-fast, 150ms) ease;
+}
+
+/* Ouvre la fiche carte (comme dans Collection) partout où une carte possédée est référencée
+   sur la page Statistiques : Records + Top hausses/baisses. */
+.stx-clickable-card {
+    cursor: pointer;
+}
+
+.stx-trophy-card.stx-clickable-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.16);
+}
+
+.mover-row.stx-clickable-card:hover .mover-name {
+    color: var(--gold);
+}
+
+/* Nom de série cliquable (ouvre le set dans Progression, stxOpenSeries) — Par extension,
+   Répartition valeur/série, Extension préférée. */
+.stx-series-link {
+    cursor: pointer;
+}
+
+.stx-series-link:hover {
+    color: var(--gold);
+    text-decoration: underline;
+}
+
+.stx-trophy-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--slate);
+    margin-bottom: 1.1rem;
+}
+
+.stx-trophy-row {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+}
+
+.stx-trophy-media {
+    position: relative;
+    width: 70px;
+    height: 98px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel-light);
+    box-shadow: 0 6px 16px -10px rgba(0,0,0,0.5);
+}
+
+.stx-trophy-media-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate);
+    font-size: 1.3rem;
+    opacity: 0.5;
+}
+
+.stx-trophy-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.stx-trophy-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    flex: 1;
+}
+
+.stx-trophy-name {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stx-trophy-series {
+    font-size: 0.74rem;
+    color: var(--slate);
+    margin-top: 0.2rem;
+    margin-bottom: 0.7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-height: 1.05rem;
+}
+
+.stx-trophy-value {
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stx-trophy-value-sm {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.stx-trophy-value.positive { color: var(--positive); }
+.stx-trophy-value.negative { color: #ff6b6b; }
+
+.stx-trophy-sub {
+    font-size: 0.78rem;
+    color: var(--slate);
+    margin-top: 0.3rem;
+}
+
+.stx-trophy-sub.positive { color: var(--positive); }
+.stx-trophy-sub.negative { color: #ff6b6b; }
+
+/* Section 6 — Résumé du mois : cartes d'insight dédiées, indépendantes de .kpi-plaque
+   (composant partagé, jamais modifié ici). Même matière que Habitudes/Records. */
+.stx-month-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0 2rem;
+}
+
+.stx-month-kpi {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 40%),
+        rgba(32,32,36,0.4);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 1.5rem;
+}
+
+.stx-month-kpi-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--slate);
+    font-size: 1.05rem;
+}
+
+.stx-month-kpi-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.stx-month-kpi-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+    margin-bottom: 0.6rem;
+}
+
+.stx-month-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+/* Bloc horizontal unique : graphique compact (~30%) + cartes des mois (~70%), même composant
+   visuel — plus de timeline séparée avec ligne/points. */
+.stx-timeline-block {
+    display: flex;
+    align-items: stretch;
+    gap: 1.5rem;
+    margin-top: 0.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.stx-timeline-chart-col {
+    flex: 0 0 34%;
+    min-width: 0;
+    height: 190px;
+}
+
+.stx-timeline-cards-col {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+    overflow-x: auto;
+    min-width: 0;
+}
+
+.stx-month-card {
+    flex: 1 0 130px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 40%),
+        rgba(32,32,36,0.4);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+    opacity: 0.68;
+}
+
+.stx-month-card.active {
+    opacity: 1;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 40%),
+        rgba(26,26,30,0.5);
+    border-color: rgba(227,188,132,0.3);
+}
+
+.stx-month-label {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--slate);
+    margin-bottom: 0.5rem;
+}
+
+.stx-month-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.stx-month-sub {
+    font-size: 0.76rem;
+    color: var(--positive);
+    margin-top: 0.15rem;
+}
+
+.stx-timeline-empty {
+    text-align: center;
+    color: var(--slate);
+    font-size: 0.85rem;
+    padding: 1.5rem 1rem;
+}
+
+/* Bloc "Plus grosses variations" — état vide propre + colonnes hausses/baisses hiérarchisées */
+.stx-movers-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.5rem;
+    color: var(--slate);
+    padding: 2rem 1rem;
+}
+
+.stx-movers-empty i {
+    font-size: 1.5rem;
+    opacity: 0.5;
+}
+
+.stx-movers-empty-title {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.stx-movers-empty-sub {
+    font-size: 0.78rem;
+    color: var(--slate);
+}
+
+.stx-movers-column-empty {
+    color: var(--slate);
+    font-size: 0.82rem;
+    padding: 0.5rem 0;
+}
+
+@media (max-width: 1200px) {
+    .stx-composition-grid { grid-template-columns: repeat(2, 1fr); }
+    .stx-value-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-areas:
+            "evo evo"
+            "repartition movers";
+    }
+    .stx-habits-grid { grid-template-columns: repeat(3, 1fr); }
+    .stx-records-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .stx-kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .stx-month-kpi-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    .stx-kpi-row,
+    .stx-composition-grid,
+    .stx-value-grid,
+    .stx-habits-grid,
+    .stx-records-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stx-value-grid {
+        grid-template-areas: none;
+    }
+
+    .stx-donut-wrap {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stx-donut-canvas-wrap {
+        margin: 0 auto;
+    }
+
+    .stx-timeline-block {
+        flex-direction: column;
+    }
+
+    .stx-timeline-chart-col {
+        flex: none;
+        width: 100%;
     }
 }

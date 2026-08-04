@@ -4,6 +4,7 @@
 // script s'exécute, tous les autres modules sont déjà chargés (init() peut donc référencer leurs fonctions).
 
 async function init() {
+    await loadUserProfile();
     await loadFavorites();
     await refreshCollection();
 

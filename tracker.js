@@ -345,12 +345,24 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
 async function deleteCard(id) {
     if (!await showConfirmModal('Supprimer cette carte ?', 'Supprimer')) return;
 
+    const card = allCollectionCards.find(c => c.id === id);
+
     const { error } = await supabaseClient.from('cards').delete().eq('id', id);
 
     if (error) {
         showMessage('Erreur lors de la suppression', 'error');
         console.error(error);
         return;
+    }
+
+    // Réconcilier l'historique mensuel : une carte supprimée ne doit plus compter dans
+    // "cartes ajoutées"/"valeur ajoutée" du mois où elle avait été enregistrée (même logique
+    // que la réconciliation lors d'une édition, cf. modules/card-detail.js).
+    if (card && card.created_at) {
+        const addedDate = new Date(card.created_at);
+        const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+        const qty = Number(card.quantity || 1);
+        await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
     }
 
     await refreshCollection();
@@ -376,6 +388,14 @@ async function changeQuantity(id, delta) {
             showMessage('Erreur lors de la suppression', 'error');
             console.error(error);
             return;
+        }
+
+        // Réconcilier l'historique mensuel (même logique que deleteCard)
+        if (card.created_at) {
+            const addedDate = new Date(card.created_at);
+            const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+            const qty = Number(card.quantity || 1);
+            await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
         }
     } else {
         const { error } = await supabaseClient.from('cards').update({ quantity: newQuantity }).eq('id', id);
@@ -662,7 +682,13 @@ function renderPriceMovers() {
 
     const stored = localStorage.getItem('lastPriceMovers');
     if (!stored) {
-        container.innerHTML = '<p style="text-align: center; color: var(--slate); padding: 1rem;">Clique sur "Rafraîchir les prix du marché" pour voir les variations.</p>';
+        container.innerHTML = `
+            <div class="stx-movers-empty">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+                <div class="stx-movers-empty-title">Aucun rafraîchissement récent</div>
+                <p class="stx-movers-empty-sub">Clique sur « Rafraîchir les prix du marché » pour voir les variations.</p>
+            </div>
+        `;
         return;
     }
 
@@ -671,17 +697,30 @@ function renderPriceMovers() {
     const losers = movers.filter(m => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 5);
 
     const renderList = (list, positive) => {
-        if (list.length === 0) return '<p style="color: var(--slate); font-size: 0.85rem;">Aucune variation</p>';
-        return list.map(m => `
-            <div class="mover-row">
+        if (list.length === 0) return '<p class="stx-movers-column-empty">Aucune variation</p>';
+        return list.map(m => {
+            // Résolution de la carte possédée par nom+numéro (même clé que la déduplication ci-dessus)
+            // pour ouvrir sa fiche au clic, comme dans Collection.
+            const owned = allCollectionCards.find(c => c.name === m.name && String(c.number) === String(m.number));
+            const clickAttr = owned ? ` onclick="showCardDetail(${owned.id})"` : '';
+            const clickClass = owned ? ' stx-clickable-card' : '';
+            return `
+            <div class="mover-row${clickClass}"${clickAttr}>
                 <span class="mover-name">${m.name} <span class="mover-number">#${m.number}</span></span>
                 <span class="mover-delta ${positive ? 'positive' : 'negative'}">${positive ? '+' : ''}${m.delta.toFixed(2)}€</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     };
 
     if (movers.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune variation détectée lors du dernier rafraîchissement.</p>';
+        container.innerHTML = `
+            <div class="stx-movers-empty">
+                <i class="ti ti-chart-bar" aria-hidden="true"></i>
+                <div class="stx-movers-empty-title">Aucune variation</div>
+                <p class="stx-movers-empty-sub">Aucune variation détectée lors du dernier rafraîchissement.</p>
+            </div>
+        `;
         return;
     }
 

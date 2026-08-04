@@ -151,7 +151,7 @@ function normalizeForMatch(str) {
 // fallback n'est plus la voie principale - juste un filet de sécurité pour les items sans idProduct
 // stocké (ex: anciens items wishlist ajoutés avant la colonne cardmarket_id).
 function getCardmarketSearchUrl(name) {
-    return `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(name || '')}&exactMatch=1`;
+    return `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(name || '')}&exactMatch=1&language=2`;
 }
 
 // Meme logique que le bouton Cardmarket de la collection (card-detail.js:95-97, volontairement pas
@@ -159,7 +159,7 @@ function getCardmarketSearchUrl(name) {
 // par nom en secours.
 function getCardmarketUrl(cardmarketId, name) {
     if (cardmarketId) {
-        return `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${cardmarketId}`;
+        return `https://www.cardmarket.com/fr/Pokemon/Products?idProduct=${cardmarketId}&language=2`;
     }
     return getCardmarketSearchUrl(name);
 }

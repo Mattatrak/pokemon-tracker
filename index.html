@@ -205,9 +205,7 @@
         <div id="tab-dashboard" class="tab-content active">
             <div class="dashboard-header" id="dashboard-header"></div>
             <div class="dashboard-hero" id="dashboard-hero"></div>
-            <div class="dashboard-kpis" id="dashboard-kpis"></div>
             <div class="dashboard-main-grid" id="dashboard-main-grid"></div>
-            <div class="dashboard-bottom-grid" id="dashboard-bottom-grid"></div>
         </div>
 
         <!-- ONGLET AJOUTER -->
@@ -613,112 +611,327 @@
         </div>
 
         <div id="tab-stats" class="tab-content">
-            <div class="stats-kpi-grid">
-                <div class="stats-kpi-card kpi-card-gold">
-                    <span class="stats-kpi-badge" style="background: rgba(232,169,59,0.15);"><i class="ti ti-diamond" style="color: var(--gold);" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Carte la plus chère</div>
-                        <div class="stats-kpi-value" id="kpi-top-card" style="color: var(--gold);">-</div>
-                        <div class="stats-kpi-sub" id="kpi-top-card-price"></div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-teal">
-                    <span class="stats-kpi-badge" style="background: rgba(63,167,161,0.15);"><i class="ti ti-report-money" style="color: var(--teal);" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Prix moyen / carte</div>
-                        <div class="stats-kpi-value" id="kpi-avg-price">-</div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-blue">
-                    <span class="stats-kpi-badge" style="background: rgba(107,203,255,0.15);"><i class="ti ti-stack-2" style="color: #6bcbff;" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Séries différentes</div>
-                        <div class="stats-kpi-value" id="kpi-series-count">-</div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-purple">
-                    <span class="stats-kpi-badge" style="background: rgba(199,125,255,0.15);"><i class="ti ti-star" style="color: #c77dff;" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Rareté la + fréquente</div>
-                        <div class="stats-kpi-value" id="kpi-top-rarity">-</div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-orange">
-                    <span class="stats-kpi-badge" style="background: rgba(255,159,107,0.15);"><i class="ti ti-copy" style="color: #ff9f6b;" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Valeur des doublons</div>
-                        <div class="stats-kpi-value" id="kpi-duplicates-value">-</div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="stats-chart-box" style="margin-bottom: 1.5rem;">
-                <div class="stats-chart-header">
-                    <h3><i class="ti ti-calendar" aria-hidden="true"></i> Résumé du mois</h3>
-                    <select id="month-summary-select" class="grid-sort-select"></select>
+            <!-- 1. VUE D'ENSEMBLE -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">1</span>
+                    <span class="stx-section-title">Vue d'ensemble</span>
                 </div>
-                <div class="stats-kpi-grid" style="margin-bottom: 0;">
-                    <div class="stats-kpi-card">
-                        <span class="stats-kpi-badge" style="background: rgba(232,169,59,0.15);"><i class="ti ti-cards" style="color: var(--gold);" aria-hidden="true"></i></span>
-                        <div class="stats-kpi-text">
-                            <div class="stats-kpi-label">Cartes ajoutées</div>
-                            <div class="stats-kpi-value" id="month-cards-added">-</div>
+                <div class="stx-kpi-row">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Cartes en collection</div>
+                            <div class="kpi-plaque-value" id="stx-ov-cards">-</div>
+                            <div class="kpi-plaque-sub positive" id="stx-ov-cards-sub"></div>
                         </div>
                     </div>
-                    <div class="stats-kpi-card">
-                        <span class="stats-kpi-badge" style="background: rgba(63,167,161,0.15);"><i class="ti ti-currency-euro" style="color: var(--teal);" aria-hidden="true"></i></span>
-                        <div class="stats-kpi-text">
-                            <div class="stats-kpi-label">Dépensé ce mois-ci</div>
-                            <div class="stats-kpi-value" id="month-spent">-</div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-stack-2" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Séries complétées</div>
+                            <div class="kpi-plaque-value" id="stx-ov-series">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-series-sub"></div>
                         </div>
                     </div>
-                    <div class="stats-kpi-card">
-                        <span class="stats-kpi-badge" style="background: rgba(107,203,255,0.15);"><i class="ti ti-trending-up" style="color: #6bcbff;" aria-hidden="true"></i></span>
-                        <div class="stats-kpi-text">
-                            <div class="stats-kpi-label">Valeur ajoutée (marché)</div>
-                            <div class="stats-kpi-value" id="month-value-added">-</div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur totale</div>
+                            <div class="kpi-plaque-value" id="stx-ov-value">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-value-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-report-money" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Investi au total</div>
+                            <div class="kpi-plaque-value" id="stx-ov-invested">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-invested-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-star" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Cartes en wishlist</div>
+                            <div class="kpi-plaque-value" id="stx-ov-wishlist">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-wishlist-sub"></div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="stats-grid">
-                <div class="stats-chart-box">
-                    <h3>Répartition par rareté</h3>
-                    <canvas id="rarity-chart"></canvas>
+            <!-- 2. COMPOSITION DE LA COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">2</span>
+                    <span class="stx-section-title">Composition de la collection</span>
                 </div>
-                <div class="stats-chart-box">
-                    <h3>Top séries (par nombre de cartes)</h3>
-                    <canvas id="series-chart"></canvas>
+                <div class="stx-composition-grid">
+                    <div class="stx-panel">
+                        <h3>Par rareté</h3>
+                        <div class="stx-donut-wrap">
+                            <div class="stx-donut-canvas-wrap"><canvas id="rarity-chart"></canvas></div>
+                            <ul class="stx-legend" id="rarity-legend"></ul>
+                        </div>
+                        <div class="stx-legend-total">Total <span id="rarity-legend-total">-</span> cartes</div>
+                    </div>
+                    <div class="stx-panel">
+                        <h3>Par type</h3>
+                        <div class="stx-barlist" id="type-barlist"></div>
+                        <div class="stx-legend-total">Total <span id="type-legend-total">-</span> cartes</div>
+                    </div>
+                    <div class="stx-panel">
+                        <h3>Par extension (Top 8)</h3>
+                        <div class="stx-barlist" id="ext-barlist"></div>
+                        <div class="stx-legend-total">Total <span id="ext-legend-total">-</span> cartes</div>
+                    </div>
                 </div>
-                <div class="stats-chart-box stats-chart-wide">
+            </section>
+
+            <!-- 3. VALEUR & INVESTISSEMENT -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">3</span>
+                    <span class="stx-section-title">Valeur &amp; investissement</span>
+                </div>
+                <div class="stx-value-grid">
+                    <div class="stx-panel stx-panel-value-history">
+                        <div class="stats-chart-header">
+                            <h3>Évolution de la valeur</h3>
+                            <div class="stats-range-toggle">
+                                <button class="range-btn" onclick="setValueHistoryRange(event, 7)">7j</button>
+                                <button class="range-btn active" onclick="setValueHistoryRange(event, 30)">30j</button>
+                                <button class="range-btn" onclick="setValueHistoryRange(event, 0)">Tout</button>
+                            </div>
+                        </div>
+                        <div class="stx-evo-readout">
+                            <span class="stx-evo-value" id="stx-evo-value">-</span>
+                            <span class="stx-evo-delta" id="stx-evo-delta"></span>
+                        </div>
+                        <canvas id="value-history-chart"></canvas>
+                    </div>
+                    <div class="stx-panel stx-panel-series-value">
+                        <h3>Répartition valeur / série</h3>
+                        <div class="stx-donut-wrap">
+                            <div class="stx-donut-canvas-wrap"><canvas id="series-value-chart"></canvas></div>
+                            <ul class="stx-legend" id="series-value-legend"></ul>
+                        </div>
+                        <div class="stx-legend-total">Valeur totale <span id="series-value-total">-</span></div>
+                    </div>
+                    <div class="stx-panel stx-movers-panel">
+                        <h4><i class="ti ti-trending-up" aria-hidden="true"></i> Top 3 hausses</h4>
+                        <div id="stx-top-gains"></div>
+                        <h4 class="stx-movers-second"><i class="ti ti-trending-down" aria-hidden="true"></i> Top 3 baisses</h4>
+                        <div id="stx-top-losses"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. HABITUDES DE COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">4</span>
+                    <span class="stx-section-title">Habitudes de collection</span>
+                </div>
+                <div class="stx-habits-grid">
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-coin" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Prix moyen par carte</div>
+                            <div class="stx-habit-value" id="stx-habit-avg-price">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-crown" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Extension préférée</div>
+                            <div class="stx-habit-value" id="stx-habit-top-series">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-eye" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Type préféré</div>
+                            <div class="stx-habit-value" id="stx-habit-top-type">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-brush" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Illustrateur le plus présent</div>
+                            <div class="stx-habit-value" id="stx-habit-top-illustrator">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-shield-check" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">État moyen de la collection</div>
+                            <div class="stx-habit-value" id="stx-habit-condition">-</div>
+                            <div class="stx-habit-sub" id="stx-habit-condition-sub"></div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-world" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Répartition FR / JP / EN</div>
+                            <div class="stx-habit-value stx-habit-value-sm">Bientôt</div>
+                            <div class="stx-habit-sub">Langue non enregistrée</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. RECORDS DE COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">5</span>
+                    <span class="stx-section-title">Records de collection</span>
+                </div>
+                <div class="stx-records-grid">
+                    <div class="stx-trophy-card" id="stx-record-top-card">
+                        <div class="stx-trophy-label">Carte la plus chère</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-top-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="kpi-top-card">-</div>
+                            <div class="stx-trophy-series" id="stx-record-top-series"></div>
+                            <div class="stx-trophy-value" id="kpi-top-card-price">-</div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-oldest-card">
+                        <div class="stx-trophy-label">Carte la plus ancienne</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-oldest-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-oldest-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-oldest-series"></div>
+                            <div class="stx-trophy-value stx-trophy-value-sm" id="stx-record-oldest-date">-</div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-paid-card">
+                        <div class="stx-trophy-label">Carte achetée la plus chère</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-paid-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-paid-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-paid-series"></div>
+                            <div class="stx-trophy-value" id="stx-record-paid-price">-</div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-gain-card">
+                        <div class="stx-trophy-label">Plus grosse hausse</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-gain-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-gain-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-gain-series"></div>
+                            <div class="stx-trophy-value positive" id="stx-record-gain-amount">-</div>
+                            <div class="stx-trophy-sub positive" id="stx-record-gain-pct"></div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-loss-card">
+                        <div class="stx-trophy-label">Plus grosse baisse</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-loss-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-loss-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-loss-series"></div>
+                            <div class="stx-trophy-value negative" id="stx-record-loss-amount">-</div>
+                            <div class="stx-trophy-sub negative" id="stx-record-loss-pct"></div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-most-card">
+                        <div class="stx-trophy-label">Carte la plus collectionnée</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-most-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-value" id="stx-record-most-qty">-</div>
+                            <div class="stx-trophy-name" id="stx-record-most-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-most-series"></div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. TIMELINE DE COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">6</span>
+                    <span class="stx-section-title">Timeline de collection</span>
+                </div>
+                <div class="stx-panel">
                     <div class="stats-chart-header">
-                        <h3>Évolution de la valeur de la collection</h3>
-                        <div class="stats-range-toggle">
-                            <button class="range-btn" onclick="setValueHistoryRange(event, 7)">7j</button>
-                            <button class="range-btn active" onclick="setValueHistoryRange(event, 30)">30j</button>
-                            <button class="range-btn" onclick="setValueHistoryRange(event, 0)">Tout</button>
+                        <h3><i class="ti ti-calendar" aria-hidden="true"></i> Résumé du mois</h3>
+                        <select id="month-summary-select" class="grid-sort-select"></select>
+                    </div>
+                    <div class="stx-month-kpi-row">
+                        <div class="stx-month-kpi">
+                            <span class="stx-month-kpi-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                            <div class="stx-month-kpi-text">
+                                <div class="stx-month-kpi-label">Cartes ajoutées</div>
+                                <div class="stx-month-kpi-value" id="month-cards-added">-</div>
+                            </div>
+                        </div>
+                        <div class="stx-month-kpi">
+                            <span class="stx-month-kpi-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                            <div class="stx-month-kpi-text">
+                                <div class="stx-month-kpi-label">Dépensé ce mois-ci</div>
+                                <div class="stx-month-kpi-value" id="month-spent">-</div>
+                            </div>
+                        </div>
+                        <div class="stx-month-kpi">
+                            <span class="stx-month-kpi-icon"><i class="ti ti-trending-up" aria-hidden="true"></i></span>
+                            <div class="stx-month-kpi-text">
+                                <div class="stx-month-kpi-label">Valeur ajoutée (marché)</div>
+                                <div class="stx-month-kpi-value" id="month-value-added">-</div>
+                            </div>
                         </div>
                     </div>
-                    <canvas id="value-history-chart"></canvas>
+                    <div class="stx-timeline-block">
+                        <div class="stx-timeline-chart-col">
+                            <canvas id="stx-timeline-chart"></canvas>
+                        </div>
+                        <div class="stx-timeline-cards-col" id="stx-timeline-row"></div>
+                    </div>
                 </div>
-                <div class="stats-chart-box">
-                    <h3>Top séries (par valeur)</h3>
-                    <canvas id="series-value-chart"></canvas>
-                </div>
-            </div>
 
-            <div class="stats-chart-box" style="margin-top: 1.5rem;">
-                <h3><i class="ti ti-chart-bar" aria-hidden="true"></i> Plus grosses variations (dernier rafraîchissement)</h3>
-                <div id="price-movers-section">
-                    <p style="text-align: center; color: var(--slate); padding: 1rem;">Clique sur "Rafraîchir les prix du marché" pour voir les variations.</p>
+                <div class="stx-panel" style="margin-top: 1rem;">
+                    <h3><i class="ti ti-chart-bar" aria-hidden="true"></i> Plus grosses variations (dernier rafraîchissement)</h3>
+                    <div id="price-movers-section">
+                        <div class="stx-movers-empty">
+                            <i class="ti ti-refresh" aria-hidden="true"></i>
+                            <div class="stx-movers-empty-title">Aucun rafraîchissement récent</div>
+                            <p class="stx-movers-empty-sub">Clique sur « Rafraîchir les prix du marché » pour voir les variations.</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div class="stats-chart-box" style="margin-top: 1.5rem;">
-                <h3><i class="ti ti-trending-up" aria-hidden="true"></i> Meilleur retour sur investissement</h3>
-                <div id="roi-section"></div>
-            </div>
+            </section>
         </div>
 
         <!-- ONGLET SOUHAITS -->
@@ -788,6 +1001,11 @@
         <div class="modal-card" id="card-detail-card"></div>
     </div>
 
+    <!-- MODALE PROFIL (pseudo + avatar) -->
+    <div class="modal-overlay" id="profile-modal-overlay" onclick="if(event.target===this) closeProfileModal()">
+        <div class="modal-card" id="profile-modal-content" style="max-width: 380px;"></div>
+    </div>
+
     <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
 
@@ -811,6 +1029,7 @@
     <script src="modules/stats-render.js?v=3"></script>
     <script src="modules/progression.js?v=7"></script>
     <script src="modules/dashboard.js?v=9"></script>
+    <script src="modules/profile.js?v=1"></script>
     <script src="tracker.js?v=61"></script>
     <script src="modules/auth.js?v=1"></script>
     <script>

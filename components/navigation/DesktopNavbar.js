@@ -35,7 +35,15 @@ function generateDesktopNavigation(activeTabId) {
             <div class="dashboard-integrated-nav-right">
                 <button class="dashboard-integrated-nav-action" title="Rechercher" onclick="navigateToTab('tab-add')"><i class="ti ti-search" aria-hidden="true"></i></button>
                 <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i></button>
-                <button class="dashboard-integrated-nav-action" title="Profil" onclick="handleLogout()"><i class="ti ti-user" aria-hidden="true"></i></button>
+                <div class="profile-menu-wrap">
+                    <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--profile" title="Mon profil" onclick="toggleProfileMenu(event)">
+                        ${typeof currentUserProfile !== 'undefined' && currentUserProfile ? profileAvatarHtml(currentUserProfile, 32) : '<i class="ti ti-user" aria-hidden="true"></i>'}
+                    </button>
+                    <div class="profile-menu" id="profile-menu">
+                        <button class="profile-menu-item" onclick="closeProfileMenu(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
+                        <button class="profile-menu-item profile-menu-item-danger" onclick="handleLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
+                    </div>
+                </div>
             </div>
         </div>
     `;

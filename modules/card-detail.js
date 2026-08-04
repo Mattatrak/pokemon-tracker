@@ -115,8 +115,8 @@ function showCardDetail(cardId) {
                                 <i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>
                             </button>
                             <a href="${card.cardmarket_id
-                                ? `https://www.cardmarket.com/en/Pokemon/Products?idProduct=${card.cardmarket_id}`
-                                : `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name || '')}`
+                                ? `https://www.cardmarket.com/fr/Pokemon/Products?idProduct=${card.cardmarket_id}&language=2`
+                                : `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name || '')}&language=2`
                             }" target="_blank" rel="noopener noreferrer" class="modal-action-row">
                                 <span class="modal-action-icon" style="color: #6bcbff;"><i class="ti ti-external-link" aria-hidden="true"></i></span>
                                 <span class="modal-action-text">

@@ -70,6 +70,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
 document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const pseudo = document.getElementById('signup-pseudo').value.trim();
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
     const passwordConfirm = document.getElementById('signup-password-confirm').value;
@@ -91,16 +92,29 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
 
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
-    btn.disabled = false;
-    btn.textContent = 'Créer mon compte';
-
     if (error) {
+        btn.disabled = false;
+        btn.textContent = 'Créer mon compte';
         errorEl.textContent = error.message.includes('already registered') || error.message.includes('User already')
             ? 'Un compte existe déjà avec cette adresse e-mail.'
             : 'Impossible de créer le compte. Réessaie.';
         errorEl.style.display = 'block';
         return;
     }
+
+    if (data.user) {
+        // Profil créé même si la confirmation e-mail est activée (data.user existe dans les deux cas,
+        // data.session seulement si la confirmation est désactivée). Erreur non bloquante pour l'inscription
+        // (ex: table profiles pas encore migrée) : le profil pourra être complété plus tard via la modale.
+        const { error: profileError } = await supabaseClient.from('profiles').insert({
+            id: data.user.id,
+            pseudo
+        });
+        if (profileError) console.error('Erreur création profil:', profileError);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Créer mon compte';
 
     if (data.session) {
         // Confirmation e-mail désactivée côté Supabase : le compte est actif immédiatement
