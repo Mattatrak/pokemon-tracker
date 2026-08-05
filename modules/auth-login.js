@@ -1,5 +1,20 @@
 // Login form handling - Pokémon Tracker
-// Dépend de: supabaseClient, REMEMBER_ME_KEY (tracker.js)
+// Dépend de: supabaseClient, REMEMBER_ME_KEY, ROUTE_TO_TAB, TAB_ROUTES (tracker.js)
+
+// Dupliquée depuis modules/auth.js (voir commentaire là-bas) pour ne pas toucher à tracker.js.
+const REDIRECT_ROUTE_KEY = 'poketracker-redirect-route';
+
+// Consomme (lit + supprime, usage unique) la route mémorisée par modules/auth.js avant la redirection vers
+// login.html. Revalidée contre ROUTE_TO_TAB (défense en profondeur : jamais faire confiance à une valeur
+// lue en storage sans revalidation) — repli sur /dashboard si absente ou invalide.
+function getPostLoginRedirectHash() {
+    const requestedRoute = sessionStorage.getItem(REDIRECT_ROUTE_KEY);
+    sessionStorage.removeItem(REDIRECT_ROUTE_KEY);
+    const validRoute = requestedRoute && Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, requestedRoute)
+        ? requestedRoute
+        : TAB_ROUTES['tab-dashboard'];
+    return './#' + validRoute;
+}
 
 function showLoginView() {
     document.querySelectorAll('.login-view').forEach(v => v.classList.remove('active'));
@@ -62,7 +77,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         btn.disabled = false;
         btn.textContent = 'Se connecter';
     } else {
-        window.location.href = './#/dashboard';
+        window.location.replace(getPostLoginRedirectHash());
     }
 });
 
@@ -118,7 +133,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
 
     if (data.session) {
         // Confirmation e-mail désactivée côté Supabase : le compte est actif immédiatement
-        window.location.href = './#/dashboard';
+        window.location.replace(getPostLoginRedirectHash());
         return;
     }
 
@@ -189,7 +204,7 @@ document.getElementById('reset-form').addEventListener('submit', async (e) => {
         return;
     }
 
-    window.location.href = './#/dashboard';
+    window.location.replace(getPostLoginRedirectHash());
 });
 
 supabaseClient.auth.onAuthStateChange((event) => {

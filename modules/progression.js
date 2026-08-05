@@ -167,6 +167,9 @@ async function loadSeriesProgress() {
                 const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
                 return dateB - dateA;
             });
+            // Premier remplissage réel seulement (ce bloc est court-circuité par la condition ci-dessus
+            // sur toute relecture suivante) : le KPI "séries complétées" de Stats peut changer.
+            markStatsDirty();
         }
 
         if (!progressionLogosLoaded) {

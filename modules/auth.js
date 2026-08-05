@@ -3,6 +3,13 @@
 // loadFavorites/initDatePicker (autres modules + tracker.js). Charge en dernier : par le temps que ce
 // script s'exécute, tous les autres modules sont déjà chargés (init() peut donc référencer leurs fonctions).
 
+// Clé sessionStorage utilisée pour faire traverser la route demandée (#/xxx) à travers la redirection vers
+// login.html quand la session n'est pas valide. Portée session (pas localStorage) : la redirection login->app
+// se fait dans le même onglet, aucun besoin de persistance au-delà. Consommée (lue + supprimée) une seule
+// fois par modules/auth-login.js après une authentification réussie. Dupliquée ici et dans auth-login.js
+// plutôt qu'ajoutée à tracker.js pour ne pas toucher au hash router.
+const REDIRECT_ROUTE_KEY = 'poketracker-redirect-route';
+
 async function init() {
     await loadUserProfile();
     await loadFavorites();
@@ -44,6 +51,13 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
             init();
         }
     } else {
-        window.location.href = 'login.html';
+        // Mémorise la route demandée (#/xxx) avant de partir sur login.html, pour pouvoir y revenir après
+        // connexion (voir getPostLoginRedirectHash dans modules/auth-login.js). Validée contre ROUTE_TO_TAB
+        // (liste blanche de routes internes, définie dans tracker.js) : jamais de valeur non reconnue stockée.
+        const requestedRoute = window.location.hash.replace('#', '');
+        if (Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, requestedRoute)) {
+            sessionStorage.setItem(REDIRECT_ROUTE_KEY, requestedRoute);
+        }
+        window.location.replace('login.html');
     }
 });

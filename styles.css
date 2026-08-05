@@ -57,6 +57,21 @@ html {
     background: var(--gold-hover);
 }
 
+/* Scrollbars masquées sur mobile (partout : page + tout conteneur interne en overflow), le geste
+   tactile suffit. Le scroll reste pleinement fonctionnel, seul le rendu visuel de la barre change. */
+@media (max-width: 640px) {
+    html, * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    ::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+    }
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: radial-gradient(ellipse at 50% 0%, rgba(232, 169, 59, 0.1) 0%, var(--bg) 60%);
@@ -123,86 +138,6 @@ body {
     margin-bottom: 1rem;
 }
 
-.logout-btn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: rgba(13,16,26,0.5);
-    color: var(--parchment);
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.logout-btn:hover {
-    background: rgba(255,255,255,0.08);
-    color: var(--text-primary);
-}
-
-header {
-    text-align: center;
-    position: relative;
-    background-image: linear-gradient(180deg, rgba(13,16,26,0.2) 0%, rgba(13,16,26,0.45) 55%, rgba(13,16,26,0.8) 100%), url('images/background-header.png');
-    background-size: cover;
-    background-position: center center;
-    padding: 2rem 1.5rem;
-    border-radius: 12px;
-    color: var(--parchment);
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 14px rgba(22, 27, 41, 0.25);
-    min-height: 120px;
-}
-
-body:not(.page-dashboard) header .header-title-row {
-    display: none !important;
-}
-
-.header-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.35rem;
-    margin-bottom: 0.35rem;
-}
-
-.header-logo {
-    width: 84px;
-    height: 84px;
-    border-radius: 13px;
-    filter: drop-shadow(0 0 10px rgba(232, 169, 59, 0.5));
-}
-
-header h1 {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1;
-    margin-bottom: 0;
-}
-
-.header-title-main {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.6rem;
-    letter-spacing: 0.06em;
-    color: var(--gold);
-    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
-}
-
-.header-title-sub {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.12em;
-    color: var(--parchment);
-    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
-}
-
-header p {
-    color: var(--slate);
-}
 
 
 
@@ -219,15 +154,6 @@ header p {
     pointer-events: none;
 }
 
-.hero-fluctuation {
-    font-size: 0.95rem;
-    font-weight: 700;
-}
-
-.hero-fluctuation.positive { color: #7ED9A7; }
-.hero-fluctuation.negative { color: #ff6b6b; }
-.hero-fluctuation.neutral { color: var(--slate); }
-
 .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -241,7 +167,11 @@ header p {
 
 .tab-content.active {
     display: block;
-    animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
+    /* Pas d'animation d'entrée ici : le Hero/navbar (hors .tab-content, hormis Dashboard) bascule
+       instantanément via document.body.className. Un fondu sur .tab-content seul créait un décalage de
+       rythme avec ce bascule instantané (flash/pulse dans la zone haute). Contenu et Hero changent donc
+       tous deux au même rythme (instantané). Les animations internes des composants/cartes ne sont pas
+       concernées par ce choix. */
 }
 
 /* L'animation d'entrée laisse un transform: translateY(0) collé en permanence sur l'ancêtre
@@ -1154,7 +1084,6 @@ header p {
     background-color: var(--panel);
     border-radius: 24px;
     overflow: hidden;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .catalogue-hero::after {
@@ -1975,6 +1904,10 @@ button:disabled {
     }
 }
 
+.cfp-mobile-toggle {
+    display: none;
+}
+
 @media (max-width: 640px) {
     .cfp-group {
         flex-basis: 100%;
@@ -1986,6 +1919,42 @@ button:disabled {
 
     .cfp-group-display .cfp-field {
         flex-basis: 100%;
+    }
+
+    /* Section filtres réduite par défaut sur mobile (gain de place) : seul le bouton "Filtres"
+       reste visible tant que .collection-filters-panel n'a pas .expanded (ajouté au clic). */
+    .cfp-mobile-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    .cfp-mobile-toggle span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .cfp-mobile-toggle-icon {
+        transition: transform 0.2s ease;
+    }
+
+    .collection-filters-panel.expanded .cfp-mobile-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    .collection-filters-panel:not(.expanded) .cfp-group,
+    .collection-filters-panel:not(.expanded) .cfp-separator {
+        display: none;
     }
 }
 
@@ -2725,7 +2694,6 @@ tbody tr:hover {
     border-top: 1px solid var(--border);
     padding-top: 1rem;
     border-radius: 0 0 16px 16px;
-    animation: motion-enter var(--motion-duration-fast) var(--motion-ease-enter) both;
 }
 
 /* État vide premium d'une liste sans carte — remplace la grille (pas de placeholders ici,
@@ -2874,69 +2842,6 @@ tbody tr:hover {
     height: 56px;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='%238a6a2a' stroke-width='4'/%3E%3Cline x1='6' y1='50' x2='94' y2='50' stroke='%238a6a2a' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='13' fill='none' stroke='%238a6a2a' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='4' fill='%238a6a2a'/%3E%3C/svg%3E") center/contain no-repeat;
     opacity: 0.1;
-}
-
-/* POPOVER D'ACTION SUR MINIATURE — menu unique partagé, position:fixed calculée en JS
-   (toggleWishlistThumbMenu, wishlist.js). Doit vivre hors de toute .wishlist-list-card : ces
-   cartes ont un backdrop-filter qui crée un contexte d'empilement par carte, donc un menu imbriqué
-   ne pourrait jamais dépasser (en z-index) une carte suivante dans le DOM. */
-.wishlist-thumb-menu {
-    display: none;
-    position: fixed;
-    background: var(--panel-light);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    padding: 0.4rem;
-    min-width: 170px;
-    z-index: 500;
-}
-
-.wishlist-thumb-menu.active {
-    display: block;
-}
-
-.wishlist-thumb-menu-item {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.55rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.82rem;
-    color: var(--text-primary);
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.wishlist-thumb-menu-item:hover {
-    background: rgba(255,255,255,0.06);
-}
-
-.wishlist-thumb-menu-danger {
-    color: #ff6b6b;
-}
-
-.wishlist-thumb-menu-danger:hover {
-    background: rgba(255,107,107,0.12);
-}
-
-.wishlist-thumb-submenu {
-    display: none;
-    position: absolute;
-    top: 0;
-    left: calc(100% + 0.3rem);
-    background: var(--panel-light);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    padding: 0.4rem;
-    min-width: 150px;
-    z-index: 61;
-}
-
-.wishlist-thumb-submenu.active {
-    display: block;
 }
 
 /* FENETRE DE CHOIX / CREATION DE LISTE */
@@ -3860,10 +3765,18 @@ tbody tr:hover {
         transform var(--motion-duration-normal) var(--motion-ease-enter);
 }
 
-/* Fiche détail carte (PT-002/PT-006) : plaque de verre fumé, laiton discret, carte flottante sur socle éclairé */
+/* Fiche détail carte (PT-002/PT-006) : plaque de verre fumé, laiton discret, carte flottante sur socle éclairé.
+   overflow:hidden + flex column (au lieu du overflow-y:auto hérité de .modal-card) : le cadre doré
+   (::before, inset:0) est ancré à la boîte de #card-detail-card, il ne peut pas suivre un scroll
+   interne à cet élément lui-même (le cadre restait figé sur la zone visible pendant que le contenu
+   défilait dessous, notamment sur mobile). Le scroll est déplacé sur .modal-scroll, un enfant
+   interne : le cadre englobe alors toujours la carte entière, quel que soit le défilement. */
 #card-detail-card {
     max-width: 1060px;
-    padding: 2.5rem 2.5rem 1.5rem;
+    padding: 2.5rem 0 1.5rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     border-radius: 26px;
     border: 1px solid transparent;
     background:
@@ -3894,158 +3807,24 @@ tbody tr:hover {
     pointer-events: none;
 }
 
+/* Le padding horizontal de la carte est reporté ici (au lieu d'être sur #card-detail-card) :
+   .modal-scroll occupe alors toute la largeur de la carte, donc sa scrollbar native apparaît
+   collée au bord droit de la fiche (comme la scrollbar de la page), pas enfoncée dans le contenu. */
+#card-detail-card .modal-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 2.5rem;
+}
+
 /* Style KPI (verre fumé PT-006) appliqué uniquement à la fenêtre "Top movers" (KPI Valeur
    totale) — scopé par ID, n'affecte aucun autre modal (.modal-card reste inchangé partout ailleurs). */
-#wishlist-picker-content {
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-}
-
-#wishlist-picker-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-#text-prompt-content {
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-}
-
-#text-prompt-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-#wishlist-edit-content {
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-}
-
-#wishlist-edit-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-#confirm-modal-content {
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-}
-
-#confirm-modal-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
-#csv-import-content {
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-}
-
-#csv-import-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
+#wishlist-picker-content,
+#text-prompt-content,
+#wishlist-edit-content,
+#confirm-modal-content,
+#csv-import-content,
 #quickadd-settings-content {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
@@ -4057,6 +3836,11 @@ tbody tr:hover {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
 }
 
+#wishlist-picker-content::before,
+#text-prompt-content::before,
+#wishlist-edit-content::before,
+#confirm-modal-content::before,
+#csv-import-content::before,
 #quickadd-settings-content::before {
     content: '';
     position: absolute;
@@ -4120,6 +3904,607 @@ tbody tr:hover {
 .modal-overlay.active .modal-card {
     opacity: 1;
     transform: translateY(0) scale(1);
+}
+
+/* Fiche détail carte Wishlist (modules/wishlist-detail.js) : réutilise .modal-overlay/.modal-card
+   pour le centrage/fondu/scroll, mais habille #wishlist-detail-card d'un shell propre (verre fumé
+   graphite + liseré or conique statique, même famille visuelle que #card-detail-card) au lieu du
+   rectangle gris générique de .modal-card. Colonne droite en 3 blocs (identité / statut wishlist /
+   valeur+actions) séparés par de simples filets, sans multiplier les cadres. */
+/* Overlay assombri davantage pour cette fiche précisément (scopé par ID, n'affecte aucune autre
+   modale) : le shell très opaque ci-dessous ne suffit pas à lui seul à couper la lecture du fond
+   si l'arrière-plan reste clair derrière un overlay générique. */
+#wishlist-detail-overlay.active {
+    background: rgba(0, 0, 0, 0.78);
+}
+
+/* overflow:hidden (au lieu du overflow-y:auto hérité de .modal-card) : le cadre doré (::before) est
+   ancré à la boîte de #wishlist-detail-card via inset:0, il ne peut pas suivre un scroll interne à
+   cet élément lui-même (surtout visible sur mobile où le contenu dépasse 94vh — le cadre restait
+   figé sur la zone visible initiale pendant que le contenu défilait dessous). Le scroll est déplacé
+   sur .wishlist-detail-scroll, un enfant interne : le cadre englobe alors toujours la carte entière,
+   quel que soit le défilement. */
+#wishlist-detail-card {
+    max-width: 660px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 2.25rem 0 1.75rem;
+    border-radius: 22px;
+    border: 1px solid transparent;
+    background:
+        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 35%),
+        rgba(15,15,17,0.97);
+    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* Le padding horizontal de la carte est reporté ici (au lieu d'être sur #wishlist-detail-card) :
+   .wishlist-detail-scroll occupe alors toute la largeur de la carte, donc sa scrollbar native
+   apparaît collée au bord droit de la fiche (comme la scrollbar de la page), pas enfoncée au milieu
+   du contenu. */
+.wishlist-detail-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 2.25rem;
+}
+
+#wishlist-detail-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 200deg at 50% 50%,
+        rgba(230,192,123,0.10),
+        rgba(230,192,123,0.6) 12%,
+        rgba(230,192,123,0.10) 30%,
+        rgba(230,192,123,0.10) 60%,
+        rgba(230,192,123,0.55) 78%,
+        rgba(230,192,123,0.10));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.wishlist-detail-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+    gap: 2.25rem;
+}
+
+.wishlist-detail-image-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.wishlist-detail-image-frame {
+    position: relative;
+    width: 100%;
+    max-width: 240px;
+}
+
+.wishlist-detail-image {
+    display: block;
+    width: 100%;
+    max-height: 330px;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+.wishlist-detail-image-frame .no-image-placeholder.modal-size {
+    width: 100%;
+    max-height: 330px;
+}
+
+.wishlist-detail-owned-flag {
+    top: 0.25rem;
+    left: 0.25rem;
+}
+
+.wishlist-detail-info-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.wishlist-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.wishlist-detail-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.35rem 0;
+}
+
+/* Ligne d'identité de série : logo à gauche, série + numéro à droite, alignement vertical propre. */
+.wishlist-detail-series-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.wishlist-detail-series-logo {
+    display: block;
+    height: 26px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+}
+
+.wishlist-detail-series-logo-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    color: var(--slate);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.wishlist-detail-series-text {
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
+.wishlist-detail-list-pill {
+    background: transparent;
+}
+
+/* Statut wishlist : deux lignes libellé/valeur discrètes, sans allure de tableau (pas de bordure,
+   label en petites capitales tenu, valeur simplement plus affirmée). */
+.wishlist-detail-status-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.wishlist-detail-status-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+}
+
+.wishlist-detail-status-value {
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: right;
+}
+
+.wishlist-detail-status-value.is-owned {
+    color: #95e1a3;
+}
+
+/* Bloc prix : présence forte mais réduite par rapport au gabarit générique .modal-price
+   (3.4rem), sans bloc bordé englobant. */
+.wishlist-detail-price-block {
+    margin: 0;
+}
+
+.wishlist-detail-price {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 600;
+    color: #e3af64;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.wishlist-detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+/* Famille de boutons unifiée : Je l'ai !/Cardmarket/Déplacer partagent hauteur, rayon, bordure et
+   fond sombre identiques — seule la couleur icône/texte les distingue (pas d'aplat de couleur). */
+.wishlist-detail-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    height: 46px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.wishlist-detail-btn:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.wishlist-detail-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Action principale : fond bronze/graphite chaud + bordure or affirmée, pas de vert SaaS. */
+.wishlist-detail-btn-primary {
+    color: var(--parchment);
+    background: linear-gradient(180deg, rgba(227,188,132,0.16) 0%, rgba(96,72,42,0.16) 100%);
+    border-color: rgba(227,188,132,0.55);
+}
+
+.wishlist-detail-btn-primary:hover {
+    background: linear-gradient(180deg, rgba(227,188,132,0.22) 0%, rgba(96,72,42,0.22) 100%);
+    border-color: rgba(227,188,132,0.75);
+}
+
+.wishlist-detail-btn-cardmarket {
+    color: #6bcbff;
+}
+
+.wishlist-detail-btn-move {
+    color: var(--gold);
+}
+
+.wishlist-detail-btn-move.active {
+    border-color: var(--gold);
+    background: rgba(227,188,132,0.12);
+}
+
+/* Actions secondaires : côte à côte sur desktop, même famille visuelle que le bouton principal. */
+.wishlist-detail-actions-secondary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+/* Retirer : lien texte discret, pas un quatrième pavé identique aux autres. */
+.wishlist-detail-remove-link {
+    align-self: center;
+    background: none;
+    border: none;
+    color: #c9615f;
+    opacity: 0.9;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem;
+    margin-top: 0.15rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.wishlist-detail-remove-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.wishlist-detail-remove-link:disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Panneau "Déplacer vers..." : état interne à la fiche, pas une modale ni un menu flottant. */
+.wishlist-detail-move-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.wishlist-detail-move-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    text-align: left;
+    width: 100%;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.wishlist-detail-move-option:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.18);
+}
+
+.wishlist-detail-move-option:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+.wishlist-detail-move-option-icon {
+    flex-shrink: 0;
+}
+
+.wishlist-detail-move-cancel {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--slate);
+    font-size: 0.8rem;
+    padding: 0.3rem 0.2rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.wishlist-detail-move-cancel:disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Panneau "Je l'ai !" (choix achat/booster + prix + date) : étape dédiée intégrée à la fiche (les
+   actions Cardmarket/Déplacer/Retirer sont masquées tant qu'il est ouvert, cf. buildWishlistDetailHtml),
+   pas une seconde modale. Compact : espacements resserrés pour ne pas gonfler la hauteur de la fiche. */
+.wishlist-detail-acquisition-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.85rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.wishlist-detail-acquisition-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.1rem;
+}
+
+.wishlist-detail-acquisition-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--parchment);
+}
+
+.wishlist-detail-acquisition-subtitle {
+    font-size: 0.75rem;
+    color: var(--slate);
+}
+
+.wishlist-detail-acquisition-choice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.wishlist-detail-acquisition-choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.55rem 0.5rem;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.wishlist-detail-acquisition-choice-btn i {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.wishlist-detail-acquisition-choice-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    min-width: 0;
+}
+
+.wishlist-detail-acquisition-choice-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.wishlist-detail-acquisition-choice-sub {
+    font-size: 0.7rem;
+    color: var(--slate);
+}
+
+.wishlist-detail-acquisition-choice-btn:hover {
+    background: rgba(255,255,255,0.07);
+}
+
+.wishlist-detail-acquisition-choice-btn.active {
+    border-color: rgba(227,188,132,0.55);
+    background: rgba(227,188,132,0.1);
+}
+
+.wishlist-detail-acquisition-choice-btn.active .wishlist-detail-acquisition-choice-title,
+.wishlist-detail-acquisition-choice-btn.active i {
+    color: var(--gold);
+}
+
+.wishlist-detail-acquisition-choice-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+.wishlist-detail-acquisition-hint {
+    font-size: 0.78rem;
+    color: var(--slate);
+    margin: 0;
+}
+
+.wishlist-detail-acquisition-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.wishlist-detail-acquisition-field label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+}
+
+.wishlist-detail-acquisition-field input {
+    width: 100%;
+}
+
+/* Champ prix compact : suffixe € en pilule flex (aligné verticalement au pixel près, plutôt qu'en
+   overlay absolu), n'affecte pas la valeur du champ. Spin buttons natifs masqués. */
+.wishlist-detail-acquisition-price-wrap {
+    display: flex;
+    align-items: center;
+    max-width: 160px;
+    background: var(--ink-navy);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 0.9rem;
+    transition: border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.wishlist-detail-acquisition-price-wrap:focus-within {
+    border-color: rgba(227, 188, 132, 0.45);
+    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+}
+
+.wishlist-detail-acquisition-price-wrap input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    padding: 0.8rem 0.4rem 0.8rem 0;
+    -moz-appearance: textfield;
+}
+
+.wishlist-detail-acquisition-price-wrap input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.wishlist-detail-acquisition-price-wrap input::-webkit-outer-spin-button,
+.wishlist-detail-acquisition-price-wrap input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.wishlist-detail-acquisition-price-suffix {
+    color: var(--slate);
+    font-size: 0.85rem;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.wishlist-detail-acquisition-actions {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    margin-top: 0.15rem;
+}
+
+.wishlist-detail-acquisition-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    height: 46px;
+    padding: 0 1rem;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.wishlist-detail-acquisition-back:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.wishlist-detail-acquisition-back:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+@media (max-width: 640px) {
+    #wishlist-detail-overlay {
+        padding: 0.75rem;
+    }
+
+    #wishlist-detail-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: 94vh;
+    }
+
+    .wishlist-detail-layout {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 1.25rem;
+    }
+
+    .wishlist-detail-image-frame {
+        max-width: 170px;
+    }
+
+    .wishlist-detail-image {
+        max-height: 240px;
+    }
+
+    .wishlist-detail-info-col {
+        width: 100%;
+    }
+
+    .wishlist-detail-actions-secondary {
+        grid-template-columns: 1fr;
+    }
+
+    .wishlist-detail-acquisition-choice {
+        grid-template-columns: 1fr;
+    }
+
+    .wishlist-detail-acquisition-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .wishlist-detail-acquisition-back {
+        width: 100%;
+    }
 }
 
 .modal-close {
@@ -5116,6 +5501,12 @@ tbody tr:hover {
     transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
+.modal-action-row:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
 .modal-action-row:hover {
     background: rgba(255,255,255,0.07);
     border-color: rgba(255,255,255,0.16);
@@ -5241,7 +5632,11 @@ tbody tr:hover {
 
 @media (max-width: 760px) {
     #card-detail-card {
-        padding: 1.5rem;
+        padding: 1.5rem 0;
+    }
+
+    #card-detail-card .modal-scroll {
+        padding: 0 1.5rem;
     }
 
     .modal-meta-actions-row {
@@ -5337,24 +5732,6 @@ tbody tr:hover {
 
 /* RESPONSIF */
 @media (max-width: 768px) {
-    header {
-        padding: 1.75rem 1rem;
-    }
-
-    header h1 {
-        font-size: 1.8rem;
-    }
-
-    .header-logo {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-    }
-
-    .header-title-row {
-        gap: 0.5rem;
-    }
-
     .stats-bottom,
     #collection-stats-bottom,
     #wishlist-stats-bottom {
@@ -5664,25 +6041,11 @@ html body .flatpickr-calendar .flatpickr-day.today.selected:hover {
 
 /* Onglet Dashboard uniquement : la bannière + les 3 cartes stats du haut dupliquent le hero/KPI du
    Dashboard, donc masquées/réduites ici sans toucher aux autres onglets (:has() cible l'ancêtre commun) */
-body.page-dashboard header {
-    display: none !important;
-}
-
 body.page-dashboard .stats-bottom {
     display: none;
 }
 
 body.page-dashboard .dashboard-header {
-    display: none !important;
-}
-
-/* Onglet Progression : le header global est remplacé par le Hero Atlas (nav intégrée dedans) */
-body.page-progression header {
-    display: none !important;
-}
-
-/* Onglet Collection : le header global et les KPI génériques laissent place au Page Header dédié */
-body.page-collection header {
     display: none !important;
 }
 
@@ -5694,10 +6057,6 @@ body.page-collection .stats-bottom {
    le header global laisse place à la nav intégrée dans le Hero (comme les autres onglets) */
 body.page-add .stats-bottom {
     display: none;
-}
-
-body.page-add header {
-    display: none !important;
 }
 
 #collection-stats-bottom {
@@ -5734,12 +6093,6 @@ body.page-collection .collection-atlas-hero-content #collection-stats-bottom {
         width: auto;
         gap: 0.6rem;
     }
-}
-
-/* Onglets Statistiques et Souhaits : le header global laisse place au Page Header dédié */
-body.page-statistics header,
-body.page-wishlist header {
-    display: none !important;
 }
 
 body.page-wishlist .stats-bottom {
@@ -5829,7 +6182,6 @@ body.page-progression .progression-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .progression-atlas-hero-content {
@@ -5898,7 +6250,6 @@ body.page-collection .collection-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .collection-atlas-hero-content {
@@ -6052,7 +6403,6 @@ body.page-statistics .stats-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .stats-hero-content {
@@ -6137,7 +6487,6 @@ body.page-wishlist .wishlist-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .wishlist-hero-content {
@@ -6489,7 +6838,6 @@ body.page-progression .progression-followed-sets {
     flex-wrap: wrap;
     gap: 1rem;
     margin-bottom: 1.75rem;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
 }
 
 .dashboard-greeting {
@@ -6562,8 +6910,6 @@ body.page-progression .progression-followed-sets {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
-    animation-delay: var(--motion-stagger-normal);
 }
 
 /* Vignette interne : assombrit légèrement les bords sans passer devant le contenu */
@@ -6968,75 +7314,6 @@ body.page-progression .progression-followed-sets {
     flex: 0 1 210px;
     min-width: 160px;
 }
-
-.dashboard-kpi-card {
-    position: relative;
-    background: var(--panel);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 14px;
-    padding: 1.4rem 1.3rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    min-width: 0;
-    overflow: hidden;
-    box-shadow: 0 8px 20px -12px rgba(0,0,0,0.5);
-    animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
-    animation-delay: calc(var(--motion-stagger-normal) * 2);
-    transition:
-        transform var(--motion-duration-fast) var(--motion-ease-standard),
-        border-color var(--motion-duration-fast) var(--motion-ease-standard),
-        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
-}
-
-/* Ligne d'accent colorée en haut de chaque carte, visible au repos (pas seulement au survol) */
-.dashboard-kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--kpi-accent, rgba(255,255,255,0.15));
-}
-
-.dashboard-kpi-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255,255,255,0.2);
-    box-shadow: 0 14px 28px -12px rgba(0,0,0,0.6);
-}
-
-.dashboard-kpi-icon {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    background: rgba(232,169,59,0.12);
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 1.4rem;
-    box-shadow: 0 0 18px -4px rgba(232,169,59,0.35);
-    transition: transform 0.2s ease;
-}
-
-.dashboard-kpi-card:hover .dashboard-kpi-icon {
-    transform: scale(1.08);
-}
-
-/* Accents colorés distincts par type de KPI, visibles au repos (barre + icône + glow localisé) */
-.dashboard-kpi-card-cards { --kpi-accent: var(--gold); }
-.dashboard-kpi-card-series { --kpi-accent: var(--teal); }
-.dashboard-kpi-card-spent { --kpi-accent: var(--gold); }
-.dashboard-kpi-card-gain { --kpi-accent: #7ED9A7; }
-.dashboard-kpi-card-wishlist { --kpi-accent: #c77dff; }
-
-.dashboard-kpi-card-series .dashboard-kpi-icon { background: rgba(63,167,161,0.15); color: var(--teal); box-shadow: 0 0 18px -4px rgba(63,167,161,0.4); }
-.dashboard-kpi-card-spent .dashboard-kpi-icon { background: rgba(232,169,59,0.15); color: var(--gold); box-shadow: 0 0 18px -4px rgba(232,169,59,0.4); }
-.dashboard-kpi-card-gain .dashboard-kpi-icon { background: rgba(126,217,167,0.15); color: #7ED9A7; box-shadow: 0 0 18px -4px rgba(126,217,167,0.4); }
-.dashboard-kpi-card-wishlist .dashboard-kpi-icon { background: rgba(199,125,255,0.15); color: #c77dff; box-shadow: 0 0 18px -4px rgba(199,125,255,0.4); }
 
 .dashboard-kpi-text {
     min-width: 0;
@@ -7634,18 +7911,6 @@ body.page-progression .progression-followed-sets {
         gap: 0.75rem;
     }
 
-    .dashboard-kpi-card {
-        padding: 1rem;
-        gap: 0.65rem;
-    }
-
-    .dashboard-kpi-icon {
-        width: 38px;
-        height: 38px;
-        font-size: 1.05rem;
-        border-radius: 10px;
-    }
-
     .dashboard-kpi-value {
         font-size: 1.15rem;
     }
@@ -7686,7 +7951,6 @@ body.page-progression .progression-followed-sets {
 @media (prefers-reduced-motion: reduce) {
     .dashboard-header,
     .dashboard-hero,
-    .dashboard-kpi-card,
     .dashboard-widget,
     .dashboard-widget-empty-compact i,
     .dashboard-hero-card-img-wrap,
@@ -7699,8 +7963,6 @@ body.page-progression .progression-followed-sets {
         display: none;
     }
 
-    .dashboard-kpi-card:hover,
-    .dashboard-kpi-card:hover .dashboard-kpi-icon,
     .dashboard-widget:hover,
     .dashboard-activity-row:hover,
     .dashboard-todo-row:hover,

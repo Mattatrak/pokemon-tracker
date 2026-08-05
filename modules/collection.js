@@ -135,6 +135,12 @@ function computeDuplicateGroupTotals() {
     return totals;
 }
 
+// Mobile uniquement (cf. media query 640px) : le panneau filtres est réduit par défaut, ce bouton
+// bascule .expanded. Sans effet sur desktop où le panneau reste toujours déplié (CSS scopé).
+function toggleCollectionFiltersPanel() {
+    document.getElementById('collection-filters-panel')?.classList.toggle('expanded');
+}
+
 function toggleDuplicatesFilter() {
     duplicatesOnlyFilter = !duplicatesOnlyFilter;
     document.getElementById('filter-duplicates-btn').classList.toggle('active', duplicatesOnlyFilter);

@@ -72,34 +72,57 @@ function getTypeColor(label, fallbackIndex) {
 }
 
 async function renderStatsCharts() {
+    // statsNeedsRefresh reste vrai pendant toute la durée d'un rendu (mis à false seulement en fin de
+    // fonction) : statsRenderInProgress est le vrai verrou anti-réentrance, empêchant un second appel
+    // concurrent de démarrer un second rendu (ex: double clic rapide sur l'onglet Statistiques).
+    if (!statsNeedsRefresh || statsRenderInProgress) return;
     if (typeof Chart === 'undefined') return; // Chart.js pas encore chargé
 
-    // Couleurs de texte/grille adaptées au thème sombre
-    Chart.defaults.color = '#8A93A6';
-    Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
-    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    statsRenderInProgress = true;
+    // Capturée avant le rendu, comparée après : si une mutation a appelé markStatsDirty() pendant que
+    // ce rendu tournait (ex: ajout d'une carte dans un autre onglet resté ouvert), la version aura
+    // avancé et ce rendu ne doit pas se marquer propre avec des données déjà périmées.
+    const versionAtStart = statsRenderVersion;
 
-    // Les séries TCGdex ne sont chargées qu'à la première visite de l'onglet Progression :
-    // on les charge ici aussi si besoin pour que "Séries complétées" soit correct.
-    if (typeof allTcgdexSeries !== 'undefined' && allTcgdexSeries.length === 0 && typeof loadSeriesProgress === 'function') {
-        loadSeriesProgress().then(renderStatsOverview);
+    try {
+        // Couleurs de texte/grille adaptées au thème sombre
+        Chart.defaults.color = '#8A93A6';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
+        Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
+        // Les séries TCGdex ne sont chargées qu'à la première visite de l'onglet Progression :
+        // on les charge ici aussi si besoin pour que "Séries complétées" soit correct.
+        if (typeof allTcgdexSeries !== 'undefined' && allTcgdexSeries.length === 0 && typeof loadSeriesProgress === 'function') {
+            loadSeriesProgress().then(renderStatsOverview);
+        }
+
+        renderStatsKpis();
+        renderStatsOverview();
+        await loadMonthlySummaryOptions();
+        await renderMonthlySummary();
+        await renderStxTimeline();
+        renderRarityChart();
+        renderTypeBarlist();
+        renderExtBarlist();
+        renderSeriesValueChart();
+        renderStxTopMovers();
+        renderStatsHabits();
+        renderStatsRecords();
+        await loadValueHistoryData();
+        renderValueHistoryChart();
+        renderPriceMovers();
+
+        if (statsRenderVersion === versionAtStart) {
+            statsNeedsRefresh = false;
+        }
+        // sinon : une mutation plus récente est survenue pendant ce rendu, reste dirty, sera rejouée
+        // à la prochaine visite de l'onglet.
+    } catch (error) {
+        console.error('Erreur lors du rendu des statistiques:', error);
+        // ne touche pas statsNeedsRefresh : reste dirty, une prochaine visite réessaiera.
+    } finally {
+        statsRenderInProgress = false;
     }
-
-    renderStatsKpis();
-    renderStatsOverview();
-    await loadMonthlySummaryOptions();
-    await renderMonthlySummary();
-    await renderStxTimeline();
-    renderRarityChart();
-    renderTypeBarlist();
-    renderExtBarlist();
-    renderSeriesValueChart();
-    renderStxTopMovers();
-    renderStatsHabits();
-    renderStatsRecords();
-    await loadValueHistoryData();
-    renderValueHistoryChart();
-    renderPriceMovers();
 }
 
 function formatMonthLabel(monthKey) {

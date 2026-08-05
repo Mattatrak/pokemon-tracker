@@ -49,6 +49,24 @@ function markDashboardDirty() {
 }
 // sortColumn, sortDirection, duplicatesOnlyFilter, collectionRarityFilterValues, collectionViewMode chargés depuis modules/collection.js
 
+// ===== STATISTIQUES (dirty flag) =====
+// Marqué obsolète uniquement par de vraies écritures (refreshCollection() ; ajout/suppression d'un
+// souhait dans modules/wishlist.js ; premier remplissage réel d'allTcgdexSeries dans
+// modules/progression.js) — jamais par une simple relecture/revisite d'un autre onglet.
+let statsNeedsRefresh = true;
+// Incrémenté à chaque markStatsDirty(). Permet à renderStatsCharts() (modules/stats-render.js) de
+// détecter qu'une mutation a eu lieu PENDANT son propre rendu, et de rester dirty dans ce cas plutôt
+// que de se marquer propre avec des données déjà périmées à l'instant où il finit.
+let statsRenderVersion = 0;
+// Verrou anti-réentrance : statsNeedsRefresh reste vrai pendant toute la durée d'un rendu en cours,
+// donc lui seul ne suffit pas à empêcher un second appel concurrent de démarrer un second rendu.
+let statsRenderInProgress = false;
+
+function markStatsDirty() {
+    statsNeedsRefresh = true;
+    statsRenderVersion++;
+}
+
 // ===== UTILITAIRES =====
 // Fonctions chargées depuis modules/utils.js : showMessage, resizeImageToBlob, resizeBlobToJpeg,
 // sanitizeForPath, getTcgdexImagePath, getSeriesLogoPath, resizeImageToWebpBlob, getSeriesSymbolPath
@@ -81,6 +99,7 @@ async function refreshCollection() {
     populateCollectionFilters();
     filterAndDisplay();
     markDashboardDirty();
+    markStatsDirty();
 }
 
 // Complète en mémoire les logos manquants avec ceux déjà stockés (auto ou uploadés manuellement),
@@ -526,6 +545,7 @@ function navigateToTab(tabId) {
 // visuel d'onglet a lieu dans ce cas, le rendu métier réel étant de toute façon rejoué après appReady = true
 // (voir l'appel dans modules/auth.js).
 window.addEventListener('hashchange', () => {
+    closeWishlistItemDetail();
     renderTab(getTabIdFromHash(), { activateContent: appReady === true });
 });
 
@@ -820,7 +840,10 @@ function initEventListeners() {
     document.getElementById('filter-condition').addEventListener('change', filterAndDisplay);
     document.getElementById('filter-collection-series').addEventListener('change', filterAndDisplay);
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeCardDetail();
+        if (e.key === 'Escape') {
+            closeCardDetail();
+            closeWishlistItemDetail();
+        }
     });
 
     document.getElementById('filter-collection-type').addEventListener('change', filterAndDisplay);

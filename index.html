@@ -22,23 +22,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?t=2026-08-02-1">
-    <link rel="stylesheet" href="css/layout-tokens.css?v=1">
-    <link rel="stylesheet" href="css/motion-tokens.css?v=1">
-    <link rel="stylesheet" href="css/motion-components.css?v=1">
-    <link rel="stylesheet" href="components/navigation/navigation.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=20260805-1">
+    <link rel="stylesheet" href="css/layout-tokens.css?v=20260805-1">
+    <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
+    <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
+    <link rel="stylesheet" href="components/navigation/navigation.css?v=20260805-1">
 </head>
 <body>
-    <div class="container" id="main-app-container">
-        <header>
-            <div class="header-title-row">
-                <img src="images/poke-tracker.png" alt="" class="header-logo">
-                <h1><span class="header-title-main">Pokémon</span><span class="header-title-sub">Collection Tracker</span></h1>
-                <button class="logout-btn" onclick="handleLogout()" title="Se déconnecter"><i class="ti ti-logout" aria-hidden="true"></i></button>
-            </div>
-            <div id="desktop-nav-container"></div>
-        </header>
-
+    <div class="container">
         <div class="progression-atlas-hero">
             <div id="progression-hero-nav-container"></div>
             <div class="progression-atlas-hero-content">
@@ -244,7 +235,7 @@
                                     <button type="button" class="catalogue-view-btn" data-view="list" onclick="setCatalogueView('list')" title="Vue liste"><i class="ti ti-list" aria-hidden="true"></i></button>
                                 </div>
 
-                                <select id="catalogue-sort" class="catalogue-sort-select" onchange="setSearchSort(this.value)">
+                                <select class="catalogue-sort-select" onchange="setSearchSort(this.value)">
                                     <option value="set-asc">Trier : Set (A → Z)</option>
                                     <option value="name-asc">Trier : Nom (A → Z)</option>
                                     <option value="price-desc">Trier : Prix (haut → bas)</option>
@@ -421,7 +412,11 @@
 
         <!-- ONGLET MA COLLECTION -->
         <div id="tab-collection" class="tab-content">
-            <div class="collection-filters-panel">
+            <div class="collection-filters-panel" id="collection-filters-panel">
+                <button type="button" class="cfp-mobile-toggle" onclick="toggleCollectionFiltersPanel()">
+                    <span><i class="ti ti-filter" aria-hidden="true"></i> Filtres</span>
+                    <i class="ti ti-chevron-down cfp-mobile-toggle-icon" aria-hidden="true"></i>
+                </button>
                 <div class="cfp-group cfp-group-filters">
                     <div class="cfp-group-title"><i class="ti ti-filter" aria-hidden="true"></i> Filtres</div>
                     <div class="cfp-group-body">
@@ -513,7 +508,7 @@
 
             <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
                 <span id="bulk-selection-count">0 carte sélectionnée</span>
-                <select id="bulk-condition-select" onchange="bulkUpdateCondition(this.value); this.value='';">
+                <select onchange="bulkUpdateCondition(this.value); this.value='';">
                     <option value="">Changer l'état...</option>
                     <option value="NM">Neuf (NM)</option>
                     <option value="LP">Très bon (LP)</option>
@@ -939,7 +934,7 @@
             <div class="wishlist-panel">
                 <div class="catalogue-toolbar wishlist-toolbar">
                     <div class="catalogue-toolbar-actions">
-                        <select id="wishlist-sort-select" class="catalogue-sort-select" onchange="setWishlistSort(this.value)">
+                        <select class="catalogue-sort-select" onchange="setWishlistSort(this.value)">
                             <option value="date-desc">Ajout récent</option>
                             <option value="name-asc">Nom (A→Z)</option>
                             <option value="price-desc">Prix (plus cher d'abord)</option>
@@ -969,12 +964,10 @@
         <div class="modal-card" id="wishlist-edit-content" style="max-width: 380px;"></div>
     </div>
 
-    <!-- POPOVER PARTAGE D'ACTION SUR MINIATURE WISHLIST -->
-    <!-- Un seul menu partagé, positionné en fixed via JS (getBoundingClientRect) et rendu ici, en
-         dehors de chaque .wishlist-list-card : ces cartes ont un backdrop-filter qui crée chacune
-         son propre contexte d'empilement, donc un menu imbriqué dans une carte ne peut jamais
-         dépasser (en z-index) une carte suivante dans le DOM. Voir toggleWishlistThumbMenu (wishlist.js). -->
-    <div class="wishlist-thumb-menu" id="wishlist-thumb-menu-shared"></div>
+    <!-- FICHE DETAIL CARTE WISHLIST (modules/wishlist-detail.js) -->
+    <div class="modal-overlay" id="wishlist-detail-overlay" onclick="if(event.target===this) closeWishlistItemDetail()">
+        <div class="modal-card" id="wishlist-detail-card"></div>
+    </div>
 
     <!-- MODALE DE CONFIRMATION (remplace confirm() natif) -->
     <div class="modal-overlay" id="confirm-modal-overlay" onclick="if(event.target===this) closeConfirmModal(false)">
@@ -1014,24 +1007,25 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="modules/utils.js?v=5"></script>
-    <script src="components/navigation/DesktopNavbar.js?v=1"></script>
-    <script src="components/navigation/MobileBottomNavigation.js?v=3"></script>
-    <script src="modules/storage.js?v=1"></script>
-    <script src="modules/favorites.js?v=1"></script>
-    <script src="modules/cards.js?v=13"></script>
-    <script src="modules/stats.js?v=2"></script>
-    <script src="modules/collection.js?v=6"></script>
-    <script src="modules/import-export.js?v=1"></script>
-    <script src="modules/card-detail.js?v=3"></script>
-    <script src="modules/ui.js?v=1"></script>
-    <script src="modules/wishlist.js?v=1"></script>
-    <script src="modules/stats-render.js?v=3"></script>
-    <script src="modules/progression.js?v=7"></script>
-    <script src="modules/dashboard.js?v=9"></script>
-    <script src="modules/profile.js?v=1"></script>
-    <script src="tracker.js?v=61"></script>
-    <script src="modules/auth.js?v=1"></script>
+    <script src="modules/utils.js?v=20260805-1"></script>
+    <script src="components/navigation/DesktopNavbar.js?v=20260805-1"></script>
+    <script src="components/navigation/MobileBottomNavigation.js?v=20260805-1"></script>
+    <script src="modules/storage.js?v=20260805-1"></script>
+    <script src="modules/favorites.js?v=20260805-1"></script>
+    <script src="modules/cards.js?v=20260805-1"></script>
+    <script src="modules/stats.js?v=20260805-1"></script>
+    <script src="modules/collection.js?v=20260805-1"></script>
+    <script src="modules/import-export.js?v=20260805-1"></script>
+    <script src="modules/card-detail.js?v=20260805-1"></script>
+    <script src="modules/ui.js?v=20260805-1"></script>
+    <script src="modules/wishlist.js?v=20260805-1"></script>
+    <script src="modules/wishlist-detail.js?v=20260805-1"></script>
+    <script src="modules/stats-render.js?v=20260805-1"></script>
+    <script src="modules/progression.js?v=20260805-1"></script>
+    <script src="modules/dashboard.js?v=20260805-1"></script>
+    <script src="modules/profile.js?v=20260805-1"></script>
+    <script src="tracker.js?v=20260805-1"></script>
+    <script src="modules/auth.js?v=20260805-1"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

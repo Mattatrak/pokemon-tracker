@@ -23,6 +23,7 @@ function showCardDetail(cardId) {
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
         <button class="modal-close" onclick="closeCardDetail()"><i class="ti ti-x" aria-hidden="true"></i></button>
+        <div class="modal-scroll">
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
@@ -145,6 +146,7 @@ function showCardDetail(cardId) {
                 <span class="modal-disclaimer-title">Les prix sont fournis à titre indicatif par Cardmarket.</span>
                 <span class="modal-disclaimer-sub">Mise à jour quotidienne.</span>
             </span>
+        </div>
         </div>
     `;
 
@@ -360,6 +362,7 @@ async function showCardEditForm(cardId) {
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
         <button class="modal-close" onclick="closeCardDetail()"><i class="ti ti-x" aria-hidden="true"></i></button>
+        <div class="modal-scroll">
         <div class="edit-form-header">
             <div class="edit-form-title">Informations de collection</div>
             <div class="edit-form-subtitle">Modifiez les détails de votre exemplaire.</div>
@@ -425,6 +428,7 @@ async function showCardEditForm(cardId) {
                     <div class="edit-note-counter" id="edit-note-counter">${notesValue.length} / 300</div>
                 </div>
             </div>
+        </div>
         </div>
         <div class="edit-form-actions">
             <button class="modal-cancel-btn" onclick="showCardDetail(${card.id})">Annuler</button>

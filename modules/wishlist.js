@@ -130,17 +130,18 @@ function sortWishlistItems(items) {
 }
 
 async function moveWishlistItem(itemId, targetWishlistId) {
-    if (!targetWishlistId) return;
+    if (!targetWishlistId) return false;
 
     const { error } = await supabaseClient.from('wishlist').update({ wishlist_id: Number(targetWishlistId) }).eq('id', itemId);
     if (error) {
         showMessage('Erreur lors du déplacement', 'error');
         console.error(error);
-        return;
+        return false;
     }
 
     showMessage('Carte déplacée', 'success');
     await loadWishlists();
+    return true;
 }
 
 function toggleWishlistSection(wishlistId) {
@@ -186,26 +187,29 @@ async function deleteWishlist(wishlistId) {
     }
 
     expandedWishlistIds.delete(wishlistId);
+    markStatsDirty(); // supprime aussi toutes les cartes de la liste (cascade) : le compte Stats change
     await loadWishlists();
 }
 
 async function deleteWishlistItem(itemId) {
-    if (!await showConfirmModal('Retirer cette carte de cette liste ?', 'Retirer')) return;
+    if (!await showConfirmModal('Retirer cette carte de cette liste ?', 'Retirer')) return false;
 
     const { error } = await supabaseClient.from('wishlist').delete().eq('id', itemId);
     if (error) {
         showMessage('Erreur lors de la suppression', 'error');
         console.error(error);
-        return;
+        return false;
     }
 
+    markStatsDirty();
     await loadWishlists();
+    return true;
 }
 
 // Ajoute la carte à la collection (sans la retirer de la liste de souhaits)
-async function markWishlistItemOwned(itemId) {
+async function markWishlistItemOwned(itemId, { acquisitionType = 'achat', purchasePrice = 0, customDate = null } = {}) {
     const item = allWishlistItems.find(w => w.id === itemId);
-    if (!item) return;
+    if (!item) return false;
 
     let cardData = null;
     if (item.tcgdex_id) {
@@ -238,20 +242,22 @@ async function markWishlistItemOwned(itemId) {
         await performCardAdd(cardData, {
             condition: 'NM',
             quantity: 1,
-            acquisitionType: 'achat',
-            purchasePrice: 0,
-            customImage: null
+            acquisitionType,
+            purchasePrice,
+            customImage: null,
+            customDate
         });
     } catch (error) {
         showMessage('Erreur lors de l\'ajout à la collection', 'error');
         console.error(error);
-        return;
+        return false;
     }
 
     showMessage('Ajoutée à ta collection ! Pense à ajuster l\'état et le prix si besoin.', 'success');
     await refreshCollection();
     await recordValueSnapshot();
     renderWishlistsUI();
+    return true;
 }
 
 function renderWishlistsUI() {
@@ -269,7 +275,10 @@ function renderWishlistsUI() {
 
     container.innerHTML = allWishlists.map(list => {
         const allItemsInList = allWishlistItems.filter(i => i.wishlist_id === list.id);
-        const listValue = allItemsInList.reduce((sum, i) => sum + (wishlistPriceMap[i.tcgdex_id] || 0), 0);
+        const listValue = allItemsInList.reduce((sum, i) => {
+            const owned = i.tcgdex_id && ownedTcgdexIds.has(i.tcgdex_id);
+            return owned ? sum : sum + (wishlistPriceMap[i.tcgdex_id] || 0);
+        }, 0);
 
         const visibleItems = query
             ? allItemsInList.filter(i => normalizeForMatch(i.name).includes(query) || normalizeForMatch(i.series).includes(query))
@@ -289,7 +298,7 @@ function renderWishlistsUI() {
 
             return `
                 <div class="wishlist-thumb-wrap">
-                    <div class="collection-card wishlist-thumb-card" onclick="toggleWishlistThumbMenu(event, ${item.id})" title="${escapeHtml(item.name)}">
+                    <div class="collection-card wishlist-thumb-card" onclick="openWishlistItemDetail(${item.id})" title="${escapeHtml(item.name)}">
                         ${item.image
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
@@ -403,7 +412,11 @@ function updateWishlistKpis() {
     const topEmojiEl = document.getElementById('wishlist-kpi-top-emoji');
     if (!countEl || !valueEl || !listsEl || !topPriceEl || !topNameEl || !topImgEl || !topEmojiEl) return;
 
-    const totalValue = allWishlistItems.reduce((sum, i) => sum + (wishlistPriceMap[i.tcgdex_id] || 0), 0);
+    const ownedTcgdexIds = new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id));
+    const totalValue = allWishlistItems.reduce((sum, i) => {
+        const owned = i.tcgdex_id && ownedTcgdexIds.has(i.tcgdex_id);
+        return owned ? sum : sum + (wishlistPriceMap[i.tcgdex_id] || 0);
+    }, 0);
     const topItem = allWishlistItems.reduce((best, i) => {
         const price = wishlistPriceMap[i.tcgdex_id] || 0;
         return price > (best ? (wishlistPriceMap[best.tcgdex_id] || 0) : 0) ? i : best;
@@ -433,75 +446,11 @@ function updateWishlistKpis() {
     }
 }
 
-// ===== POPOVER D'ACTION SUR MINIATURE =====
-// Menu UNIQUE partagé (#wishlist-thumb-menu-shared, index.html), positionné en fixed via
-// getBoundingClientRect. Nécessaire car chaque .wishlist-list-card a un backdrop-filter, qui crée
-// un contexte d'empilement CSS par carte : un menu imbriqué dans une carte ne peut jamais dépasser
-// (en z-index) une carte suivante dans le DOM, peu importe sa valeur de z-index.
-
-function toggleWishlistThumbMenu(event, itemId) {
-    event.stopPropagation();
-    const menu = document.getElementById('wishlist-thumb-menu-shared');
-    if (!menu) return;
-
-    const wasOpenForSameItem = menu.classList.contains('active') && menu.dataset.itemId === String(itemId);
-    closeWishlistThumbMenus();
-    if (wasOpenForSameItem) return;
-
-    const item = allWishlistItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    const owned = item.tcgdex_id && allCollectionCards.some(c => c.tcgdex_id === item.tcgdex_id);
-    const otherLists = allWishlists.filter(l => l.id !== item.wishlist_id);
-
-    const gotMenu = owned ? '' : `<div class="wishlist-thumb-menu-item" onclick="markWishlistItemOwned(${itemId}); closeWishlistThumbMenus();"><i class="ti ti-check" aria-hidden="true"></i> Je l'ai !</div>`;
-    const cardmarketMenu = `<div class="wishlist-thumb-menu-item" onclick="openWishlistItemCardmarket(${itemId}); closeWishlistThumbMenus();"><i class="ti ti-external-link" aria-hidden="true"></i> Voir sur Cardmarket</div>`;
-    const moveMenu = otherLists.length > 0
-        ? `<div class="wishlist-thumb-menu-item wishlist-thumb-menu-move" onclick="event.stopPropagation(); toggleWishlistMoveSubmenu(event)"><i class="ti ti-arrow-right" aria-hidden="true"></i> Déplacer vers...`
-            + `<div class="wishlist-thumb-submenu">`
-            + otherLists.map(l => `<div class="wishlist-thumb-menu-item" onclick="moveWishlistItem(${itemId}, ${l.id}); closeWishlistThumbMenus();">${escapeHtml(l.name)}</div>`).join('')
-            + `</div></div>`
-        : '';
-
-    menu.innerHTML = `
-        ${gotMenu}
-        ${cardmarketMenu}
-        ${moveMenu}
-        <div class="wishlist-thumb-menu-item wishlist-thumb-menu-danger" onclick="deleteWishlistItem(${itemId}); closeWishlistThumbMenus();"><i class="ti ti-trash" aria-hidden="true"></i> Retirer</div>
-    `;
-    menu.dataset.itemId = String(itemId);
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    menu.style.top = (rect.bottom + 4) + 'px';
-    menu.style.left = rect.left + 'px';
-    menu.classList.add('active');
-}
-
 function openWishlistItemCardmarket(itemId) {
     const item = allWishlistItems.find(i => i.id === itemId);
     if (!item) return;
     window.open(getCardmarketUrl(item.cardmarket_id, item.name), '_blank', 'noopener');
 }
-
-function closeWishlistThumbMenus() {
-    const menu = document.getElementById('wishlist-thumb-menu-shared');
-    if (menu) {
-        menu.classList.remove('active');
-        delete menu.dataset.itemId;
-    }
-}
-
-function toggleWishlistMoveSubmenu(event) {
-    event.stopPropagation();
-    const submenu = event.currentTarget.querySelector('.wishlist-thumb-submenu');
-    if (submenu) submenu.classList.toggle('active');
-}
-
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.wishlist-thumb-wrap') && !e.target.closest('#wishlist-thumb-menu-shared')) closeWishlistThumbMenus();
-});
-
-window.addEventListener('scroll', closeWishlistThumbMenus, true);
 
 // ===== MODALE EDITION LISTE (nom + icone + couleur) =====
 
@@ -643,6 +592,8 @@ async function addCardToSpecificWishlist(wishlistId) {
         console.error(error);
         return;
     }
+
+    markStatsDirty();
 
     if (imageNeedsBackgroundUpload) {
         fetchAndUploadExternalImage(tcgdexFallbackUrl, selectedCard.id)
