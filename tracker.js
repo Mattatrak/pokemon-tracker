@@ -447,24 +447,87 @@ async function changeQuantity(id, delta) {
 // generateDesktopNavigation/updateDesktopNavigation chargées depuis components/navigation/DesktopNavbar.js
 // generateMobileBottomNav/updateMobileBottomNav chargées depuis components/navigation/MobileBottomNavigation.js
 
-function navigateToTab(tabId) {
-    const pageMap = {
-        'tab-dashboard': 'page-dashboard',
-        'tab-add': 'page-add',
-        'tab-collection': 'page-collection',
-        'tab-progression': 'page-progression',
-        'tab-stats': 'page-statistics',
-        'tab-wishlist': 'page-wishlist'
-    };
+// Table de correspondance tabId -> classe de page.
+const TAB_PAGE_MAP = {
+    'tab-dashboard': 'page-dashboard',
+    'tab-add': 'page-add',
+    'tab-collection': 'page-collection',
+    'tab-progression': 'page-progression',
+    'tab-stats': 'page-statistics',
+    'tab-wishlist': 'page-wishlist'
+};
 
-    document.body.className = pageMap[tabId] || '';
+// Table de correspondance tabId -> route de hash. Volontairement DIFFERENTE des tabId : tab-dashboard etc.
+// sont déjà des id réels d'éléments du DOM (<div id="tab-dashboard">...). Si le hash de l'URL correspondait
+// à un id existant, le navigateur le traiterait comme une ancre HTML native et déclencherait un scroll
+// natif vers cet élément (au clic, au retour arrière, ou au chargement direct) — d'où des routes dédiées,
+// préfixées par "/", qui ne matchent aucun id du DOM.
+const TAB_ROUTES = {
+    'tab-dashboard': '/dashboard',
+    'tab-add': '/add',
+    'tab-collection': '/collection',
+    'tab-progression': '/progression',
+    'tab-stats': '/statistics',
+    'tab-wishlist': '/wishlist'
+};
+
+// Mapping inverse route -> tabId, dérivé de TAB_ROUTES pour éviter de dupliquer la liste à la main.
+const ROUTE_TO_TAB = Object.fromEntries(
+    Object.entries(TAB_ROUTES).map(([tabId, route]) => [route, tabId])
+);
+
+// Affiche l'onglet demandé (DOM + nav), et son rendu métier (activateTabContent) sauf si activateContent
+// est explicitement à false. Ne touche jamais au hash de l'URL : c'est le hashchange (ou l'appel direct au
+// chargement/après appReady) qui invoque cette fonction, jamais l'inverse — le hash est la seule source de
+// vérité, il n'y a qu'un seul chemin de rendu possible.
+// activateContent=false sert au tout premier affichage (avant que les données Supabase soient chargées) :
+// la bonne section est visible immédiatement, mais son rendu métier (renderDashboard/loadWishlists/...)
+// n'a lieu qu'une seule fois, après appReady = true (voir modules/auth.js), pour ne pas tourner sur des
+// données encore vides puis une seconde fois pour rien une fois les données prêtes.
+function renderTab(tabId, { activateContent = true } = {}) {
+    const targetTab = document.getElementById(tabId);
+    if (!targetTab) return; // tabId inconnu ou DOM pas prêt : on ignore plutôt que planter sur classList
+
+    document.body.className = TAB_PAGE_MAP[tabId] || '';
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
+    targetTab.classList.add('active');
 
     updateDesktopNavigation(tabId);
     updateMobileBottomNav(tabId);
-    activateTabContent(tabId);
+    if (activateContent) activateTabContent(tabId);
 }
+
+// Lit la route dans le hash de l'URL (ex: "#/collection" -> "/collection"), la valide dans ROUTE_TO_TAB
+// et retourne le tabId correspondant, avec repli sur tab-dashboard si absent, vide, ou route inconnue.
+function getTabIdFromHash() {
+    const route = window.location.hash.replace('#', '');
+    return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) ? ROUTE_TO_TAB[route] : 'tab-dashboard';
+}
+
+// Point d'entrée pour toute navigation programmatique (widgets internes type dashboard/wishlist/stats qui
+// redirigent vers un autre onglet). Normalise d'abord le tabId (repli sur tab-dashboard si inconnu), puis
+// convertit ce validTabId en route et écrit le hash ; c'est le listener hashchange qui rend. Si le hash
+// cible est déjà l'actuel (re-clic sur l'onglet actif), hashchange ne se déclenche pas : on rend directement
+// avec ce même validTabId.
+function navigateToTab(tabId) {
+    const validTabId = Object.prototype.hasOwnProperty.call(TAB_ROUTES, tabId) ? tabId : 'tab-dashboard';
+    const targetHash = '#' + TAB_ROUTES[validTabId];
+    if (window.location.hash === targetHash) {
+        renderTab(validTabId);
+    } else {
+        window.location.hash = targetHash;
+    }
+}
+
+// Seule source de rendu déclenchée par un changement d'URL : clic sur un vrai lien de nav (<a href="#/xxx">),
+// bouton précédent/suivant du navigateur, ou modification manuelle de l'URL. Peut se déclencher avant que
+// les données soient chargées (ex: clic pendant le chargement initial) : activateContent est conditionné à
+// appReady pour ne jamais lancer activateTabContent sur des données pas encore prêtes — seul le changement
+// visuel d'onglet a lieu dans ce cas, le rendu métier réel étant de toute façon rejoué après appReady = true
+// (voir l'appel dans modules/auth.js).
+window.addEventListener('hashchange', () => {
+    renderTab(getTabIdFromHash(), { activateContent: appReady === true });
+});
 
 // ===== ONGLETS =====
 
@@ -813,10 +876,7 @@ function initEventListeners() {
 if (document.getElementById('search-collection')) initEventListeners();
 
 function initDesktopNavigation() {
-    const activeTab = document.querySelector('.tab-content.active');
-    if (activeTab) {
-        navigateToTab(activeTab.id);
-    }
+    renderTab(getTabIdFromHash(), { activateContent: false });
 }
 
 document.addEventListener('DOMContentLoaded', initDesktopNavigation);

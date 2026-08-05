@@ -18,6 +18,7 @@ async function init() {
     await renderHeroValueCard();
     await renderDashboard();
     appReady = true; // autorise markDashboardDirty() à re-rendre immédiatement à partir de maintenant
+    renderTab(getTabIdFromHash()); // ré-applique l'onglet du hash une fois les données chargées (wishlists/stats/progression dépendent de allCollectionCards)
     initDatePicker('#card-date-added');
     updateMobileBottomNav('tab-dashboard');
 

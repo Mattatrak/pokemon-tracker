@@ -6,7 +6,7 @@
 // et directement dans le hero du Dashboard
 // (modules/dashboard.js). Masquée en CSS sous 768px
 // (navigation.css) au profit de MobileBottomNavigation.js.
-// Dépend de : navigateToTab (tracker.js), handleLogout (modules/auth.js)
+// Dépend de : TAB_ROUTES (tracker.js), handleLogout (modules/auth.js)
 
 function generateDesktopNavigation(activeTabId) {
     const pages = [
@@ -18,7 +18,7 @@ function generateDesktopNavigation(activeTabId) {
     ];
 
     const navCenter = pages
-        .map(p => `<button class="dashboard-integrated-nav-link ${p.id === activeTabId ? 'active' : ''}" onclick="navigateToTab('${p.id}')">${p.label}</button>`)
+        .map(p => `<a href="#${TAB_ROUTES[p.id]}" class="dashboard-integrated-nav-link ${p.id === activeTabId ? 'active' : ''}">${p.label}</a>`)
         .join('');
 
     return `
@@ -33,8 +33,8 @@ function generateDesktopNavigation(activeTabId) {
                 ${navCenter}
             </div>
             <div class="dashboard-integrated-nav-right">
-                <button class="dashboard-integrated-nav-action" title="Rechercher" onclick="navigateToTab('tab-add')"><i class="ti ti-search" aria-hidden="true"></i></button>
-                <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action" title="Rechercher"><i class="ti ti-search" aria-hidden="true"></i></a>
+                <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter"><i class="ti ti-plus" aria-hidden="true"></i></a>
                 <div class="profile-menu-wrap">
                     <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--profile" title="Mon profil" onclick="toggleProfileMenu(event)">
                         ${typeof currentUserProfile !== 'undefined' && currentUserProfile ? profileAvatarHtml(currentUserProfile, 32) : '<i class="ti ti-user" aria-hidden="true"></i>'}

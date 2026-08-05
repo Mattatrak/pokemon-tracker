@@ -3,7 +3,7 @@
 // Totalement indépendante de DesktopNavbar.js (pas de media queries dans un composant partagé) :
 // les deux sont rendus en parallèle, CSS (navigation.css) décide lequel est visible selon le breakpoint.
 // Rendue une fois dans #mobile-bottom-nav-container (index.html) et mise à jour à chaque changement d'onglet.
-// Dépend de : navigateToTab (tracker.js), showMessage (modules/utils.js)
+// Dépend de : TAB_ROUTES (tracker.js), showMessage (modules/utils.js)
 
 // Répartie de part et d'autre du bouton central (+) : 2 items à gauche, 2 à droite
 const MOBILE_NAV_PAGES_LEFT = [
@@ -17,10 +17,10 @@ const MOBILE_NAV_PAGES_RIGHT = [
 
 function renderMobileNavItem(p, activeTabId) {
     return `
-        <button class="mobile-bottom-nav-item ${p.id === activeTabId ? 'active' : ''}" onclick="navigateToTab('${p.id}')">
+        <a href="#${TAB_ROUTES[p.id]}" class="mobile-bottom-nav-item ${p.id === activeTabId ? 'active' : ''}">
             <span class="mobile-bottom-nav-icon"><i class="ti ${p.icon}" aria-hidden="true"></i></span>
             <span>${p.label}</span>
-        </button>
+        </a>
     `;
 }
 
@@ -30,9 +30,9 @@ function generateMobileBottomNav(activeTabId) {
 
     return `
         ${left}
-        <button class="mobile-bottom-nav-fab" onclick="navigateToTab('tab-add')" title="Ajouter" aria-label="Ajouter">
+        <a href="#${TAB_ROUTES['tab-add']}" class="mobile-bottom-nav-fab" title="Ajouter" aria-label="Ajouter">
             <i class="ti ti-plus" aria-hidden="true"></i>
-        </button>
+        </a>
         ${right}
     `;
 }
