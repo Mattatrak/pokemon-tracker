@@ -62,7 +62,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         btn.disabled = false;
         btn.textContent = 'Se connecter';
     } else {
-        window.location.href = 'index.html';
+        window.location.href = './#/dashboard';
     }
 });
 
@@ -118,7 +118,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
 
     if (data.session) {
         // Confirmation e-mail désactivée côté Supabase : le compte est actif immédiatement
-        window.location.href = 'index.html';
+        window.location.href = './#/dashboard';
         return;
     }
 
@@ -189,7 +189,7 @@ document.getElementById('reset-form').addEventListener('submit', async (e) => {
         return;
     }
 
-    window.location.href = 'index.html';
+    window.location.href = './#/dashboard';
 });
 
 supabaseClient.auth.onAuthStateChange((event) => {
