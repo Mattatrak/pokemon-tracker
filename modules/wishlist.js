@@ -608,6 +608,11 @@ async function addCardToSpecificWishlist(wishlistId) {
     selectedCard = null;
     customPreviewImage = null;
 
+    // Uniquement après un ajout Wishlist réellement confirmé (le insert Supabase a déjà réussi au-dessus,
+    // aucune erreur n'a fait de "return" avant ce point) : ferme la modale Ajouter mobile si elle est
+    // ouverte. closeMobileAddPanel() est définie dans modules/cards.js, chargé avant ce module.
+    if (typeof isMobileAddPanelOpen === 'function' && isMobileAddPanelOpen()) closeMobileAddPanel();
+
     await loadWishlists();
 }
 

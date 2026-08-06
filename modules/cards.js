@@ -530,6 +530,11 @@ async function addCard() {
     customPreviewImage = null;
     currentMarketValue = 0;
 
+    // Uniquement après un ajout Collection réellement réussi (jamais dans le catch ci-dessus) : la
+    // modale mobile doit rester ouverte avec les champs conservés en cas d'erreur. closeMobileAddPanel()
+    // ne dépend pas de selectedCard, donc fonctionne même après sa remise à null juste au-dessus.
+    if (isMobileAddPanelOpen()) closeMobileAddPanel();
+
     await refreshCollection();
     await recordValueSnapshot();
 }
@@ -574,6 +579,9 @@ function onSearchResultClick(card, el) {
     selectCard(card);
     markResultSelected(el);
     toggleAddPanel(isAddPanelDefaultOpen());
+
+    // openMobileAddPanel() est déjà défensive (no-op si >960px ou déjà ouverte) : rien à vérifier ici.
+    openMobileAddPanel();
 }
 
 // ===== PHASE 3 CATALOGUE : tri, vue grille/liste, filtres avancés =====
@@ -639,4 +647,94 @@ document.addEventListener('click', (e) => {
     if (popover && popover.classList.contains('active') && !e.target.closest('.catalogue-filter-popover-wrap')) {
         popover.classList.remove('active');
     }
+});
+
+// ===== MODALE MOBILE "AJOUTER" (<=960px) =====
+// Déplace physiquement .catalogue-sheet-sticky (même nœud, formulaire inclus) entre .catalogue-sheet-col
+// (desktop) et #mobile-add-overlay-card (modale mobile) : un seul formulaire, jamais recréé/dupliqué,
+// aucun ID dupliqué, aucun listener rajouté sur les champs (tout est déjà en onclick inline sur les
+// éléments déplacés, donc conservé automatiquement par le déplacement).
+
+function isMobileAddPanelViewport() {
+    return window.matchMedia('(max-width: 960px)').matches;
+}
+
+function isMobileAddPanelOpen() {
+    const overlay = document.getElementById('mobile-add-overlay');
+    return !!overlay && overlay.classList.contains('active');
+}
+
+// Le popup flatpickr est positionné en absolute par rapport à l'input au moment de l'ouverture : un
+// changement de parent pendant qu'il est ouvert le laisserait mal ancré, d'où la fermeture préalable
+// systématique avant tout déplacement de nœud (ouverture comme fermeture de la modale).
+function closeCardDateFlatpickr() {
+    const input = document.getElementById('card-date-added');
+    if (input && input._flatpickr) input._flatpickr.close();
+}
+
+// Verrou de scroll dédié à cette modale (jamais partagé avec la fiche Wishlist ou une autre modale) :
+// mémorise document.body.style.overflow uniquement au premier verrouillage, pour ne jamais écraser une
+// valeur déjà modifiée par un autre overlay si jamais deux venaient à se chevaucher.
+let mobileAddPanelScrollLocked = false;
+let mobileAddPanelPreviousBodyOverflow = '';
+
+function lockMobileAddPanelScroll() {
+    if (mobileAddPanelScrollLocked) return;
+    mobileAddPanelPreviousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    mobileAddPanelScrollLocked = true;
+}
+
+function unlockMobileAddPanelScroll() {
+    if (!mobileAddPanelScrollLocked) return;
+    document.body.style.overflow = mobileAddPanelPreviousBodyOverflow;
+    mobileAddPanelScrollLocked = false;
+}
+
+function openMobileAddPanel() {
+    if (!isMobileAddPanelViewport()) return;
+    if (isMobileAddPanelOpen()) return;
+
+    const sheet = document.querySelector('.catalogue-sheet-sticky');
+    const overlayCard = document.getElementById('mobile-add-overlay-card');
+    const overlay = document.getElementById('mobile-add-overlay');
+    if (!sheet || !overlayCard || !overlay) return;
+
+    closeCardDateFlatpickr();
+    overlayCard.appendChild(sheet);
+    overlay.classList.add('active');
+    lockMobileAddPanelScroll();
+}
+
+function closeMobileAddPanel() {
+    if (!isMobileAddPanelOpen()) return;
+
+    closeCardDateFlatpickr();
+    document.getElementById('mobile-add-overlay').classList.remove('active');
+    unlockMobileAddPanelScroll();
+
+    const sheet = document.querySelector('.catalogue-sheet-sticky');
+    const desktopSlot = document.querySelector('.catalogue-sheet-col');
+    if (sheet && desktopSlot) desktopSlot.appendChild(sheet);
+}
+
+// Un seul listener resize, débouncé, installé une fois au chargement du script (pas de duplication
+// possible). N'agit que si le viewport franchit réellement le seuil 960px depuis le dernier passage
+// (mobileAddPanelWasMobile sert de mémoire) : ne rerend jamais le formulaire, ne rappelle jamais
+// selectCard(), s'appuie uniquement sur openMobileAddPanel()/closeMobileAddPanel() déjà défensives.
+let mobileAddPanelWasMobile = isMobileAddPanelViewport();
+let mobileAddPanelResizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(mobileAddPanelResizeTimer);
+    mobileAddPanelResizeTimer = setTimeout(() => {
+        const isMobileNow = isMobileAddPanelViewport();
+        if (isMobileNow === mobileAddPanelWasMobile) return;
+        mobileAddPanelWasMobile = isMobileNow;
+
+        if (isMobileNow) {
+            if (selectedCard) openMobileAddPanel();
+        } else {
+            closeMobileAddPanel();
+        }
+    }, 150);
 });

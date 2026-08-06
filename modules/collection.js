@@ -426,7 +426,7 @@ function renderFilteredCollection() {
     updateResetFiltersButtonVisibility();
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
-    if (collectionViewMode === 'table') {
+    if (getEffectiveCollectionViewMode() === 'table') {
         renderCollectionTable(page);
     } else {
         renderCollectionGrid(page);
@@ -559,6 +559,18 @@ function renderCollectionGrid(filtered) {
 
 let collectionViewMode = 'grid';
 
+function isCollectionMobileViewport() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+// Distingue la préférence utilisateur (collectionViewMode, changée uniquement par un clic sur le toggle)
+// du mode réellement rendu : sous 768px, le tableau (10 colonnes, non scrollable) ne doit jamais être la
+// vue active (cf audit mobile) — on rend la Galerie sans jamais réécrire la préférence elle-même, pour
+// qu'un retour au-dessus de 768px réapplique automatiquement le Tableau si c'était le choix de l'utilisateur.
+function getEffectiveCollectionViewMode() {
+    return (collectionViewMode === 'table' && isCollectionMobileViewport()) ? 'grid' : collectionViewMode;
+}
+
 function setCollectionView(mode) {
     collectionViewMode = mode;
     document.getElementById('view-btn-grid').classList.toggle('active', mode === 'grid');
@@ -568,6 +580,18 @@ function setCollectionView(mode) {
     document.getElementById('grid-sort').style.display = mode === 'grid' ? 'inline-block' : 'none';
     filterAndDisplay();
 }
+
+// Le CSS masque déjà le tableau/le bouton Tableau et force la Galerie visible sous 768px (aucun flash
+// possible, appliqué par le navigateur avant tout JS). Reste à re-peupler la bonne vue quand on franchit
+// le seuil pendant que la préférence est "table" : sinon la Galerie révélée par le CSS peut rester vide
+// (jamais rendue tant qu'on était en mode Tableau), ou le Tableau rester non re-peuplé au retour desktop.
+// Aucun effet quand la préférence est "grid" (l'affichage effectif ne dépend alors jamais du viewport).
+let collectionViewResizeTimer = null;
+window.addEventListener('resize', () => {
+    if (collectionViewMode !== 'table') return;
+    clearTimeout(collectionViewResizeTimer);
+    collectionViewResizeTimer = setTimeout(renderFilteredCollection, 150);
+});
 
 // Script de maintenance ponctuel : récupère l'illustrateur (TCGdex) pour les cartes ajoutées
 // avant l'introduction du champ illustrator. A lancer une fois depuis la console (backfillIllustrators()).

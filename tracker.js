@@ -546,6 +546,8 @@ function navigateToTab(tabId) {
 // (voir l'appel dans modules/auth.js).
 window.addEventListener('hashchange', () => {
     closeWishlistItemDetail();
+    closeMobileMorePanel();
+    closeMobileAddPanel();
     renderTab(getTabIdFromHash(), { activateContent: appReady === true });
 });
 
@@ -843,6 +845,18 @@ function initEventListeners() {
         if (e.key === 'Escape') {
             closeCardDetail();
             closeWishlistItemDetail();
+            closeMobileMorePanel();
+
+            // Priorité de couche : le picker Wishlist peut s'ouvrir par-dessus la modale Ajouter. Un appui
+            // ne doit fermer que la couche du dessus : s'il est actif, on ferme uniquement lui (il n'avait
+            // jusqu'ici aucun handler Échap) ; sinon, un appui suivant ferme la modale Ajouter en dessous.
+            const wishlistPickerOverlay = document.getElementById('wishlist-picker-overlay');
+            const wishlistPickerOpen = !!wishlistPickerOverlay && wishlistPickerOverlay.classList.contains('active');
+            if (wishlistPickerOpen) {
+                closeWishlistPicker();
+            } else {
+                closeMobileAddPanel();
+            }
         }
     });
 

@@ -164,6 +164,84 @@
     padding: 0.35rem 0.5rem;
 }
 
+/* Panneau "Plus" (Progression/Statistiques/Mon profil/Se déconnecter) : ancré au parent .mobile-bottom-nav
+   (position:fixed = containing block), donc hérite déjà de son décalage env(safe-area-inset-bottom) sans
+   calcul supplémentaire ici. Aligné à droite (right:0) plutôt que pleine largeur : reste au-dessus du
+   bouton Plus (dernier item, tout à droite de la barre) sans dépendre de son offsetLeft réel — un menu
+   compact, pas une seconde barre. Largeur fixe : à 360px la barre fait ~336px, un panneau à 236px laisse
+   largement de marge à gauche, aucun débordement possible. z-index entre la barre (500) et modales/
+   messages (1000). */
+.mobile-more-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 10px);
+    width: 236px;
+    background: rgba(15, 12, 10, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(232, 169, 59, 0.14);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.4);
+    padding: 0.35rem;
+    z-index: 900;
+}
+
+.mobile-more-panel.open {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: motion-enter var(--motion-duration-fast) var(--motion-ease-enter) both;
+}
+
+.mobile-more-panel-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 44px;
+    background: none;
+    border: none;
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+}
+
+.mobile-more-panel-item:active {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.mobile-more-panel-item i {
+    width: 18px;
+    flex-shrink: 0;
+    text-align: center;
+    color: var(--gold);
+    font-size: 1rem;
+}
+
+/* Séparateur discret avant "Se déconnecter" : ligne neutre fine, pas une bordure or (celle-ci resterait
+   dominante sur une ligne aussi courte). */
+.mobile-more-panel-item-danger {
+    margin-top: 3px;
+    padding-top: calc(0.5rem + 1px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #ff6b6b;
+}
+
+.mobile-more-panel-item-danger i {
+    color: #ff6b6b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-more-panel.open {
+        animation: none;
+    }
+}
+
 .mobile-bottom-nav-fab {
     flex: 0 0 auto;
     width: 52px;

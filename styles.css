@@ -560,6 +560,29 @@ body {
     flex-shrink: 0;
 }
 
+/* Sous 768px, le libellé (nowrap + overflow:hidden) perd son min-width auto — flex-shrink:1 par défaut
+   l'écrasait alors jusqu'à 1 lettre au profit du compteur (nowrap, jamais compressé) partageant la même
+   ligne flex (cf audit mobile). Le libellé récupère l'espace disponible et repasse sur plusieurs lignes
+   plutôt que d'être tronqué ; le compteur reste figé à sa largeur de contenu. */
+@media (max-width: 768px) {
+    .catalogue-toolbar-info {
+        align-items: flex-start;
+    }
+
+    .catalogue-toolbar-query {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+    }
+
+    .catalogue-toolbar-count {
+        flex: 0 0 auto;
+    }
+}
+
 .catalogue-view-toggle {
     display: flex;
     border: 1px solid var(--border);
@@ -930,7 +953,14 @@ body {
         grid-template-columns: 1fr;
     }
 
+    /* Conteneur desktop masqué (pas .catalogue-sheet-sticky lui-même, qui reste le même nœud déplacé dans
+       #mobile-add-overlay-card par openMobileAddPanel()/closeMobileAddPanel(), cf modules/cards.js) :
+       display:none n'affecte que .catalogue-sheet-col et son contenu tant qu'il y reste — une fois le nœud
+       déplacé dans la modale (hors de cet ancêtre), il redevient visible normalement là où il se trouve.
+       Sans cette règle, la fiche desktop restait visible sous les résultats une fois repliée en 1 colonne,
+       vide au chargement ou pleine après une fermeture de modale. */
     .catalogue-sheet-col {
+        display: none;
         max-width: none;
     }
 
@@ -2677,6 +2707,70 @@ tbody tr:hover {
     background: rgba(255,255,255,0.06);
     color: var(--text-primary);
     opacity: 1;
+}
+
+/* Cible tactile mobile (audit) : padding 0.4rem seul ne fait pas 44px au doigt. Taille fixée
+   explicitement, padding neutralisé (redondant une fois width/height posés). Aucun style "danger" à
+   préserver ici : Renommer/Supprimer/Replier partagent déjà le même rendu discret (voir commentaire
+   ci-dessus), rien de spécifique à la suppression n'existe dans ce composant.
+   En-tête passé en grille 2 lignes : à 44px les 3 boutons ne tiennent plus à côté du nom sur une seule
+   ligne (icône+titre+actions) sans écraser .wishlist-list-name jusqu'à 1 lettre (overflow:hidden annule
+   son min-width auto, comme le bug catalogue déjà corrigé). Grid plutôt que flex-wrap : place icône+titre
+   sur la ligne 1 et les 3 actions sur la ligne 2 sans dépendre de l'ordre naturel de wrap. */
+@media (max-width: 768px) {
+    .wishlist-list-card-header {
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-areas:
+            "icon title"
+            "actions actions";
+        column-gap: 0.75rem;
+        row-gap: 0.5rem;
+    }
+
+    .wishlist-list-icon {
+        grid-area: icon;
+    }
+
+    .wishlist-list-card-title {
+        grid-area: title;
+        flex-wrap: wrap;
+        row-gap: 0.2rem;
+    }
+
+    /* Le nom garde une largeur lisible minimale ; badge/valeur passent à la ligne avant que l'ellipsis
+       ne rogne le nom (priorité inverse de l'ordre DOM, cf demande produit). */
+    .wishlist-list-name {
+        flex: 1 1 auto;
+        min-width: 90px;
+    }
+
+    .wishlist-count-badge,
+    .wishlist-list-value {
+        flex-shrink: 0;
+    }
+
+    .wishlist-list-card-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+        gap: 0.3rem;
+    }
+
+    .wishlist-list-card-actions button {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        font-size: 0.95rem;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .wishlist-list-card-actions button:active {
+        background: rgba(255,255,255,0.1);
+        opacity: 1;
+    }
 }
 
 .wishlist-chevron {
@@ -4544,6 +4638,148 @@ tbody tr:hover {
     background: rgba(19,19,19,0.9);
 }
 
+/* Cible tactile mobile (audit) : 32px (40px pour card-detail) trop petit au doigt. Zone agrandie à 44px
+   minimum ; top/right légèrement réduits pour que le bouton grandisse surtout vers le coin de la carte
+   plutôt que vers le titre. Icône laissée à sa taille actuelle (font-size non touché). Partagé par toutes
+   les modales utilisant .modal-close (wishlist-edit, wishlist-picker, text-prompt, confirm-modal,
+   top-movers, profil, wishlist-detail, quickadd-settings) + la variante #card-detail-card. */
+@media (max-width: 768px) {
+    .modal-close {
+        top: 0.65rem;
+        right: 0.65rem;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-close:active {
+        background: rgba(255,255,255,0.14);
+    }
+
+    #card-detail-card .modal-close {
+        top: 1.375rem;
+        right: 1.375rem;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #card-detail-card .modal-close:active {
+        background: rgba(255,255,255,0.12);
+    }
+}
+
+/* MODALE MOBILE "AJOUTER" (<=960px, seuil structurel existant de .catalogue-scene) — accueille
+   .catalogue-sheet-sticky déplacé par modules/cards.js (openMobileAddPanel/closeMobileAddPanel), le même
+   nœud DOM que le panneau desktop, jamais recréé. Réutilise .modal-overlay/.modal-card (mêmes classes que
+   toutes les autres modales) pour le fond, le toggle .active et la transition opacity/transform déjà
+   éprouvés (respect prefers-reduced-motion déjà couvert par le filet global de motion-components.css) :
+   seules la largeur/hauteur sont redéfinies pour un rendu quasi plein écran plutôt qu'une carte centrée
+   étroite. Placé ici (après la déclaration de base .modal-overlay/.modal-card) pour que ces overrides de
+   z-index/taille gagnent bien la cascade à spécificité égale. */
+@media (max-width: 960px) {
+    .mobile-add-overlay {
+        z-index: 970;
+        padding: 0.75rem;
+    }
+
+    .mobile-add-overlay-card {
+        width: 100%;
+        max-width: 600px;
+        max-height: 94vh;
+        padding: 1.5rem;
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    /* Styles perdus en quittant .catalogue-sheet-col (scopés par cet ancêtre) — reproduits ici pour que
+       .catalogue-sheet-sticky garde le même rendu une fois déplacé dans la modale. */
+    .mobile-add-overlay-card .preview-info-value {
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .mobile-add-overlay-card .preview-image {
+        box-shadow: none;
+    }
+
+    /* La modale (.modal-card) porte déjà son propre fond/bordure/rayon : neutralise ceux de
+       .catalogue-sheet-sticky pour éviter une carte dans la carte une fois déplacé ici. */
+    .mobile-add-overlay-card .catalogue-sheet-sticky {
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    /* Image au-dessus des détails plutôt que côte à côte (36%/reste) : trop étroit une fois la fiche
+       ramenée à la largeur d'une modale mobile.
+       align-items:stretch (base = flex-start, hérité du layout desktop en ligne) : en colonne, flex-start
+       laissait .preview-details (et tout son contenu : logo/série/étoile, nom, rareté, carte prix) se
+       réduire à sa largeur intrinsèque et partir à gauche, pendant que .preview-image (seul avec un
+       width:100% explicite) occupait toute la largeur — d'où la composition déséquilibrée constatée
+       (blocs de largeurs différentes, étoile qui semblait flotter au lieu d'être à droite d'une colonne
+       alignée). stretch force tous les enfants directs de .preview-main à la même largeur. */
+    .mobile-add-overlay-card .preview-main {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Colonne de contenu commune : .preview-details (bloc identité + carte prix/détails, cf
+       .preview-details-card qui en hérite la largeur comme enfant bloc normal) et .add-panel (section
+       "Ajouter à ma collection", sibling de .preview-main donc capé séparément) partagent la même largeur
+       max et le même centrage. margin-inline:auto sur un flex item étiré (.preview-details) absorbe
+       l'espace libre une fois le plafond atteint — sous ~410px de large, le plafond ne joue aucun rôle
+       (le contenu est déjà plus étroit que 340px), rien ne casse à 360px. */
+    .mobile-add-overlay-card .preview-details {
+        max-width: 340px;
+        margin-inline: auto;
+    }
+
+    .mobile-add-overlay-card .add-panel {
+        max-width: 340px;
+        margin-inline: auto;
+    }
+
+    /* Le wrapper .preview-image a un fond sombre (var(--ink-navy), cf déclaration de base) prévu pour
+       combler l'espace derrière une image qui ne remplit pas tout à fait sa colonne desktop (36%). Sur
+       360-390px, à hauteur plafonnée 240px, l'image réelle (ratio ~5/7) ne fait jamais 100% de la largeur
+       du wrapper : ce fond restait visible tout autour, d'où le grand cadre noir. Transparent ici — la
+       carte reste centrée par le flex du wrapper (hérité, inchangé), rien à cacher derrière elle. Le
+       placeholder "pas d'image" (.no-image-placeholder, fond propre à lui) n'est pas concerné : il garde
+       son propre fond, width:100% toujours nécessaire à son affichage. */
+    .mobile-add-overlay-card .card-preview .preview-image {
+        flex: none;
+        width: 100%;
+        max-height: 240px;
+        padding: 0;
+        background: transparent;
+    }
+
+    /* Image plafonnée à 240px (au lieu de 380px hérité) : sur 360-390px de large, un visuel plus haut
+       laissait moins de place utile avant de devoir défiler pour atteindre le formulaire. Même valeur déjà
+       utilisée pour la fiche détail Wishlist mobile, pour rester cohérent. */
+    .mobile-add-overlay-card .preview-image img {
+        max-height: 240px;
+    }
+
+    /* .preview-meta-box (Rareté/Type/Illustrateur/Cardmarket/Prix) n'a jamais eu besoin de minmax(0, 1fr) :
+       toujours affiché dans la large colonne desktop jusqu'ici. Une fois dans la modale mobile étroite, un
+       "1fr" nu peut forcer la grille à dépasser la largeur de la carte si un des blocs (ex. le bouton
+       Cardmarket, flex-shrink:0) ne tient pas dans sa part — même cause que le débordement déjà corrigé sur
+       la page Statistiques. Corrigé ici uniquement (scopé à la modale), desktop non touché. */
+    .mobile-add-overlay-card .preview-meta-box {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
 .modal-body {
     display: flex;
     gap: 1.5rem;
@@ -5672,6 +5908,70 @@ tbody tr:hover {
     }
 }
 
+/* COMPOSITION MOBILE FICHE DÉTAIL COLLECTION (<=768px) — même cause racine que la modale Ajouter :
+   .modal-body{align-items:flex-start} (rangée desktop) devenait, une fois en colonne (règle <=500px
+   ci-dessus), un align-items:center qui centre .modal-image-wrap/.modal-info comme deux blocs à leur
+   largeur intrinsèque plutôt que de les étirer sur un même axe — d'où les largeurs incohérentes
+   (graphique très large, bloc identité qui semble flotter). Placé après les blocs <=500/<=760px existants
+   pour gagner la cascade à spécificité égale sur les propriétés partagées. */
+@media (max-width: 768px) {
+    .modal-body {
+        align-items: stretch;
+        text-align: left;
+    }
+
+    .modal-badges {
+        justify-content: flex-start;
+    }
+
+    /* Colonne commune : image, graphique et bloc identité/valeur/métadonnées/actions (.modal-meta-actions-row
+       et .modal-note en héritent déjà, enfants directs de .modal-info/.modal-main-col — pas de règle
+       séparée) partagent la même largeur max et le même centrage. 316px (au lieu de 340px) : à 360/390px
+       340px laissait des marges à peine perceptibles, resserré pour un centrage visuellement net sans
+       gêner titres/badges/prix/boutons (aucun de ces éléments n'a de largeur minimale connue > ~280px).
+       Sous ~360px de large le plafond ne joue aucun rôle (le contenu est déjà plus étroit), rien ne casse. */
+    #card-detail-card .modal-image-wrap,
+    .card-price-chart-wrap,
+    .modal-disclaimer {
+        width: 100%;
+        max-width: 316px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* .card-price-chart-wrap déborde volontairement sa colonne de 20px de chaque côté en desktop
+       (margin-left négatif, cf déclaration de base) pour un effet bord-à-bord dans la colonne image :
+       sans ce reset, width:100% + margin-left:-20px l'aurait fait déborder de la colonne mobile. */
+    .card-price-chart-wrap {
+        margin-left: auto;
+    }
+
+    #card-detail-card .modal-info {
+        margin-left: 0;
+        max-width: 316px;
+        margin-inline: auto;
+    }
+
+    /* .modal-meta-actions-row passe déjà à 1 colonne sous 760px (règle ci-dessus) : minmax(0, ...) évite
+       qu'un contenu non réductible (ex. libellé d'action long) ne force la piste au-delà de la largeur de
+       la colonne commune (même cause que le débordement déjà corrigé sur la page Statistiques). */
+    .modal-meta-actions-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Sous 768px, le contenu de la Collection derrière la fiche détail restait trop lisible à travers
+   rgba(19,19,19,0.6) malgré le flou : opacité relevée pour cette seule largeur, mêmes dégradés/flou/thème
+   conservés, aucun changement desktop, aucun z-index touché. */
+@media (max-width: 768px) {
+    #card-detail-card {
+        background:
+            radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
+            rgba(19,19,19,0.88);
+    }
+}
+
 .global-message-container {
     position: fixed;
     left: 50%;
@@ -5680,6 +5980,17 @@ tbody tr:hover {
     z-index: 1000;
     width: min(420px, calc(100vw - 2rem));
     pointer-events: none;
+}
+
+/* Sous 768px, .mobile-bottom-nav (components/navigation/navigation.css) occupe le bas de l'écran :
+   bottom:12px + safe-area, hauteur réelle ~65px (padding 0.35rem + bordure 1px + items min-height:48px
+   + marge 2px) => empreinte totale ~77px + safe-area depuis le bas du viewport. 90px reprend la même
+   constante que .container{padding-bottom} plus bas (navigation.css) pour cette barre : ~13px de marge
+   visuelle au-dessus d'elle, sans dimension supplémentaire inventée. */
+@media (max-width: 768px) {
+    .global-message-container {
+        bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    }
 }
 
 .message {
@@ -5748,6 +6059,22 @@ tbody tr:hover {
 
     th, td {
         padding: 0.75rem;
+    }
+
+    /* Mode Tableau Collection indisponible sous 768px : 10 colonnes non scrollables, illisible/inatteignable
+       en dessous (cf audit mobile). !important : gagne sur les styles inline posés par setCollectionView,
+       aucun flash possible car appliqué par le navigateur avant tout JS (resize ou chargement direct). */
+    #collection-table-wrapper,
+    #view-btn-table {
+        display: none !important;
+    }
+
+    #collection-grid-wrapper {
+        display: block !important;
+    }
+
+    #grid-sort {
+        display: inline-block !important;
     }
 
     .stats-grid {
@@ -8064,9 +8391,13 @@ body.page-progression .progression-followed-sets {
     gap: 0.5rem;
 }
 
+/* minmax(0, 1fr) et non 1fr seul : un simple "1fr" implique min-width:auto sur la piste, c'est-à-dire
+   la taille min-content du panneau le plus large (ex. #ext-barlist .stx-ext-name, largeur fixe non
+   réductible) — la grille (et la page) débordait alors à droite au lieu de laisser le panneau se
+   compresser. Corrigé ici et dans les deux media queries qui redéfinissent ces colonnes plus bas. */
 .stx-composition-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
 }
 
@@ -8778,7 +9109,7 @@ body.page-progression .progression-followed-sets {
 }
 
 @media (max-width: 1200px) {
-    .stx-composition-grid { grid-template-columns: repeat(2, 1fr); }
+    .stx-composition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stx-value-grid {
         grid-template-columns: repeat(2, 1fr);
         grid-template-areas:
@@ -8796,15 +9127,41 @@ body.page-progression .progression-followed-sets {
 
 @media (max-width: 640px) {
     .stx-kpi-row,
-    .stx-composition-grid,
     .stx-value-grid,
     .stx-habits-grid,
     .stx-records-grid {
         grid-template-columns: 1fr;
     }
 
+    /* Séparé du groupe ci-dessus : garde le minmax(0, ...) plutôt qu'un "1fr" nu (cf commentaire sur la
+       déclaration de base) — sinon le débordement réapparaît précisément à cette largeur. */
+    .stx-composition-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Un peu moins de padding pour laisser respirer la ligne "Par extension" (nom + barre + %),
+       cf #ext-barlist .stx-ext-name plus bas. min-height:380px (déclaration de base) sert à aligner les
+       3 panneaux côte à côte en desktop (avec justify-content:center sur .stx-barlist / flex:1 sur
+       .stx-donut-wrap pour centrer un contenu court dans cette hauteur commune) — en 1 colonne cet
+       alignement n'a plus de sens, et forçait un panneau à peu de raretés/types/séries à afficher du vide
+       centré. Retiré ici : hauteur naturelle du contenu, canvas/largeur non affectés. */
+    .stx-composition-grid .stx-panel {
+        padding: 1.25rem;
+        min-height: 0;
+    }
+
     .stx-value-grid {
         grid-template-areas: none;
+    }
+
+    /* grid-template-areas:none seul ne suffit pas de façon fiable partout : les 3 panneaux gardent leur
+       grid-area nommée (evo/repartition/movers, cf déclaration de base) et certains moteurs les replacent
+       mal une fois les zones nommées supprimées, d'où la superposition constatée sur mobile. Repli
+       explicite sur l'auto-placement normal (1 panneau par ligne, dans l'ordre du DOM). */
+    .stx-panel-value-history,
+    .stx-panel-series-value,
+    .stx-value-grid .stx-movers-panel {
+        grid-area: auto;
     }
 
     .stx-donut-wrap {
@@ -8823,5 +9180,17 @@ body.page-progression .progression-followed-sets {
     .stx-timeline-chart-col {
         flex: none;
         width: 100%;
+    }
+}
+
+/* #type-barlist/#ext-barlist ont des noms à largeur fixe (78px/170px, flex-shrink:0) pour garder les
+   barres alignées sur une même colonne en desktop. Sous 768px cette largeur fixe ne laisse plus assez de
+   place à la barre + au pourcentage (cf audit) : le nom redevient flexible et s'ellipse individuellement,
+   l'alignement colonne par colonne n'est plus garanti mais rien ne déborde et % + barre restent visibles. */
+@media (max-width: 768px) {
+    #type-barlist .stx-type-name,
+    #ext-barlist .stx-ext-name {
+        flex: 1 1 auto;
+        min-width: 0;
     }
 }

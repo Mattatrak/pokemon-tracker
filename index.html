@@ -999,6 +999,15 @@
         <div class="modal-card" id="profile-modal-content" style="max-width: 380px;"></div>
     </div>
 
+    <!-- MODALE MOBILE "AJOUTER" (<=960px) : accueille .catalogue-sheet-sticky déplacé depuis
+         .catalogue-sheet-col (modules/cards.js: openMobileAddPanel/closeMobileAddPanel). Vide par défaut,
+         le nœud n'y est déplacé qu'à l'ouverture. -->
+    <div class="modal-overlay mobile-add-overlay" id="mobile-add-overlay" onclick="if(event.target===this) closeMobileAddPanel()">
+        <div class="modal-card mobile-add-overlay-card" id="mobile-add-overlay-card">
+            <button type="button" class="modal-close" onclick="closeMobileAddPanel()"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>
+    </div>
+
     <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
 
