@@ -484,9 +484,9 @@ function renderCollectionTable(filtered) {
             <td>${getRarityIconHtml(card.rarity)} ${card.rarity || 'N/A'}</td>
             <td style="text-align: center;">
                 <div class="qty-stepper">
-                    <button onclick="changeQuantity(${card.id}, -1)"><i class="ti ti-minus" aria-hidden="true"></i></button>
+                    <button onclick="changeQuantity(${card.id}, -1, this)"><i class="ti ti-minus" aria-hidden="true"></i></button>
                     <span>${qty}</span>
-                    <button onclick="changeQuantity(${card.id}, 1)"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                    <button onclick="changeQuantity(${card.id}, 1, this)"><i class="ti ti-plus" aria-hidden="true"></i></button>
                 </div>
             </td>
             <td style="text-align: right;"><strong>${lineTotal.toFixed(2)}€</strong></td>

@@ -10,6 +10,14 @@
 // plutôt qu'ajoutée à tracker.js pour ne pas toucher au hash router.
 const REDIRECT_ROUTE_KEY = 'poketracker-redirect-route';
 
+// Dupliquée dans modules/auth-login.js (même raison que REDIRECT_ROUTE_KEY ci-dessus). Liste blanche
+// réelle : les 6 routes fixes de ROUTE_TO_TAB, plus la forme paramétrée #/user/<username> (Phase 3,
+// modules/public-profile.js) bornée au même format que la contrainte SQL sur profiles.username
+// (3-20 caractères alphanumériques/_/-) — jamais une confiance aveugle dans la valeur stockée.
+function isValidRedirectRoute(route) {
+    return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) || /^\/user\/[A-Za-z0-9_-]{3,20}$/.test(route);
+}
+
 async function init() {
     await loadUserProfile();
     await loadFavorites();
@@ -55,7 +63,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         // connexion (voir getPostLoginRedirectHash dans modules/auth-login.js). Validée contre ROUTE_TO_TAB
         // (liste blanche de routes internes, définie dans tracker.js) : jamais de valeur non reconnue stockée.
         const requestedRoute = window.location.hash.replace('#', '');
-        if (Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, requestedRoute)) {
+        if (isValidRedirectRoute(requestedRoute)) {
             sessionStorage.setItem(REDIRECT_ROUTE_KEY, requestedRoute);
         }
         window.location.replace('login.html');

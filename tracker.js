@@ -394,44 +394,64 @@ async function deleteCard(id) {
     }
 }
 
-async function changeQuantity(id, delta) {
-    const card = allCollectionCards.find(c => c.id === id);
-    if (!card) return;
+// Verrou par carte (pas global) : changeQuantity() lit card.quantity depuis le cache local, donc deux
+// clics rapides sur +/- de la MEME carte avant la fin du premier aller-retour réseau partent tous les
+// deux de la même valeur de départ et un incrément est perdu silencieusement. Les autres cartes restent
+// utilisables pendant ce temps (verrou par id, pas un verrou Collection global).
+const quantityChangeInProgress = new Set();
 
-    const newQuantity = Number(card.quantity || 1) + delta;
+async function changeQuantity(id, delta, btn) {
+    if (quantityChangeInProgress.has(id)) return; // mutation déjà en cours sur cette carte : ignorer
+    quantityChangeInProgress.add(id);
 
-    if (newQuantity <= 0) {
-        if (!await showConfirmModal('Retirer complètement cette carte de la collection ?', 'Retirer')) return;
-        const { error } = await supabaseClient.from('cards').delete().eq('id', id);
-        if (error) {
-            showMessage('Erreur lors de la suppression', 'error');
-            console.error(error);
-            return;
+    // Désactivation visuelle des deux boutons +/- de cette carte : purement cosmétique en cas de succès
+    // (refreshCollection() remplace la ligne juste après), utile surtout si l'appel échoue et que la
+    // ligne n'est donc pas re-rendue.
+    const stepperButtons = btn ? btn.closest('.qty-stepper')?.querySelectorAll('button') : null;
+    if (stepperButtons) stepperButtons.forEach(b => b.disabled = true);
+
+    try {
+        const card = allCollectionCards.find(c => c.id === id);
+        if (!card) return;
+
+        const newQuantity = Number(card.quantity || 1) + delta;
+
+        if (newQuantity <= 0) {
+            if (!await showConfirmModal('Retirer complètement cette carte de la collection ?', 'Retirer')) return;
+            const { error } = await supabaseClient.from('cards').delete().eq('id', id);
+            if (error) {
+                showMessage('Erreur lors de la suppression', 'error');
+                console.error(error);
+                return;
+            }
+
+            // Réconcilier l'historique mensuel (même logique que deleteCard)
+            if (card.created_at) {
+                const addedDate = new Date(card.created_at);
+                const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+                const qty = Number(card.quantity || 1);
+                await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
+            }
+        } else {
+            const { error } = await supabaseClient.from('cards').update({ quantity: newQuantity }).eq('id', id);
+            if (error) {
+                showMessage('Erreur lors de la mise à jour', 'error');
+                console.error(error);
+                return;
+            }
         }
 
-        // Réconcilier l'historique mensuel (même logique que deleteCard)
-        if (card.created_at) {
-            const addedDate = new Date(card.created_at);
-            const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
-            const qty = Number(card.quantity || 1);
-            await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
-        }
-    } else {
-        const { error } = await supabaseClient.from('cards').update({ quantity: newQuantity }).eq('id', id);
-        if (error) {
-            showMessage('Erreur lors de la mise à jour', 'error');
-            console.error(error);
-            return;
-        }
-    }
+        await refreshCollection();
+        await recordValueSnapshot();
 
-    await refreshCollection();
-    await recordValueSnapshot();
-
-    // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
-    const progressionSetView = document.getElementById('progression-set-view');
-    if (progressionSetView && progressionSetView.style.display === 'block') {
-        renderProgressionCardsGrid();
+        // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
+        const progressionSetView = document.getElementById('progression-set-view');
+        if (progressionSetView && progressionSetView.style.display === 'block') {
+            renderProgressionCardsGrid();
+        }
+    } finally {
+        quantityChangeInProgress.delete(id);
+        if (stepperButtons) stepperButtons.forEach(b => b.disabled = false);
     }
 }
 
@@ -473,7 +493,9 @@ const TAB_PAGE_MAP = {
     'tab-collection': 'page-collection',
     'tab-progression': 'page-progression',
     'tab-stats': 'page-statistics',
-    'tab-wishlist': 'page-wishlist'
+    'tab-wishlist': 'page-wishlist',
+    'tab-user-profile': 'page-user-profile',
+    'tab-collectors': 'page-collectors'
 };
 
 // Table de correspondance tabId -> route de hash. Volontairement DIFFERENTE des tabId : tab-dashboard etc.
@@ -487,7 +509,8 @@ const TAB_ROUTES = {
     'tab-collection': '/collection',
     'tab-progression': '/progression',
     'tab-stats': '/statistics',
-    'tab-wishlist': '/wishlist'
+    'tab-wishlist': '/wishlist',
+    'tab-collectors': '/collectors'
 };
 
 // Mapping inverse route -> tabId, dérivé de TAB_ROUTES pour éviter de dupliquer la liste à la main.
@@ -518,8 +541,12 @@ function renderTab(tabId, { activateContent = true } = {}) {
 
 // Lit la route dans le hash de l'URL (ex: "#/collection" -> "/collection"), la valide dans ROUTE_TO_TAB
 // et retourne le tabId correspondant, avec repli sur tab-dashboard si absent, vide, ou route inconnue.
+// Cas particulier #/user/<username> (Phase 3, modules/public-profile.js) : route paramétrée, donc absente
+// de ROUTE_TO_TAB par construction (table figée tabId<->route fixe) — interceptée avant ce lookup plutôt
+// que d'étendre TAB_ROUTES/ROUTE_TO_TAB/navigateToTab, qui ne gèrent que des routes fixes 1:1 avec un tabId.
 function getTabIdFromHash() {
     const route = window.location.hash.replace('#', '');
+    if (route.startsWith('/user/')) return 'tab-user-profile';
     return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) ? ROUTE_TO_TAB[route] : 'tab-dashboard';
 }
 
@@ -577,12 +604,40 @@ function activateTabContent(tabId) {
     if (tabId === 'tab-wishlist') {
         loadWishlists();
     }
+
+    if (tabId === 'tab-user-profile') {
+        loadPublicProfile(getUsernameFromHash());
+    }
+
+    if (tabId === 'tab-collectors') {
+        resetCollectorsSearchView();
+    }
 }
 
 // ===== INITIALISATION =====
 // ===== RAFRAICHISSEMENT DES PRIX MARCHE =====
 
+// Verrou de réentrance : refreshAllMarketPrices() est déclenchable à la fois automatiquement au
+// login (modules/auth.js, non attendue) et manuellement depuis le todo du Dashboard (modules/
+// dashboard.js). Sans ce verrou, deux exécutions concurrentes dupliquent card_price_history et
+// s'écrasent mutuellement sur localStorage (lastPriceMovers/lastPriceRefresh).
+let marketPriceRefreshInProgress = false;
+
 async function refreshAllMarketPrices() {
+    if (marketPriceRefreshInProgress) {
+        showMessage('Rafraîchissement des prix déjà en cours...', 'success');
+        return;
+    }
+    marketPriceRefreshInProgress = true;
+
+    try {
+        await refreshAllMarketPricesInternal();
+    } finally {
+        marketPriceRefreshInProgress = false;
+    }
+}
+
+async function refreshAllMarketPricesInternal() {
     const cardsWithId = allCollectionCards.filter(c => c.tcgdex_id);
     if (cardsWithId.length === 0) {
         showMessage('Aucune carte avec un identifiant TCGdex à rafraîchir', 'error');

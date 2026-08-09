@@ -40,6 +40,7 @@ function generateDesktopNavigation(activeTabId) {
                         ${typeof currentUserProfile !== 'undefined' && currentUserProfile ? profileAvatarHtml(currentUserProfile, 32) : '<i class="ti ti-user" aria-hidden="true"></i>'}
                     </button>
                     <div class="profile-menu" id="profile-menu">
+                        <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
                         <button class="profile-menu-item" onclick="closeProfileMenu(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
                         <button class="profile-menu-item profile-menu-item-danger" onclick="handleLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
                     </div>

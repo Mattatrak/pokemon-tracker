@@ -1,0 +1,68 @@
+PT-005 — Hero
+
+Statut : ✅ Validé
+Version : 1.0
+Importance : ⭐⭐⭐ Fondamentale
+
+Mission
+
+Accueillir l'utilisateur, donner immédiatement le contexte de la section et créer une transition élégante entre la navigation et le contenu.
+
+Vision
+
+Le Hero est une mise en scène.
+
+Il plonge immédiatement l'utilisateur dans l'univers de la page, puis s'efface naturellement pour laisser place aux données.
+
+Le Hero ne concurrence jamais le contenu.
+
+Composition
+
+Le Hero est composé de 3 zones :
+
+Zone texte (gauche)
+Catégorie
+Titre
+Description
+Zone décorative (droite)
+Illustration immersive
+Sans information essentielle
+Transition
+Dégradé doux vers les KPI ou le contenu
+Principes
+Le texte reste toujours aligné à gauche.
+Le panneau texte est semi-transparent (verre fumé).
+L'image reste secondaire.
+Les KPI sont toujours visuellement séparés du Hero.
+Les actions sont optionnelles et uniquement lorsqu'elles déclenchent une action indépendante du contenu situé juste dessous.
+Hiérarchie
+Titre
+Description
+Décor
+Actions (si présentes)
+Lumière
+Ambiance chaude.
+Lumière cinématographique.
+Contraste maîtrisé pour préserver la lisibilité.
+Responsive
+La composition reste identique.
+Seule la hauteur diminue.
+L'image peut être recadrée.
+Le texte reste toujours prioritaire.
+Ce que nous avons rejeté
+Hero centré.
+Hero en deux colonnes rigides.
+Boutons systématiques.
+Images imposées.
+Informations critiques dans le décor.
+Signature PokéTracker
+
+Le Hero installe l'ambiance, puis disparaît naturellement au profit du contenu.
+
+Référence retenue
+
+Composition C — Superposition
+
+Panneau texte flottant à gauche.
+Décor immersif à droite.
+Transition douce vers les KPI.

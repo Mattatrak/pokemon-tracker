@@ -31,6 +31,7 @@ async function renderDashboard() {
     dashboardRenderSafe('dashboard-acquisitions-body', renderDashboardAcquisitions);
     dashboardRenderSafe('dashboard-todo-body', renderDashboardTodo);
     dashboardRenderSafe('dashboard-wishlist-body', renderDashboardWishlist);
+    dashboardRenderSafe('dashboard-collectors-body', renderDashboardCollectorsSearch);
 
     dashboardNeedsRefresh = false;
 }
@@ -58,6 +59,10 @@ function dashboardBuildSkeleton() {
         <div class="dashboard-widget">
             <div class="dashboard-widget-header"><h3>À faire aujourd'hui</h3></div>
             <div id="dashboard-todo-body"></div>
+        </div>
+        <div class="dashboard-widget">
+            <div class="dashboard-widget-header"><h3>Trouver un collectionneur</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-collectors')">Voir tout</button></div>
+            <div id="dashboard-collectors-body"></div>
         </div>
         <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" style="display:none;">
             <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
@@ -583,6 +588,29 @@ function renderDashboardWishlist() {
     }).join('');
 
     dashboardUpdateWishlistTrends(items.filter(i => i.tcgdex_id));
+}
+
+// ===== TROUVER UN COLLECTIONNEUR =====
+// Shell statique uniquement : toute la logique de recherche (debounce, requestId, requêtes
+// profiles_public, rendu des résultats/états) vit dans modules/collectors.js
+// (dashboardCollectorsSearchController) et est partagée avec la vue #/collectors — pas de seconde
+// implémentation ici. Rebâti à chaque rafraîchissement du Dashboard comme les autres widgets (une
+// recherche en cours dans ce champ est donc réinitialisée si le Dashboard se rafraîchit pendant la
+// frappe, même comportement pré-existant que tous les autres widgets de cette grille).
+function renderDashboardCollectorsSearch() {
+    const el = document.getElementById('dashboard-collectors-body');
+    if (!el) return;
+
+    el.innerHTML = `
+        <p class="dashboard-empty-subtext" style="padding:0 0 0.75rem;">Retrouvez vos amis et découvrez leurs collections.</p>
+        <div class="input-with-icon">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="text" id="dashboard-collectors-input" placeholder="Rechercher un pseudo ou @username" oninput="onDashboardCollectorsSearchInput()">
+        </div>
+        <div class="collectors-search-results dashboard-collectors-results" id="dashboard-collectors-results"></div>
+    `;
+
+    dashboardCollectorsDefaultLoader.load();
 }
 
 // Remplit après coup la variation 24h de chaque carte en wishlist (nécessite un appel réseau

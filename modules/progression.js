@@ -271,6 +271,21 @@ function renderProgressionSeriesList() {
         .map(series => ({ series, sets: (series.sets || []).filter(set => (ownedIdsBySet[set.id]?.size || 0) > 0) }))
         .filter(entry => entry.sets.length > 0);
 
+    // Compte neuf (ou aucune carte avec tcgdex_id) : sans ce garde, container.innerHTML devient une
+    // chaîne vide et l'onglet Progression paraît cassé, alors que les KPI juste au-dessus affichent
+    // déjà "Aucun set commencé". Réutilise les classes .followed-sets-empty existantes (section Sets
+    // suivis, même page) plutôt que d'introduire un nouveau style.
+    if (seriesWithOwnedSets.length === 0) {
+        container.innerHTML = `
+            <div class="followed-sets-empty">
+                <p class="followed-sets-empty-title">Aucune série commencée</p>
+                <p class="followed-sets-empty-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
+                <button class="dashboard-add-btn" style="margin-top:0.75rem;" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+            </div>
+        `;
+        return;
+    }
+
     // Par défaut, le chapitre le plus récent est ouvert (fait office de "chapitre consulté")
     if (progressionOpenSeriesIds.size === 0 && seriesWithOwnedSets.length > 0) {
         progressionOpenSeriesIds.add(seriesWithOwnedSets[0].series.id);
@@ -855,6 +870,7 @@ function showAddCardModal(card) {
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
         <button class="modal-close" onclick="closeCardDetail()">✕</button>
+        <div class="modal-scroll">
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div id="quickadd-image-slot">
@@ -912,6 +928,7 @@ function showAddCardModal(card) {
 
                 <button class="modal-save-btn full-width" id="quickadd-submit-btn" onclick="submitQuickAdd(${JSON.stringify(card).replace(/"/g, '&quot;')})"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
             </div>
+        </div>
         </div>
     `;
 

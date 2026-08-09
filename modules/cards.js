@@ -157,9 +157,16 @@ function populateSearchFilters(cards) {
     if (series.includes(currentSeries)) seriesSelect.value = currentSeries;
 }
 
-const CATALOGUE_PAGE_SIZE = 8;
+// Desktop (>960px, cf .catalogue-scene) affiche plus de résultats par page grâce à la densité de
+// grille retrouvée sans sélection ; mobile garde 8 pour éviter une liste trop longue. Lue à chaque
+// reset/clic "Charger plus", jamais mise en cache : un resize entre-temps s'applique naturellement
+// à la prochaine évaluation, sans listener dédié.
+function getCataloguePageSize() {
+    return window.matchMedia('(min-width: 961px)').matches ? 24 : 8;
+}
+
 let lastFilteredResults = [];
-let catalogueVisibleCount = CATALOGUE_PAGE_SIZE;
+let catalogueVisibleCount = getCataloguePageSize();
 
 function applySearchFilters() {
     const rarityFilter = document.getElementById('filter-rarity').value;
@@ -175,7 +182,7 @@ function applySearchFilters() {
     filtered = sortSearchResults(filtered);
 
     lastFilteredResults = filtered;
-    catalogueVisibleCount = CATALOGUE_PAGE_SIZE;
+    catalogueVisibleCount = getCataloguePageSize();
 
     updateCatalogueResultsInfo(filtered.length);
     renderSearchResults(filtered.slice(0, catalogueVisibleCount));
@@ -183,7 +190,7 @@ function applySearchFilters() {
 }
 
 function loadMoreCatalogueResults() {
-    catalogueVisibleCount += CATALOGUE_PAGE_SIZE;
+    catalogueVisibleCount += getCataloguePageSize();
     renderSearchResults(lastFilteredResults.slice(0, catalogueVisibleCount));
     updateCatalogueLoadMoreButton(lastFilteredResults.length);
 }

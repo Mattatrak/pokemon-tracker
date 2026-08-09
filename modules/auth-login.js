@@ -4,13 +4,19 @@
 // Dupliquée depuis modules/auth.js (voir commentaire là-bas) pour ne pas toucher à tracker.js.
 const REDIRECT_ROUTE_KEY = 'poketracker-redirect-route';
 
+// Dupliquée depuis modules/auth.js (même raison). Liste blanche réelle, pas une confiance aveugle dans
+// sessionStorage : les 6 routes fixes plus #/user/<username> borné au format de profiles.username.
+function isValidRedirectRoute(route) {
+    return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) || /^\/user\/[A-Za-z0-9_-]{3,20}$/.test(route);
+}
+
 // Consomme (lit + supprime, usage unique) la route mémorisée par modules/auth.js avant la redirection vers
 // login.html. Revalidée contre ROUTE_TO_TAB (défense en profondeur : jamais faire confiance à une valeur
 // lue en storage sans revalidation) — repli sur /dashboard si absente ou invalide.
 function getPostLoginRedirectHash() {
     const requestedRoute = sessionStorage.getItem(REDIRECT_ROUTE_KEY);
     sessionStorage.removeItem(REDIRECT_ROUTE_KEY);
-    const validRoute = requestedRoute && Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, requestedRoute)
+    const validRoute = requestedRoute && isValidRedirectRoute(requestedRoute)
         ? requestedRoute
         : TAB_ROUTES['tab-dashboard'];
     return './#' + validRoute;

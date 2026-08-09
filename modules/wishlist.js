@@ -555,7 +555,23 @@ function renderWishlistPicker() {
     `;
 }
 
+// Verrou partagé par les 2 actions du picker (ajouter à une liste existante / créer une liste + ajouter) :
+// aucun garde n'existait avant, un double-clic pouvait insérer deux fois la même carte ou créer deux
+// listes identiques. Un seul flag suffit ici (pas un verrou Wishlist global) car ces deux actions ne
+// peuvent de toute façon pas être menées en parallèle depuis la même modale picker.
+let wishlistPickerBusy = false;
+
 async function addCardToSpecificWishlist(wishlistId) {
+    if (wishlistPickerBusy) return;
+    wishlistPickerBusy = true;
+    try {
+        await addCardToSpecificWishlistInternal(wishlistId);
+    } finally {
+        wishlistPickerBusy = false;
+    }
+}
+
+async function addCardToSpecificWishlistInternal(wishlistId) {
     if (!selectedCard) return;
 
     // Image : si déjà hébergée sur Supabase (dédup rapide) on l'utilise tout de suite, sinon on part
@@ -617,35 +633,55 @@ async function addCardToSpecificWishlist(wishlistId) {
 }
 
 async function createWishlistAndAddCard() {
-    const input = document.getElementById('new-wishlist-name');
-    const name = input.value.trim();
-    if (!name) {
-        showMessage('Donne un nom à ta nouvelle liste', 'error');
-        return;
-    }
+    if (wishlistPickerBusy) return;
+    wishlistPickerBusy = true;
 
-    const { data, error } = await supabaseClient.from('wishlists').insert([{ name }]).select().single();
-    if (error) {
-        showMessage('Erreur lors de la création de la liste', 'error');
-        console.error(error);
-        return;
-    }
+    try {
+        const input = document.getElementById('new-wishlist-name');
+        const name = input.value.trim();
+        if (!name) {
+            showMessage('Donne un nom à ta nouvelle liste', 'error');
+            return;
+        }
 
-    allWishlists.push(data);
-    expandedWishlistIds.add(data.id);
-    await addCardToSpecificWishlist(data.id);
+        const { data, error } = await supabaseClient.from('wishlists').insert([{ name }]).select().single();
+        if (error) {
+            showMessage('Erreur lors de la création de la liste', 'error');
+            console.error(error);
+            return;
+        }
+
+        allWishlists.push(data);
+        expandedWishlistIds.add(data.id);
+        // Appel direct à la version interne (sans garde) : le verrou est déjà tenu par cet appelant,
+        // addCardToSpecificWishlist() ferait un no-op puisque wishlistPickerBusy est déjà true.
+        await addCardToSpecificWishlistInternal(data.id);
+    } finally {
+        wishlistPickerBusy = false;
+    }
 }
 
+// Verrou dédié : flow indépendant du picker (bouton "Nouvelle liste" de la page Wishlist, pas de la
+// modale Ajouter), pas de raison de partager wishlistPickerBusy.
+let createWishlistOnlyBusy = false;
+
 async function createWishlistOnly() {
-    const result = await showWishlistEditModal('Nouvelle liste', { name: '', icon: WISHLIST_ICON_PRESET[2], color: WISHLIST_COLOR_PRESET[0].hex });
-    if (!result) return;
+    if (createWishlistOnlyBusy) return;
+    createWishlistOnlyBusy = true;
 
-    const { error } = await supabaseClient.from('wishlists').insert([{ name: result.name, icon: result.icon, color: result.color }]);
-    if (error) {
-        showMessage('Erreur lors de la création de la liste', 'error');
-        console.error(error);
-        return;
+    try {
+        const result = await showWishlistEditModal('Nouvelle liste', { name: '', icon: WISHLIST_ICON_PRESET[2], color: WISHLIST_COLOR_PRESET[0].hex });
+        if (!result) return;
+
+        const { error } = await supabaseClient.from('wishlists').insert([{ name: result.name, icon: result.icon, color: result.color }]);
+        if (error) {
+            showMessage('Erreur lors de la création de la liste', 'error');
+            console.error(error);
+            return;
+        }
+
+        await loadWishlists();
+    } finally {
+        createWishlistOnlyBusy = false;
     }
-
-    await loadWishlists();
 }

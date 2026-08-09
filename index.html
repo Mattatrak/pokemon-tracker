@@ -947,6 +947,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : rempli
+             dynamiquement, jamais via allCollectionCards/allWishlists/allWishlistItems -->
+        <div id="tab-user-profile" class="tab-content">
+            <div class="user-profile-panel" id="user-profile-content"></div>
+        </div>
+
+        <!-- ONGLET RECHERCHE DE COLLECTIONNEURS (route #/collectors, modules/collectors.js) : shell
+             statique, uniquement #collectors-search-results rempli dynamiquement -->
+        <div id="tab-collectors" class="tab-content">
+            <div class="collectors-panel">
+                <div class="collectors-header">
+                    <h1 class="collectors-title">Collectionneurs</h1>
+                    <p class="collectors-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
+                </div>
+                <div class="input-with-icon">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="text" id="collectors-search-input" placeholder="Rechercher un pseudo ou @username" oninput="onCollectorsSearchInput()">
+                </div>
+                <div class="collectors-search-results" id="collectors-search-results"></div>
+            </div>
+        </div>
     </div>
 
     <!-- MODALE CHOIX / CREATION DE LISTE DE SOUHAITS -->
@@ -994,6 +1016,12 @@
         <div class="modal-card" id="card-detail-card"></div>
     </div>
 
+    <!-- MODALE DETAIL CARTE PUBLIQUE (profil tiers, modules/public-profile.js) : overlay dédié, jamais
+         partagé avec la fiche propriétaire ci-dessus, aucune action d'écriture -->
+    <div class="modal-overlay" id="public-card-detail-overlay" onclick="if(event.target===this) closePublicCardDetail()">
+        <div class="modal-card" id="public-card-detail-card"></div>
+    </div>
+
     <!-- MODALE PROFIL (pseudo + avatar) -->
     <div class="modal-overlay" id="profile-modal-overlay" onclick="if(event.target===this) closeProfileModal()">
         <div class="modal-card" id="profile-modal-content" style="max-width: 380px;"></div>
@@ -1033,6 +1061,9 @@
     <script src="modules/progression.js?v=20260805-1"></script>
     <script src="modules/dashboard.js?v=20260805-1"></script>
     <script src="modules/profile.js?v=20260805-1"></script>
+    <script src="modules/collector-match.js?v=20260809-1"></script>
+    <script src="modules/public-profile.js?v=20260805-1"></script>
+    <script src="modules/collectors.js?v=20260805-1"></script>
     <script src="tracker.js?v=20260805-1"></script>
     <script src="modules/auth.js?v=20260805-1"></script>
     <script>

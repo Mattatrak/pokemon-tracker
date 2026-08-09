@@ -50,6 +50,13 @@ function closeTextPrompt() {
 let confirmModalResolve = null;
 
 function showConfirmModal(message, confirmLabel = 'Confirmer') {
+    // Singleton non ré-entrant : une seule confirmation visible à la fois. Si une confirmation est déjà
+    // ouverte, ouvrir la 2e écraserait confirmModalResolve et la 1re Promise ne se résoudrait jamais
+    // (l'appelant reste suspendu indéfiniment). On annule donc proprement le 2e appelant (false =
+    // annulation, cohérent avec tous les call sites existants : `if (!await showConfirmModal(...))
+    // return;`), sans jamais toucher à la confirmation déjà en cours.
+    if (confirmModalResolve) return Promise.resolve(false);
+
     return new Promise((resolve) => {
         confirmModalResolve = resolve;
         const content = document.getElementById('confirm-modal-content');

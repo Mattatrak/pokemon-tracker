@@ -677,6 +677,32 @@ body {
     align-self: stretch;
 }
 
+/* Etat "aucune carte sélectionnée" (desktop >960px uniquement) : dérivé directement de
+   #card-preview.active (source de vérité unique, posée/retirée par selectCard()/addCard() dans
+   modules/cards.js), pas de classe JS dédiée. Retire la colonne .catalogue-sheet-col du grid pour
+   que .catalogue-grid-col prenne toute la largeur, au lieu de réserver minmax(460px, 1fr) à vide.
+   Scopé en min-width:961px pour ne jamais dépendre de l'ordre de cascade avec le bloc
+   max-width:960px plus bas (mobile toujours prioritaire, inchangé). */
+@media (min-width: 961px) {
+    .catalogue-scene:not(:has(#card-preview.active)) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .catalogue-scene:not(:has(#card-preview.active)) .catalogue-sheet-col {
+        display: none;
+    }
+
+    /* Sans .catalogue-sheet-col, .search-results (272) a beaucoup plus de largeur : son
+       minmax(170px, 1fr) laisse le max 1fr étirer les tracks pour remplir la ligne au lieu d'en
+       ajouter. On plafonne le max ici pour garder une taille de carte proche du layout 2 colonnes,
+       quitte à laisser un reliquat vide à droite plutôt que d'étirer. Spécificité (id #card-preview
+       via :has()) l'emporte aussi sur le repeat(4, ...) forcé de la règle >=1920px (932) sans avoir
+       à la dupliquer. */
+    .catalogue-scene:not(:has(#card-preview.active)) .search-results {
+        grid-template-columns: repeat(auto-fill, minmax(190px, 220px));
+    }
+}
+
 .catalogue-sheet-sticky {
     position: sticky;
     top: 1.5rem;
@@ -2456,7 +2482,11 @@ button:disabled {
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    overflow: hidden;
+    overflow-x: auto;
+    /* overflow-y reste clippé (comportement identique à l'ancien overflow:hidden) : aucun scroll
+       vertical n'était nécessaire, seul l'axe X doit s'ouvrir pour ne plus perdre de colonnes en
+       largeur desktop intermédiaire. Conserve aussi le clip des angles arrondis en haut/bas. */
+    overflow-y: hidden;
 }
 
 .select-col {
@@ -3134,6 +3164,403 @@ tbody tr:hover {
 
 .profile-avatar-swatch.selected {
     border-color: #e3bc84;
+}
+
+/* PHASE 1 — Profils publics : identité + confidentialité (aucune donnée tierce lisible ici, cf
+   sql/migrations/2026-08-08_profiles_public_identity.sql). Section discrète dans la modale Profil
+   existante, mêmes tokens visuels (var(--slate)/var(--border)/var(--gold)) que le reste de la modale. */
+.profile-public-section {
+    margin-top: 0.5rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--border);
+}
+
+.profile-public-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--slate);
+    margin-bottom: 0.75rem;
+}
+
+.profile-username-status {
+    font-size: 0.78rem;
+    color: var(--slate);
+    margin-top: 0.3rem;
+    min-height: 1em;
+}
+
+.profile-username-invalid {
+    color: #ff6b6b;
+}
+
+.profile-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    cursor: pointer;
+}
+
+.profile-toggle-row span {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.profile-toggle-row input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--gold);
+    cursor: pointer;
+}
+
+.profile-toggle-hint {
+    font-size: 0.76rem;
+    color: var(--slate);
+    margin: -0.3rem 0 0.2rem;
+}
+
+/* PHASE 3 — Profil public (#/user/<username>, modules/public-profile.js). Shell minimal : header +
+   stats + 2 placeholders. Réutilise les tokens existants (verre fumé, --gold, --slate) pour rester
+   cohérent avec le reste de l'app, aucun nouveau composant lourd. */
+.user-profile-panel {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2rem 0;
+    width: 100%;
+}
+
+/* Desktop : panel plus large pour laisser .collection-grid / .wishlist-thumb-grid (minmax(190px,...),
+   auto-fill) ajouter des colonnes naturellement au lieu de rester bloquées à 2 par manque de place. */
+@media (min-width: 901px) {
+    .user-profile-panel {
+        max-width: 900px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .user-profile-panel {
+        max-width: 1180px;
+    }
+}
+
+.user-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.user-profile-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.user-profile-avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-light);
+    color: var(--gold);
+    font-size: 1.75rem;
+}
+
+.user-profile-pseudo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+}
+
+.user-profile-username {
+    color: var(--slate);
+    font-size: 0.9rem;
+}
+
+.user-profile-member-since {
+    color: var(--slate);
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
+    text-transform: capitalize;
+}
+
+.user-profile-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.user-profile-stat {
+    flex: 1 1 140px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(26,26,30,0.35);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+
+.user-profile-stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+}
+
+.user-profile-stat-label {
+    font-size: 0.75rem;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.2rem;
+}
+
+.user-profile-sections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.user-profile-section {
+    flex: 1 1 260px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.user-profile-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.user-profile-section-placeholder {
+    color: var(--slate);
+    font-size: 0.9rem;
+}
+
+.user-profile-section-locked {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Bloc "Correspondances avec toi" (Ticket 2) : reprend .user-profile-section (bordure/radius) mais
+   hors du flex .user-profile-sections, donc margin-bottom explicite ici plutôt que le gap du parent. */
+.user-profile-match-section {
+    margin-bottom: 1.25rem;
+    padding: 0;
+    overflow: hidden;
+}
+
+.user-profile-match-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.user-profile-match-header:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.user-profile-match-header .user-profile-section-title {
+    margin-bottom: 0;
+}
+
+.user-profile-match-summary {
+    padding: 0 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.user-profile-match-summary p {
+    color: var(--slate);
+    font-size: 0.88rem;
+}
+
+.user-profile-match-detail {
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.user-profile-match-group-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 0.6rem;
+}
+
+.user-profile-notfound {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--slate);
+}
+
+.user-profile-notfound i {
+    font-size: 2.5rem;
+    color: var(--gold);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* PHASE 3 — Recherche de collectionneurs (#/collectors, modules/collectors.js). Réutilise
+   .input-with-icon (déjà stylé ailleurs dans l'app) pour le champ, uniquement du neuf pour le
+   titre/sous-titre et la liste de résultats cliquables. */
+.collectors-panel {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 2rem 0;
+    width: 100%;
+}
+
+.collectors-header {
+    margin-bottom: 1.5rem;
+}
+
+.collectors-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+}
+
+.collectors-subtitle {
+    color: var(--slate);
+    font-size: 0.9rem;
+}
+
+.collectors-search-results {
+    margin-top: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+/* Desktop : passe le panel en grille multi-colonnes, plus large qu'en mobile (liste 1 colonne).
+   Le bloc Dashboard (.dashboard-collectors-results) reste volontairement 1 colonne quel que soit le
+   viewport (widget étroit dans la grille du Dashboard, pas la place pour plusieurs colonnes). */
+@media (min-width: 901px) {
+    .collectors-panel {
+        max-width: 760px;
+    }
+
+    .collectors-search-results {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-collectors-results {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 1440px) {
+    .collectors-panel {
+        max-width: 1180px;
+    }
+
+    .collectors-search-results {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .dashboard-collectors-results {
+        grid-template-columns: 1fr;
+    }
+}
+
+.collectors-state-text {
+    color: var(--slate);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.collectors-state-error {
+    color: #ff6b6b;
+}
+
+.collectors-result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+}
+
+.collectors-result-row:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--gold);
+}
+
+.collectors-result-identity {
+    flex: 1;
+    min-width: 0;
+}
+
+.collectors-result-pseudo {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.collectors-result-username {
+    color: var(--slate);
+    font-size: 0.85rem;
+}
+
+.collectors-result-since {
+    color: var(--slate);
+    font-size: 0.76rem;
+    margin-top: 0.1rem;
+    text-transform: capitalize;
+}
+
+.collectors-result-chevron {
+    color: var(--slate);
+    flex-shrink: 0;
+}
+
+/* Bloc "Trouver un collectionneur" du Dashboard (modules/dashboard.js) : mêmes classes de résultat
+   que la vue #/collectors, juste plus compactes/secondaires — cohérent avec les autres widgets. */
+.dashboard-collectors-results {
+    margin-top: 0.75rem;
+    gap: 0.4rem;
+}
+
+.collectors-result-row-compact {
+    padding: 0.5rem 0.6rem;
+    gap: 0.6rem;
+}
+
+.collectors-result-row-compact .collectors-result-pseudo {
+    font-size: 0.88rem;
+}
+
+.collectors-result-row-compact .collectors-result-username {
+    font-size: 0.78rem;
 }
 
 .wishlist-edit-icon-swatch {
@@ -5009,6 +5436,40 @@ tbody tr:hover {
     margin-left: 1.5rem;
 }
 
+/* FICHE DETAIL CARTE PUBLIQUE (profil tiers, modules/public-profile.js) — scopée par ID, n'affecte
+   jamais #card-detail-card (fiche propriétaire). Cause du déséquilibre d'origine : .modal-body est en
+   flex sans align-items défini (stretch par défaut, seul #card-detail-card le corrige en flex-start),
+   donc la colonne image s'étirait à la hauteur de la colonne texte, laissant l'image (taille fixe) en
+   haut avec du vide en dessous. Et .modal-meta-actions-row impose une grille 280px+320px conçue pour
+   3 actions propriétaires (Modifier/Cardmarket/Retirer) : avec un seul lien Cardmarket ici, la colonne
+   actions restait large et quasi vide. Empilée à la place (comme le fait déjà .modal-meta-actions-row
+   en dessous de 760px pour toutes les fiches, cf règle globale plus bas — même motif réutilisé ici
+   sans dépendre du viewport, cette fiche n'a jamais assez de contenu pour justifier 2 colonnes). */
+#public-card-detail-card {
+    max-width: 800px;
+}
+
+#public-card-detail-card .modal-body {
+    align-items: flex-start;
+}
+
+#public-card-detail-card .modal-image-wrap {
+    width: 240px;
+}
+
+#public-card-detail-card .modal-meta-actions-row {
+    display: block;
+    margin-top: 1.25rem;
+}
+
+#public-card-detail-card .modal-meta-actions-row .modal-actions-col {
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
 .modal-main-col {
     min-width: 0;
 }
@@ -5958,6 +6419,17 @@ tbody tr:hover {
     .modal-meta-actions-row {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    /* Formulaire d'édition (showCardEditForm) : jamais inclus dans la colonne commune posée sur la fiche
+       détail en lecture — .edit-fields-grid restait pleine largeur pendant que .modal-image-wrap au-dessus
+       était déjà capé à 316px, décalage visible en basculant lecture/édition. Même largeur ici ;
+       minmax(0, 1fr) en filet de sécurité (même principe que .modal-meta-actions-row juste au-dessus). */
+    #card-detail-card .edit-fields-grid {
+        width: 100%;
+        max-width: 316px;
+        margin-inline: auto;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 /* Sous 768px, le contenu de la Collection derrière la fiche détail restait trop lisible à travers
@@ -6109,6 +6581,15 @@ tbody tr:hover {
     .progression-cards-grid {
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
         gap: 0.75rem;
+    }
+
+    /* Cible tactile un peu plus confortable sur les vignettes 90-110px : 26px de base laissait trop peu
+       de marge au doigt. 32px (pas 44px, disproportionné sur une vignette aussi petite) — icône
+       (font-size) inchangée, déjà bien proportionnée dans un cercle plus grand. top/right conservés :
+       l'offset au coin de la vignette ne bouge pas, seul le cercle grandit vers l'intérieur. */
+    .progression-add-badge {
+        width: 32px;
+        height: 32px;
     }
 
     .progression-filters {
@@ -8767,7 +9248,7 @@ body.page-progression .progression-followed-sets {
 }
 
 .stx-habit-value {
-    font-size: 1.55rem;
+    font-size: 1.3rem;
     font-weight: 400;
     color: var(--text-primary);
     line-height: 1.25;
@@ -9109,6 +9590,7 @@ body.page-progression .progression-followed-sets {
 }
 
 @media (max-width: 1200px) {
+    .stx-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stx-composition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stx-value-grid {
         grid-template-columns: repeat(2, 1fr);

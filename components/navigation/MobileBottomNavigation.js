@@ -25,7 +25,7 @@ const MOBILE_NAV_PAGES_RIGHT = [
 
 // Onglets qui, une fois actifs, allument "Plus" au lieu d'un item dédié (ils n'ont plus leur propre
 // entrée dans la barre : Progression a été remplacée par Plus, Statistiques n'a jamais eu d'entrée).
-const MOBILE_NAV_MORE_ACTIVE_TABS = ['tab-progression', 'tab-stats'];
+const MOBILE_NAV_MORE_ACTIVE_TABS = ['tab-progression', 'tab-stats', 'tab-collectors', 'tab-user-profile'];
 
 function renderMobileNavItem(p, activeTabId) {
     return `
@@ -57,6 +57,7 @@ function renderMobileMorePanel() {
         <div class="mobile-more-panel" id="mobile-more-panel" role="menu">
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-progression');"><i class="ti ti-trophy" aria-hidden="true"></i> Progression</button>
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-stats');"><i class="ti ti-chart-bar" aria-hidden="true"></i> Statistiques</button>
+            <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
             <button type="button" class="mobile-more-panel-item mobile-more-panel-item-danger" role="menuitem" onclick="closeMobileMorePanel(); handleLogout();"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
         </div>
