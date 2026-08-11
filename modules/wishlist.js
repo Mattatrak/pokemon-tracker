@@ -461,19 +461,21 @@ function showWishlistEditModal(title, defaults) {
         const content = document.getElementById('wishlist-edit-content');
         content.innerHTML = `
             <button class="modal-close" onclick="closeWishlistEditModal()">✕</button>
-            <div class="modal-title" style="margin-bottom: 1rem;">${title}</div>
-            <input type="text" id="wishlist-edit-name" value="${escapeHtml(defaults.name).replace(/"/g, '&quot;')}" placeholder="Nom de la liste" style="width:100%;">
-            <div class="wishlist-edit-picker-label">Icône</div>
-            <div class="wishlist-edit-icon-grid" id="wishlist-edit-icon-grid">
-                ${WISHLIST_ICON_PRESET.map(ic => `<button type="button" class="wishlist-edit-icon-swatch ${ic === defaults.icon ? 'selected' : ''}" data-icon="${ic}" onclick="selectWishlistEditIcon('${ic}')">${ic}</button>`).join('')}
-            </div>
-            <div class="wishlist-edit-picker-label">Couleur</div>
-            <div class="wishlist-edit-color-grid" id="wishlist-edit-color-grid">
-                ${WISHLIST_COLOR_PRESET.map(c => `<button type="button" class="wishlist-edit-color-swatch ${c.hex === defaults.color ? 'selected' : ''}" data-color="${c.hex}" style="background:${c.hex};" onclick="selectWishlistEditColor('${c.hex}')"></button>`).join('')}
-            </div>
-            <div class="modal-edit-actions" style="margin-top: 1.25rem;">
-                <button class="modal-save-btn" onclick="submitWishlistEditModal()">Valider</button>
-                <button class="modal-cancel-btn" onclick="closeWishlistEditModal()">Annuler</button>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">${title}</div>
+                <input type="text" id="wishlist-edit-name" value="${escapeHtml(defaults.name).replace(/"/g, '&quot;')}" placeholder="Nom de la liste" style="width:100%;">
+                <div class="wishlist-edit-picker-label">Icône</div>
+                <div class="wishlist-edit-icon-grid" id="wishlist-edit-icon-grid">
+                    ${WISHLIST_ICON_PRESET.map(ic => `<button type="button" class="wishlist-edit-icon-swatch ${ic === defaults.icon ? 'selected' : ''}" data-icon="${ic}" onclick="selectWishlistEditIcon('${ic}')">${ic}</button>`).join('')}
+                </div>
+                <div class="wishlist-edit-picker-label">Couleur</div>
+                <div class="wishlist-edit-color-grid" id="wishlist-edit-color-grid">
+                    ${WISHLIST_COLOR_PRESET.map(c => `<button type="button" class="wishlist-edit-color-swatch ${c.hex === defaults.color ? 'selected' : ''}" data-color="${c.hex}" style="background:${c.hex};" onclick="selectWishlistEditColor('${c.hex}')"></button>`).join('')}
+                </div>
+                <div class="modal-edit-actions" style="margin-top: 1.25rem;">
+                    <button class="modal-save-btn" onclick="submitWishlistEditModal()">Valider</button>
+                    <button class="modal-cancel-btn" onclick="closeWishlistEditModal()">Annuler</button>
+                </div>
             </div>
         `;
         content.dataset.icon = defaults.icon;
@@ -559,6 +561,7 @@ function renderWishlistPicker() {
 
     content.innerHTML = `
         <button class="modal-close" onclick="closeWishlistPicker()">✕</button>
+        <div class="modal-scroll">
         <div class="modal-title" style="margin-bottom: 1rem;">Ajouter à quelle liste ?</div>
         <div class="wishlist-picker-list">
             ${listsHtml || '<p class="empty-state" style="padding: 1rem;">Aucune liste pour l\'instant</p>'}
@@ -566,6 +569,7 @@ function renderWishlistPicker() {
         <div class="wishlist-picker-new">
             <input type="text" id="new-wishlist-name" placeholder="Nom d'une nouvelle liste">
             <button class="wishlist-picker-add-btn" onclick="createWishlistAndAddCard()"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter</button>
+        </div>
         </div>
     `;
 }

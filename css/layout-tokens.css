@@ -10,4 +10,14 @@
     --layout-scene-max-width-lg: 1680px;   /* >= 1440px */
     --layout-scene-max-width-xl: 1920px;   /* >= 1920px */
     --layout-scene-max-width-2xl: 2160px;  /* >= 2560px - resolution de reference */
+
+    /* Empreinte reelle de .mobile-bottom-nav (<=768px, components/navigation/navigation.css) depuis le
+       bord bas du viewport, EXCLUANT la safe-area (ajoutee separement via env() a chaque usage, meme
+       convention que .mobile-bottom-nav lui-meme : bottom: calc(12px + env(safe-area-inset-bottom))).
+       Mesuree par instrumentation DOM (getBoundingClientRect) sur le rendu reel de generateMobileBottomNav,
+       pas estimee : barre 65.58px + offset 12px = 77.58px, mais le FAB central (52px, margin-top:-26px)
+       deborde au-dessus de la barre - le point le plus haut reellement occupe est a 83.8px du bas du
+       viewport (fabTop), pas 77.58px. Arrondi a 84px. Deplacer/redimensionner .mobile-bottom-nav ou le FAB
+       sans remesurer laisse cette valeur perimee - aucun lien CSS automatique entre les deux. */
+    --mobile-nav-height: 84px;
 }

@@ -33,41 +33,43 @@ function openQuickAddSettingsModal() {
 
     content.innerHTML = `
         <button class="modal-close" onclick="closeQuickAddSettingsModal()">✕</button>
-        <div class="modal-title" style="margin-bottom: 1rem;">Réglages d'ajout rapide</div>
-        <p style="color: var(--slate); font-size: 0.8rem; margin-bottom: 1rem;">
-            Utilisés par le bouton "+" (ajout instantané) et pré-remplis dans la fenêtre détaillée.
-        </p>
-        <div class="edit-form-grid">
-            <div class="form-group">
-                <label for="qa-settings-condition">État</label>
-                <select id="qa-settings-condition">
-                    <option value="NM">Neuf (NM)</option>
-                    <option value="LP">Très bon (LP)</option>
-                    <option value="MP">Bon (MP)</option>
-                    <option value="HP">Mauvais état (HP)</option>
-                </select>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Réglages d'ajout rapide</div>
+            <p style="color: var(--slate); font-size: 0.8rem; margin-bottom: 1rem;">
+                Utilisés par le bouton "+" (ajout instantané) et pré-remplis dans la fenêtre détaillée.
+            </p>
+            <div class="edit-form-grid">
+                <div class="form-group">
+                    <label for="qa-settings-condition">État</label>
+                    <select id="qa-settings-condition">
+                        <option value="NM">Neuf (NM)</option>
+                        <option value="LP">Très bon (LP)</option>
+                        <option value="MP">Bon (MP)</option>
+                        <option value="HP">Mauvais état (HP)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="qa-settings-quantity">Quantité</label>
+                    <input type="number" id="qa-settings-quantity" min="1" value="${defaults.quantity}">
+                </div>
+                <div class="form-group">
+                    <label for="qa-settings-acquisition">Obtention</label>
+                    <select id="qa-settings-acquisition" onchange="toggleQaSettingsPriceField()">
+                        <option value="pack">Sortie d'un booster</option>
+                        <option value="achat">Achetée</option>
+                    </select>
+                </div>
+                <div class="form-group" id="qa-settings-price-group">
+                    <label for="qa-settings-price">Prix payé (€)</label>
+                    <input type="number" id="qa-settings-price" step="0.01" min="0" value="${defaults.purchasePrice}">
+                </div>
+                <div class="form-group">
+                    <label for="qa-settings-date">Date d'acquisition (fixe)</label>
+                    <input type="text" id="qa-settings-date" placeholder="jj/mm/aaaa">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="qa-settings-quantity">Quantité</label>
-                <input type="number" id="qa-settings-quantity" min="1" value="${defaults.quantity}">
-            </div>
-            <div class="form-group">
-                <label for="qa-settings-acquisition">Obtention</label>
-                <select id="qa-settings-acquisition" onchange="toggleQaSettingsPriceField()">
-                    <option value="pack">Sortie d'un booster</option>
-                    <option value="achat">Achetée</option>
-                </select>
-            </div>
-            <div class="form-group" id="qa-settings-price-group">
-                <label for="qa-settings-price">Prix payé (€)</label>
-                <input type="number" id="qa-settings-price" step="0.01" min="0" value="${defaults.purchasePrice}">
-            </div>
-            <div class="form-group">
-                <label for="qa-settings-date">Date d'acquisition (fixe)</label>
-                <input type="text" id="qa-settings-date" placeholder="jj/mm/aaaa">
-            </div>
+            <button class="modal-save-btn full-width" onclick="saveQuickAddSettings()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
         </div>
-        <button class="modal-save-btn full-width" onclick="saveQuickAddSettings()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
     `;
 
     document.getElementById('qa-settings-condition').value = defaults.condition;

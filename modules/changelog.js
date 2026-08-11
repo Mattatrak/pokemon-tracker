@@ -9,6 +9,7 @@ const CHANGELOG_TYPE_LABELS = {
     new: 'Nouveau',
     improved: 'Amélioré',
     fixed: 'Corrigé',
+    fix: 'Correctif',
     security: 'Sécurité',
     removed: 'Retiré'
 };
@@ -74,10 +75,12 @@ function maybeShowChangelogPopup() {
 
     content.innerHTML = `
         <button class="modal-close" onclick="acknowledgeChangelogPopup()">✕</button>
-        <h2 class="changelog-popup-title">Nouveautés — Version ${escapeHtml(entry.version)}</h2>
-        <p class="changelog-popup-subtitle">${escapeHtml(entry.title)}</p>
-        <ul class="changelog-change-list">${renderChangelogEntryChanges(entry.changes)}</ul>
-        <button type="button" class="btn-primary changelog-popup-confirm" onclick="acknowledgeChangelogPopup()">J'ai compris</button>
+        <div class="modal-scroll">
+            <h2 class="changelog-popup-title">Nouveautés — Version ${escapeHtml(entry.version)}</h2>
+            <p class="changelog-popup-subtitle">${escapeHtml(entry.title)}</p>
+            <ul class="changelog-change-list">${renderChangelogEntryChanges(entry.changes)}</ul>
+            <button type="button" class="btn-primary changelog-popup-confirm" onclick="acknowledgeChangelogPopup()">J'ai compris</button>
+        </div>
     `;
     overlay.classList.add('active');
 }

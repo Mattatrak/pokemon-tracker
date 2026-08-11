@@ -150,8 +150,10 @@ async function confirmAndProcessJsonRestore(data) {
     const content = document.getElementById('csv-import-content');
     document.getElementById('csv-import-overlay').classList.add('active');
     content.innerHTML = `
-        <div class="modal-title" style="margin-bottom: 1rem;">Restauration en cours...</div>
-        <p style="color: var(--slate);">Merci de patienter, ne ferme pas cette fenêtre.</p>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Restauration en cours...</div>
+            <p style="color: var(--slate);">Merci de patienter, ne ferme pas cette fenêtre.</p>
+        </div>
     `;
 
     const errors = [];
@@ -289,14 +291,16 @@ async function confirmAndProcessJsonRestore(data) {
     await loadWishlists();
 
     content.innerHTML = `
-        <div class="modal-title" style="margin-bottom: 1rem;">Restauration terminée</div>
-        <p style="color: var(--text-primary); line-height: 1.6;">
-            <strong style="color: #7ED9A7;">${cardsInserted}</strong> carte(s) ajoutée(s) <span style="color: var(--slate);">· ${cardsSkipped} déjà présente(s), ignorée(s)</span><br>
-            <strong style="color: #7ED9A7;">${wishlistsCreated}</strong> liste(s) créée(s) <span style="color: var(--slate);">· ${wishlistsReused} réutilisée(s)</span><br>
-            <strong style="color: #7ED9A7;">${itemsInserted}</strong> souhait(s) ajouté(s) <span style="color: var(--slate);">· ${itemsSkipped} déjà présent(s), ignoré(s)</span>
-            ${errors.length > 0 ? `<br><span style="color: #ff6b6b;">Soucis sur : ${errors.join(', ')}</span>` : ''}
-        </p>
-        <button class="modal-save-btn full-width" style="margin-top: 1.25rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Restauration terminée</div>
+            <p style="color: var(--text-primary); line-height: 1.6;">
+                <strong style="color: #7ED9A7;">${cardsInserted}</strong> carte(s) ajoutée(s) <span style="color: var(--slate);">· ${cardsSkipped} déjà présente(s), ignorée(s)</span><br>
+                <strong style="color: #7ED9A7;">${wishlistsCreated}</strong> liste(s) créée(s) <span style="color: var(--slate);">· ${wishlistsReused} réutilisée(s)</span><br>
+                <strong style="color: #7ED9A7;">${itemsInserted}</strong> souhait(s) ajouté(s) <span style="color: var(--slate);">· ${itemsSkipped} déjà présent(s), ignoré(s)</span>
+                ${errors.length > 0 ? `<br><span style="color: #ff6b6b;">Soucis sur : ${errors.join(', ')}</span>` : ''}
+            </p>
+            <button class="modal-save-btn full-width" style="margin-top: 1.25rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+        </div>
     `;
 }
 
@@ -369,9 +373,11 @@ async function processCsvImportRows(rows) {
 
     if (total === 0) {
         content.innerHTML = `
-            <div class="modal-title" style="margin-bottom: 1rem;">Import CSV</div>
-            <p style="color: var(--slate);">Aucune ligne valide trouvée dans ce fichier (colonne "Nom" manquante ou vide).</p>
-            <button class="modal-save-btn full-width" style="margin-top: 1rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Import CSV</div>
+                <p style="color: var(--slate);">Aucune ligne valide trouvée dans ce fichier (colonne "Nom" manquante ou vide).</p>
+                <button class="modal-save-btn full-width" style="margin-top: 1rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+            </div>
         `;
         return;
     }
@@ -382,8 +388,10 @@ async function processCsvImportRows(rows) {
     for (let i = 0; i < validRows.length; i++) {
         const row = validRows[i];
         content.innerHTML = `
-            <div class="modal-title" style="margin-bottom: 1rem;">Import en cours...</div>
-            <p style="color: var(--slate);">${i + 1} / ${total} — ${escapeHtml(row.Nom)}</p>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Import en cours...</div>
+                <p style="color: var(--slate);">${i + 1} / ${total} — ${escapeHtml(row.Nom)}</p>
+            </div>
         `;
 
         try {
@@ -450,12 +458,14 @@ async function processCsvImportRows(rows) {
         `;
 
     content.innerHTML = `
-        <div class="modal-title" style="margin-bottom: 1rem;">Import terminé</div>
-        <p style="color: var(--text-primary);">
-            <span style="color: #7ED9A7; font-weight: 700;">${successCount}</span> carte(s) ajoutée(s)
-            ${failures.length > 0 ? `· <span style="color: #ff6b6b; font-weight: 700;">${failures.length}</span> ignorée(s)` : ''}
-        </p>
-        ${failuresHtml}
-        <button class="modal-save-btn full-width" style="margin-top: 1.25rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Import terminé</div>
+            <p style="color: var(--text-primary);">
+                <span style="color: #7ED9A7; font-weight: 700;">${successCount}</span> carte(s) ajoutée(s)
+                ${failures.length > 0 ? `· <span style="color: #ff6b6b; font-weight: 700;">${failures.length}</span> ignorée(s)` : ''}
+            </p>
+            ${failuresHtml}
+            <button class="modal-save-btn full-width" style="margin-top: 1.25rem;" onclick="document.getElementById('csv-import-overlay').classList.remove('active')">Fermer</button>
+        </div>
     `;
 }

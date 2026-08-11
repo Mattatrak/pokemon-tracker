@@ -11,11 +11,13 @@ function showTextPromptModal(title, defaultValue = '') {
         const content = document.getElementById('text-prompt-content');
         content.innerHTML = `
             <button class="modal-close" onclick="closeTextPrompt()">✕</button>
-            <div class="modal-title" style="margin-bottom: 1rem;">${title}</div>
-            <input type="text" id="text-prompt-input" value="${defaultValue.replace(/"/g, '&quot;')}" style="width:100%; margin-bottom: 1.25rem;">
-            <div class="modal-edit-actions">
-                <button class="modal-save-btn" onclick="submitTextPrompt()">Valider</button>
-                <button class="modal-cancel-btn" onclick="closeTextPrompt()">Annuler</button>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">${title}</div>
+                <input type="text" id="text-prompt-input" value="${defaultValue.replace(/"/g, '&quot;')}" style="width:100%; margin-bottom: 1.25rem;">
+                <div class="modal-edit-actions">
+                    <button class="modal-save-btn" onclick="submitTextPrompt()">Valider</button>
+                    <button class="modal-cancel-btn" onclick="closeTextPrompt()">Annuler</button>
+                </div>
             </div>
         `;
         document.getElementById('text-prompt-overlay').classList.add('active');
@@ -62,10 +64,12 @@ function showConfirmModal(message, confirmLabel = 'Confirmer') {
         const content = document.getElementById('confirm-modal-content');
         content.innerHTML = `
             <button class="modal-close" onclick="closeConfirmModal(false)">✕</button>
-            <div class="modal-title" style="margin-bottom: 1.25rem;">${message}</div>
-            <div class="modal-edit-actions">
-                <button class="modal-delete-btn-v2" style="flex: 1; margin-top: 0;" onclick="closeConfirmModal(true)">${confirmLabel}</button>
-                <button class="modal-cancel-btn" onclick="closeConfirmModal(false)">Annuler</button>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1.25rem;">${message}</div>
+                <div class="modal-edit-actions">
+                    <button class="modal-delete-btn-v2" style="flex: 1; margin-top: 0;" onclick="closeConfirmModal(true)">${confirmLabel}</button>
+                    <button class="modal-cancel-btn" onclick="closeConfirmModal(false)">Annuler</button>
+                </div>
             </div>
         `;
         document.getElementById('confirm-modal-overlay').classList.add('active');

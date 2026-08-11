@@ -33,6 +33,7 @@ html {
     scrollbar-color: var(--gold) var(--panel-light);
     background: var(--bg);
     overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
 }
 
 /* Pas de overflow-x ici en plus de html : avoir les deux force overflow-y:auto sur les
@@ -911,10 +912,17 @@ body {
 
 .add-panel-submit {
     flex: 1.6;
+    min-width: 0;
 }
 
+/* min-width:0 sur les deux boutons (flex-basis:0% via le raccourci flex ne suffit pas) : les items flex
+   ont min-width:auto par défaut, qui plafonne le rétrécissement à la largeur min-content du contenu -
+   sur mobile (.add-panel plafonné à 340px, cf .mobile-add-overlay-card .add-panel), les deux boutons
+   dépassaient leur conteneur de ~16px, silencieusement rogné par overflow-x:hidden sur la carte modale
+   (vérifié par mesure DOM : 275px de contenu pour 259px disponibles). Le texte wrap au lieu de déborder. */
 .add-panel-wishlist {
     flex: 1;
+    min-width: 0;
     background: transparent;
     color: var(--text-primary);
     border: 1px solid rgba(255, 255, 255, 0.35);
@@ -997,6 +1005,12 @@ body {
     .catalogue-toolbar-actions {
         width: 100%;
         justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .catalogue-toolbar-actions select {
+        flex: 1 1 140px;
+        min-width: 0;
     }
 }
 
@@ -1261,6 +1275,16 @@ body {
     .catalogue-hero-search-form {
         flex-direction: column;
         max-width: none;
+    }
+
+    /* padding:0 1.75rem (déclaration de base) donnait une hauteur de 20px en colonne : en ligne
+       (desktop), le bouton hérite gratuitement de la hauteur de l'input via align-items:stretch
+       (défaut d'un flex row) sans avoir besoin de padding vertical propre - cet effet disparaît une
+       fois en colonne (stretch agit sur l'axe croisé, devenu horizontal), et un bouton de 20px avec
+       border-radius:14px se voit presque entièrement arrondi, cassant l'identité visuelle du site
+       (comparer aux boutons standards ~48-56px). Padding vertical propre restauré ici uniquement. */
+    .catalogue-hero-search-form #search-btn {
+        padding: 1rem 1.75rem;
     }
 }
 
@@ -4128,6 +4152,7 @@ tbody tr:hover {
     max-width: 600px;
     width: 100%;
     max-height: 90vh;
+    max-height: 90dvh;
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
@@ -4190,6 +4215,47 @@ tbody tr:hover {
     overflow-y: auto;
     overflow-x: hidden;
     padding: 0 2.5rem;
+}
+
+/* Croix (.modal-close) toujours accessible pendant le scroll, même pattern que #card-detail-card
+   ci-dessus généralisé aux autres modales : overflow:hidden sur la carte elle-même (au lieu du
+   overflow-y:auto hérité de .modal-card) + .modal-scroll comme unique enfant scrollable. .modal-close
+   reste un enfant direct de la carte, en dehors de .modal-scroll, donc jamais entraîné par le scroll.
+   Chaque fonction de rendu JS correspondante doit envelopper son contenu (hors .modal-close) dans
+   <div class="modal-scroll">...</div>. #public-card-detail-card a déjà ce wrapper dans son HTML
+   (modules/public-profile.js) : seul le CSS lui manquait. #card-detail-card et #wishlist-detail-card
+   ont leur propre variante juste au-dessus/en dessous (padding custom), pas dans cette liste. */
+#changelog-popup-content,
+#admin-image-upload-content,
+#wishlist-picker-content,
+#text-prompt-content,
+#wishlist-edit-content,
+#confirm-modal-content,
+#csv-import-content,
+#quickadd-settings-content,
+#top-movers-content,
+#profile-modal-content,
+#public-card-detail-card {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#changelog-popup-content > .modal-scroll,
+#admin-image-upload-content > .modal-scroll,
+#wishlist-picker-content > .modal-scroll,
+#text-prompt-content > .modal-scroll,
+#wishlist-edit-content > .modal-scroll,
+#confirm-modal-content > .modal-scroll,
+#csv-import-content > .modal-scroll,
+#quickadd-settings-content > .modal-scroll,
+#top-movers-content > .modal-scroll,
+#profile-modal-content > .modal-scroll,
+#public-card-detail-card > .modal-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Style KPI (verre fumé PT-006) appliqué uniquement à la fenêtre "Top movers" (KPI Valeur
@@ -4844,6 +4910,7 @@ tbody tr:hover {
         width: 100%;
         max-width: 100%;
         max-height: 94vh;
+        max-height: 94dvh;
     }
 
     .wishlist-detail-layout {
@@ -4881,6 +4948,17 @@ tbody tr:hover {
     }
 }
 
+/* border-radius:0 + border:none + background:none sur l'élément .modal-close lui-même (pas juste visuel) :
+   vérifié par hit-test réel (device Android/Chrome) qu'un bouton avec border-radius:50% directement sur
+   l'élément voit sa zone cliquable rognée au cercle inscrit - les ~4 coins du carré 32-44px (visibles à
+   l'oeil comme faisant partie du bouton) ne déclenchent aucun clic, le tap retombe sur ce qu'il y a
+   derrière. Le disque visuel est déplacé sur ::before (background+border+border-radius), qui ne fait que
+   peindre par-dessus sans changer la géométrie de hit-test du bouton parent - le carré entier (coins
+   compris) reste cliquable, identique en apparence. */
+/* Style unique du cercle (verre dépoli, semi-transparent) pour TOUTES les modales - avant, #card-detail-card
+   avait ce traitement, les autres (dont #public-card-detail-card, faute d'override) retombaient sur un
+   cercle uni opaque (var(--panel-light)), sans transparence. Un seul style désormais ; #card-detail-card
+   ne garde plus qu'un override de taille/position (40px, coin de carte plus large) et de z-index. */
 .modal-close {
     position: absolute;
     top: 1rem;
@@ -4888,16 +4966,31 @@ tbody tr:hover {
     width: 32px;
     height: 32px;
     padding: 0;
-    background: var(--panel-light);
-    color: var(--slate);
-    border-radius: 50%;
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--text-primary);
     font-size: 1rem;
     line-height: 1;
 }
 
+.modal-close::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+}
+
+.modal-close:hover::before {
+    border-color: var(--gold);
+    background: rgba(19,19,19,0.9);
+}
+
 .modal-close:hover {
-    background: rgba(255,255,255,0.1);
-    color: var(--text-primary);
+    color: var(--gold);
 }
 
 #card-detail-card .modal-close {
@@ -4905,17 +4998,7 @@ tbody tr:hover {
     right: 1.5rem;
     width: 40px;
     height: 40px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: var(--text-primary);
-    font-size: 1rem;
     z-index: 2;
-}
-
-#card-detail-card .modal-close:hover {
-    border-color: var(--gold);
-    color: var(--gold);
-    background: rgba(19,19,19,0.9);
 }
 
 /* Cible tactile mobile (audit) : 32px (40px pour card-detail) trop petit au doigt. Zone agrandie à 44px
@@ -4934,7 +5017,7 @@ tbody tr:hover {
         justify-content: center;
     }
 
-    .modal-close:active {
+    .modal-close:active::before {
         background: rgba(255,255,255,0.14);
     }
 
@@ -4946,10 +5029,6 @@ tbody tr:hover {
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-
-    #card-detail-card .modal-close:active {
-        background: rgba(255,255,255,0.12);
     }
 }
 
@@ -4967,14 +5046,20 @@ tbody tr:hover {
         padding: 0.75rem;
     }
 
+    /* overflow:hidden (au lieu du overflow-y:auto hérité de .modal-card) + display:flex/column : la
+       croix (.modal-close, sœur statique de .catalogue-sheet-sticky dans index.html, jamais déplacée)
+       ne doit pas scroller avec le formulaire. Le scroll (+ le padding-bottom sûr pour la safe-area, qui
+       vivait ici avant) est déplacé sur .catalogue-sheet-sticky elle-même juste en dessous - même nœud
+       déplacé par openMobileAddPanel(), pas besoin d'un wrapper .modal-scroll supplémentaire. */
     .mobile-add-overlay-card {
         width: 100%;
         max-width: 600px;
         max-height: 94vh;
+        max-height: 94dvh;
         padding: 1.5rem;
-        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
-        overflow-y: auto;
-        overflow-x: hidden;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 
     /* Styles perdus en quittant .catalogue-sheet-col (scopés par cet ancêtre) — reproduits ici pour que
@@ -4989,14 +5074,22 @@ tbody tr:hover {
     }
 
     /* La modale (.modal-card) porte déjà son propre fond/bordure/rayon : neutralise ceux de
-       .catalogue-sheet-sticky pour éviter une carte dans la carte une fois déplacé ici. */
+       .catalogue-sheet-sticky pour éviter une carte dans la carte une fois déplacé ici. flex/overflow-y
+       en fait le conteneur de scroll réel de la modale (cf .mobile-add-overlay-card ci-dessus) ;
+       padding-bottom reprend la valeur qui vivait auparavant sur .mobile-add-overlay-card, pour que le
+       dernier champ ne soit jamais masqué par la safe-area iOS. */
     .mobile-add-overlay-card .catalogue-sheet-sticky {
         padding: 0;
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
         border: none;
         box-shadow: none;
         background: none;
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     /* Image au-dessus des détails plutôt que côte à côte (36%/reste) : trop étroit une fois la fiche
@@ -5304,6 +5397,14 @@ tbody tr:hover {
 
 #public-card-detail-card .modal-body {
     align-items: flex-start;
+}
+
+/* Sans ça, .modal-stand .modal-image (z-index:1) passe devant la croix (z-index:auto) - même correctif
+   déjà appliqué à #card-detail-card, jamais répliqué ici. Réutilisé par la fiche carte ET le détail
+   d'un item de wishlist publique (même id, cf modules/public-profile.js showPublicCardDetail /
+   showPublicWishlistItemDetail), donc les deux en profitent. */
+#public-card-detail-card .modal-close {
+    z-index: 2;
 }
 
 #public-card-detail-card .modal-image-wrap {
@@ -5957,11 +6058,17 @@ tbody tr:hover {
         position: fixed;
         left: 0.75rem;
         right: 0.75rem;
-        bottom: 0.75rem;
+        /* Doit se terminer au-dessus de .mobile-bottom-nav (barre + FAB qui deborde dessus), pas juste
+           au-dessus de la safe-area : --mobile-nav-height (css/layout-tokens.css) est l'empreinte reelle
+           mesuree de la barre+FAB depuis le bord bas du viewport, HORS safe-area. Safe-area ajoutee une
+           seule fois ici (pas doublee : --mobile-nav-height ne l'inclut pas). 8px = marge visuelle, pas
+           une valeur de securite pour la barre elle-meme (deja couverte par --mobile-nav-height). */
+        bottom: calc(var(--mobile-nav-height) + 8px + env(safe-area-inset-bottom, 0px));
         top: auto;
         width: auto;
         max-width: none;
         max-height: 70vh;
+        max-height: 70dvh;
         display: none;
     }
 
@@ -6490,6 +6597,7 @@ tbody tr:hover {
        gêner titres/badges/prix/boutons (aucun de ces éléments n'a de largeur minimale connue > ~280px).
        Sous ~360px de large le plafond ne joue aucun rôle (le contenu est déjà plus étroit), rien ne casse. */
     #card-detail-card .modal-image-wrap,
+    #public-card-detail-card .modal-image-wrap,
     .card-price-chart-wrap,
     .modal-disclaimer {
         width: 100%;
@@ -6619,6 +6727,17 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 
+    /* .kpi-plaque (composant partagé : heros Dashboard/Collection/Progression/Wishlist/Stats,
+       .stx-kpi-row section 1 Statistiques) passe en 1 colonne pleine largeur sur mobile (règle
+       ci-dessus + .stx-kpi-row/.stx-value-grid plus bas) - sans justify-content, l'icône+texte
+       (largeur intrinsèque, jamais mise à jour) reste collée à gauche du badge devenu bien plus
+       large que son contenu, laissant un vide visible à droite qui donne l'impression que le KPI
+       n'est pas centré dans son cadre. Centré uniquement ici (mobile) : en desktop, la grille à
+       3-5 colonnes laisse déjà peu ou pas de vide, aucun changement visuel désiré. */
+    .kpi-plaque {
+        justify-content: center;
+    }
+
     .no-image-placeholder.large.upload-placeholder {
         height: 220px;
     }
@@ -6666,7 +6785,17 @@ tbody tr:hover {
     }
 
     .wishlist-thumb-grid {
-        grid-template-columns: repeat(auto-fill, 135px);
+        /* repeat(2, minmax(0,1fr)), pas 108px fixe (tentative précédente) : la largeur fixe évitait qu'une
+           wishlist à 1-2 cartes s'étire en gros bloc, mais laissait aussi ~40% de largeur morte à droite
+           dès que 2 cartes étaient présentes (le cas réel signalé) - compromis explicitement retenu cette
+           fois : toujours exactement 2 colonnes fluides, jamais plus, jamais moins. .collection-card garde
+           un aspect-ratio (5/7, pas de largeur intrinsèque fixe) donc width:100% de chaque colonne ne casse
+           pas ses proportions. Vérifié par instrumentation DOM (getBoundingClientRect, même conteneur
+           imbriqué .user-profile-section > .wishlist-list-card-body) à 360px (114px/carte) et 375px
+           (121.5px/carte) : 2 colonnes tiennent sans overflow sur toutes les largeurs de téléphone
+           courantes, plus larges qu'avec 108px fixe. N'affecte que ce breakpoint - .collection-grid garde
+           ses tracks fixes ~190px en desktop, inchangé. */
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         column-gap: 1rem;
         row-gap: 1rem;
     }
@@ -9204,9 +9333,12 @@ body.page-progression .progression-followed-sets {
 /* Section 3 — hiérarchie visuelle : "Évolution de la valeur" occupe toute la largeur en tête
    (panneau dominant) ; répartition / ROI / hausses-baisses forment une rangée secondaire de
    poids égal en dessous. Toujours quatre panneaux, plus jamais quatre blocs équivalents. */
+/* minmax(0, ...) et non des fr seuls, même raison que .stx-composition-grid ci-dessus (cf commentaire) :
+   sans ça, le panneau le plus riche en contenu (graphique + légende du donut notamment) empêche sa piste
+   de se compresser sous sa largeur min-content, et la grille (donc la page) déborde à droite sur mobile. */
 .stx-value-grid {
     display: grid;
-    grid-template-columns: 1.6fr 1fr 1fr;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "evo repartition movers";
     gap: 1rem;
     align-items: stretch;
@@ -9691,7 +9823,7 @@ body.page-progression .progression-followed-sets {
     .stx-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stx-composition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stx-value-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-template-areas:
             "evo evo"
             "repartition movers";
@@ -9707,15 +9839,15 @@ body.page-progression .progression-followed-sets {
 
 @media (max-width: 640px) {
     .stx-kpi-row,
-    .stx-value-grid,
     .stx-habits-grid,
     .stx-records-grid {
         grid-template-columns: 1fr;
     }
 
-    /* Séparé du groupe ci-dessus : garde le minmax(0, ...) plutôt qu'un "1fr" nu (cf commentaire sur la
-       déclaration de base) — sinon le débordement réapparaît précisément à cette largeur. */
-    .stx-composition-grid {
+    /* Séparées du groupe ci-dessus : gardent le minmax(0, ...) plutôt qu'un "1fr" nu (cf commentaire sur
+       la déclaration de base) — sinon le débordement réapparaît précisément à cette largeur. */
+    .stx-composition-grid,
+    .stx-value-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 
@@ -9863,7 +9995,8 @@ body.page-progression .progression-followed-sets {
     background: rgba(111, 184, 240, 0.1);
 }
 
-.changelog-change--fixed .changelog-change-badge {
+.changelog-change--fixed .changelog-change-badge,
+.changelog-change--fix .changelog-change-badge {
     color: var(--gold);
     border-color: rgba(227, 188, 132, 0.35);
     background: rgba(227, 188, 132, 0.1);

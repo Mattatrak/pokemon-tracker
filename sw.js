@@ -2,7 +2,7 @@
 // Jeton de version de déploiement unique, partagé avec les query strings de index.html/login.html.
 // A chaque déploiement touchant un fichier local : bumper ce jeton ICI + dans les deux HTML, en une
 // seule passe, pour que CACHE_NAME et les URLs précachées correspondent exactement à ce qui est servi.
-const DEPLOY_VERSION = '20260811-2';
+const DEPLOY_VERSION = '20260812-5';
 const CACHE_NAME = `poketracker-${DEPLOY_VERSION}`;
 
 // App shell minimal permettant de démarrer hors ligne après une première visite en ligne : les deux

@@ -167,8 +167,10 @@ async function showTopMoversModal() {
     const content = document.getElementById('top-movers-content');
     content.innerHTML = `
         <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-        <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-        <p style="text-align: center; color: var(--slate); padding: 1rem;">Chargement...</p>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+            <p style="text-align: center; color: var(--slate); padding: 1rem;">Chargement...</p>
+        </div>
     `;
     document.getElementById('top-movers-overlay').classList.add('active');
 
@@ -176,8 +178,10 @@ async function showTopMoversModal() {
     if (uniqueIds.length === 0) {
         content.innerHTML = `
             <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-            <p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune carte avec un historique de prix.</p>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+                <p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune carte avec un historique de prix.</p>
+            </div>
         `;
         return;
     }
@@ -201,8 +205,10 @@ async function showTopMoversModal() {
     if (error || !data) {
         content.innerHTML = `
             <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-            <p style="text-align: center; color: var(--slate); padding: 1rem;">Erreur de chargement.</p>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+                <p style="text-align: center; color: var(--slate); padding: 1rem;">Erreur de chargement.</p>
+            </div>
         `;
         return;
     }
@@ -270,8 +276,10 @@ async function showTopMoversModal() {
 
     content.innerHTML = `
         <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-        <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-        ${listHtml}
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+            ${listHtml}
+        </div>
     `;
 }
 

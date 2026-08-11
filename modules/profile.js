@@ -92,53 +92,55 @@ async function openProfileModal() {
 
     content.innerHTML = `
         <button class="modal-close" onclick="closeProfileModal()"><i class="ti ti-x" aria-hidden="true"></i></button>
-        <div class="modal-title" style="margin-bottom: 1.25rem;">Mon profil</div>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1.25rem;">Mon profil</div>
 
-        <div class="profile-modal-preview">
-            ${profileAvatarHtml(p, 64)}
-        </div>
-        ${p.created_at ? `<p class="profile-member-since">${formatMemberSince(p.created_at)}</p>` : ''}
-
-        <div class="form-group">
-            <label for="profile-pseudo-input">Pseudo</label>
-            <input type="text" id="profile-pseudo-input" maxlength="24" value="${escapeHtml(p.pseudo || '')}" placeholder="Ton pseudo" oninput="checkProfileDirty()">
-        </div>
-
-        <div class="form-group">
-            <label>Avatar</label>
-            <div class="profile-avatar-grid" id="profile-avatar-grid">
-                <p class="dashboard-empty-text" style="padding:0.5rem 0;">Chargement des avatars...</p>
+            <div class="profile-modal-preview">
+                ${profileAvatarHtml(p, 64)}
             </div>
-        </div>
-
-        <div class="profile-public-section">
-            <div class="profile-public-section-title">Profil public</div>
+            ${p.created_at ? `<p class="profile-member-since">${formatMemberSince(p.created_at)}</p>` : ''}
 
             <div class="form-group">
-                <label for="profile-username-input">Username</label>
-                <input type="text" id="profile-username-input" maxlength="20" value="${escapeHtml(p.username || '')}" placeholder="3 à 20 caractères : lettres, chiffres, _ -" oninput="onProfileUsernameInput()">
-                <p class="profile-username-status" id="profile-username-status"></p>
+                <label for="profile-pseudo-input">Pseudo</label>
+                <input type="text" id="profile-pseudo-input" maxlength="24" value="${escapeHtml(p.pseudo || '')}" placeholder="Ton pseudo" oninput="checkProfileDirty()">
             </div>
 
-            <label class="profile-toggle-row">
-                <span>Rendre mon profil visible</span>
-                <input type="checkbox" id="profile-is-public-input" ${p.is_public ? 'checked' : ''} onchange="checkProfileDirty()">
-            </label>
-            <p class="profile-toggle-hint">Les réglages ci-dessous n'ont d'effet que si le profil est visible.</p>
+            <div class="form-group">
+                <label>Avatar</label>
+                <div class="profile-avatar-grid" id="profile-avatar-grid">
+                    <p class="dashboard-empty-text" style="padding:0.5rem 0;">Chargement des avatars...</p>
+                </div>
+            </div>
 
-            <label class="profile-toggle-row">
-                <span>Partager ma collection</span>
-                <input type="checkbox" id="profile-collection-visible-input" ${p.collection_visible ? 'checked' : ''} onchange="checkProfileDirty()">
-            </label>
+            <div class="profile-public-section">
+                <div class="profile-public-section-title">Profil public</div>
 
-            <label class="profile-toggle-row">
-                <span>Partager ma wishlist</span>
-                <input type="checkbox" id="profile-wishlist-visible-input" ${p.wishlist_visible ? 'checked' : ''} onchange="checkProfileDirty()">
-            </label>
-        </div>
+                <div class="form-group">
+                    <label for="profile-username-input">Username</label>
+                    <input type="text" id="profile-username-input" maxlength="20" value="${escapeHtml(p.username || '')}" placeholder="3 à 20 caractères : lettres, chiffres, _ -" oninput="onProfileUsernameInput()">
+                    <p class="profile-username-status" id="profile-username-status"></p>
+                </div>
 
-        <div class="modal-edit-actions">
-            <button class="modal-save-btn" id="profile-save-btn" style="display:none;" onclick="saveProfile(this)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
+                <label class="profile-toggle-row">
+                    <span>Rendre mon profil visible</span>
+                    <input type="checkbox" id="profile-is-public-input" ${p.is_public ? 'checked' : ''} onchange="checkProfileDirty()">
+                </label>
+                <p class="profile-toggle-hint">Les réglages ci-dessous n'ont d'effet que si le profil est visible.</p>
+
+                <label class="profile-toggle-row">
+                    <span>Partager ma collection</span>
+                    <input type="checkbox" id="profile-collection-visible-input" ${p.collection_visible ? 'checked' : ''} onchange="checkProfileDirty()">
+                </label>
+
+                <label class="profile-toggle-row">
+                    <span>Partager ma wishlist</span>
+                    <input type="checkbox" id="profile-wishlist-visible-input" ${p.wishlist_visible ? 'checked' : ''} onchange="checkProfileDirty()">
+                </label>
+            </div>
+
+            <div class="modal-edit-actions">
+                <button class="modal-save-btn" id="profile-save-btn" style="display:none;" onclick="saveProfile(this)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Enregistrer</button>
+            </div>
         </div>
     `;
 

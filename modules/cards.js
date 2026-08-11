@@ -1,13 +1,19 @@
 // Recherche + aperçu + ajout onglet "Ajouter" - Pokémon Tracker
 // Dépend de: supabaseClient/API_BASE/API_EN (tracker.js), utils.js, storage.js,
 // allCollectionCards/performCardAdd/refreshCollection/recordValueSnapshot (tracker.js)
-// Etat possédé : selectedCard, lastSearchResults, customPreviewImage, searchRequestId, currentMarketValue
+// Etat possédé : selectedCard, lastSearchResults, customPreviewImage, searchRequestId, currentMarketValue,
+// catalogueViewUserSet
 
 let selectedCard = null;
 let lastSearchResults = [];
 let customPreviewImage = null; // URL Supabase Storage une fois uploadée
 
 let currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
+
+// Devient true dès que l'utilisateur clique explicitement sur un bouton grille/liste
+// (setCatalogueView) : au-delà, on ne réapplique plus jamais le défaut mobile automatique
+// pour respecter son choix pour le reste de la session (cf displaySearchResults).
+let catalogueViewUserSet = false;
 
 // ===== RECHERCHE DE CARTES (TCGdex) =====
 
@@ -129,6 +135,13 @@ async function displaySearchResults(cards) {
             const { data } = supabaseClient.storage.from('card-images').getPublicUrl(getTcgdexImagePath(card.id));
             card._localImage = data.publicUrl;
         }
+    }
+
+    // Défaut vue liste sur mobile (grille illisible à cette largeur, cf audit) : seulement tant que
+    // l'utilisateur n'a jamais cliqué lui-même sur un bouton grille/liste (catalogueViewUserSet).
+    // Même seuil que getCataloguePageSize() plus bas dans ce fichier (cohérence mobile/desktop).
+    if (!catalogueViewUserSet && window.matchMedia('(max-width: 960px)').matches) {
+        setCatalogueView('list', false);
     }
 
     lastSearchResults = cardsWithDetails;
@@ -636,7 +649,12 @@ function setSearchSort(value) {
     applySearchFilters();
 }
 
-function setCatalogueView(mode) {
+// isUserAction=false réservé au défaut mobile automatique (displaySearchResults) : ne marque pas
+// catalogueViewUserSet, pour que ce défaut puisse continuer à s'appliquer tant que l'utilisateur n'a
+// pas lui-même cliqué sur un bouton grille/liste (onclick="setCatalogueView('grid'|'list')", sans
+// second argument, garde donc isUserAction=true).
+function setCatalogueView(mode, isUserAction = true) {
+    if (isUserAction) catalogueViewUserSet = true;
     const grid = document.getElementById('search-results');
     if (grid) grid.classList.toggle('list-view', mode === 'list');
     document.querySelectorAll('.catalogue-view-btn').forEach(btn => {

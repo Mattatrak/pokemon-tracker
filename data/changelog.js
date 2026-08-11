@@ -4,15 +4,15 @@
 // cache-busting déploiement et n'ont pas vocation à être vus par l'utilisateur - cf workflow de release
 // documenté dans sw.js. Bumper APP_VERSION et ajouter une entrée ici à chaque version publiée.
 //
-// Types autorisés pour changes[].type : 'new' | 'improved' | 'fixed' | 'security' | 'removed'.
+// Types autorisés pour changes[].type : 'new' | 'improved' | 'fixed' | 'fix' | 'security' | 'removed'.
 // CHANGELOG est trié du plus récent au plus ancien : toujours insérer les nouvelles versions en tête.
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 
 const CHANGELOG = [
     {
         version: '1.0.0',
-        date: '2026-08-11',
+        date: '2026-08-11 21:00',
         title: 'Première version publique',
         changes: [
             { type: 'new', text: 'Gestion complète de la collection : ajout depuis le catalogue TCGdex (recherche par nom, illustrateur, série ou numéro), suivi par état, finition, prix et quantité.' },
@@ -25,6 +25,20 @@ const CHANGELOG = [
             { type: 'improved', text: 'Filtres de la page Collection dynamiques et navigation repensée pour mobile.' },
             { type: 'improved', text: 'Interface responsive, optimisée aussi bien sur ordinateur que sur mobile.' },
             { type: 'security', text: 'Isolation complète des données entre comptes (chaque utilisateur ne voit que sa propre collection).' }
+        ]
+    },
+
+    {
+        version: '1.0.1',
+        date: '2026-08-12 02:00',
+        title: 'Patch correctif mobile',
+        changes: [
+            { type: 'fix', text: 'Correctif alignement de la page wishlist pour mobile.' },
+            { type: 'fix', text: 'Correctifs divers sur la page d\'ajout pour mobile.' },
+            { type: 'fix', text: 'Correctifs sur le mécanisme de fermeture des fenêtre sur mobile.' },
+            { type: 'improved', text: 'Améliorations visuelles de la page collectionneurs pour mobile.' },
+            { type: 'improved', text: 'Améliorations visuelles de la page wishlist pour mobile.' },
+            { type: 'new', text: 'L\'affichage des résultats d\'une recherche de cartes depuis le menu ajouter s\'ouvre maintenant en mode tableau par défaut sur mobile.' },
         ]
     }
 ];
