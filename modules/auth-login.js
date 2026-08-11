@@ -111,7 +111,15 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.textContent = 'Création...';
 
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    // Sans emailRedirectTo, Supabase retombe sur le "Site URL" configuré dans le dashboard du projet
+    // pour le lien de confirmation de l'e-mail — qui peut valoir localhost (valeur par défaut) et n'a
+    // aucune raison de correspondre à l'origine réelle d'où l'inscription a été faite. Même pattern que
+    // resetPasswordForEmail juste plus bas dans ce fichier.
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
 
     if (error) {
         btn.disabled = false;

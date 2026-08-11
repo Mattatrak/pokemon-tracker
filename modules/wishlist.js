@@ -520,10 +520,25 @@ function closeWishlistEditModal() {
 
 // ===== FENETRE DE CHOIX / CREATION DE LISTE (au moment d'ajouter une carte) =====
 
-function openWishlistPicker() {
-    if (!selectedCard) {
-        showMessage('Veuillez sélectionner une carte', 'error');
-        return;
+// Carte ciblée par le picker quand il est ouvert depuis un contexte hors "Ajouter" (ex: fiche détail
+// publique tierce, modules/public-profile.js) : selectedCard reste réservé au flow Ajouter existant,
+// jamais réutilisé/écrasé pour ne pas risquer de corrompre ce flow. wishlistPickerContext distingue les
+// deux chemins dans addCardToSpecificWishlistInternal (image déjà hébergée côté publique -> pas de
+// re-upload, pas de fermeture de #card-preview qui n'a aucun sens hors du flow Ajouter).
+let wishlistPickerCard = null;
+let wishlistPickerContext = 'add';
+
+function openWishlistPicker(externalCard = null) {
+    if (externalCard) {
+        wishlistPickerCard = externalCard;
+        wishlistPickerContext = 'public';
+    } else {
+        if (!selectedCard) {
+            showMessage('Veuillez sélectionner une carte', 'error');
+            return;
+        }
+        wishlistPickerCard = null;
+        wishlistPickerContext = 'add';
     }
     renderWishlistPicker();
     document.getElementById('wishlist-picker-overlay').classList.add('active');
@@ -572,6 +587,10 @@ async function addCardToSpecificWishlist(wishlistId) {
 }
 
 async function addCardToSpecificWishlistInternal(wishlistId) {
+    if (wishlistPickerContext === 'public') {
+        return addPublicCardToWishlistInternal(wishlistId);
+    }
+
     if (!selectedCard) return;
 
     // Image : si déjà hébergée sur Supabase (dédup rapide) on l'utilise tout de suite, sinon on part
@@ -630,6 +649,42 @@ async function addCardToSpecificWishlistInternal(wishlistId) {
     if (typeof isMobileAddPanelOpen === 'function' && isMobileAddPanelOpen()) closeMobileAddPanel();
 
     await loadWishlists();
+}
+
+// Ajout depuis une fiche détail publique tierce (modules/public-profile.js). wishlistPickerCard porte
+// déjà une image hébergée sur Supabase (celle de la collection du propriétaire consulté) : pas de
+// re-upload/dédup à faire ici, contrairement au flow Ajouter. wishlist_id ci-dessous vient toujours de
+// allWishlists (mes listes à moi) donc l'insert crée une ligne chez MOI ; la RLS empêche de toute façon
+// toute écriture ciblant un autre user_id.
+async function addPublicCardToWishlistInternal(wishlistId) {
+    if (!wishlistPickerCard) return;
+    const card = wishlistPickerCard;
+
+    const { error } = await supabaseClient.from('wishlist').insert([{
+        wishlist_id: wishlistId,
+        tcgdex_id: card.tcgdex_id || null,
+        name: card.name || '?',
+        series: card.series || 'N/A',
+        number: card.number || '?',
+        rarity: card.rarity || 'N/A',
+        image: card.image || '',
+        series_logo: card.series_logo || null,
+        cardmarket_id: card.cardmarket_id || null
+    }]);
+
+    if (error) {
+        showMessage('Erreur lors de l\'ajout à la liste de souhaits', 'error');
+        console.error(error);
+        return;
+    }
+
+    markStatsDirty();
+    showMessage('Ajoutée à ta liste de souhaits !', 'success');
+    closeWishlistPicker();
+    wishlistPickerCard = null;
+
+    await loadWishlists();
+    if (typeof refreshPublicCardDetailWishlistState === 'function') refreshPublicCardDetailWishlistState();
 }
 
 async function createWishlistAndAddCard() {

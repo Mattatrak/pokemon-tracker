@@ -18,8 +18,16 @@ function isValidRedirectRoute(route) {
     return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) || /^\/user\/[A-Za-z0-9_-]{3,20}$/.test(route);
 }
 
+// Statut admin de l'utilisateur courant (table admin_users, jamais une colonne profiles - cf
+// sql/migrations/2026-08-11_admin_missing_images.sql). Purement déclaratif côté client : sert
+// uniquement à afficher/masquer l'entrée de nav et la route #/admin, la vraie barrière est
+// is_admin() côté serveur, revérifiée par chaque RPC admin.
+let currentUserIsAdmin = false;
+
 async function init() {
-    await loadUserProfile();
+    const [, adminResult] = await Promise.all([loadUserProfile(), supabaseClient.rpc('is_admin')]);
+    currentUserIsAdmin = adminResult?.data === true;
+
     await loadFavorites();
     await refreshCollection();
 
@@ -36,6 +44,11 @@ async function init() {
     renderTab(getTabIdFromHash()); // ré-applique l'onglet du hash une fois les données chargées (wishlists/stats/progression dépendent de allCollectionCards)
     initDatePicker('#card-date-added');
     updateMobileBottomNav('tab-dashboard');
+    // typeof-guardé comme currentUserIsAdmin plus haut : si modules/changelog.js n'a pas pu charger
+    // (ex. cache SW désaligné hors ligne), init() continue quand même sans planter.
+    if (typeof maybeShowChangelogPopup === 'function') {
+        maybeShowChangelogPopup(); // après appReady, jamais pendant le login ni en concurrence avec une autre modale auto
+    }
 
     // Rafraîchit les prix du marché automatiquement si ça n'a pas été fait depuis plus de 24h
     const lastRefresh = localStorage.getItem('lastPriceRefresh');

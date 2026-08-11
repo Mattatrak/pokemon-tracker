@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=20260805-1">
+    <link rel="stylesheet" href="styles.css?v=20260811-2">
     <link rel="stylesheet" href="css/layout-tokens.css?v=20260805-1">
     <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
     <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
@@ -412,85 +412,45 @@
 
         <!-- ONGLET MA COLLECTION -->
         <div id="tab-collection" class="tab-content">
-            <div class="collection-filters-panel" id="collection-filters-panel">
-                <button type="button" class="cfp-mobile-toggle" onclick="toggleCollectionFiltersPanel()">
-                    <span><i class="ti ti-filter" aria-hidden="true"></i> Filtres</span>
-                    <i class="ti ti-chevron-down cfp-mobile-toggle-icon" aria-hidden="true"></i>
-                </button>
-                <div class="cfp-group cfp-group-filters">
-                    <div class="cfp-group-title"><i class="ti ti-filter" aria-hidden="true"></i> Filtres</div>
-                    <div class="cfp-group-body">
-                        <div class="cfp-field">
-                            <label for="filter-condition">État</label>
-                            <select id="filter-condition">
-                                <option value="">Tous</option>
-                                <option value="NM">Neuf (NM)</option>
-                                <option value="LP">Très bon (LP)</option>
-                                <option value="MP">Bon (MP)</option>
-                                <option value="HP">Mauvais état (HP)</option>
-                            </select>
-                        </div>
-                        <div class="cfp-field">
-                            <label for="filter-collection-series">Série</label>
-                            <select id="filter-collection-series">
-                                <option value="">Toutes</option>
-                            </select>
-                        </div>
-                        <div class="cfp-field">
-                            <label for="filter-collection-type">Type</label>
-                            <select id="filter-collection-type">
-                                <option value="">Tous</option>
-                            </select>
-                        </div>
-                        <div class="cfp-field cfp-field-toggle">
-                            <label class="cfp-field-label-spacer" aria-hidden="true">&nbsp;</label>
-                            <button id="filter-duplicates-btn" class="filter-toggle-btn" onclick="toggleDuplicatesFilter()"><i class="ti ti-copy" aria-hidden="true"></i> Doublons</button>
-                        </div>
-                    </div>
+            <!-- Refonte filtres (Ticket 4) : l'ancien panneau permanent (.collection-filters-panel,
+                 selects Condition/Série/Type + rangée Rareté + bouton Doublons) a été retiré. Ces filtres
+                 restent disponibles uniquement via "+ Ajouter un filtre" (modules/collection.js, Ticket 3),
+                 seule source d'écriture manuelle de collectionFilters désormais. Le bloc Affichage/Tri/
+                 Données n'a jamais été un filtre : il est conservé tel quel, juste extrait de l'ancien
+                 panneau dans son propre conteneur compact. -->
+            <div class="collection-toolbar-row">
+                <div class="collection-add-filter-wrap" id="collection-add-filter-wrap">
+                    <button type="button" class="collection-add-filter-btn" id="collection-add-filter-btn" onclick="openCollectionFilterPicker()" aria-haspopup="true" aria-expanded="false">
+                        <i class="ti ti-plus" aria-hidden="true"></i> Ajouter un filtre
+                    </button>
+                    <div class="collection-filter-picker" id="collection-filter-picker" role="dialog" aria-label="Ajouter un filtre"></div>
                 </div>
 
-                <div class="cfp-separator"></div>
-
-                <div class="cfp-group cfp-group-rarity">
-                    <div class="cfp-group-title"><i class="ti ti-star" aria-hidden="true"></i> Rareté</div>
-                    <div class="cfp-group-body">
-                        <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
+                <div class="collection-display-controls">
+                    <div class="view-toggle">
+                        <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
+                        <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
                     </div>
-                </div>
-
-                <div class="cfp-separator"></div>
-
-                <div class="cfp-group cfp-group-display">
-                    <div class="cfp-group-title"><i class="ti ti-eye" aria-hidden="true"></i> Affichage</div>
-                    <div class="cfp-group-body">
-                        <div class="view-toggle">
-                            <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
-                            <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
+                    <select id="grid-sort" class="grid-sort-select" aria-label="Trier la collection">
+                        <option value="">Trier par...</option>
+                        <option value="name-asc">Nom (A→Z)</option>
+                        <option value="rarity-asc">Rareté (A→Z)</option>
+                        <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
+                        <option value="value-asc">Valeur (moins cher d'abord)</option>
+                        <option value="quantity-desc">Quantité (plus d'abord)</option>
+                    </select>
+                    <div class="csv-dropdown-wrap">
+                        <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                        <div class="csv-dropdown-menu" id="csv-dropdown-menu">
+                            <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
+                            <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
+                            <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
+                            <div class="csv-dropdown-divider"></div>
+                            <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
+                            <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
+                            <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
                         </div>
-                        <div class="cfp-field">
-                            <label for="grid-sort">Tri</label>
-                            <select id="grid-sort" class="grid-sort-select">
-                                <option value="">Trier par...</option>
-                                <option value="name-asc">Nom (A→Z)</option>
-                                <option value="rarity-asc">Rareté (A→Z)</option>
-                                <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
-                                <option value="value-asc">Valeur (moins cher d'abord)</option>
-                                <option value="quantity-desc">Quantité (plus d'abord)</option>
-                            </select>
-                        </div>
-                        <div class="csv-dropdown-wrap">
-                            <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
-                            <div class="csv-dropdown-menu" id="csv-dropdown-menu">
-                                <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
-                                <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
-                                <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
-                                <div class="csv-dropdown-divider"></div>
-                                <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
-                                <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
-                                <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
-                            </div>
-                            <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
-                        </div>
+                        <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
                     </div>
                 </div>
             </div>
@@ -949,15 +909,24 @@
         </div>
 
         <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : rempli
-             dynamiquement, jamais via allCollectionCards/allWishlists/allWishlistItems -->
+             dynamiquement, jamais via allCollectionCards/allWishlists/allWishlistItems.
+             Bouton de retour statique (hors du conteneur dynamique) : ni tab-user-profile ni
+             tab-collectors n'ont d'entrée dans DesktopNavbar.js containerMap (pas de hero à ces pages),
+             donc updateDesktopNavigation() ne rend rien pour eux sur desktop - sans ce lien, aucun moyen
+             de revenir à l'app depuis un profil public consulté en desktop. -->
         <div id="tab-user-profile" class="tab-content">
-            <div class="user-profile-panel" id="user-profile-content"></div>
+            <div class="user-profile-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div id="user-profile-content"></div>
+            </div>
         </div>
 
         <!-- ONGLET RECHERCHE DE COLLECTIONNEURS (route #/collectors, modules/collectors.js) : shell
-             statique, uniquement #collectors-search-results rempli dynamiquement -->
+             statique, uniquement #collectors-search-results rempli dynamiquement. Même bouton de retour
+             que tab-user-profile, même raison (cf commentaire ci-dessus). -->
         <div id="tab-collectors" class="tab-content">
             <div class="collectors-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
                 <div class="collectors-header">
                     <h1 class="collectors-title">Collectionneurs</h1>
                     <p class="collectors-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
@@ -969,6 +938,66 @@
                 <div class="collectors-search-results" id="collectors-search-results"></div>
             </div>
         </div>
+
+        <!-- ONGLET ADMINISTRATION (route #/admin, modules/admin.js) : accès contrôlé côté serveur par
+             is_admin() sur chaque RPC (get_missing_image_cards / admin_set_card_image), ce shell ne fait
+             qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Même bouton de
+             retour statique que tab-collectors/tab-user-profile (même raison, cf commentaire plus haut). -->
+        <div id="tab-admin" class="tab-content">
+            <div class="collectors-panel" id="admin-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div class="collectors-header">
+                    <h1 class="collectors-title">Administration</h1>
+                    <p class="collectors-subtitle" id="admin-missing-count">Cartes sans image : —</p>
+                </div>
+                <div class="input-with-icon">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="text" id="admin-search-input" placeholder="Filtrer par nom, série ou tcgdex_id" oninput="onAdminSearchInput()">
+                </div>
+                <div class="table-wrapper" id="admin-missing-images-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Nom</th>
+                                <th>Série</th>
+                                <th>N°</th>
+                                <th>Rareté</th>
+                                <th>tcgdex_id</th>
+                                <th style="text-align:center;">Collection</th>
+                                <th style="text-align:center;">Wishlist</th>
+                                <th style="text-align:center;">Utilisateurs</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-missing-images-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET CHANGELOG (route #/changelog, modules/changelog.js) : historique des versions, contenu
+             dérivé de CHANGELOG (data/changelog.js), toujours du plus récent au plus ancien. -->
+        <div id="tab-changelog" class="tab-content">
+            <div class="collectors-panel changelog-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div class="collectors-header">
+                    <h1 class="collectors-title">Nouveautés</h1>
+                    <p class="collectors-subtitle">L'historique des versions de PokéTracker.</p>
+                </div>
+                <div class="changelog-list" id="changelog-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE "NOUVEAUTES" (popup post-appReady, modules/changelog.js) -->
+    <div class="modal-overlay" id="changelog-popup-overlay" onclick="if(event.target===this) acknowledgeChangelogPopup()">
+        <div class="modal-card changelog-popup-card" id="changelog-popup-content" style="max-width: 480px;"></div>
+    </div>
+
+    <!-- MODALE UPLOAD IMAGE ADMIN -->
+    <div class="modal-overlay" id="admin-image-upload-overlay" onclick="if(event.target===this) closeAdminImageUploadModal()">
+        <div class="modal-card" id="admin-image-upload-content" style="max-width: 400px;"></div>
     </div>
 
     <!-- MODALE CHOIX / CREATION DE LISTE DE SOUHAITS -->
@@ -1044,14 +1073,15 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+    <script src="data/changelog.js?v=20260811-2"></script>
     <script src="modules/utils.js?v=20260805-1"></script>
-    <script src="components/navigation/DesktopNavbar.js?v=20260805-1"></script>
-    <script src="components/navigation/MobileBottomNavigation.js?v=20260805-1"></script>
+    <script src="components/navigation/DesktopNavbar.js?v=20260811-1"></script>
+    <script src="components/navigation/MobileBottomNavigation.js?v=20260811-1"></script>
     <script src="modules/storage.js?v=20260805-1"></script>
     <script src="modules/favorites.js?v=20260805-1"></script>
     <script src="modules/cards.js?v=20260805-1"></script>
     <script src="modules/stats.js?v=20260805-1"></script>
-    <script src="modules/collection.js?v=20260805-1"></script>
+    <script src="modules/collection.js?v=20260811-2"></script>
     <script src="modules/import-export.js?v=20260805-1"></script>
     <script src="modules/card-detail.js?v=20260805-1"></script>
     <script src="modules/ui.js?v=20260805-1"></script>
@@ -1064,8 +1094,10 @@
     <script src="modules/collector-match.js?v=20260809-1"></script>
     <script src="modules/public-profile.js?v=20260805-1"></script>
     <script src="modules/collectors.js?v=20260805-1"></script>
-    <script src="tracker.js?v=20260805-1"></script>
-    <script src="modules/auth.js?v=20260805-1"></script>
+    <script src="modules/admin.js?v=20260811-1"></script>
+    <script src="modules/changelog.js?v=20260811-2"></script>
+    <script src="tracker.js?v=20260811-2"></script>
+    <script src="modules/auth.js?v=20260811-1"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

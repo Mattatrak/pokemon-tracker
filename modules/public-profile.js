@@ -48,6 +48,11 @@ let profileMatchesA = [];
 let profileMatchesB = [];
 let profileMatchDetailExpanded = false;
 
+// Id (viewedPublicCards) de la carte actuellement affichée dans la fiche détail publique, pour pouvoir
+// rafraîchir uniquement son bouton "Ajouter à ma wishlist" après un ajout (cf. addPublicCardToWishlistInternal,
+// modules/wishlist.js) sans re-render de toute la grille/du profil.
+let publicCardDetailOpenId = null;
+
 function getUsernameFromHash() {
     const route = window.location.hash.replace('#', '');
     if (!route.startsWith('/user/')) return null;
@@ -494,6 +499,8 @@ function showPublicCardDetail(cardId) {
     const card = viewedPublicCards.find(c => c.id === cardId);
     if (!card) return;
 
+    publicCardDetailOpenId = cardId;
+
     const qty = Number(card.quantity || 1);
     const marketValue = Number(card.market_value || 0);
     const lineTotal = marketValue * qty;
@@ -503,6 +510,13 @@ function showPublicCardDetail(cardId) {
     // cardmarket_id désormais exposé par get_cards_public (2026-08-09) : lien produit exact quand
     // disponible, repli recherche par nom sinon — même fonction que la fiche propriétaire.
     const cardmarketUrl = getCardmarketUrl(card.cardmarket_id, card.name);
+
+    // "Ajouter à ma wishlist" : jamais sur mon propre profil public (comparaison avec soi-même n'a pas
+    // de sens, cf. isSelf plus haut dans loadPublicProfile), jamais si déjà présente dans MA wishlist
+    // (détection simple par tcgdex_id sur allWishlistItems, modules/wishlist.js — mes données à moi,
+    // aucune lecture des données du propriétaire consulté).
+    const isOwnPublicProfile = !!(currentUserProfile && viewedPublicProfile && currentUserProfile.id === viewedPublicProfile.id);
+    const alreadyInMyWishlist = !!(card.tcgdex_id && typeof allWishlistItems !== 'undefined' && allWishlistItems.some(i => i.tcgdex_id === card.tcgdex_id));
 
     const modalCard = document.getElementById('public-card-detail-card');
     if (!modalCard) return;
@@ -550,6 +564,16 @@ function showPublicCardDetail(cardId) {
                         </div>
 
                         <div class="modal-actions-col">
+                            ${!isOwnPublicProfile ? `
+                                <button type="button" class="modal-action-row public-wishlist-add-btn" ${alreadyInMyWishlist ? 'disabled' : `onclick="openWishlistPickerForPublicCard(${card.id})"`}>
+                                    <span class="modal-action-icon" style="color: #E8A93B;"><i class="ti ${alreadyInMyWishlist ? 'ti-check' : 'ti-star'}" aria-hidden="true"></i></span>
+                                    <span class="modal-action-text">
+                                        <span class="modal-action-title" style="color: #E8A93B;">${alreadyInMyWishlist ? 'Déjà dans ma wishlist' : 'Ajouter à ma wishlist'}</span>
+                                        ${!alreadyInMyWishlist ? '<span class="modal-action-subtitle">L\'ajouter à une de tes listes</span>' : ''}
+                                    </span>
+                                    ${!alreadyInMyWishlist ? '<i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>' : ''}
+                                </button>
+                            ` : ''}
                             <a href="${cardmarketUrl}" target="_blank" rel="noopener noreferrer" class="modal-action-row">
                                 <span class="modal-action-icon" style="color: #6bcbff;"><i class="ti ti-external-link" aria-hidden="true"></i></span>
                                 <span class="modal-action-text">
@@ -578,6 +602,38 @@ function showPublicCardDetail(cardId) {
 
 function closePublicCardDetail() {
     document.getElementById('public-card-detail-overlay')?.classList.remove('active');
+    publicCardDetailOpenId = null;
+}
+
+// Ouvre le picker de listes existant (modules/wishlist.js) avec la carte publique tierce en paramètre
+// explicite, sans jamais toucher à selectedCard (réservé au flow Ajouter). Normalise vers la forme
+// attendue par addPublicCardToWishlistInternal : uniquement les champs utiles à une ligne wishlist,
+// jamais quantity/condition/finish (propres à la collection, pas à la wishlist) ni l'id de la carte
+// publique (n'a aucun sens hors de viewedPublicCards).
+function openWishlistPickerForPublicCard(cardId) {
+    const card = viewedPublicCards.find(c => c.id === cardId);
+    if (!card) return;
+
+    openWishlistPicker({
+        tcgdex_id: card.tcgdex_id || null,
+        name: card.name,
+        series: card.series,
+        number: card.number,
+        rarity: card.rarity,
+        image: card.image,
+        series_logo: card.series_logo || null,
+        cardmarket_id: card.cardmarket_id || null
+    });
+}
+
+// Appelé par addPublicCardToWishlistInternal (modules/wishlist.js) après un ajout réussi : la fiche
+// détail publique reste ouverte (aucune raison de la fermer, contrairement au flow Ajouter), seul son
+// bouton doit refléter le nouvel état "déjà dans ma wishlist". Re-render complet du contenu de la
+// fiche (pas seulement le bouton) : le plus simple ici, showPublicCardDetail ne fait aucun appel réseau.
+function refreshPublicCardDetailWishlistState() {
+    if (publicCardDetailOpenId === null) return;
+    if (!document.getElementById('public-card-detail-overlay')?.classList.contains('active')) return;
+    showPublicCardDetail(publicCardDetailOpenId);
 }
 
 // Rendu des listes de wishlist publiques. Réutilise les classes visuelles de la wishlist propriétaire

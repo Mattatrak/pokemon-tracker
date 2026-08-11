@@ -2,7 +2,7 @@
 // Jeton de version de déploiement unique, partagé avec les query strings de index.html/login.html.
 // A chaque déploiement touchant un fichier local : bumper ce jeton ICI + dans les deux HTML, en une
 // seule passe, pour que CACHE_NAME et les URLs précachées correspondent exactement à ce qui est servi.
-const DEPLOY_VERSION = '20260805-1';
+const DEPLOY_VERSION = '20260811-2';
 const CACHE_NAME = `poketracker-${DEPLOY_VERSION}`;
 
 // App shell minimal permettant de démarrer hors ligne après une première visite en ligne : les deux
@@ -29,6 +29,7 @@ const CORE_ASSETS = [
     `./components/navigation/navigation.css?v=${DEPLOY_VERSION}`,
     `./components/navigation/DesktopNavbar.js?v=${DEPLOY_VERSION}`,
     `./components/navigation/MobileBottomNavigation.js?v=${DEPLOY_VERSION}`,
+    `./data/changelog.js?v=${DEPLOY_VERSION}`,
     `./modules/utils.js?v=${DEPLOY_VERSION}`,
     `./modules/storage.js?v=${DEPLOY_VERSION}`,
     `./modules/favorites.js?v=${DEPLOY_VERSION}`,
@@ -45,7 +46,13 @@ const CORE_ASSETS = [
     `./modules/profile.js?v=${DEPLOY_VERSION}`,
     `./tracker.js?v=${DEPLOY_VERSION}`,
     `./modules/auth.js?v=${DEPLOY_VERSION}`,
-    `./modules/auth-login.js?v=${DEPLOY_VERSION}`
+    `./modules/auth-login.js?v=${DEPLOY_VERSION}`,
+    `./modules/admin.js?v=${DEPLOY_VERSION}`,
+    `./modules/changelog.js?v=${DEPLOY_VERSION}`,
+    `./modules/collectors.js?v=${DEPLOY_VERSION}`,
+    `./modules/collector-match.js?v=${DEPLOY_VERSION}`,
+    `./modules/public-profile.js?v=${DEPLOY_VERSION}`,
+    `./modules/wishlist-detail.js?v=${DEPLOY_VERSION}`
 ];
 
 self.addEventListener('install', (event) => {

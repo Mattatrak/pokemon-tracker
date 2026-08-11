@@ -1807,212 +1807,12 @@ button:disabled {
     flex-wrap: wrap;
 }
 
-/* PANNEAU DE FILTRES — Ma Collection (3 groupes : Filtres / Rareté / Affichage)
-   Matière verre fumé identique aux KPI (PT-006), scopée à ce panneau uniquement. */
-.collection-filters-panel {
-    position: relative;
-    display: flex;
-    align-items: stretch;
-    flex-wrap: wrap;
-    gap: 1.75rem;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 22px 1.75rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-}
-
-/* Verre fumé (même formule que .stx-panel côté Statistiques). Contour doré conique + liseré bas
-   remplacés par un unique reflet neutre en haut. */
-.collection-filters-panel::before {
-    content: '';
-    position: absolute;
-    left: 1.75rem;
-    right: 1.75rem;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
-    pointer-events: none;
-}
-
-.cfp-group {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 260px;
-    min-width: 220px;
-}
-
-.cfp-group-rarity {
-    flex: 1 1 240px;
-}
-
-.cfp-group-display {
-    flex: 1 1 320px;
-}
-
-.cfp-separator {
-    width: 1px;
-    align-self: stretch;
-    background: rgba(255, 255, 255, 0.05);
-    flex: 0 0 auto;
-}
-
-.cfp-group-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: rgba(232, 169, 59, 0.75);
-    margin-bottom: 16px;
-}
-
-.cfp-group-title i {
-    font-size: 0.95rem;
-}
-
-.cfp-group-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.05);
-    margin-left: 0.4rem;
-}
-
-.cfp-group-body {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.9rem;
-}
-
-.cfp-group-rarity .cfp-group-body {
-    align-items: flex-start;
-}
-
-/* Boutons rareté légèrement plus grands ; scopé à ce panneau pour ne pas affecter Progression. */
-.cfp-group-rarity .rarity-filter-btn {
-    width: 44px;
-    height: 44px;
-}
-
-/* Le bouton "Toutes" (astérisque, icône police) doit visuellement matcher la taille des
-   pictos de rareté (images, 24px) pour un centrage homogène entre tous les boutons. */
-.cfp-group-rarity .rarity-filter-btn i {
-    font-size: 1.3rem;
-    line-height: 1;
-}
-
-.cfp-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    flex: 1 1 120px;
-    min-width: 110px;
-}
-
-.cfp-field label {
-    font-size: 0.75rem;
-    color: var(--slate);
-    font-weight: 500;
-    margin-bottom: 0;
-}
-
-.cfp-field-toggle {
-    flex: 0 0 auto;
-    min-width: 0;
-}
-
-.cfp-field-label-spacer {
-    visibility: hidden;
-}
-
-.cfp-group-display .cfp-group-body {
-    gap: 0.75rem;
-}
-
-.cfp-group-display .cfp-field {
-    flex: 1 1 120px;
-    min-width: 110px;
-}
-
-/* .grid-sort-select a un padding réduit par défaut (utilisé aussi ailleurs, ex Progression) :
-   remis à la hauteur standard ici pour matcher les selects du groupe Filtres. */
-.cfp-group-display .grid-sort-select {
-    padding: 0.8rem 0.9rem;
-    font-size: 1rem;
-}
-
-@media (max-width: 900px) {
-    .cfp-separator {
-        display: none;
-    }
-
-    .collection-filters-panel {
-        row-gap: 1.5rem;
-    }
-}
-
-.cfp-mobile-toggle {
-    display: none;
-}
-
-@media (max-width: 640px) {
-    .cfp-group {
-        flex-basis: 100%;
-    }
-
-    .cfp-field {
-        flex-basis: 100%;
-    }
-
-    .cfp-group-display .cfp-field {
-        flex-basis: 100%;
-    }
-
-    /* Section filtres réduite par défaut sur mobile (gain de place) : seul le bouton "Filtres"
-       reste visible tant que .collection-filters-panel n'a pas .expanded (ajouté au clic). */
-    .cfp-mobile-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 0.75rem 1rem;
-        color: var(--text-primary);
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-    }
-
-    .cfp-mobile-toggle span {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .cfp-mobile-toggle-icon {
-        transition: transform 0.2s ease;
-    }
-
-    .collection-filters-panel.expanded .cfp-mobile-toggle-icon {
-        transform: rotate(180deg);
-    }
-
-    .collection-filters-panel:not(.expanded) .cfp-group,
-    .collection-filters-panel:not(.expanded) .cfp-separator {
-        display: none;
-    }
-}
+/* L'ancien panneau de filtres permanent (.collection-filters-panel, groupes .cfp-*) a été retiré
+   (Ticket 4 refonte filtres) : les filtres Série/Type/État/Rareté/Doublons ne vivent plus que dans
+   collectionFilters, ajoutés via le popover "+ Ajouter un filtre" (cf. .collection-toolbar-row,
+   .collection-add-filter-btn, .collection-filter-picker plus bas dans ce fichier). Le bloc Affichage/
+   Tri/Données (.view-toggle, .grid-sort-select, .csv-dropdown-*) reste inchangé, simplement extrait dans
+   .collection-toolbar-row / .collection-display-controls. */
 
 .view-toggle {
     display: inline-flex;
@@ -2148,6 +1948,25 @@ button:disabled {
 
 .csv-dropdown-item:hover {
     background: rgba(255,255,255,0.06);
+}
+
+/* Rangée d'outils principale de la Collection (Ticket 4 refonte filtres) : "+ Ajouter un filtre" à gauche,
+   bloc Affichage/Tri/Données à droite (extrait de l'ancien .collection-filters-panel, ni renommé ni
+   restylé). Les filtres actifs (chips) vivent juste en dessous, dans .collection-summary-row. */
+.collection-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.collection-display-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
 }
 
 .collection-summary-row {
@@ -3233,6 +3052,31 @@ tbody tr:hover {
     width: 100%;
 }
 
+/* Lien de retour statique pour tab-user-profile ET tab-collectors (cf commentaire index.html) : ces
+   2 pages n'ont pas de hero, donc pas d'entrée dans DesktopNavbar.js containerMap - sans ce lien, aucune
+   navigation visible sur desktop pour en sortir. Bouton simple, pas de position absolute (contrairement
+   à .dashboard-integrated-nav, pensée pour un hero en arrière-plan que ces 2 pages n'ont pas). */
+.public-page-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+    padding: 0.5rem 0;
+    background: none;
+    border: none;
+    color: var(--slate);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.public-page-back-link:hover {
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    box-shadow: none;
+    transform: none;
+}
+
 /* Desktop : panel plus large pour laisser .collection-grid / .wishlist-thumb-grid (minmax(190px,...),
    auto-fill) ajouter des colonnes naturellement au lieu de rester bloquées à 2 par manque de place. */
 @media (min-width: 901px) {
@@ -4265,6 +4109,15 @@ tbody tr:hover {
     transition:
         opacity var(--motion-duration-normal) var(--motion-ease-standard),
         visibility 0s linear 0s;
+}
+
+/* #wishlist-picker-overlay peut s'ouvrir par-dessus un autre .modal-overlay déjà actif (fiche détail
+   carte publique tierce, modules/public-profile.js#openWishlistPickerForPublicCard) : à z-index égal
+   (1000), l'ordre de peinture suit l'ordre DOM, donc le picker (plus haut dans index.html que la fiche
+   publique) se retrouvait visuellement derrière elle. z-index dédié pour toujours passer au-dessus,
+   quel que soit l'overlay .modal-overlay déjà ouvert en arrière-plan. */
+#wishlist-picker-overlay.active {
+    z-index: 1001;
 }
 
 .modal-card {
@@ -5881,6 +5734,251 @@ tbody tr:hover {
     color: #F2EEE7;
     font-weight: 400;
     text-align: right;
+}
+
+/* Nom d'illustrateur cliquable (fiche détail Collection -> filterCollectionByIllustrator, modules/
+   card-detail.js + modules/collection.js). Réutilise [data-tooltip] (défini plus haut, styles.css)
+   pour le survol desktop, aucune librairie. Sur mobile le hover n'existe pas : le soulignement pointillé
+   reste seul comme affordance cliquable, volontairement discret. */
+.illustrator-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(232, 169, 59, 0.55);
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.illustrator-link:hover {
+    color: var(--gold);
+    text-decoration-color: var(--gold);
+}
+
+.illustrator-link[data-tooltip]::after {
+    bottom: auto;
+    top: calc(100% + 8px);
+    left: auto;
+    right: 0;
+    transform: none;
+    white-space: normal;
+    max-width: 220px;
+    text-align: right;
+}
+
+/* Chips de filtres actifs génériques (Ticket 2 refonte filtres, modules/collection.js#renderCollectionFilterChips),
+   affichés dans le résumé Collection (#collection-summary, déjà flex-wrap) pour tout filtre actif de
+   collectionFilters (série/type/état/rareté(s)/illustrateur/doublons). Reprend le look "actif" de
+   .filter-toggle-btn, même style pour tous les types de filtre. */
+.collection-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--gold);
+    color: var(--ink-navy);
+    border-radius: 6px;
+    padding: 0.35rem 0.5rem 0.35rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.collection-filter-chip-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.15rem;
+    opacity: 0.75;
+}
+
+.collection-filter-chip-remove:hover {
+    opacity: 1;
+}
+
+/* Popover "+ Ajouter un filtre" (seul moyen manuel d'ajouter un filtre Collection depuis le Ticket 4).
+   Ancré au bouton en desktop (position:absolute, bascule .align-right si débordement à droite, cf.
+   positionCollectionFilterPicker), panneau fixe bas d'écran en mobile (cf. media query). */
+.collection-add-filter-wrap {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.collection-add-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--panel-light);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.collection-add-filter-btn:hover:not(:disabled) {
+    border-color: var(--gold);
+}
+
+.collection-add-filter-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.collection-filter-picker {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    width: 300px;
+    max-width: calc(100vw - 2rem);
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    z-index: 60;
+    overflow: hidden;
+}
+
+.collection-filter-picker.active {
+    display: block;
+}
+
+.collection-filter-picker.align-right {
+    left: auto;
+    right: 0;
+}
+
+.cf-picker-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+
+.cf-picker-header-nav {
+    padding-left: 0.4rem;
+}
+
+.cf-picker-back {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cf-picker-back:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.cf-picker-search {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.cf-picker-search input {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.cf-picker-body {
+    padding: 0.4rem;
+}
+
+.cf-picker-scroll {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.cf-picker-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 0.65rem 0.7rem;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cf-picker-row:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.cf-picker-row:focus-visible,
+.cf-picker-back:focus-visible,
+.collection-add-filter-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+.cf-picker-row i {
+    color: var(--slate);
+    font-size: 0.9rem;
+}
+
+.cf-picker-empty {
+    padding: 0.9rem 0.7rem;
+    font-size: 0.8rem;
+    color: var(--slate);
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .collection-filter-picker {
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
+        top: auto;
+        width: auto;
+        max-width: none;
+        max-height: 70vh;
+        display: none;
+    }
+
+    .collection-filter-picker.active {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .collection-filter-picker.align-right {
+        left: 0.75rem;
+        right: 0.75rem;
+    }
+
+    .cf-picker-scroll {
+        max-height: none;
+        flex: 1 1 auto;
+    }
 }
 
 .modal-meta-line {
@@ -9675,4 +9773,154 @@ body.page-progression .progression-followed-sets {
         flex: 1 1 auto;
         min-width: 0;
     }
+}
+
+/* ===== CHANGELOG (route #/changelog + popup "Nouveautés", modules/changelog.js) ===== */
+
+.changelog-panel {
+    max-width: 640px;
+}
+
+.changelog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.changelog-entry {
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+}
+
+.changelog-entry-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.changelog-entry-version {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.02em;
+    color: var(--gold);
+}
+
+.changelog-entry-date {
+    color: var(--slate);
+    font-size: 0.85rem;
+}
+
+.changelog-entry-title {
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0.3rem 0 0.9rem;
+}
+
+.changelog-change-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.changelog-change {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--text-primary);
+}
+
+.changelog-change-badge {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: var(--slate);
+    border: 1px solid var(--border);
+}
+
+.changelog-change--new .changelog-change-badge {
+    color: #7fd88a;
+    border-color: rgba(127, 216, 138, 0.35);
+    background: rgba(127, 216, 138, 0.1);
+}
+
+.changelog-change--improved .changelog-change-badge {
+    color: #6fb8f0;
+    border-color: rgba(111, 184, 240, 0.35);
+    background: rgba(111, 184, 240, 0.1);
+}
+
+.changelog-change--fixed .changelog-change-badge {
+    color: var(--gold);
+    border-color: rgba(227, 188, 132, 0.35);
+    background: rgba(227, 188, 132, 0.1);
+}
+
+.changelog-change--security .changelog-change-badge {
+    color: #e88a8a;
+    border-color: rgba(232, 138, 138, 0.35);
+    background: rgba(232, 138, 138, 0.1);
+}
+
+.changelog-change--removed .changelog-change-badge {
+    color: var(--slate);
+    border-color: var(--border);
+    background: rgba(255,255,255,0.04);
+    text-decoration: line-through;
+}
+
+.changelog-popup-card {
+    position: relative;
+}
+
+.changelog-popup-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.02em;
+    color: var(--gold);
+    padding-right: 1.5rem;
+}
+
+.changelog-popup-subtitle {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0.2rem 0 1rem;
+}
+
+.changelog-popup-confirm {
+    width: 100%;
+    margin-top: 1.25rem;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(227, 188, 132, 0.35);
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 45%),
+        rgba(227, 188, 132, 0.12);
+    color: #F4F1EB;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.changelog-popup-confirm:hover {
+    border-color: rgba(227, 188, 132, 0.6);
+    box-shadow: 0 0 14px rgba(227, 188, 132, 0.15);
+    transform: translateY(-1px);
+}
+
+.changelog-popup-confirm:active {
+    transform: translateY(0);
 }

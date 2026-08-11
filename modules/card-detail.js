@@ -16,6 +16,8 @@ function showCardDetail(cardId) {
     const conditionLabels = { nm: 'Neuf', lp: 'Très bon', mp: 'Bon', hp: 'Mauvais état' };
     const conditionLabel = conditionLabels[conditionClass] || card.condition || '';
     const isPack = card.acquisition_type === 'pack';
+    const illustratorName = (card.illustrator || '').trim();
+    const safeIllustratorName = illustratorName.replace(/'/g, "\\'");
 
     const oldDateInput = document.getElementById('edit-date-added');
     if (oldDateInput && oldDateInput._flatpickr) oldDateInput._flatpickr.destroy();
@@ -103,7 +105,7 @@ function showCardDetail(cardId) {
                             <div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-stack-2" aria-hidden="true"></i> Quantité</span><span class="modal-meta-val">${qty}</span></div>
                             ${card.date_added ? `<div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-calendar" aria-hidden="true"></i> Ajoutée le</span><span class="modal-meta-val">${card.date_added}</span></div>` : ''}
                             <div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-hash" aria-hidden="true"></i> Numéro</span><span class="modal-meta-val">${card.number}</span></div>
-                            ${card.illustrator ? `<div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-user" aria-hidden="true"></i> Illustrateur</span><span class="modal-meta-val">${escapeHtml(card.illustrator)}</span></div>` : ''}
+                            ${illustratorName ? `<div class="modal-meta-row"><span class="modal-meta-key"><i class="ti ti-user" aria-hidden="true"></i> Illustrateur</span><span class="modal-meta-val"><button type="button" class="illustrator-link" onclick="filterCollectionByIllustrator('${safeIllustratorName}')" data-tooltip="Voir toutes les cartes illustrées par ${escapeHtml(illustratorName)} dans ta collection">${escapeHtml(illustratorName)}</button></span></div>` : ''}
                         </div>
 
                         <div class="modal-actions-col">

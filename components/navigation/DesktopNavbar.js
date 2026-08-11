@@ -42,6 +42,8 @@ function generateDesktopNavigation(activeTabId) {
                     <div class="profile-menu" id="profile-menu">
                         <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
                         <button class="profile-menu-item" onclick="closeProfileMenu(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
+                        <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-changelog');"><i class="ti ti-sparkles" aria-hidden="true"></i> Nouveautés</button>
+                        ${typeof currentUserIsAdmin !== 'undefined' && currentUserIsAdmin ? `<button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-admin');"><i class="ti ti-shield-lock" aria-hidden="true"></i> Administration</button>` : ''}
                         <button class="profile-menu-item profile-menu-item-danger" onclick="handleLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
                     </div>
                 </div>

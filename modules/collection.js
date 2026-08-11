@@ -1,11 +1,409 @@
 // Tri/filtre/rendu de l'onglet "Ma Collection" - Pokémon Tracker
 // Dépend de: allCollectionCards/changeQuantity/deleteCard (tracker.js), sortRaritiesByTier/getRarityIconHtml/
 // renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js)
-// Etat possédé : sortColumn, sortDirection, duplicatesOnlyFilter, collectionRarityFilterValues, collectionViewMode
+// Etat possédé : sortColumn, sortDirection, collectionFilters, collectionViewMode
 
 let sortColumn = 'value';
-let duplicatesOnlyFilter = false;
 let sortDirection = 'desc';
+
+// Source de vérité unique pour tous les filtres Collection (refonte filtres, cf. audit du 2026-08-11).
+// Seul point d'écriture manuel : le picker "+ Ajouter un filtre" (applyCollectionFilter/removeCollectionFilter
+// ci-dessous) et filterCollectionByIllustrator() depuis la fiche détail. L'ancien panneau permanent de
+// <select>/boutons a été retiré (Ticket 4) : plus aucun contrôle DOM à resynchroniser. rarity reste un
+// Set (multi-valeur, group keys inchangées, cf. getRarityGroupKey) : OR entre raretés sélectionnées, AND
+// avec les autres catégories. getFilteredSortedCollection() ne lit jamais le DOM des filtres directement
+// (seule la recherche texte, volontairement hors de cet objet, reste lue depuis #search-collection).
+let collectionFilters = {
+    series: null,
+    type: null,
+    condition: null,
+    rarity: new Set(),
+    illustrator: null,
+    duplicatesOnly: false
+};
+
+// Appelé uniquement depuis la fiche détail Collection (jamais depuis le profil public tiers, hors
+// scope de ce ticket) : ferme la fiche, applique le filtre, et s'assure d'être sur #/collection (la
+// fiche peut être ouverte depuis Dashboard/Progression/Stats, cf. showCardDetail() appelants). Alimente
+// directement collectionFilters.illustrator : plus d'état séparé, comportement utilisateur inchangé.
+function filterCollectionByIllustrator(illustrator) {
+    const trimmed = (illustrator || '').trim();
+    if (!trimmed) return;
+
+    closeCardDetail();
+    collectionFilters.illustrator = trimmed;
+    filterAndDisplay();
+    navigateToTab('tab-collection');
+}
+
+// Libellés humains pour l'état (le Set/select stocke NM/LP/MP/HP) : même mapping que celui déjà utilisé
+// en dur dans modules/card-detail.js et modules/public-profile.js pour la fiche détail (clés différentes
+// — majuscules ici, car collectionFilters.condition reprend la valeur brute des <option> du select —
+// donc pas une fonction partagée à extraire pour ce ticket, juste le même petit mapping local).
+const COLLECTION_CONDITION_LABELS = { NM: 'Neuf', LP: 'Très bon', MP: 'Bon', HP: 'Mauvais état' };
+
+// Retrouve un libellé de rareté lisible pour une group key technique (ex: "illustration-rare.png"),
+// en cherchant la première carte de la collection dont la rareté brute mappe sur cette clé. Réutilise
+// getRarityGroupKey (modules/utils.js) déjà utilisé partout ailleurs pour ce regroupement — pas de
+// nouvelle table de mapping, juste un lookup sur allCollectionCards (déjà chargé).
+function getRarityLabelForGroupKey(groupKey) {
+    const card = allCollectionCards.find(c => getRarityGroupKey(c.rarity) === groupKey);
+    if (card) return card.rarity;
+
+    // Fallback défensif : après pruneStaleCollectionFilters() une group key orpheline ne devrait plus
+    // apparaître, mais si elle survient quand même, ne jamais afficher un nom de fichier technique
+    // (les group keys issues de RARITY_ICON_MAP, ex: "illustration-rare.png", contiennent toujours un
+    // point — celles du repli normalizeForMatch, elles, n'en contiennent jamais et restent lisibles).
+    return groupKey.includes('.') ? 'Rareté' : groupKey;
+}
+
+// Ordre d'affichage stable des chips de filtres actifs (Ticket 2 refonte filtres) : Série > Type > État >
+// Rareté(s), triées par palier via RARITY_ORDER (modules/utils.js) pour rester groupées et cohérentes
+// entre elles > Illustrateur > Doublons. Construit uniquement depuis collectionFilters (jamais le DOM),
+// consommé par updateCollectionSummary() pour le rendu et par removeCollectionFilter() implicitement
+// (les clés utilisées ici sont les mêmes que celles attendues par removeCollectionFilter).
+function getActiveCollectionFilterChips() {
+    const chips = [];
+
+    if (collectionFilters.series) {
+        chips.push({ key: 'series', label: `Série : ${collectionFilters.series}` });
+    }
+    if (collectionFilters.type) {
+        chips.push({ key: 'type', label: `Type : ${collectionFilters.type}` });
+    }
+    if (collectionFilters.condition) {
+        const label = COLLECTION_CONDITION_LABELS[collectionFilters.condition] || collectionFilters.condition;
+        chips.push({ key: 'condition', label: `État : ${label}` });
+    }
+    if (collectionFilters.rarity.size > 0) {
+        const sortedGroupKeys = [...collectionFilters.rarity].sort((a, b) => {
+            const rankA = RARITY_ORDER.indexOf(a);
+            const rankB = RARITY_ORDER.indexOf(b);
+            return (rankA === -1 ? 999 : rankA) - (rankB === -1 ? 999 : rankB);
+        });
+        sortedGroupKeys.forEach(groupKey => {
+            chips.push({ key: 'rarity', value: groupKey, label: `Rareté : ${getRarityLabelForGroupKey(groupKey)}` });
+        });
+    }
+    if (collectionFilters.illustrator) {
+        chips.push({ key: 'illustrator', label: `Illustrateur : ${collectionFilters.illustrator}` });
+    }
+    if (collectionFilters.duplicatesOnly) {
+        chips.push({ key: 'duplicatesOnly', label: 'Doublons' });
+    }
+
+    return chips;
+}
+
+// Rendu HTML pur des chips actifs (aucune lecture/écriture DOM ici) : une boucle sur getActiveCollectionFilterChips()
+// plutôt qu'un bloc par filtre. Chaque × appelle removeCollectionFilter(key, value) — value uniquement
+// nécessaire pour 'rarity' (multi-valeur), undefined pour les autres (ignoré par removeCollectionFilter).
+function renderCollectionFilterChips() {
+    return getActiveCollectionFilterChips().map(chip => `
+        <span class="collection-filter-chip">
+            ${escapeHtml(chip.label)}
+            <button type="button" class="collection-filter-chip-remove" onclick="removeCollectionFilter('${chip.key}'${chip.value ? `, '${chip.value.replace(/'/g, "\\'")}'` : ''})" aria-label="Retirer ce filtre">×</button>
+        </span>
+    `).join('');
+}
+
+// Vide UNIQUEMENT le filtre ciblé dans collectionFilters puis relance le flow de rendu standard. Depuis
+// le Ticket 4 (retrait de l'ancien panneau permanent), plus aucun contrôle à resynchroniser : le picker
+// "+ Ajouter un filtre" (ci-dessous) reconstruit ses options depuis allCollectionCards à chaque ouverture.
+function removeCollectionFilter(key, value) {
+    switch (key) {
+        case 'series':
+            collectionFilters.series = null;
+            break;
+        case 'type':
+            collectionFilters.type = null;
+            break;
+        case 'condition':
+            collectionFilters.condition = null;
+            break;
+        case 'rarity':
+            collectionFilters.rarity.delete(value);
+            break;
+        case 'illustrator':
+            collectionFilters.illustrator = null;
+            break;
+        case 'duplicatesOnly':
+            collectionFilters.duplicatesOnly = false;
+            break;
+        default:
+            return;
+    }
+    filterAndDisplay();
+}
+
+// ===== "AJOUTER UN FILTRE" — POPOVER 2 ETAPES (Ticket 3, seul moyen manuel d'ajouter un filtre depuis
+// le Ticket 4 — l'ancien panneau permanent a été retiré). N'écrit jamais directement dans collectionFilters
+// sans passer par applyCollectionFilter() ; construit toujours ses options depuis allCollectionCards.
+let collectionFilterPickerStep = 'type'; // 'type' | 'value'
+let collectionFilterPickerActiveKey = null;
+let collectionFilterPickerSearchTerm = '';
+
+// Liste déclarative des filtres proposables à l'étape 1 : pas un moteur générique (pas d'opérateurs, pas
+// de comparaisons), juste les 6 filtres métier existants avec de quoi piloter l'étape 1 (label, mono/multi/
+// booléen). Ordre = ordre d'affichage à l'étape 1 (repris de l'ordre des chips, Ticket 2).
+const COLLECTION_FILTER_TYPES = [
+    { key: 'series', label: 'Série' },
+    { key: 'type', label: 'Type' },
+    { key: 'condition', label: 'État' },
+    { key: 'rarity', label: 'Rareté', multi: true },
+    { key: 'illustrator', label: 'Illustrateur' },
+    { key: 'duplicatesOnly', label: 'Doublons', boolean: true }
+];
+
+const COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD = 10;
+
+// Valeurs proposables à l'étape 2, dérivées uniquement de allCollectionCards (jamais de requête
+// supplémentaire, jamais des <select> de l'ancien panneau). Pour 'rarity', renvoie des paires
+// [groupKey, libellé] (même regroupement que buildRarityFilterRowHtml/getRarityGroupKey, réutilisés tels
+// quels) ; pour les autres, un tableau de chaînes déjà triées.
+function getCollectionFilterPickerOptions(filterKey) {
+    if (filterKey === 'series') {
+        return [...new Set(allCollectionCards.map(c => c.series).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    }
+    if (filterKey === 'type') {
+        return [...new Set(allCollectionCards.map(c => c.type).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    }
+    if (filterKey === 'condition') {
+        return ['NM', 'LP', 'MP', 'HP'].filter(code => allCollectionCards.some(c => c.condition === code));
+    }
+    if (filterKey === 'illustrator') {
+        // Dédup case-insensitive en conservant le libellé original (première casse rencontrée) — même
+        // règle de matching que collectionFilters.illustrator (trim + case-insensitive, cf. Ticket 1).
+        const seen = new Map();
+        allCollectionCards.forEach(c => {
+            const raw = (c.illustrator || '').trim();
+            if (!raw) return;
+            const dedupKey = raw.toLowerCase();
+            if (!seen.has(dedupKey)) seen.set(dedupKey, raw);
+        });
+        return [...seen.values()].sort((a, b) => a.localeCompare(b, 'fr'));
+    }
+    if (filterKey === 'rarity') {
+        const rarities = sortRaritiesByTier([...new Set(allCollectionCards.map(c => c.rarity).filter(Boolean))]);
+        const groups = new Map();
+        rarities.forEach(r => {
+            const key = getRarityGroupKey(r);
+            if (!groups.has(key)) groups.set(key, r);
+        });
+        return [...groups.entries()];
+    }
+    return [];
+}
+
+// Un type de filtre est proposable à l'étape 1 si : booléen pas encore actif, multi (rareté) avec au
+// moins une valeur restante non sélectionnée, ou mono pas encore actif ET avec au moins une valeur
+// disponible dans la collection (ex: aucun illustrateur renseigné -> pas de ligne "Illustrateur").
+function isCollectionFilterTypeAvailable(def) {
+    if (def.boolean) {
+        return !collectionFilters[def.key];
+    }
+    if (def.multi) {
+        const groupKeys = getCollectionFilterPickerOptions(def.key).map(([groupKey]) => groupKey);
+        return groupKeys.some(k => !collectionFilters.rarity.has(k));
+    }
+    if (collectionFilters[def.key]) return false;
+    return getCollectionFilterPickerOptions(def.key).length > 0;
+}
+
+function hasAvailableCollectionFilterTypes() {
+    return COLLECTION_FILTER_TYPES.some(isCollectionFilterTypeAvailable);
+}
+
+// Active/désactive le bouton "+ Ajouter un filtre" selon qu'il reste au moins un filtre proposable.
+// Appelée depuis renderFilteredCollection() (donc à chaque filterAndDisplay, y compris reset/chip retiré).
+function updateCollectionAddFilterButtonState() {
+    const btn = document.getElementById('collection-add-filter-btn');
+    if (!btn) return;
+    btn.disabled = !hasAvailableCollectionFilterTypes();
+}
+
+function openCollectionFilterPicker() {
+    const btn = document.getElementById('collection-add-filter-btn');
+    if (btn && btn.disabled) return;
+
+    collectionFilterPickerSearchTerm = '';
+    showCollectionFilterTypeOptions();
+    document.getElementById('collection-filter-picker')?.classList.add('active');
+    btn?.setAttribute('aria-expanded', 'true');
+    positionCollectionFilterPicker();
+}
+
+// Ferme le picker sans jamais toucher collectionFilters — aucune fermeture (clic extérieur, Escape, ×,
+// sélection déjà appliquée avant l'appel) ne doit modifier un filtre au moment de fermer.
+function closeCollectionFilterPicker() {
+    const picker = document.getElementById('collection-filter-picker');
+    if (!picker) return;
+    picker.classList.remove('active', 'align-right');
+    document.getElementById('collection-add-filter-btn')?.setAttribute('aria-expanded', 'false');
+    collectionFilterPickerStep = 'type';
+    collectionFilterPickerActiveKey = null;
+    collectionFilterPickerSearchTerm = '';
+}
+
+// Repositionnement simple (pas de moteur de collision) : ancré à gauche du bouton par défaut, bascule à
+// droite uniquement si ça déborde la fenêtre. Uniquement pertinent en desktop (position:absolute) ;
+// en mobile le popover passe en panneau fixe plein-largeur (cf. styles.css), cette fonction est un no-op
+// visuel dans ce cas (la classe est ajoutée mais sans effet, le CSS mobile l'ignore).
+function positionCollectionFilterPicker() {
+    const picker = document.getElementById('collection-filter-picker');
+    if (!picker) return;
+    picker.classList.remove('align-right');
+    const rect = picker.getBoundingClientRect();
+    if (rect.right > window.innerWidth - 8) {
+        picker.classList.add('align-right');
+    }
+}
+
+// Etape 1 : liste des types de filtre encore proposables. Chaque ligne est un vrai <button> (a11y).
+function showCollectionFilterTypeOptions() {
+    collectionFilterPickerStep = 'type';
+    collectionFilterPickerActiveKey = null;
+
+    const availableTypes = COLLECTION_FILTER_TYPES.filter(isCollectionFilterTypeAvailable);
+
+    const picker = document.getElementById('collection-filter-picker');
+    if (!picker) return;
+
+    picker.innerHTML = `
+        <div class="cf-picker-header"><span>Ajouter un filtre</span></div>
+        <div class="cf-picker-body">
+            ${availableTypes.length > 0 ? availableTypes.map(def => `
+                <button type="button" class="cf-picker-row" onclick="${def.boolean ? `applyCollectionFilter('${def.key}', true)` : `showCollectionFilterValueOptions('${def.key}')`}">
+                    <span>${escapeHtml(def.label)}</span>
+                    ${def.boolean ? '' : '<i class="ti ti-chevron-right" aria-hidden="true"></i>'}
+                </button>
+            `).join('') : '<p class="cf-picker-empty">Tous les filtres disponibles sont déjà actifs</p>'}
+        </div>
+    `;
+    positionCollectionFilterPicker();
+}
+
+// Etape 2 : valeurs disponibles pour filterKey. Champ de recherche local seulement si la liste dépasse
+// COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD (pas de recherche systématique pour État/Rareté, courtes par
+// nature). Rareté exclut les group keys déjà actives (cf. isCollectionFilterTypeAvailable côté étape 1).
+function showCollectionFilterValueOptions(filterKey) {
+    const def = COLLECTION_FILTER_TYPES.find(d => d.key === filterKey);
+    if (!def) return;
+
+    collectionFilterPickerStep = 'value';
+    collectionFilterPickerActiveKey = filterKey;
+    collectionFilterPickerSearchTerm = '';
+
+    const picker = document.getElementById('collection-filter-picker');
+    if (!picker) return;
+
+    const rawOptionCount = getCollectionFilterPickerOptions(filterKey).length;
+
+    picker.innerHTML = `
+        <div class="cf-picker-header cf-picker-header-nav">
+            <button type="button" class="cf-picker-back" onclick="showCollectionFilterTypeOptions()" aria-label="Retour"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <span>${escapeHtml(def.label)}</span>
+        </div>
+        ${rawOptionCount > COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD ? `
+            <div class="cf-picker-search">
+                <input type="text" placeholder="Rechercher..." oninput="setCollectionFilterPickerSearch(this.value)">
+            </div>
+        ` : ''}
+        <div class="cf-picker-body cf-picker-scroll" id="cf-picker-value-list">${renderCollectionFilterPickerValueRows()}</div>
+    `;
+    positionCollectionFilterPicker();
+}
+
+// Rend uniquement les lignes de valeurs (pas tout le popover) : appelé au premier affichage de l'étape 2
+// et à chaque frappe dans la recherche locale, pour ne pas perdre le focus du champ de recherche.
+function renderCollectionFilterPickerValueRows() {
+    const filterKey = collectionFilterPickerActiveKey;
+    if (!filterKey) return '';
+
+    const term = collectionFilterPickerSearchTerm.trim().toLowerCase();
+    let options = getCollectionFilterPickerOptions(filterKey);
+
+    if (filterKey === 'rarity') {
+        options = options.filter(([groupKey]) => !collectionFilters.rarity.has(groupKey));
+        if (term) options = options.filter(([, label]) => label.toLowerCase().includes(term));
+        if (options.length === 0) return '<p class="cf-picker-empty">Aucune rareté restante</p>';
+        return options.map(([groupKey, label]) => `
+            <button type="button" class="cf-picker-row" onclick="applyCollectionFilter('rarity', '${groupKey.replace(/'/g, "\\'")}')">
+                <span>${escapeHtml(label)}</span>
+            </button>
+        `).join('');
+    }
+
+    if (filterKey === 'condition') {
+        if (term) options = options.filter(code => (COLLECTION_CONDITION_LABELS[code] || code).toLowerCase().includes(term));
+        if (options.length === 0) return '<p class="cf-picker-empty">Aucun résultat</p>';
+        return options.map(code => `
+            <button type="button" class="cf-picker-row" onclick="applyCollectionFilter('condition', '${code}')">
+                <span>${escapeHtml(COLLECTION_CONDITION_LABELS[code] || code)}</span>
+            </button>
+        `).join('');
+    }
+
+    // series / type / illustrator : options = tableau de chaînes
+    if (term) options = options.filter(v => v.toLowerCase().includes(term));
+    if (options.length === 0) return '<p class="cf-picker-empty">Aucun résultat</p>';
+    return options.map(value => `
+        <button type="button" class="cf-picker-row" onclick="applyCollectionFilter('${filterKey}', '${value.replace(/'/g, "\\'")}')">
+            <span>${escapeHtml(value)}</span>
+        </button>
+    `).join('');
+}
+
+function setCollectionFilterPickerSearch(value) {
+    collectionFilterPickerSearchTerm = value;
+    const list = document.getElementById('cf-picker-value-list');
+    if (list) list.innerHTML = renderCollectionFilterPickerValueRows();
+}
+
+// Contrepartie générique de removeCollectionFilter() : écrit UNIQUEMENT dans collectionFilters, ferme le
+// popover et relance le flow de rendu standard.
+function applyCollectionFilter(filterKey, value) {
+    switch (filterKey) {
+        case 'series':
+            collectionFilters.series = value;
+            break;
+        case 'type':
+            collectionFilters.type = value;
+            break;
+        case 'condition':
+            collectionFilters.condition = value;
+            break;
+        case 'rarity':
+            collectionFilters.rarity.add(value);
+            break;
+        case 'illustrator':
+            collectionFilters.illustrator = value;
+            break;
+        case 'duplicatesOnly':
+            collectionFilters.duplicatesOnly = true;
+            break;
+        default:
+            return;
+    }
+    closeCollectionFilterPicker();
+    filterAndDisplay();
+}
+
+// Clic extérieur = fermeture propre, jamais de modification de collectionFilters (cf. closeCollectionFilterPicker).
+// IMPORTANT : on utilise e.composedPath() et non wrap.contains(e.target). Un clic sur une ligne du picker
+// (ex: "Série") déclenche d'abord son onclick (showCollectionFilterValueOptions), qui réécrit
+// picker.innerHTML AVANT que cet événement ne finisse de remonter jusqu'à document — la ligne cliquée est
+// donc déjà détachée du DOM au moment où ce listener s'exécute. wrap.contains(e.target) sur un nœud détaché
+// renvoie toujours false, ce qui faisait fermer le picker instantanément à chaque clic sur une ligne (bug :
+// "il ne se passe rien"). composedPath() capture le chemin de propagation d'origine au moment du dispatch,
+// donc reste correct même si les nœuds ont été retirés du DOM entre-temps.
+document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('collection-add-filter-wrap');
+    const picker = document.getElementById('collection-filter-picker');
+    if (wrap && picker && picker.classList.contains('active') && !e.composedPath().includes(wrap)) {
+        closeCollectionFilterPicker();
+    }
+});
 
 function sortCollection(column) {
     if (sortColumn === column) {
@@ -78,46 +476,29 @@ function applySorting(list) {
     return sorted;
 }
 
-let collectionRarityFilterValues = new Set();
-
-function setCollectionRarityFilter(value) {
-    if (value === '') {
-        collectionRarityFilterValues.clear();
-    } else if (collectionRarityFilterValues.has(value)) {
-        collectionRarityFilterValues.delete(value);
-    } else {
-        collectionRarityFilterValues.add(value);
+// Purge collectionFilters.series/.type si leur valeur n'existe plus dans la collection (ex: suppression
+// de la dernière carte de cette série) : un filtre sur une valeur disparue retombe silencieusement à
+// "aucun filtre" plutôt que de filtrer indéfiniment sur une valeur fantôme. Anciennement fait en resynchronisant
+// les <select> Série/Type reconstruits à chaque refreshCollection (cf. populateCollectionFilters avant
+// Ticket 4) ; ces <select> ont été retirés (l'ancien panneau permanent n'existe plus, seul le picker
+// "+ Ajouter un filtre" lit désormais allCollectionCards), donc plus de DOM à reconstruire ici — seule la
+// purge d'état reste nécessaire. condition (liste fixe NM/LP/MP/HP) n'a jamais eu besoin de cette purge.
+function pruneStaleCollectionFilters() {
+    if (collectionFilters.series && !allCollectionCards.some(c => c.series === collectionFilters.series)) {
+        collectionFilters.series = null;
     }
-    renderCollectionRarityRow();
-    filterAndDisplay();
-}
-
-function renderCollectionRarityRow() {
-    const rarities = sortRaritiesByTier([...new Set(allCollectionCards.map(c => c.rarity).filter(Boolean))]);
-    document.getElementById('filter-collection-rarity-row').innerHTML =
-        buildRarityFilterRowHtml(rarities, collectionRarityFilterValues, 'setCollectionRarityFilter', 24);
-}
-
-function populateCollectionFilters() {
-    const seriesSelect = document.getElementById('filter-collection-series');
-    const typeSelect = document.getElementById('filter-collection-type');
-
-    const currentSeries = seriesSelect.value;
-    const currentType = typeSelect.value;
-
-    const series = [...new Set(allCollectionCards.map(c => c.series).filter(Boolean))].sort();
-    const types = [...new Set(allCollectionCards.map(c => c.type).filter(Boolean))].sort();
-
-    seriesSelect.innerHTML = '<option value="">Toutes</option>' +
-        series.map(s => `<option value="${s}">${s}</option>`).join('');
-    typeSelect.innerHTML = '<option value="">Tous</option>' +
-        types.map(t => `<option value="${t}">${t}</option>`).join('');
-
-    renderCollectionRarityRow();
-
-    // Réappliquer la sélection précédente si elle existe toujours
-    if (series.includes(currentSeries)) seriesSelect.value = currentSeries;
-    if (types.includes(currentType)) typeSelect.value = currentType;
+    if (collectionFilters.type && !allCollectionCards.some(c => c.type === collectionFilters.type)) {
+        collectionFilters.type = null;
+    }
+    if (collectionFilters.illustrator) {
+        const target = collectionFilters.illustrator.trim().toLowerCase();
+        const stillExists = allCollectionCards.some(c => (c.illustrator || '').trim().toLowerCase() === target);
+        if (!stillExists) collectionFilters.illustrator = null;
+    }
+    collectionFilters.rarity.forEach(groupKey => {
+        const stillExists = allCollectionCards.some(c => getRarityGroupKey(c.rarity) === groupKey);
+        if (!stillExists) collectionFilters.rarity.delete(groupKey);
+    });
 }
 
 // Identifiant de regroupement d'une carte (même carte, peu importe l'état) pour détecter les doublons
@@ -135,25 +516,14 @@ function computeDuplicateGroupTotals() {
     return totals;
 }
 
-// Mobile uniquement (cf. media query 640px) : le panneau filtres est réduit par défaut, ce bouton
-// bascule .expanded. Sans effet sur desktop où le panneau reste toujours déplié (CSS scopé).
-function toggleCollectionFiltersPanel() {
-    document.getElementById('collection-filters-panel')?.classList.toggle('expanded');
-}
-
-function toggleDuplicatesFilter() {
-    duplicatesOnlyFilter = !duplicatesOnlyFilter;
-    document.getElementById('filter-duplicates-btn').classList.toggle('active', duplicatesOnlyFilter);
-    filterAndDisplay();
-}
-
-// Un filtre du panneau (hors recherche, hors tri) est actif : condition/série/type/rareté/doublons
+// Un filtre actif (hors recherche, hors tri) : condition/série/type/rareté/doublons/illustrateur
 function hasActiveCollectionFilters() {
-    return !!document.getElementById('filter-condition').value ||
-        !!document.getElementById('filter-collection-series').value ||
-        !!document.getElementById('filter-collection-type').value ||
-        collectionRarityFilterValues.size > 0 ||
-        duplicatesOnlyFilter;
+    return !!collectionFilters.condition ||
+        !!collectionFilters.series ||
+        !!collectionFilters.type ||
+        collectionFilters.rarity.size > 0 ||
+        collectionFilters.duplicatesOnly ||
+        !!collectionFilters.illustrator;
 }
 
 function updateResetFiltersButtonVisibility() {
@@ -163,21 +533,18 @@ function updateResetFiltersButtonVisibility() {
 }
 
 function resetCollectionFilters() {
-    document.getElementById('filter-condition').value = '';
-    document.getElementById('filter-collection-series').value = '';
-    document.getElementById('filter-collection-type').value = '';
-    collectionRarityFilterValues.clear();
-    duplicatesOnlyFilter = false;
-    document.getElementById('filter-duplicates-btn').classList.remove('active');
-    renderCollectionRarityRow();
+    collectionFilters.condition = null;
+    collectionFilters.series = null;
+    collectionFilters.type = null;
+    collectionFilters.rarity.clear();
+    collectionFilters.duplicatesOnly = false;
+    collectionFilters.illustrator = null;
+
     filterAndDisplay();
 }
 
 function getFilteredSortedCollection() {
     const searchTerm = document.getElementById('search-collection').value.toLowerCase();
-    const conditionFilter = document.getElementById('filter-condition').value;
-    const seriesFilter = document.getElementById('filter-collection-series').value;
-    const typeFilter = document.getElementById('filter-collection-type').value;
 
     let filtered = allCollectionCards;
     if (searchTerm) {
@@ -186,21 +553,25 @@ function getFilteredSortedCollection() {
             (c.series || '').toLowerCase().includes(searchTerm)
         );
     }
-    if (conditionFilter) {
-        filtered = filtered.filter(c => c.condition === conditionFilter);
+    if (collectionFilters.condition) {
+        filtered = filtered.filter(c => c.condition === collectionFilters.condition);
     }
-    if (seriesFilter) {
-        filtered = filtered.filter(c => c.series === seriesFilter);
+    if (collectionFilters.series) {
+        filtered = filtered.filter(c => c.series === collectionFilters.series);
     }
-    if (collectionRarityFilterValues.size > 0) {
-        filtered = filtered.filter(c => collectionRarityFilterValues.has(getRarityGroupKey(c.rarity)));
+    if (collectionFilters.rarity.size > 0) {
+        filtered = filtered.filter(c => collectionFilters.rarity.has(getRarityGroupKey(c.rarity)));
     }
-    if (typeFilter) {
-        filtered = filtered.filter(c => c.type === typeFilter);
+    if (collectionFilters.type) {
+        filtered = filtered.filter(c => c.type === collectionFilters.type);
     }
-    if (duplicatesOnlyFilter) {
+    if (collectionFilters.duplicatesOnly) {
         const totals = computeDuplicateGroupTotals();
         filtered = filtered.filter(c => (totals[getDuplicateGroupKey(c)] || 0) > 1);
+    }
+    if (collectionFilters.illustrator) {
+        const target = collectionFilters.illustrator.toLowerCase();
+        filtered = filtered.filter(c => (c.illustrator || '').trim().toLowerCase() === target);
     }
 
     return applySorting(filtered);
@@ -368,6 +739,7 @@ function updateCollectionSummary(filtered, page) {
             <span class="summary-label">Tri :</span>
             <span class="summary-value">${sortLabel}</span>
         </span>
+        ${renderCollectionFilterChips()}
     `;
 }
 
@@ -424,6 +796,7 @@ function renderFilteredCollection() {
     updateCollectionSummary(filtered, page);
     renderCollectionHeaderKpis(filtered);
     updateResetFiltersButtonVisibility();
+    updateCollectionAddFilterButtonState();
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     if (getEffectiveCollectionViewMode() === 'table') {

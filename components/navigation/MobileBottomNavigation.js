@@ -25,7 +25,7 @@ const MOBILE_NAV_PAGES_RIGHT = [
 
 // Onglets qui, une fois actifs, allument "Plus" au lieu d'un item dédié (ils n'ont plus leur propre
 // entrée dans la barre : Progression a été remplacée par Plus, Statistiques n'a jamais eu d'entrée).
-const MOBILE_NAV_MORE_ACTIVE_TABS = ['tab-progression', 'tab-stats', 'tab-collectors', 'tab-user-profile'];
+const MOBILE_NAV_MORE_ACTIVE_TABS = ['tab-progression', 'tab-stats', 'tab-collectors', 'tab-user-profile', 'tab-admin', 'tab-changelog'];
 
 function renderMobileNavItem(p, activeTabId) {
     return `
@@ -59,6 +59,8 @@ function renderMobileMorePanel() {
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-stats');"><i class="ti ti-chart-bar" aria-hidden="true"></i> Statistiques</button>
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
+            <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-changelog');"><i class="ti ti-sparkles" aria-hidden="true"></i> Nouveautés</button>
+            ${typeof currentUserIsAdmin !== 'undefined' && currentUserIsAdmin ? `<button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-admin');"><i class="ti ti-shield-lock" aria-hidden="true"></i> Administration</button>` : ''}
             <button type="button" class="mobile-more-panel-item mobile-more-panel-item-danger" role="menuitem" onclick="closeMobileMorePanel(); handleLogout();"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
         </div>
     `;

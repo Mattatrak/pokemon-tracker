@@ -47,7 +47,7 @@ function markDashboardDirty() {
         renderDashboard();
     }
 }
-// sortColumn, sortDirection, duplicatesOnlyFilter, collectionRarityFilterValues, collectionViewMode chargés depuis modules/collection.js
+// sortColumn, sortDirection, collectionFilters, collectionViewMode chargés depuis modules/collection.js
 
 // ===== STATISTIQUES (dirty flag) =====
 // Marqué obsolète uniquement par de vraies écritures (refreshCollection() ; ajout/suppression d'un
@@ -96,7 +96,7 @@ async function refreshCollection() {
     allCollectionCards = data || [];
     await fillMissingSeriesLogos();
     updateStats();
-    populateCollectionFilters();
+    pruneStaleCollectionFilters();
     filterAndDisplay();
     markDashboardDirty();
     markStatsDirty();
@@ -457,9 +457,8 @@ async function changeQuantity(id, delta, btn) {
 
 // updateStats, recordValueSnapshot, renderHeroValueCard chargées depuis modules/stats.js
 
-// sortCollection, updateSortArrows, applySorting, setCollectionRarityFilter, renderCollectionRarityRow,
-// populateCollectionFilters, getDuplicateGroupKey, computeDuplicateGroupTotals, toggleDuplicatesFilter
-// chargées depuis modules/collection.js
+// sortCollection, updateSortArrows, applySorting, pruneStaleCollectionFilters, getDuplicateGroupKey,
+// computeDuplicateGroupTotals chargées depuis modules/collection.js
 
 // exportCollectionToCSV, toggleCsvDropdown, closeCsvDropdown, exportFullBackupJson, handleJsonRestore,
 // confirmAndProcessJsonRestore, downloadCsvTemplate, findTcgdexMatch, handleCsvImport, processCsvImportRows
@@ -495,7 +494,9 @@ const TAB_PAGE_MAP = {
     'tab-stats': 'page-statistics',
     'tab-wishlist': 'page-wishlist',
     'tab-user-profile': 'page-user-profile',
-    'tab-collectors': 'page-collectors'
+    'tab-collectors': 'page-collectors',
+    'tab-admin': 'page-admin',
+    'tab-changelog': 'page-changelog'
 };
 
 // Table de correspondance tabId -> route de hash. Volontairement DIFFERENTE des tabId : tab-dashboard etc.
@@ -510,7 +511,9 @@ const TAB_ROUTES = {
     'tab-progression': '/progression',
     'tab-stats': '/statistics',
     'tab-wishlist': '/wishlist',
-    'tab-collectors': '/collectors'
+    'tab-collectors': '/collectors',
+    'tab-admin': '/admin',
+    'tab-changelog': '/changelog'
 };
 
 // Mapping inverse route -> tabId, dérivé de TAB_ROUTES pour éviter de dupliquer la liste à la main.
@@ -611,6 +614,14 @@ function activateTabContent(tabId) {
 
     if (tabId === 'tab-collectors') {
         resetCollectorsSearchView();
+    }
+
+    if (tabId === 'tab-admin') {
+        renderAdminGate();
+    }
+
+    if (tabId === 'tab-changelog') {
+        renderChangelogPage();
     }
 }
 
@@ -894,13 +905,12 @@ function initEventListeners() {
         clearTimeout(collectionSearchDebounceTimer);
         collectionSearchDebounceTimer = setTimeout(filterAndDisplay, 150);
     });
-    document.getElementById('filter-condition').addEventListener('change', filterAndDisplay);
-    document.getElementById('filter-collection-series').addEventListener('change', filterAndDisplay);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeCardDetail();
             closeWishlistItemDetail();
             closeMobileMorePanel();
+            closeCollectionFilterPicker();
 
             // Priorité de couche : le picker Wishlist peut s'ouvrir par-dessus la modale Ajouter. Un appui
             // ne doit fermer que la couche du dessus : s'il est actif, on ferme uniquement lui (il n'avait
@@ -914,8 +924,6 @@ function initEventListeners() {
             }
         }
     });
-
-    document.getElementById('filter-collection-type').addEventListener('change', filterAndDisplay);
 
     document.getElementById('card-acquisition').addEventListener('change', (e) => {
         const group = document.getElementById('purchase-price-group');
