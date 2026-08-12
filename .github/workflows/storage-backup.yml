@@ -1,0 +1,72 @@
+name: PokéTracker Storage Backup
+
+# Sauvegarde du bucket Storage "card-images" (images de cartes canoniques/partagées). Complète le
+# backup base de données (database-backup.yml) - les deux sont indépendants et n'ont pas besoin de
+# tourner en même temps (décalés d'une heure pour ne pas cumuler la charge sur l'API Supabase).
+#
+# Clé anon uniquement (déjà publique, cf commentaire en tête de backup-storage.mjs) : bucket public,
+# list()/download() vérifiés fonctionnels avec anon sans policy SELECT dédiée avant d'écrire ce workflow.
+# Pas de service_role, pas de jeton de compte Supabase.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    name: List, download & archive card-images bucket
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo (for the backup script)
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Le script n'écrit/n'affiche jamais SUPABASE_ANON_KEY - il ne fait que la passer en en-tête
+      # de requête HTTP. La clé n'est de toute façon pas sensible (déjà publique côté client), mais on
+      # reste rigoureux sur le principe (mêmes règles que pour SUPABASE_DB_URL dans l'autre workflow).
+      - name: List & download all files
+        env:
+          SUPABASE_PROJECT_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node .github/scripts/backup-storage.mjs card-images storage-dump
+
+      # Vérification minimale mais explicite, même logique que le backup base de données : un run
+      # "réussi" ne doit jamais aboutir à un artifact vide uploadé comme s'il était valide. Le script
+      # backup-storage.mjs échoue déjà lui-même si 0 fichier ou 0 octet, cette étape est une seconde
+      # vérification indépendante après coup sur le dossier réellement produit.
+      - name: Verify downloaded content is non-empty
+        run: |
+          set -euo pipefail
+          file_count=$(find storage-dump -type f | wc -l)
+          total_bytes=$(du -sb storage-dump | cut -f1)
+          echo "Files: $file_count, total bytes: $total_bytes"
+          if [ "$file_count" -eq 0 ] || [ "$total_bytes" -eq 0 ]; then
+            echo "::error::storage-dump is empty - aborting, not uploading an invalid backup."
+            exit 1
+          fi
+
+      - name: Build archive
+        id: archive
+        run: |
+          set -euo pipefail
+          timestamp=$(date -u +"%Y-%m-%d_%H%M%SUTC")
+          name="poketracker-storage-${timestamp}.tar.gz"
+          tar czf "$name" -C storage-dump .
+          if [ ! -s "$name" ]; then
+            echo "::error::Archive $name is missing or empty."
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.archive.outputs.name }}
+          path: ${{ steps.archive.outputs.name }}
+          retention-days: 30
+          if-no-files-found: error
