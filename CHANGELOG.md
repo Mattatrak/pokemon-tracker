@@ -1,105 +1,35 @@
 # Changelog
 
-## Fix : zone blanche au bord de l'écran sur mobile (rebond iOS Safari)
+## Maintenance, favoris, isolation multi-utilisateur
 
-Sur mobile, glisser sur les côtés révélait une bande blanche au lieu du fond du site. `<html>` n'avait pas de couleur de fond (seul `<body>` en avait une) — pendant le rebond élastique de Safari iOS au-delà du contenu, c'est le fond par défaut du navigateur (blanc) qui apparaît. Ajout de `background: var(--bg)` sur `html`, plus `overflow-x: hidden` sur `html` et `body` en sécurité contre tout débordement horizontal (`styles.css`).
+Passe de maintenance (audit code + audit d'usage réel en navigateur), nouvelle fonctionnalité Favoris avec intégration au hero Dashboard, et migration RLS pour que chaque compte ne voie plus que ses propres données.
 
-## Feat : édition en masse sur la vue Tableau de la collection
+- **Nettoyage code mort** : suppression de 3 fonctions JS jamais appelées (`switchTab`, `changeQuantityInModal`, `checkExistingSeriesLogo`), de classes/variables CSS orphelines (`.hero-value-*`, `.stat-card` bare, `.form-grid`, `.login-logo-row`, `.modal-qty-row`, `.wishlist-btn`, `--paper`, tokens motion inutilisés...) et de 10 assets image non référencés (~12,6 Mo) (`tracker.js`, `modules/collection.js`, `modules/storage.js`, `styles.css`, `styles-login.css`, `css/motion-tokens.css`).
+- **Fix crash rafraîchissement des prix** : `refreshAllMarketPrices()` référençait encore `#refresh-prices-btn`/`#refresh-prices-status`, retirés du HTML lors d'une refonte précédente — plantait à chaque déclenchement (auto au login, ou clic sur le widget dashboard). Fonction découplée du bouton, plus de reliquat CSS associé (`tracker.js`, `modules/auth.js`, `styles.css`).
+- **Fix XSS** : nom de wishlist non échappé injecté tel quel dans la modale de confirmation de suppression — corrigé avec `escapeHtml()` (`modules/wishlist.js`).
+- **Fix calcul de fluctuation** : les badges "variation 24h/7j" (hero Dashboard, KPI valeur) lisaient `value_history`, un instantané réenregistré à chaque ajout/suppression/changement de quantité — ajouter une carte se lisait comme une hausse de marché. Nouveau calcul basé uniquement sur `card_price_history` (prix par carte, alimenté seulement par les rafraîchissements de prix), pondéré par la quantité actuelle des deux côtés pour neutraliser tout changement de composition de la collection (`modules/stats.js`, `modules/dashboard.js`).
+- **Fix historique de valeur "7 jours" vide** : les requêtes `value_history` triaient par date ascendante puis prenaient une `limit()` — récupérait les points les plus vieux au lieu des plus récents dès que la collection dépassait la limite. Expliquait aussi les labels d'axe dupliqués sur les vues 30j/Tout. Tri inversé + `.reverse()` (`modules/dashboard.js`, `modules/stats-render.js`).
+- **Nouvelle fonctionnalité : Favoris** — étoile (vide → dorée) pour marquer une carte en favori depuis le catalogue (fiche de prévisualisation) et depuis la fiche détail collection. Nouvelle table Supabase `favorites` (RLS incluse dès la création) (`modules/favorites.js` nouveau, `modules/cards.js`, `modules/card-detail.js`, `index.html`, `styles.css`).
+- **Hero Dashboard mis en avant les favoris** : la carte affichée passe de "la plus chère" à un favori possédé, avec rotation quotidienne automatique (index basé sur le jour de l'année) et bouton "suivant" pour en voir un autre à la demande ; fallback sur l'ancien comportement si aucun favori. Ajustements visuels associés : heroes agrandis en hauteur sur desktop (toutes les pages), carte flottante agrandie, position du bloc nom/prix décalée (`modules/dashboard.js`, `styles.css`).
+- **Fix flash visuel au chargement** : le hero Dashboard pouvait se re-rendre 2-3 fois pendant l'initialisation (collection/wishlist/séries chargent chacune un morceau et redéclenchent un rendu), affichant brièvement un thème/carte incorrect avant le bon favori. Rendu du hero découplé et déclenché dès que ses seules vraies dépendances (favoris + collection) sont prêtes, sans attendre le reste (`modules/auth.js`, `tracker.js`).
+- **Isolation multi-utilisateur (RLS)** : toutes les tables possédées par utilisateur (`cards`, `wishlist`, `wishlists`, `monthly_summary`, `value_history`, `favorites`) ont désormais une colonne `user_id` (`default auth.uid()`) et des policies RLS scopées `auth.uid() = user_id` — jusqu'ici tous les comptes partageaient la même collection. Migration SQL uniquement, aucun changement JS nécessaire. `card_price_history` (cache prix marché) et le bucket Storage `card-images` restent volontairement partagés entre comptes.
 
-- **Sélection multiple** : case à cocher par ligne + case "tout sélectionner" dans l'en-tête, sur la vue Tableau de l'onglet Ma Collection (`index.html`, `modules/collection.js`).
-- **Barre d'actions groupées** apparaît dès qu'au moins une carte est sélectionnée : compteur, changement d'état groupé (NM/LP/MP/HP), suppression groupée avec confirmation (`modules/collection.js`, `styles.css`).
-- Une seule requête Supabase par action (`update().in('id', [...])` / `delete().in('id', [...])`), pas une par carte.
-- La sélection repart à zéro à chaque changement de recherche/filtre/tri/vue, pour éviter d'agir sur des cartes qu'on ne voit plus.
+Non touché : logique métier CRUD collection/wishlist/progression, import/export CSV-JSON, recherche catalogue, système de motion/animations.
 
-## Amélioration : contraste, focus clavier, responsive et lisibilité
+## Refonte Catalogue (page Ajouter) — fidélité mockup, illustrateur, navigation mobile
 
-Corrections issues d'un audit visuel/UX complet du site.
+Reconstruction de la scène Catalogue (page Ajouter) pour coller au mockup de référence, ajout d'un champ Illustrateur consultable et cherchable, puis refonte de la barre de navigation mobile.
 
-- **Contraste panels/fond** : `--panel` et `--panel-light` éclaircis (`#1B2233`→`#212A44`, `#232B42`→`#293356`) pour que les blocs (stats, filtres, cartes) se détachent du fond au lieu de se fondre dedans (`styles.css`).
-- **Focus clavier visible** : ajout d'une règle globale `:focus-visible` (anneau or, décalé de 2px) sur tous les éléments interactifs — jusqu'ici seuls les champs de formulaire avaient un style de focus (`styles.css`).
-- **Largeur max augmentée** : `.container` passe de `1200px` à `1440px`, la grille de collection exploite mieux les grands écrans (6 colonnes au lieu de 5 sur un 1920px) (`styles.css`).
-- **Header allégé** : `padding` réduit de `4rem` à `2.5rem` (desktop) et `1.75rem` sur mobile — stats et onglets visibles sans scroll à l'ouverture (`styles.css`).
-- **Barre d'outils collection sur écran moyen** : `.view-toggle-row` gardait un `justify-content: space-between` hérité du desktop entre 769px et 1024px, créant un vide énorme entre le tri et le bouton "Données". Ajout d'un breakpoint dédié (`styles.css`).
-- **Police du corps de texte** : ajout d'Inter (Google Fonts) à la place de la police système par défaut, cohérent avec Bebas Neue déjà utilisée sur les titres (`index.html`, `login.html`, `styles.css`).
-- **Placeholder des champs plus lisible** : couleur `--slate` (ratio de contraste 4.6:1 sur le nouveau fond de panel, sous le seuil recommandé) remplacée par `#9CA5B8` (5.7:1) (`styles.css`).
-- **Graphique "Top séries" en échelle logarithmique** : une seule série (Héros Transcendants, 214 cartes) écrasait l'échelle linéaire et rendait les 7 autres illisibles (barres de 2px). Passage en échelle log pour pouvoir comparer les petites séries entre elles (`modules/stats-render.js`).
+- **Section "Ajouter à ma collection"** : repliable (fermée par défaut, ouverte automatiquement dès 1920px), devenue sa propre carte à bords arrondis avec glow doré, formulaire réorganisé (État/Finition/Prix/Date sur une ligne, Quantité/Obtention sur l'autre), stepper quantité en pilule puis rectangle arrondi hauteur alignée sur les autres champs, boutons Collection/Wishlist en bas (`index.html`, `styles.css`, `modules/cards.js`).
+- **Scène Catalogue grand écran** : hero compact (suppression des chips "Recherches récentes"/"Sets populaires", texte+recherche calés en bas), catalogue et fiche en deux panneaux translucides chauds (fond noir/brun + blur, bordure dorée fine) au lieu du bleu opaque d'origine, grille 4 colonnes explicites dès 1920px avec pagination 8 cartes/page ("Charger plus"), sidebar de filtres par catégorie (Tous/Pokémon/Dresseur/Énergie/Récents) supprimée intégralement (HTML/CSS/JS, plus utile) (`index.html`, `styles.css`, `modules/cards.js`).
+- **Fiche carte suit le scroll** : `.catalogue-sheet-sticky` en `position:sticky` reste visible pendant que le catalogue défile après "Charger plus". Cause racine trouvée après plusieurs tentatives infructueuses : `html` et `body` avaient chacun leur propre `overflow-x:hidden`, ce qui force le navigateur à donner `overflow-y:auto` aux deux — deux racines de scroll ambiguës qui cassaient `position:sticky` pour toute la page. Un seul suffit, retiré sur `body` (`styles.css`).
+- **Illustrateur** : nouveau champ affiché dans "Informations officielles" (catalogue) et dans la fiche détail collection, alimenté par `card.illustrator` (TCGdex, déjà présent dans les réponses API). Cliquer sur le nom relance une recherche par cet illustrateur. Nouvelle colonne Supabase `cards.illustrator` (`ALTER TABLE cards ADD COLUMN illustrator text;`), sauvegardée à l'ajout — pas de rétroactivité sur les cartes déjà en collection (donnée jamais stockée avant) (`index.html`, `styles.css`, `modules/cards.js`, `modules/card-detail.js`, `tracker.js`).
+- **Recherche combinée** : un seul champ de recherche interroge désormais TCGdex sur `name`, `illustrator`, `set.name` et `localId` (si le texte contient des chiffres) en parallèle FR/EN, résultats fusionnés/dédupliqués par id — taper un nom, une série, un numéro ou un illustrateur retrouve les cartes correspondantes sans changer d'interface (`modules/cards.js`).
+- **Logo de série** : sorti de la ligne "série - #numéro" (masquée sur grand écran) et repositionné en badge à droite du nom/prix sur chaque carte du catalogue ; agrandi et mis en évidence dans le breadcrumb de la fiche détail (série/numéro empilés à côté d'un logo plus grand, format "006/025" via `card.set.cardCount.official`) (`index.html`, `styles.css`, `modules/cards.js`).
+- **Palette globale** : variables CSS racine (`--ink-navy`, `--panel`, `--panel-light`, `--bg`, `--border`) passées du bleu nuit à un noir/gris neutre chaud, appliqué à tout le site (plus de scope limité à une page) (`styles.css`).
+- **Navigation mobile** : nouvelle barre flottante (marges, coins arrondis modérés, fond noir/brun translucide, bordure dorée) avec bouton `+` central élevé (accès direct à Ajouter) séparant Accueil/Collection à gauche et Progression/Souhaits à droite. Onglet actif : icône et texte dorés + petit point lumineux sous l'item (halo `box-shadow`), plus de pastille pleine ni de capsule de fond (`components/navigation/MobileBottomNavigation.js`, `components/navigation/navigation.css`).
+- **Bug fix en cours de route** : sélecteur mort `.form-section .full-width` (bouton d'ajout ne répondait plus après le redesign de la fiche) corrigé en `.add-panel-submit` (`modules/cards.js`).
 
-## Refonte : onglet Ajouter, header, stats et upload d'image de carte
+Non touché : logique métier de recherche/ajout/sauvegarde (hors ajout du champ illustrateur), export CSV, tableau "Ma Collection", autres pages, navigation desktop. Réhébergement d'image TCGdex → Supabase Storage identifié comme cassé par un blocage CORS côté CDN TCGdex (pré-existant, pas une régression) — nécessiterait une Edge Function côté serveur, non traité dans ce sprint.
 
-- **Header** : logo remplacé par `images/poke-tracker.png` (agrandi, aligné à gauche dans la bannière avec le titre sur 2 lignes).
-- **Stats globales** déplacées au-dessus des onglets (juste sous la bannière), refondues en 3 cartes avec icônes (`images/total-cartes.png`, `total-valeur.png`, `total-achat.png`), glow radial coloré par carte (violet/or/teal) et bordure gauche lumineuse assortie. La carte "Valeur totale" garde son sparkline et sa fluctuation 24h.
-- **Onglet Ajouter fusionné** : la carte "aperçu" et le formulaire "Ajouter à ma collection" ne font plus qu'un (image à gauche, infos + champs à droite). Carte recherche avec décor `images/goldpokeball.png` en fond, résultats limités à 540px avec fond semi-transparent + flou, prix CardMarket affiché sur chaque résultat.
-- **Bloc "Conseil"** ajouté sous les boutons d'ajout, avec icône `images/detective_pikachupng.png`.
-- **Bouton "Rafraîchir les prix"** déplacé dans la barre d'onglets (aligné à droite), réduit à une icône ; le texte "Dernière mise à jour" simplifié pour n'afficher que la date/heure.
-- **Fix** (`tracker.js`) : `refreshAllMarketPrices` restaurait le bouton via `textContent` après le compteur de progression, ce qui faisait disparaître l'icône — remplacé par `innerHTML`.
-
-## Feat : pagination "Charger plus" sur la collection, purge auto de l'historique, alertes de refresh
-
-- **Pagination "Charger plus"** sur l'onglet Ma Collection (grille et tableau) : 60 cartes affichées par page, bouton "Charger plus (N restantes)" pour la suite. Toute recherche/filtre/tri/changement de vue repart de la page 1 (`modules/collection.js`, `index.html`, `styles.css`).
-- **Purge automatique de l'historique des prix** : `card_price_history` et `value_history` ne gardaient jamais rien, croissance illimitée (déjà ~15 000 lignes). Purge des points de plus de 35 jours à chaque rafraîchissement de prix — marge au-delà des 30 jours utilisés par les stats (`tracker.js`, fonction `purgeOldPriceHistory`).
-- **Détail des variations en €** (au lieu du %) dans la modale "Plus grosses variations (24h)", triée par hausse/baisse en euros plutôt que par pourcentage — plus parlant pour repérer les cartes qui bougent vraiment (`modules/stats.js`).
-- **Visibilité sur les échecs de rafraîchissement** : si des cartes échouent à récupérer leur prix TCGdex pendant un refresh, le message de fin l'indique désormais (`X cartes en échec, voir la console`) au lieu d'échouer silencieusement (`tracker.js`).
-
-## Fix : warning Chart.js sur le graphique "Top séries" + nouvelle image de header
-
-- **Fix warning console Chart.js** : le graphique "Top séries (par nombre de cartes)" forçait `ticks.stepSize: 1` sur l'axe X, ce qui demandait à Chart.js de générer une graduation par carte (jusqu'à 1289 sur une grosse collection) — plafonné à 1000 avec un warning en boucle. Remplacé par `ticks.precision: 0` : graduations entières mais espacement choisi automatiquement (`modules/stats-render.js`).
-- **Nouvelle image de header** (`images/background-header.png`) remplace `images/header-banner.webp` dans `styles.css`. L'ancien fichier n'est plus référencé nulle part.
-
-## Feat : détail des variations 24h, rafraîchissement auto des prix, favicon, thème des toasts
-
-- **Fix fluctuation 24h** : le calcul de `+X€ (24h)` de la hero card interrogeait `value_history` triée par ordre chronologique croissant avec `limit(200)` — sur une collection avec plus de 200 snapshots, ça récupérait les 200 plus **vieux** points au lieu des plus récents, faussant complètement le calcul (`modules/stats.js`). Tri inversé + remis en ordre en JS.
-- **Nouvelle modale "Plus grosses variations (24h)"** : clic sur toute la hero card (`.hero-value-card`, pas juste le texte de fluctuation) ouvre le détail des 10 cartes ayant le plus varié en % sur 24h, prix actuel affiché en gris avant le %. Basé sur `card_price_history` (déjà alimentée par `refreshAllMarketPrices`), même logique de recherche de point de référence que la fluctuation globale. Nouvelle modale `#top-movers-overlay` dans `index.html`, logique dans `modules/stats.js`.
-- **Rafraîchissement auto des prix à la connexion** : `init()` (`modules/auth.js`) déclenche `refreshAllMarketPrices()` en tâche de fond (non bloquant) si le dernier rafraîchissement date de plus de 24h ou n'a jamais eu lieu — évite de le refaire à chaque simple reconnexion/rechargement.
-- **Favicon** : ajout de `<link rel="icon">` sur `index.html` et `login.html` (404 navigateur sur `/favicon.ico` corrigée).
-- **Thème des messages toast** (`.message.success` / `.message.error`) : remplacement des couleurs Bootstrap par défaut (vert/rouge pastel) par la palette du site (or/rouge doux sur fond navy), cohérent avec le reste de l'UI.
-
-## Feat : mot de passe oublié, inscription et "se souvenir de moi"
-
-Les 3 éléments de `login.html` qui n'avaient aucun effet (checkbox, lien mot de passe oublié, lien inscription) sont maintenant fonctionnels.
-
-- **Inscription** : nouvelle vue `#signup-view` sur `login.html` (email + mot de passe + confirmation), appelle `supabaseClient.auth.signUp()`. Confirmation par e-mail requise avant connexion (comportement par défaut Supabase) ; si la confirmation email est désactivée côté dashboard, redirection directe vers `index.html`.
-- **Mot de passe oublié** : nouvelle vue `#forgot-view`, appelle `supabaseClient.auth.resetPasswordForEmail()`. Le lien reçu par e-mail ramène sur `login.html`, qui détecte l'event Supabase `PASSWORD_RECOVERY` et bascule automatiquement sur une 4e vue `#reset-view` pour saisir le nouveau mot de passe (`supabaseClient.auth.updateUser()`).
-- **Se souvenir de moi** : nouvel adaptateur de storage personnalisé (`rememberAwareStorage` dans `tracker.js`) qui route la session Supabase vers `localStorage` (coché, persiste après fermeture du navigateur) ou `sessionStorage` (décoché, perdue à la fermeture). Flag `poketracker-remember-me` écrit par `modules/auth-login.js` avant chaque connexion.
-- Pas de nouvelle page HTML : tout se passe dans `login.html` via un système de 4 vues togglées en JS, sur le même principe que `switchTab` dans `tracker.js`.
-
-**A savoir / dépendances externes (dashboard Supabase, pas dans ce repo)** :
-- Le service d'e-mail intégré de Supabase (sans SMTP custom) limite fort l'envoi — environ 2 à 4 e-mails/heure sur la configuration par défaut. Suffisant pour un usage perso, mais un pic de tests ou d'inscriptions fera remonter une erreur `over_email_send_rate_limit`. Pour lever la limite : configurer un SMTP custom (Resend, SendGrid...) dans Authentication → Emails, ou désactiver "Confirm email" dans Authentication → Providers → Email si la confirmation n'est pas nécessaire.
-- `resetPasswordForEmail` nécessite que l'URL de redirection (`login.html`) soit autorisée dans Authentication → URL Configuration → Redirect URLs du dashboard Supabase.
-
-## Fix : bugs post-refactoring modulaire (crash login, XSS, cache PWA, date, tabs)
-
-Corrections trouvées lors d'un audit complet du code suite au découpage de `tracker.js` en modules.
-
-- **Crash sur `login.html`** : `initEventListeners()` (`tracker.js`) ciblait des éléments qui n'existent que sur `index.html`, provoquant une erreur JS à chaque chargement de la page de connexion. Appel désormais conditionné à la présence de ces éléments.
-- **XSS stockée** : plusieurs champs texte utilisateur (note de carte, nom de liste de souhaits, nom de carte importée par CSV) étaient injectés tels quels via `innerHTML`. Ajout d'un helper `escapeHtml` (`modules/utils.js`) appliqué dans `modules/card-detail.js`, `modules/wishlist.js` et `modules/import-export.js`.
-- **Highlight d'onglet cassé** : `switchTab` utilisait `event.target` au lieu de `event.currentTarget` — un clic sur l'icône d'un onglet (au lieu du texte) empêchait le bouton d'apparaître actif.
-- **Cache du service worker obsolète** : la liste `CORE_ASSETS` de `sw.js` datait d'avant le découpage en modules et ne précachait aucun fichier de `modules/`, ni `login.html`/`styles-login.css`. Liste mise à jour, `CACHE_NAME` passé en `v3` pour forcer le renouvellement.
-- **Ré-initialisation intempestive après connexion** : `onAuthStateChange` (`modules/auth.js`) relançait `init()` (rechargement complet de la collection, des souhaits, des stats et du date picker) à chaque rafraîchissement automatique du token Supabase (~toutes les heures), pas seulement à la connexion. Ajout d'un flag `appInitialized` pour ne l'exécuter qu'une fois par session.
-- **Décalage de date dans la fiche d'édition** : la date d'acquisition était ré-affichée via `.toISOString()` (UTC) alors qu'elle est enregistrée en heure locale, pouvant afficher le mauvais jour selon le fuseau horaire. Nouveau helper `toLocalDateInputValue` (`modules/utils.js`) utilisé dans `modules/card-detail.js`.
-
-## Fix : upload d'image sans photo ouvre maintenant la fiche détail
-
-Cliquer sur une carte sans photo (grille ou tableau) ouvrait directement l'explorateur de fichiers, en court-circuitant la fiche détail. Ça ouvre maintenant la fiche détail comme n'importe quelle autre carte ; l'upload se fait depuis une zone dédiée ("Cliquer pour ajouter") à l'intérieur de la modale.
-
-- `getCollectionUploadPlaceholder` (grille/tableau) : clic → `showCardDetail`, ne déclenche plus l'upload direct
-- Nouvelle fonction `getModalUploadPlaceholder` (modale uniquement) : conserve l'ancien comportement clic → upload direct, avec un id d'input distinct (`modal-upload-{id}`) pour éviter toute collision avec le placeholder de la grille resté dans le DOM derrière la modale
-
-## Refactoring modulaire de tracker.js
-
-`tracker.js` (4474 lignes) découpé en 11 modules + un core réduit à 724 lignes, regroupés par couplage réel (état partagé et dépendances), pas par simple emplacement dans le fichier d'origine.
-
-- `modules/utils.js` — helpers purs (formatage, redimensionnement d'image, raretés, finitions)
-- `modules/storage.js` — upload et vérification d'existence Supabase Storage
-- `modules/cards.js` — recherche de carte, aperçu, ajout depuis l'onglet "Ajouter"
-- `modules/stats.js` — widget valeur totale (hero card)
-- `modules/collection.js` — tri, filtres et rendu de la collection (grille/tableau)
-- `modules/import-export.js` — export CSV, sauvegarde/restauration JSON, import CSV en masse
-- `modules/card-detail.js` — modale détail/édition d'une carte, graphique de prix
-- `modules/ui.js` — modales génériques (remplacent prompt()/confirm() natifs)
-- `modules/wishlist.js` — listes de souhaits
-- `modules/stats-render.js` — graphiques et KPIs de l'onglet Statistiques
-- `modules/progression.js` — navigation par série et ajout rapide
-- `modules/auth.js` — authentification, chargé en dernier
-- `tracker.js` — état central de la collection, CRUD, rafraîchissement des prix, navigation des onglets, câblage centralisé des écouteurs d'événements
-
-Aucun changement de comportement pour l'utilisateur : refactoring technique uniquement.
+## Sprint 3.2 : Motion System — fondations, feedback utilisateur, affinage

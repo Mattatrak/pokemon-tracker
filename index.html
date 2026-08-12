@@ -22,235 +22,444 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=29">
+    <link rel="stylesheet" href="styles.css?v=20260812-5">
+    <link rel="stylesheet" href="css/layout-tokens.css?v=20260811-4">
+    <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
+    <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
+    <link rel="stylesheet" href="components/navigation/navigation.css?v=20260805-1">
 </head>
 <body>
-    <div class="container" id="main-app-container">
-        <header>
-            <div class="header-title-row">
-                <img src="images/poke-tracker.png" alt="" class="header-logo">
-                <h1><span class="header-title-main">Pokémon</span><span class="header-title-sub">Collection Tracker</span></h1>
-                <button class="logout-btn" onclick="handleLogout()" title="Se déconnecter"><i class="ti ti-logout" aria-hidden="true"></i></button>
-            </div>
-        </header>
-
-        <div class="stats-bottom">
-            <div class="stat-card-icon stat-card-cartes">
-                <img src="images/total-cartes.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="total-cards">0</div>
-                    <div class="stat-label">Total de cartes</div>
+    <div class="container">
+        <div class="progression-atlas-hero">
+            <div id="progression-hero-nav-container"></div>
+            <div class="progression-atlas-hero-content">
+                <div class="progression-atlas-hero-text">
+                    <div class="progression-atlas-hero-eyebrow">Atlas des séries</div>
+                    <h1 class="progression-atlas-hero-title">Explorez l'histoire de votre collection</h1>
+                    <p class="progression-atlas-hero-subtitle">Parcourez toutes les extensions Pokémon, suivez votre progression et complétez chaque chapitre de votre aventure.</p>
                 </div>
-            </div>
-            <div class="stat-card-icon stat-card-value" onclick="showTopMoversModal()">
-                <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
-                <img src="images/total-valeur.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number-row">
-                        <div class="stat-number" id="hero-total-value">0€</div>
-                        <span class="hero-fluctuation" id="hero-fluctuation"></span>
+                <div id="progression-stats-bottom" class="stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-clock" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Sets en cours</div>
+                            <div class="kpi-plaque-value" id="progression-kpi-inprogress">0</div>
+                        </div>
                     </div>
-                    <div class="stat-label">Valeur totale (marché)</div>
-                </div>
-            </div>
-            <div class="stat-card-icon stat-card-achat">
-                <img src="images/total-achat.png" alt="" class="stat-icon-img">
-                <div class="stat-icon-text">
-                    <div class="stat-number" id="total-spent">0€</div>
-                    <div class="stat-label">Total dépensé</div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Sets complétés</div>
+                            <div class="kpi-plaque-value" id="progression-kpi-completed">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-trending-up" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Set le plus avancé</div>
+                            <div class="kpi-plaque-value" id="progression-kpi-advanced-pct">—</div>
+                            <div class="kpi-plaque-sub" id="progression-kpi-advanced-name">Aucun set commencé</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="tabs">
-            <button class="tab-btn" onclick="switchTab(event, 'tab-add')"><i class="ti ti-search" aria-hidden="true"></i> Ajouter</button>
-            <button class="tab-btn active" onclick="switchTab(event, 'tab-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Ma Collection</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-progression')"><i class="ti ti-trophy" aria-hidden="true"></i> Progression</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Statistiques</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-wishlist')"><i class="ti ti-star" aria-hidden="true"></i> Souhaits</button>
-            <div class="refresh-prices-row">
-                <button id="refresh-prices-btn" class="btn-refresh btn-refresh-icon-only" onclick="refreshAllMarketPrices()"><i class="ti ti-refresh" aria-hidden="true"></i></button>
-                <span id="refresh-prices-status" class="refresh-prices-status"></span>
+        <div class="collection-atlas-hero">
+            <div id="collection-hero-nav-container"></div>
+            <div class="collection-atlas-hero-content">
+                <div class="collection-atlas-hero-text">
+                    <div class="collection-atlas-hero-eyebrow">Ma collection</div>
+                    <h1 class="collection-atlas-hero-title">Votre Collection</h1>
+                    <p class="collection-atlas-hero-subtitle">Explorez, recherchez et gérez chacune de vos cartes Pokémon.</p>
+                    <div class="collection-atlas-hero-search input-with-icon">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="search-collection" placeholder="Chercher dans ma collection...">
+                    </div>
+                </div>
+                <div id="collection-stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total de cartes</div>
+                            <div class="kpi-plaque-value" id="collection-kpi-total">0</div>
+                            <div class="kpi-plaque-sub" id="collection-kpi-total-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque kpi-plaque--value" onclick="showTopMoversModal()">
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur totale (marché)</div>
+                            <div class="kpi-plaque-value" id="collection-kpi-value">0€</div>
+                            <div class="kpi-plaque-sub" id="collection-kpi-value-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-report-money" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total dépensé</div>
+                            <div class="kpi-plaque-value" id="collection-kpi-spent">0€</div>
+                            <div class="kpi-plaque-sub" id="collection-kpi-spent-sub"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <div class="stats-hero">
+            <div id="stats-hero-nav-container"></div>
+            <div class="stats-hero-content">
+                <div class="stats-hero-text">
+                    <div class="stats-hero-eyebrow">Vos statistiques</div>
+                    <h1 class="stats-hero-title">Analysez votre collection</h1>
+                    <p class="stats-hero-subtitle">Suivez la valeur, les tendances et les temps forts de votre collection.</p>
+                </div>
+                <div class="stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total de cartes</div>
+                            <div class="kpi-plaque-value" id="total-cards">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque kpi-plaque--value" onclick="showTopMoversModal()">
+                        <canvas id="hero-sparkline" class="hero-sparkline-canvas"></canvas>
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur totale (marché)</div>
+                            <div class="kpi-plaque-value" id="hero-total-value">0€</div>
+                            <span class="hero-fluctuation kpi-plaque-sub" id="hero-fluctuation"></span>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-report-money" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Total dépensé</div>
+                            <div class="kpi-plaque-value" id="total-spent">0€</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="wishlist-hero">
+            <div id="wishlist-hero-nav-container"></div>
+            <div class="wishlist-hero-content">
+                <div class="wishlist-hero-text">
+                    <div class="wishlist-hero-eyebrow">Souhaits</div>
+                    <h1 class="wishlist-hero-title">Vos listes de souhaits</h1>
+                    <p class="wishlist-hero-subtitle">Gardez un œil sur les cartes que vous rêvez d'ajouter à votre collection.</p>
+                    <div class="wishlist-hero-search input-with-icon">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="wishlist-search-input" placeholder="Chercher une carte dans mes listes..." oninput="filterWishlist(this.value)">
+                    </div>
+                </div>
+                <div id="wishlist-stats-bottom">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-file-text" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Cartes dans les wishlists</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-count">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur estimée</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-value">0€</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-list" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Listes</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-lists">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <img id="wishlist-kpi-top-img" class="stat-card-top-img" alt="" style="display:none;">
+                        <span class="kpi-plaque-icon" id="wishlist-kpi-top-emoji" aria-hidden="true"><i class="ti ti-star"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label" id="wishlist-kpi-top-name">Carte la plus chère</div>
+                            <div class="kpi-plaque-value" id="wishlist-kpi-top-price">0€</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="progression-followed-sets" class="progression-followed-sets"></div>
 
         <div id="message-container" class="global-message-container"></div>
 
+        <!-- ONGLET DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="dashboard-header" id="dashboard-header"></div>
+            <div class="dashboard-hero" id="dashboard-hero"></div>
+            <div class="dashboard-main-grid" id="dashboard-main-grid"></div>
+        </div>
+
         <!-- ONGLET AJOUTER -->
         <div id="tab-add" class="tab-content">
-            <div class="form-section search-card-section">
-                <h2><i class="ti ti-search" aria-hidden="true"></i> Rechercher une carte</h2>
-                <img src="images/goldpokeball.png" alt="" class="search-pokeball-decor" aria-hidden="true">
-                <div class="search-form">
-                    <div class="input-with-icon">
-                        <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="card-search" placeholder="Recherchez une carte en français...">
+            <div class="catalogue-hero">
+                <div id="catalogue-hero-nav-container"></div>
+                <div class="catalogue-hero-stage">
+                    <div class="catalogue-hero-decor" aria-hidden="true"></div>
+
+                    <div class="catalogue-hero-main">
+                        <div class="catalogue-hero-eyebrow">Explorez le catalogue Pokémon</div>
+                        <h1 class="catalogue-hero-title">Trouvez <span class="catalogue-hero-title-accent">la carte que vous cherchez</span></h1>
+                        <div class="catalogue-hero-search-form">
+                            <div class="input-with-icon catalogue-hero-input">
+                                <i class="ti ti-search" aria-hidden="true"></i>
+                                <input type="text" id="card-search" placeholder="Nom, série, numéro ou illustrateur...">
+                            </div>
+                            <button onclick="searchCards()" id="search-btn"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
+                        </div>
                     </div>
-                    <button onclick="searchCards()" id="search-btn"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
                 </div>
-                <div class="filters">
-                    <select id="filter-rarity">
-                        <option value="">Toutes les raretés</option>
-                    </select>
-                    <select id="filter-series">
-                        <option value="">Toutes les séries</option>
-                    </select>
-                </div>
-                <div class="search-results" id="search-results"></div>
             </div>
 
-            <div class="form-section add-collection-section">
-                <h2><i class="ti ti-circle-plus" aria-hidden="true"></i> Ajouter à ma collection</h2>
-                <div class="add-card-layout">
-                    <div class="card-preview" id="card-preview">
-                        <div class="preview-image">
-                            <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
-                                <i class="ti ti-photo-off" aria-hidden="true"></i>
-                                <span class="upload-btn-pill"><i class="ti ti-upload" aria-hidden="true"></i> Choisir une image</span>
-                                <span class="upload-hint">PNG, JPG ou WEBP (max 5MB)</span>
+            <div class="catalogue-panel">
+                <div class="catalogue-scene">
+                    <div class="catalogue-grid-col">
+                        <div class="catalogue-toolbar">
+                            <div class="catalogue-toolbar-info">
+                                <span class="catalogue-toolbar-query" id="catalogue-results-label"></span>
+                                <span class="catalogue-toolbar-count" id="catalogue-results-count"></span>
                             </div>
-                            <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
-                        </div>
-                    </div>
 
-                    <div class="add-card-form-col">
-                        <div id="preview-duplicate-alert" style="display: none;"></div>
-                        <div class="preview-info">
-                            <div>
-                                <div class="preview-info-label">Nom</div>
-                                <div class="preview-info-value" id="preview-name">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Série</div>
-                                <div class="preview-info-value" id="preview-set">
-                                    <img id="preview-series-logo" src="" alt="" class="series-logo-table" style="display:none;">
-                                    <span id="preview-set-text">-</span>
+                            <div class="catalogue-toolbar-actions">
+                                <div class="catalogue-view-toggle">
+                                    <button type="button" class="catalogue-view-btn active" data-view="grid" onclick="setCatalogueView('grid')" title="Vue grille"><i class="ti ti-layout-grid" aria-hidden="true"></i></button>
+                                    <button type="button" class="catalogue-view-btn" data-view="list" onclick="setCatalogueView('list')" title="Vue liste"><i class="ti ti-list" aria-hidden="true"></i></button>
+                                </div>
+
+                                <select class="catalogue-sort-select" onchange="setSearchSort(this.value)">
+                                    <option value="set-asc">Trier : Set (A → Z)</option>
+                                    <option value="name-asc">Trier : Nom (A → Z)</option>
+                                    <option value="price-desc">Trier : Prix (haut → bas)</option>
+                                </select>
+
+                                <div class="catalogue-filter-popover-wrap">
+                                    <button type="button" class="catalogue-filter-btn" onclick="toggleCatalogueFilterPopover(event)" title="Filtres avancés"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i></button>
+                                    <div class="catalogue-filter-popover" id="catalogue-filter-popover">
+                                        <div class="filters">
+                                            <select id="filter-rarity">
+                                                <option value="">Toutes les raretés</option>
+                                            </select>
+                                            <select id="filter-series">
+                                                <option value="">Toutes les séries</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <div class="preview-info-label">Numéro</div>
-                                <div class="preview-info-value" id="preview-number">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Type</div>
-                                <div class="preview-info-value" id="preview-type">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Rareté</div>
-                                <div class="preview-info-value" id="preview-rarity">-</div>
-                            </div>
-                            <div>
-                                <div class="preview-info-label">Prix (CardMarket)</div>
-                                <div class="preview-info-value" id="preview-price">-</div>
-                            </div>
                         </div>
 
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="card-condition">État</label>
-                                <select id="card-condition">
-                                    <option value="NM">Neuf (NM)</option>
-                                    <option value="LP">Très bon (LP)</option>
-                                    <option value="MP">Bon (MP)</option>
-                                    <option value="HP">Mauvais état (HP)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="card-finish">Finition</label>
-                                <select id="card-finish">
-                                    <option value="normal">Normale</option>
-                                    <option value="reverse">Reverse</option>
-                                    <option value="first_edition">1ère édition</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="card-quantity">Quantité</label>
-                                <input type="number" id="card-quantity" value="1" min="1" max="100">
-                            </div>
-                            <div class="form-group">
-                                <label for="card-acquisition">Obtention</label>
-                                <select id="card-acquisition">
-                                    <option value="achat">Achetée</option>
-                                    <option value="pack">Sortie d'un booster</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="purchase-price-group">
-                                <label for="card-value">Prix payé (€)</label>
-                                <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="card-date-added">Date d'acquisition</label>
-                                <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
-                            </div>
+                        <div class="search-results" id="search-results"></div>
+                        <div class="catalogue-load-more-row" id="catalogue-load-more-row" style="display:none;">
+                            <button type="button" class="catalogue-load-more-btn" id="catalogue-load-more-btn" onclick="loadMoreCatalogueResults()">Charger plus de résultats</button>
                         </div>
                     </div>
-                </div>
 
-                <button class="full-width" onclick="addCard()"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
-                <button class="full-width wishlist-btn" onclick="openWishlistPicker()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma liste de souhaits</button>
+                    <aside class="catalogue-sheet-col">
+                      <div class="catalogue-sheet-sticky">
+                        <div class="card-preview" id="card-preview">
+                            <div class="preview-main">
+                                <div class="preview-image">
+                                    <div class="no-image-placeholder large upload-placeholder" onclick="document.getElementById('preview-upload-input').click()">
+                                        <i class="ti ti-photo-off" aria-hidden="true"></i>
+                                        <span class="upload-btn-pill"><i class="ti ti-upload" aria-hidden="true"></i> Choisir une image</span>
+                                        <span class="upload-hint">PNG, JPG ou WEBP (max 5MB)</span>
+                                    </div>
+                                    <input type="file" id="preview-upload-input" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
+                                </div>
 
-                <div class="add-tip-box">
-                    <span class="add-tip-icon"><img src="images/detective_pikachupng.png" alt="" class="add-tip-icon-img"></span>
-                    <div>
-                        <div class="add-tip-title">Conseil</div>
-                        <div class="add-tip-text">Renseignez l'état et la finition avec attention pour suivre au mieux la valeur de votre collection.</div>
-                    </div>
+                                <div class="preview-details">
+                                    <div class="preview-breadcrumb" id="preview-set">
+                                        <img id="preview-series-logo" src="" alt="" class="preview-breadcrumb-logo" style="display:none;">
+                                        <div class="preview-breadcrumb-text">
+                                            <span id="preview-set-text">-</span>
+                                            <span class="preview-breadcrumb-number" id="preview-number">-</span>
+                                        </div>
+                                        <button type="button" id="preview-favorite-star" class="favorite-star" style="display:none;" title="Ajouter aux favoris" aria-label="Ajouter aux favoris">
+                                            <i class="ti ti-star" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="preview-heading" id="preview-name">-</div>
+                                    <div class="preview-rarity-badge" id="preview-rarity-badge"></div>
+
+                                    <div class="preview-details-card">
+                                        <div class="preview-price-box" id="preview-price-box" style="display:none;">
+                                            <div class="preview-price-box-left">
+                                                <div class="preview-price-box-label">Estimation du prix</div>
+                                                <div class="preview-price-box-value" id="preview-price-big">-</div>
+                                            </div>
+                                            <div class="preview-price-box-right">
+                                                <span class="hero-fluctuation" id="preview-price-trend"></span>
+                                                <div class="preview-price-box-caption">sur 30 jours</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="preview-meta-label">Détails de la carte</div>
+                                        <div class="preview-meta-box">
+                                            <div class="preview-meta-item">
+                                                <div class="preview-info-label">Rareté</div>
+                                                <div class="preview-info-value" id="preview-rarity">-</div>
+                                            </div>
+                                            <div class="preview-meta-item">
+                                                <div class="preview-info-label">Type</div>
+                                                <div class="preview-info-value" id="preview-type">-</div>
+                                            </div>
+                                            <div class="preview-meta-item">
+                                                <div class="preview-info-label">Illustrateur</div>
+                                                <div class="preview-info-value" id="preview-illustrator" onclick="searchByIllustrator()">-</div>
+                                            </div>
+                                            <div class="preview-meta-item preview-meta-item-align-end">
+                                                <a class="preview-cardmarket-btn" id="preview-cardmarket-link" href="#" target="_blank" rel="noopener" style="display:none;">
+                                                    <i class="ti ti-external-link" aria-hidden="true"></i> Cardmarket
+                                                </a>
+                                            </div>
+                                            <div class="preview-meta-item preview-meta-item-full">
+                                                <div class="preview-info-label">Prix (CardMarket)</div>
+                                                <div class="preview-info-value" id="preview-price">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="add-panel">
+                                <button type="button" class="add-panel-header" id="add-panel-toggle" onclick="toggleAddPanel()" aria-expanded="false" aria-controls="catalogue-add-expand">
+                                    <span class="add-panel-header-icon"><i class="ti ti-shopping-bag-plus" aria-hidden="true"></i></span>
+                                    <span class="add-panel-header-text">
+                                        <span class="add-panel-title">Ajouter à ma collection</span>
+                                        <span class="add-panel-subtitle">Décrivez votre exemplaire</span>
+                                    </span>
+                                    <i class="ti ti-chevron-up add-panel-chevron" aria-hidden="true"></i>
+                                </button>
+
+                                <div class="catalogue-add-expand" id="catalogue-add-expand">
+                                  <div class="catalogue-add-expand-inner">
+                                    <div id="preview-duplicate-alert" style="display: none;"></div>
+
+                                    <div class="add-panel-row add-panel-row-4">
+                                        <div class="form-group">
+                                            <label for="card-condition">État</label>
+                                            <select id="card-condition">
+                                                <option value="NM">Neuf (NM)</option>
+                                                <option value="LP">Très bon (LP)</option>
+                                                <option value="MP">Bon (MP)</option>
+                                                <option value="HP">Mauvais état (HP)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="card-finish">Finition</label>
+                                            <select id="card-finish">
+                                                <option value="normal">Normale</option>
+                                                <option value="reverse">Reverse</option>
+                                                <option value="first_edition">1ère édition</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="purchase-price-group">
+                                            <label for="card-value">Prix d'achat (€)</label>
+                                            <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="card-date-added">Date d'acquisition</label>
+                                            <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
+                                        </div>
+                                    </div>
+
+                                    <div class="add-panel-row add-panel-row-2">
+                                        <div class="form-group add-panel-qty-group">
+                                            <label for="card-quantity">Quantité</label>
+                                            <div class="qty-stepper add-panel-qty-stepper">
+                                                <button type="button" onclick="stepAddQuantity(-1)" aria-label="Diminuer la quantité"><i class="ti ti-minus" aria-hidden="true"></i></button>
+                                                <input type="number" id="card-quantity" value="1" min="1" max="100">
+                                                <button type="button" onclick="stepAddQuantity(1)" aria-label="Augmenter la quantité"><i class="ti ti-plus" aria-hidden="true"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="card-acquisition">Obtention</label>
+                                            <select id="card-acquisition">
+                                                <option value="achat">Achetée</option>
+                                                <option value="pack">Sortie d'un booster</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="add-panel-hint">
+                                        <i class="ti ti-info-circle" aria-hidden="true"></i>
+                                        <span>Vous pourrez retrouver cette carte dans votre collection ou votre wishlist.</span>
+                                    </div>
+
+                                    <div class="add-panel-actions">
+                                        <button type="button" class="add-panel-submit" onclick="addCard()"><i class="ti ti-circle-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
+                                        <button type="button" class="add-panel-wishlist" onclick="openWishlistPicker()"><i class="ti ti-star" aria-hidden="true"></i> Ajouter à ma wishlist</button>
+                                    </div>
+                                  </div>
+                                </div>
+                            </div>
+                        </div>
+                      </div>
+                    </aside>
                 </div>
             </div>
         </div>
 
         <!-- ONGLET MA COLLECTION -->
-        <div id="tab-collection" class="tab-content active">
-            <div class="search-form-single">
-                <div class="input-with-icon">
-                    <i class="ti ti-search" aria-hidden="true"></i>
-                    <input type="text" id="search-collection" placeholder="Chercher dans ma collection...">
+        <div id="tab-collection" class="tab-content">
+            <!-- Refonte filtres (Ticket 4) : l'ancien panneau permanent (.collection-filters-panel,
+                 selects Condition/Série/Type + rangée Rareté + bouton Doublons) a été retiré. Ces filtres
+                 restent disponibles uniquement via "+ Ajouter un filtre" (modules/collection.js, Ticket 3),
+                 seule source d'écriture manuelle de collectionFilters désormais. Le bloc Affichage/Tri/
+                 Données n'a jamais été un filtre : il est conservé tel quel, juste extrait de l'ancien
+                 panneau dans son propre conteneur compact. -->
+            <div class="collection-toolbar-row">
+                <div class="collection-add-filter-wrap" id="collection-add-filter-wrap">
+                    <button type="button" class="collection-add-filter-btn" id="collection-add-filter-btn" onclick="openCollectionFilterPicker()" aria-haspopup="true" aria-expanded="false">
+                        <i class="ti ti-plus" aria-hidden="true"></i> Ajouter un filtre
+                    </button>
+                    <div class="collection-filter-picker" id="collection-filter-picker" role="dialog" aria-label="Ajouter un filtre"></div>
                 </div>
-            </div>
-            <div class="filters">
-                <select id="filter-condition">
-                    <option value="">Tous les états</option>
-                    <option value="NM">Neuf (NM)</option>
-                    <option value="LP">Très bon (LP)</option>
-                    <option value="MP">Bon (MP)</option>
-                    <option value="HP">Mauvais état (HP)</option>
-                </select>
-                <select id="filter-collection-series">
-                    <option value="">Toutes les séries</option>
-                </select>
-                <select id="filter-collection-type">
-                    <option value="">Tous les types</option>
-                </select>
-                <button id="filter-duplicates-btn" class="filter-toggle-btn" onclick="toggleDuplicatesFilter()"><i class="ti ti-copy" aria-hidden="true"></i> Doublons uniquement</button>
+
+                <div class="collection-display-controls">
+                    <div class="view-toggle">
+                        <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
+                        <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
+                    </div>
+                    <select id="grid-sort" class="grid-sort-select" aria-label="Trier la collection">
+                        <option value="">Trier par...</option>
+                        <option value="name-asc">Nom (A→Z)</option>
+                        <option value="rarity-asc">Rareté (A→Z)</option>
+                        <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
+                        <option value="value-asc">Valeur (moins cher d'abord)</option>
+                        <option value="quantity-desc">Quantité (plus d'abord)</option>
+                    </select>
+                    <div class="csv-dropdown-wrap">
+                        <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                        <div class="csv-dropdown-menu" id="csv-dropdown-menu">
+                            <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
+                            <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
+                            <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
+                            <div class="csv-dropdown-divider"></div>
+                            <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
+                            <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
+                            <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
+                        </div>
+                        <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
+                    </div>
+                </div>
             </div>
 
-            <div class="view-toggle-row">
-                <div class="view-toggle">
-                    <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
-                    <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
-                </div>
-                <div class="rarity-filter-row" id="filter-collection-rarity-row"></div>
-                <select id="grid-sort" class="grid-sort-select">
-                    <option value="">Trier par...</option>
-                    <option value="name-asc">Nom (A→Z)</option>
-                    <option value="rarity-asc">Rareté (A→Z)</option>
-                    <option value="value-desc" selected>Valeur (plus cher d'abord)</option>
-                    <option value="value-asc">Valeur (moins cher d'abord)</option>
-                    <option value="quantity-desc">Quantité (plus d'abord)</option>
-                </select>
-                <div class="csv-dropdown-wrap">
-                    <button class="filter-toggle-btn" onclick="toggleCsvDropdown(event)"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Données <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
-                    <div class="csv-dropdown-menu" id="csv-dropdown-menu">
-                        <div class="csv-dropdown-item" onclick="exportCollectionToCSV(); closeCsvDropdown();"><i class="ti ti-file-download" style="color: var(--gold);" aria-hidden="true"></i> Exporter en CSV</div>
-                        <div class="csv-dropdown-item" onclick="document.getElementById('csv-import-input').click(); closeCsvDropdown();"><i class="ti ti-file-upload" style="color: var(--gold);" aria-hidden="true"></i> Importer un CSV</div>
-                        <div class="csv-dropdown-item" onclick="downloadCsvTemplate(); closeCsvDropdown();"><i class="ti ti-download" style="color: var(--slate);" aria-hidden="true"></i> Télécharger le modèle</div>
-                        <div class="csv-dropdown-divider"></div>
-                        <div class="csv-dropdown-item" onclick="exportFullBackupJson(); closeCsvDropdown();"><i class="ti ti-database-export" style="color: var(--teal);" aria-hidden="true"></i> Sauvegarde complète (JSON)</div>
-                        <div class="csv-dropdown-item" onclick="document.getElementById('json-restore-input').click(); closeCsvDropdown();"><i class="ti ti-database-import" style="color: var(--teal);" aria-hidden="true"></i> Restaurer une sauvegarde</div>
-                        <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="handleJsonRestore(event)">
-                    </div>
-                    <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCsvImport(event)">
-                </div>
+            <div class="collection-summary-row">
+                <div class="collection-summary" id="collection-summary"></div>
+                <button class="collection-reset-filters-btn" id="collection-reset-filters-btn" onclick="resetCollectionFilters()" style="display:none;">
+                    <i class="ti ti-refresh" aria-hidden="true"></i> Réinitialiser les filtres
+                </button>
             </div>
 
             <div class="collection-display-case" id="collection-grid-wrapper">
@@ -259,7 +468,7 @@
 
             <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
                 <span id="bulk-selection-count">0 carte sélectionnée</span>
-                <select id="bulk-condition-select" onchange="bulkUpdateCondition(this.value); this.value='';">
+                <select onchange="bulkUpdateCondition(this.value); this.value='';">
                     <option value="">Changer l'état...</option>
                     <option value="NM">Neuf (NM)</option>
                     <option value="LP">Très bon (LP)</option>
@@ -357,126 +566,438 @@
         </div>
 
         <div id="tab-stats" class="tab-content">
-            <div class="stats-kpi-grid">
-                <div class="stats-kpi-card kpi-card-gold">
-                    <span class="stats-kpi-badge" style="background: rgba(232,169,59,0.15);"><i class="ti ti-diamond" style="color: var(--gold);" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Carte la plus chère</div>
-                        <div class="stats-kpi-value" id="kpi-top-card" style="color: var(--gold);">-</div>
-                        <div class="stats-kpi-sub" id="kpi-top-card-price"></div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-teal">
-                    <span class="stats-kpi-badge" style="background: rgba(63,167,161,0.15);"><i class="ti ti-report-money" style="color: var(--teal);" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Prix moyen / carte</div>
-                        <div class="stats-kpi-value" id="kpi-avg-price">-</div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-blue">
-                    <span class="stats-kpi-badge" style="background: rgba(107,203,255,0.15);"><i class="ti ti-stack-2" style="color: #6bcbff;" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Séries différentes</div>
-                        <div class="stats-kpi-value" id="kpi-series-count">-</div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-purple">
-                    <span class="stats-kpi-badge" style="background: rgba(199,125,255,0.15);"><i class="ti ti-star" style="color: #c77dff;" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Rareté la + fréquente</div>
-                        <div class="stats-kpi-value" id="kpi-top-rarity">-</div>
-                    </div>
-                </div>
-                <div class="stats-kpi-card kpi-card-orange">
-                    <span class="stats-kpi-badge" style="background: rgba(255,159,107,0.15);"><i class="ti ti-copy" style="color: #ff9f6b;" aria-hidden="true"></i></span>
-                    <div class="stats-kpi-text">
-                        <div class="stats-kpi-label">Valeur des doublons</div>
-                        <div class="stats-kpi-value" id="kpi-duplicates-value">-</div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="stats-chart-box" style="margin-bottom: 1.5rem;">
-                <div class="stats-chart-header">
-                    <h3><i class="ti ti-calendar" aria-hidden="true"></i> Résumé du mois</h3>
-                    <select id="month-summary-select" class="grid-sort-select"></select>
+            <!-- 1. VUE D'ENSEMBLE -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">1</span>
+                    <span class="stx-section-title">Vue d'ensemble</span>
                 </div>
-                <div class="stats-kpi-grid" style="margin-bottom: 0;">
-                    <div class="stats-kpi-card">
-                        <span class="stats-kpi-badge" style="background: rgba(232,169,59,0.15);"><i class="ti ti-cards" style="color: var(--gold);" aria-hidden="true"></i></span>
-                        <div class="stats-kpi-text">
-                            <div class="stats-kpi-label">Cartes ajoutées</div>
-                            <div class="stats-kpi-value" id="month-cards-added">-</div>
+                <div class="stx-kpi-row">
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Cartes en collection</div>
+                            <div class="kpi-plaque-value" id="stx-ov-cards">-</div>
+                            <div class="kpi-plaque-sub positive" id="stx-ov-cards-sub"></div>
                         </div>
                     </div>
-                    <div class="stats-kpi-card">
-                        <span class="stats-kpi-badge" style="background: rgba(63,167,161,0.15);"><i class="ti ti-currency-euro" style="color: var(--teal);" aria-hidden="true"></i></span>
-                        <div class="stats-kpi-text">
-                            <div class="stats-kpi-label">Dépensé ce mois-ci</div>
-                            <div class="stats-kpi-value" id="month-spent">-</div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-stack-2" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Séries complétées</div>
+                            <div class="kpi-plaque-value" id="stx-ov-series">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-series-sub"></div>
                         </div>
                     </div>
-                    <div class="stats-kpi-card">
-                        <span class="stats-kpi-badge" style="background: rgba(107,203,255,0.15);"><i class="ti ti-trending-up" style="color: #6bcbff;" aria-hidden="true"></i></span>
-                        <div class="stats-kpi-text">
-                            <div class="stats-kpi-label">Valeur ajoutée (marché)</div>
-                            <div class="stats-kpi-value" id="month-value-added">-</div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Valeur totale</div>
+                            <div class="kpi-plaque-value" id="stx-ov-value">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-value-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-report-money" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Investi au total</div>
+                            <div class="kpi-plaque-value" id="stx-ov-invested">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-invested-sub"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-plaque">
+                        <span class="kpi-plaque-icon"><i class="ti ti-star" aria-hidden="true"></i></span>
+                        <div class="kpi-plaque-text">
+                            <div class="kpi-plaque-label">Cartes en wishlist</div>
+                            <div class="kpi-plaque-value" id="stx-ov-wishlist">-</div>
+                            <div class="kpi-plaque-sub" id="stx-ov-wishlist-sub"></div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="stats-grid">
-                <div class="stats-chart-box">
-                    <h3>Répartition par rareté</h3>
-                    <canvas id="rarity-chart"></canvas>
+            <!-- 2. COMPOSITION DE LA COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">2</span>
+                    <span class="stx-section-title">Composition de la collection</span>
                 </div>
-                <div class="stats-chart-box">
-                    <h3>Top séries (par nombre de cartes)</h3>
-                    <canvas id="series-chart"></canvas>
+                <div class="stx-composition-grid">
+                    <div class="stx-panel">
+                        <h3>Par rareté</h3>
+                        <div class="stx-donut-wrap">
+                            <div class="stx-donut-canvas-wrap"><canvas id="rarity-chart"></canvas></div>
+                            <ul class="stx-legend" id="rarity-legend"></ul>
+                        </div>
+                        <div class="stx-legend-total">Total <span id="rarity-legend-total">-</span> cartes</div>
+                    </div>
+                    <div class="stx-panel">
+                        <h3>Par type</h3>
+                        <div class="stx-barlist" id="type-barlist"></div>
+                        <div class="stx-legend-total">Total <span id="type-legend-total">-</span> cartes</div>
+                    </div>
+                    <div class="stx-panel">
+                        <h3>Par extension (Top 8)</h3>
+                        <div class="stx-barlist" id="ext-barlist"></div>
+                        <div class="stx-legend-total">Total <span id="ext-legend-total">-</span> cartes</div>
+                    </div>
                 </div>
-                <div class="stats-chart-box stats-chart-wide">
+            </section>
+
+            <!-- 3. VALEUR & INVESTISSEMENT -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">3</span>
+                    <span class="stx-section-title">Valeur &amp; investissement</span>
+                </div>
+                <div class="stx-value-grid">
+                    <div class="stx-panel stx-panel-value-history">
+                        <div class="stats-chart-header">
+                            <h3>Évolution de la valeur</h3>
+                            <div class="stats-range-toggle">
+                                <button class="range-btn" onclick="setValueHistoryRange(event, 7)">7j</button>
+                                <button class="range-btn active" onclick="setValueHistoryRange(event, 30)">30j</button>
+                                <button class="range-btn" onclick="setValueHistoryRange(event, 0)">Tout</button>
+                            </div>
+                        </div>
+                        <div class="stx-evo-readout">
+                            <span class="stx-evo-value" id="stx-evo-value">-</span>
+                            <span class="stx-evo-delta" id="stx-evo-delta"></span>
+                        </div>
+                        <canvas id="value-history-chart"></canvas>
+                    </div>
+                    <div class="stx-panel stx-panel-series-value">
+                        <h3>Répartition valeur / série</h3>
+                        <div class="stx-donut-wrap">
+                            <div class="stx-donut-canvas-wrap"><canvas id="series-value-chart"></canvas></div>
+                            <ul class="stx-legend" id="series-value-legend"></ul>
+                        </div>
+                        <div class="stx-legend-total">Valeur totale <span id="series-value-total">-</span></div>
+                    </div>
+                    <div class="stx-panel stx-movers-panel">
+                        <h4><i class="ti ti-trending-up" aria-hidden="true"></i> Top 3 hausses</h4>
+                        <div id="stx-top-gains"></div>
+                        <h4 class="stx-movers-second"><i class="ti ti-trending-down" aria-hidden="true"></i> Top 3 baisses</h4>
+                        <div id="stx-top-losses"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. HABITUDES DE COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">4</span>
+                    <span class="stx-section-title">Habitudes de collection</span>
+                </div>
+                <div class="stx-habits-grid">
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-coin" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Prix moyen par carte</div>
+                            <div class="stx-habit-value" id="stx-habit-avg-price">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-crown" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Extension préférée</div>
+                            <div class="stx-habit-value" id="stx-habit-top-series">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-eye" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Type préféré</div>
+                            <div class="stx-habit-value" id="stx-habit-top-type">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-brush" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Illustrateur le plus présent</div>
+                            <div class="stx-habit-value" id="stx-habit-top-illustrator">-</div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-shield-check" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">État moyen de la collection</div>
+                            <div class="stx-habit-value" id="stx-habit-condition">-</div>
+                            <div class="stx-habit-sub" id="stx-habit-condition-sub"></div>
+                        </div>
+                    </div>
+                    <div class="stx-habit-card">
+                        <span class="stx-habit-icon"><i class="ti ti-world" aria-hidden="true"></i></span>
+                        <div class="stx-habit-text">
+                            <div class="stx-habit-label">Répartition FR / JP / EN</div>
+                            <div class="stx-habit-value stx-habit-value-sm">Bientôt</div>
+                            <div class="stx-habit-sub">Langue non enregistrée</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. RECORDS DE COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">5</span>
+                    <span class="stx-section-title">Records de collection</span>
+                </div>
+                <div class="stx-records-grid">
+                    <div class="stx-trophy-card" id="stx-record-top-card">
+                        <div class="stx-trophy-label">Carte la plus chère</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-top-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="kpi-top-card">-</div>
+                            <div class="stx-trophy-series" id="stx-record-top-series"></div>
+                            <div class="stx-trophy-value" id="kpi-top-card-price">-</div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-oldest-card">
+                        <div class="stx-trophy-label">Carte la plus ancienne</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-oldest-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-oldest-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-oldest-series"></div>
+                            <div class="stx-trophy-value stx-trophy-value-sm" id="stx-record-oldest-date">-</div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-paid-card">
+                        <div class="stx-trophy-label">Carte achetée la plus chère</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-paid-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-paid-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-paid-series"></div>
+                            <div class="stx-trophy-value" id="stx-record-paid-price">-</div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-gain-card">
+                        <div class="stx-trophy-label">Plus grosse hausse</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-gain-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-gain-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-gain-series"></div>
+                            <div class="stx-trophy-value positive" id="stx-record-gain-amount">-</div>
+                            <div class="stx-trophy-sub positive" id="stx-record-gain-pct"></div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-loss-card">
+                        <div class="stx-trophy-label">Plus grosse baisse</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-loss-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-name" id="stx-record-loss-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-loss-series"></div>
+                            <div class="stx-trophy-value negative" id="stx-record-loss-amount">-</div>
+                            <div class="stx-trophy-sub negative" id="stx-record-loss-pct"></div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="stx-trophy-card" id="stx-record-most-card">
+                        <div class="stx-trophy-label">Carte la plus collectionnée</div>
+                        <div class="stx-trophy-row">
+                        <div class="stx-trophy-media">
+                            <i class="ti ti-cards stx-trophy-media-fallback" aria-hidden="true"></i>
+                            <img id="stx-record-most-img" class="stx-trophy-img" alt="" style="display:none;" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stx-trophy-body">
+                            <div class="stx-trophy-value" id="stx-record-most-qty">-</div>
+                            <div class="stx-trophy-name" id="stx-record-most-name">-</div>
+                            <div class="stx-trophy-series" id="stx-record-most-series"></div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. TIMELINE DE COLLECTION -->
+            <section class="stx-section">
+                <div class="stx-section-header">
+                    <span class="stx-section-badge">6</span>
+                    <span class="stx-section-title">Timeline de collection</span>
+                </div>
+                <div class="stx-panel">
                     <div class="stats-chart-header">
-                        <h3>Évolution de la valeur de la collection</h3>
-                        <div class="stats-range-toggle">
-                            <button class="range-btn" onclick="setValueHistoryRange(event, 7)">7j</button>
-                            <button class="range-btn active" onclick="setValueHistoryRange(event, 30)">30j</button>
-                            <button class="range-btn" onclick="setValueHistoryRange(event, 0)">Tout</button>
+                        <h3><i class="ti ti-calendar" aria-hidden="true"></i> Résumé du mois</h3>
+                        <select id="month-summary-select" class="grid-sort-select"></select>
+                    </div>
+                    <div class="stx-month-kpi-row">
+                        <div class="stx-month-kpi">
+                            <span class="stx-month-kpi-icon"><i class="ti ti-cards" aria-hidden="true"></i></span>
+                            <div class="stx-month-kpi-text">
+                                <div class="stx-month-kpi-label">Cartes ajoutées</div>
+                                <div class="stx-month-kpi-value" id="month-cards-added">-</div>
+                            </div>
+                        </div>
+                        <div class="stx-month-kpi">
+                            <span class="stx-month-kpi-icon"><i class="ti ti-currency-euro" aria-hidden="true"></i></span>
+                            <div class="stx-month-kpi-text">
+                                <div class="stx-month-kpi-label">Dépensé ce mois-ci</div>
+                                <div class="stx-month-kpi-value" id="month-spent">-</div>
+                            </div>
+                        </div>
+                        <div class="stx-month-kpi">
+                            <span class="stx-month-kpi-icon"><i class="ti ti-trending-up" aria-hidden="true"></i></span>
+                            <div class="stx-month-kpi-text">
+                                <div class="stx-month-kpi-label">Valeur ajoutée (marché)</div>
+                                <div class="stx-month-kpi-value" id="month-value-added">-</div>
+                            </div>
                         </div>
                     </div>
-                    <canvas id="value-history-chart"></canvas>
+                    <div class="stx-timeline-block">
+                        <div class="stx-timeline-chart-col">
+                            <canvas id="stx-timeline-chart"></canvas>
+                        </div>
+                        <div class="stx-timeline-cards-col" id="stx-timeline-row"></div>
+                    </div>
                 </div>
-                <div class="stats-chart-box">
-                    <h3>Top séries (par valeur)</h3>
-                    <canvas id="series-value-chart"></canvas>
-                </div>
-            </div>
 
-            <div class="stats-chart-box" style="margin-top: 1.5rem;">
-                <h3><i class="ti ti-chart-bar" aria-hidden="true"></i> Plus grosses variations (dernier rafraîchissement)</h3>
-                <div id="price-movers-section">
-                    <p style="text-align: center; color: var(--slate); padding: 1rem;">Clique sur "Rafraîchir les prix du marché" pour voir les variations.</p>
+                <div class="stx-panel" style="margin-top: 1rem;">
+                    <h3><i class="ti ti-chart-bar" aria-hidden="true"></i> Plus grosses variations (dernier rafraîchissement)</h3>
+                    <div id="price-movers-section">
+                        <div class="stx-movers-empty">
+                            <i class="ti ti-refresh" aria-hidden="true"></i>
+                            <div class="stx-movers-empty-title">Aucun rafraîchissement récent</div>
+                            <p class="stx-movers-empty-sub">Clique sur « Rafraîchir les prix du marché » pour voir les variations.</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div class="stats-chart-box" style="margin-top: 1.5rem;">
-                <h3><i class="ti ti-trending-up" aria-hidden="true"></i> Meilleur retour sur investissement</h3>
-                <div id="roi-section"></div>
-            </div>
+            </section>
         </div>
 
         <!-- ONGLET SOUHAITS -->
         <div id="tab-wishlist" class="tab-content">
-            <div class="form-section">
-                <div class="stats-chart-header">
-                    <h2><i class="ti ti-star" aria-hidden="true"></i> Listes de souhaits</h2>
-                    <button class="filter-toggle-btn" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+            <div class="wishlist-panel">
+                <div class="catalogue-toolbar wishlist-toolbar">
+                    <div class="catalogue-toolbar-actions">
+                        <select class="catalogue-sort-select" onchange="setWishlistSort(this.value)">
+                            <option value="date-desc">Ajout récent</option>
+                            <option value="name-asc">Nom (A→Z)</option>
+                            <option value="price-desc">Prix (plus cher d'abord)</option>
+                        </select>
+                        <button class="filter-toggle-btn" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+                    </div>
                 </div>
                 <div id="wishlists-container">
                     <p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l'instant</p>
                 </div>
             </div>
         </div>
+
+        <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : rempli
+             dynamiquement, jamais via allCollectionCards/allWishlists/allWishlistItems.
+             Bouton de retour statique (hors du conteneur dynamique) : ni tab-user-profile ni
+             tab-collectors n'ont d'entrée dans DesktopNavbar.js containerMap (pas de hero à ces pages),
+             donc updateDesktopNavigation() ne rend rien pour eux sur desktop - sans ce lien, aucun moyen
+             de revenir à l'app depuis un profil public consulté en desktop. -->
+        <div id="tab-user-profile" class="tab-content">
+            <div class="user-profile-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div id="user-profile-content"></div>
+            </div>
+        </div>
+
+        <!-- ONGLET RECHERCHE DE COLLECTIONNEURS (route #/collectors, modules/collectors.js) : shell
+             statique, uniquement #collectors-search-results rempli dynamiquement. Même bouton de retour
+             que tab-user-profile, même raison (cf commentaire ci-dessus). -->
+        <div id="tab-collectors" class="tab-content">
+            <div class="collectors-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div class="collectors-header">
+                    <h1 class="collectors-title">Collectionneurs</h1>
+                    <p class="collectors-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
+                </div>
+                <div class="input-with-icon">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="text" id="collectors-search-input" placeholder="Rechercher un pseudo ou @username" oninput="onCollectorsSearchInput()">
+                </div>
+                <div class="collectors-search-results" id="collectors-search-results"></div>
+            </div>
+        </div>
+
+        <!-- ONGLET ADMINISTRATION (route #/admin, modules/admin.js) : accès contrôlé côté serveur par
+             is_admin() sur chaque RPC (get_missing_image_cards / admin_set_card_image), ce shell ne fait
+             qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Même bouton de
+             retour statique que tab-collectors/tab-user-profile (même raison, cf commentaire plus haut). -->
+        <div id="tab-admin" class="tab-content">
+            <div class="collectors-panel" id="admin-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div class="collectors-header">
+                    <h1 class="collectors-title">Administration</h1>
+                    <p class="collectors-subtitle" id="admin-missing-count">Cartes sans image : —</p>
+                </div>
+                <div class="input-with-icon">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="text" id="admin-search-input" placeholder="Filtrer par nom, série ou tcgdex_id" oninput="onAdminSearchInput()">
+                </div>
+                <div class="table-wrapper" id="admin-missing-images-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Nom</th>
+                                <th>Série</th>
+                                <th>N°</th>
+                                <th>Rareté</th>
+                                <th>tcgdex_id</th>
+                                <th style="text-align:center;">Collection</th>
+                                <th style="text-align:center;">Wishlist</th>
+                                <th style="text-align:center;">Utilisateurs</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-missing-images-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET CHANGELOG (route #/changelog, modules/changelog.js) : historique des versions, contenu
+             dérivé de CHANGELOG (data/changelog.js), toujours du plus récent au plus ancien. -->
+        <div id="tab-changelog" class="tab-content">
+            <div class="collectors-panel changelog-panel">
+                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
+                <div class="collectors-header">
+                    <h1 class="collectors-title">Nouveautés</h1>
+                    <p class="collectors-subtitle">L'historique des versions de PokéTracker.</p>
+                </div>
+                <div class="changelog-list" id="changelog-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE "NOUVEAUTES" (popup post-appReady, modules/changelog.js) -->
+    <div class="modal-overlay" id="changelog-popup-overlay" onclick="if(event.target===this) acknowledgeChangelogPopup()">
+        <div class="modal-card changelog-popup-card" id="changelog-popup-content" style="max-width: 480px;"></div>
+    </div>
+
+    <!-- MODALE UPLOAD IMAGE ADMIN -->
+    <div class="modal-overlay" id="admin-image-upload-overlay" onclick="if(event.target===this) closeAdminImageUploadModal()">
+        <div class="modal-card" id="admin-image-upload-content" style="max-width: 400px;"></div>
     </div>
 
     <!-- MODALE CHOIX / CREATION DE LISTE DE SOUHAITS -->
@@ -487,6 +1008,16 @@
     <!-- MODALE SAISIE DE TEXTE (renommer / creer une liste) -->
     <div class="modal-overlay" id="text-prompt-overlay" onclick="if(event.target===this) closeTextPrompt()">
         <div class="modal-card" id="text-prompt-content" style="max-width: 380px;"></div>
+    </div>
+
+    <!-- MODALE EDITION LISTE DE SOUHAITS (nom + icone + couleur) -->
+    <div class="modal-overlay" id="wishlist-edit-overlay" onclick="if(event.target===this) closeWishlistEditModal()">
+        <div class="modal-card" id="wishlist-edit-content" style="max-width: 380px;"></div>
+    </div>
+
+    <!-- FICHE DETAIL CARTE WISHLIST (modules/wishlist-detail.js) -->
+    <div class="modal-overlay" id="wishlist-detail-overlay" onclick="if(event.target===this) closeWishlistItemDetail()">
+        <div class="modal-card" id="wishlist-detail-card"></div>
     </div>
 
     <!-- MODALE DE CONFIRMATION (remplace confirm() natif) -->
@@ -514,24 +1045,59 @@
         <div class="modal-card" id="card-detail-card"></div>
     </div>
 
+    <!-- MODALE DETAIL CARTE PUBLIQUE (profil tiers, modules/public-profile.js) : overlay dédié, jamais
+         partagé avec la fiche propriétaire ci-dessus, aucune action d'écriture -->
+    <div class="modal-overlay" id="public-card-detail-overlay" onclick="if(event.target===this) closePublicCardDetail()">
+        <div class="modal-card" id="public-card-detail-card"></div>
+    </div>
+
+    <!-- MODALE PROFIL (pseudo + avatar) -->
+    <div class="modal-overlay" id="profile-modal-overlay" onclick="if(event.target===this) closeProfileModal()">
+        <div class="modal-card" id="profile-modal-content" style="max-width: 380px;"></div>
+    </div>
+
+    <!-- MODALE MOBILE "AJOUTER" (<=960px) : accueille .catalogue-sheet-sticky déplacé depuis
+         .catalogue-sheet-col (modules/cards.js: openMobileAddPanel/closeMobileAddPanel). Vide par défaut,
+         le nœud n'y est déplacé qu'à l'ouverture. -->
+    <div class="modal-overlay mobile-add-overlay" id="mobile-add-overlay" onclick="if(event.target===this) closeMobileAddPanel()">
+        <div class="modal-card mobile-add-overlay-card" id="mobile-add-overlay-card">
+            <button type="button" class="modal-close" onclick="closeMobileAddPanel()"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>
+    </div>
+
+    <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="modules/utils.js?v=1"></script>
-    <script src="modules/storage.js?v=1"></script>
-    <script src="modules/cards.js?v=1"></script>
-    <script src="modules/stats.js?v=1"></script>
-    <script src="modules/collection.js?v=2"></script>
-    <script src="modules/import-export.js?v=1"></script>
-    <script src="modules/card-detail.js?v=1"></script>
-    <script src="modules/ui.js?v=1"></script>
-    <script src="modules/wishlist.js?v=1"></script>
-    <script src="modules/stats-render.js?v=2"></script>
-    <script src="modules/progression.js?v=1"></script>
-    <script src="tracker.js?v=57"></script>
-    <script src="modules/auth.js?v=1"></script>
+    <script src="data/changelog.js?v=20260812-5"></script>
+    <script src="modules/utils.js?v=20260805-1"></script>
+    <script src="components/navigation/DesktopNavbar.js?v=20260811-1"></script>
+    <script src="components/navigation/MobileBottomNavigation.js?v=20260811-1"></script>
+    <script src="modules/storage.js?v=20260805-1"></script>
+    <script src="modules/favorites.js?v=20260805-1"></script>
+    <script src="modules/cards.js?v=20260812-5"></script>
+    <script src="modules/stats.js?v=20260812-5"></script>
+    <script src="modules/collection.js?v=20260811-2"></script>
+    <script src="modules/import-export.js?v=20260812-5"></script>
+    <script src="modules/card-detail.js?v=20260805-1"></script>
+    <script src="modules/ui.js?v=20260812-5"></script>
+    <script src="modules/wishlist.js?v=20260812-5"></script>
+    <script src="modules/wishlist-detail.js?v=20260805-1"></script>
+    <script src="modules/stats-render.js?v=20260805-1"></script>
+    <script src="modules/progression.js?v=20260812-5"></script>
+    <script src="modules/dashboard.js?v=20260805-1"></script>
+    <script src="modules/profile.js?v=20260812-5"></script>
+    <script src="modules/collector-match.js?v=20260809-1"></script>
+    <script src="modules/public-profile.js?v=20260805-1"></script>
+    <script src="modules/collectors.js?v=20260805-1"></script>
+    <script src="modules/admin.js?v=20260812-5"></script>
+    <script src="modules/changelog.js?v=20260812-5"></script>
+    <script src="tracker.js?v=20260811-2"></script>
+    <script src="modules/auth.js?v=20260811-1"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

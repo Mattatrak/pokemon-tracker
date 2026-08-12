@@ -1,0 +1,80 @@
+PT-006 — Surfaces
+
+Statut : ✅ Validé
+Version : 1.0
+Importance : ⭐⭐⭐ Fondamentale
+
+Mission
+
+Définir les matériaux officiels de l'interface PokéTracker afin d'assurer une cohérence visuelle sur tous les composants.
+
+Vision
+
+Les surfaces ne sont pas des éléments décoratifs.
+
+Elles créent la profondeur, organisent la hiérarchie et mettent en valeur le contenu sans jamais lui voler l'attention.
+
+Les 3 surfaces officielles
+Surface 01 — Verre fumé
+
+Utilisation
+
+KPI
+Hero
+Popovers
+Panneaux importants
+
+Caractéristiques
+
+verre fumé
+léger flou
+reflet discret
+profondeur douce
+Surface 02 — Graphite mat
+
+Utilisation
+
+Filtres
+Listes
+Panneaux secondaires
+Zones fonctionnelles
+
+Caractéristiques
+
+opaque
+très sobre
+contraste faible
+aucune brillance
+Surface 03 — Accent premium
+
+Utilisation
+
+Hover
+États actifs
+Éléments mis en avant
+
+Caractéristiques
+
+légère lumière chaude
+discret reflet
+jamais utilisé comme fond principal
+Principes
+Une surface n'est jamais utilisée pour attirer l'œil.
+Les surfaces servent uniquement à créer une hiérarchie.
+Le contenu reste toujours plus important que son support.
+Plus un composant est fonctionnel, plus sa surface est discrète.
+Ce que nous avons rejeté
+Verre partout.
+Ombres fortes.
+Relief excessif.
+Effets 3D.
+Textures réalistes.
+Matières différentes selon les pages.
+Signature PokéTracker
+
+Les surfaces donnent de la profondeur à l'interface sans jamais devenir le centre de l'attention.
+
+Référence retenue
+Surface 01 : inspiration A
+Surface 02 : inspiration B
+Surface 03 : inspiration C

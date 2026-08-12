@@ -1,0 +1,83 @@
+/* MOTION COMPONENTS - Sprint 3.2.1
+   Animations structurelles generiques + utilitaires reutilisables. Consomme motion-tokens.css.
+   Principe : les animations doivent etre ressenties, pas remarquees. */
+
+/* ===== ENTREE GENERIQUE (contenu de page, sections, cartes ponctuelles) ===== */
+
+@keyframes motion-enter {
+    from {
+        opacity: 0;
+        transform: translateY(var(--motion-enter-distance, var(--motion-distance-md)));
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.motion-enter {
+    animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
+}
+
+.motion-enter-subtle {
+    --motion-enter-distance: var(--motion-distance-sm);
+}
+
+.motion-enter-soft {
+    --motion-enter-distance: var(--motion-distance-md);
+}
+
+.motion-enter-strong {
+    --motion-enter-distance: var(--motion-distance-lg);
+}
+
+/* ===== CASCADE LEGERE (grandes sections d'une page : hero/header, KPI, toolbar, contenu) =====
+   Reservee aux grandes sections (4-6 max) - jamais a une grille de cartes individuelles. */
+
+.motion-stagger > * {
+    animation: motion-enter var(--motion-duration-normal) var(--motion-ease-enter) both;
+}
+
+.motion-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.motion-stagger > *:nth-child(2) { animation-delay: var(--motion-stagger-normal); }
+.motion-stagger > *:nth-child(3) { animation-delay: calc(var(--motion-stagger-normal) * 2); }
+.motion-stagger > *:nth-child(4) { animation-delay: calc(var(--motion-stagger-normal) * 3); }
+.motion-stagger > *:nth-child(5) { animation-delay: calc(var(--motion-stagger-normal) * 4); }
+.motion-stagger > *:nth-child(6) { animation-delay: calc(var(--motion-stagger-normal) * 5); }
+
+/* ===== SURFACES INTERACTIVES (utilitaire reutilisable - a appliquer aux elements reellement cliquables
+   qui n'ont pas deja leur propre traitement hover dedie) ===== */
+
+.interactive-surface {
+    transition:
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .interactive-surface:hover {
+        transform: translateY(calc(var(--motion-distance-xs) * -1));
+    }
+}
+
+.interactive-surface:active {
+    transform: scale(var(--motion-scale-pressed));
+}
+
+/* ===== REDUCTION DES MOUVEMENTS =====
+   Filet de securite global : neutralise toute animation/transition, y compris celles definies
+   ailleurs dans l'app, sans casser l'affichage (aucun contenu ne doit rester invisible). */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        transition-delay: 0ms !important;
+    }
+}

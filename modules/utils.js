@@ -5,6 +5,19 @@ function toLocalDateInputValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+// Handler onerror générique pour les <img> pointant vers TCGdex : certains sets n'ont pas
+// leurs assets en /fr/, on retente une fois en /en/ avant d'abandonner (fallback appelé au 2e échec).
+function handleTcgdexImgError(img, fallback) {
+    if (!img.dataset.localeRetried && img.src.includes('/fr/')) {
+        img.dataset.localeRetried = '1';
+        img.src = img.src.replace('/fr/', '/en/');
+        return;
+    }
+    if (typeof fallback === 'function') fallback(img);
+    else if (fallback) img.outerHTML = fallback;
+    else img.style.display = 'none';
+}
+
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -19,10 +32,15 @@ function showMessage(text, type = 'error') {
     const container = document.getElementById('message-container');
     const div = document.createElement('div');
     div.className = `message ${type}`;
-    div.textContent = text;
+    const icon = type === 'success' ? 'ti-circle-check' : 'ti-alert-circle';
+    div.innerHTML = `<i class="ti ${icon} message-icon" aria-hidden="true"></i><span>${escapeHtml(text)}</span>`;
     container.innerHTML = '';
     container.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
+    setTimeout(() => {
+        div.classList.add('message--leaving');
+        div.addEventListener('transitionend', () => div.remove(), { once: true });
+        setTimeout(() => div.remove(), 300); // filet de sécurité si transitionend ne se déclenche pas
+    }, 3000);
 }
 
 // Redimensionne une image et la convertit en Blob JPEG, prête à uploader
@@ -126,6 +144,24 @@ function getSetIdFromTcgdexId(tcgdexId) {
 
 function normalizeForMatch(str) {
     return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+// Fallback recherche par nom (utilisé seulement quand cardmarket_id est absent, cf. getCardmarketUrl
+// ci-dessous). Un idProduct seul suffit pour un lien produit direct (voir card-detail.js), donc ce
+// fallback n'est plus la voie principale - juste un filet de sécurité pour les items sans idProduct
+// stocké (ex: anciens items wishlist ajoutés avant la colonne cardmarket_id).
+function getCardmarketSearchUrl(name) {
+    return `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(name || '')}&exactMatch=1&language=2`;
+}
+
+// Meme logique que le bouton Cardmarket de la collection (card-detail.js:95-97, volontairement pas
+// touche) : lien direct vers la fiche produit exacte si on a l'idProduct Cardmarket, sinon recherche
+// par nom en secours.
+function getCardmarketUrl(cardmarketId, name) {
+    if (cardmarketId) {
+        return `https://www.cardmarket.com/fr/Pokemon/Products?idProduct=${cardmarketId}&language=2`;
+    }
+    return getCardmarketSearchUrl(name);
 }
 
 // Correspondance entre le texte de rareté (tel que renvoyé par TCGdex) et l'icône fournie par l'utilisateur.
@@ -329,16 +365,50 @@ function getRarityIconHtml(rarity, sizePx = 16) {
     return `<img src="images/rarity/${filename}" alt="" class="rarity-icon" style="width:${sizePx}px;height:${sizePx}px;">`;
 }
 
-// Construit une ligne de boutons icônes pour filtrer par rareté (multi-sélection possible)
-function buildRarityFilterRowHtml(rarities, activeValues, clickHandlerName) {
+// Clé de regroupement pour les filtres de rareté : deux libellés qui partagent la même icône
+// (variantes historiques TCGdex, ex "Rare Holo"/"Holo Rare"/"Holographique" -> holo.webp) doivent
+// tomber dans le même bouton de filtre. Sans icône mappée, chaque libellé reste son propre groupe.
+function getRarityGroupKey(rarity) {
+    return RARITY_ICON_MAP[normalizeForMatch(rarity)] || normalizeForMatch(rarity);
+}
+
+// Logos de type (énergie) uploadés par l'utilisateur dans Supabase Storage, un fichier par type
+// (ex: card-images/energy/dragon.png). Nom de fichier déduit du type normalisé (minuscule, sans accent) ;
+// si le fichier n'existe pas pour un type donné, l'icône est simplement retirée au chargement (onerror),
+// le texte du type reste affiché tel quel à côté.
+const TYPE_ICON_BASE_URL = 'https://mmdcpkwygqsdaqnkimwb.supabase.co/storage/v1/object/public/card-images/energy/';
+
+function getTypeIconHtml(type, sizePx = 26) {
+    if (!type) return '';
+    const filename = `${normalizeForMatch(type)}.png`;
+    return `<img src="${TYPE_ICON_BASE_URL}${filename}" alt="" class="type-icon" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.remove()">`;
+}
+
+// card.type peut contenir plusieurs types joints par ", " (ex: "Feu, Vol") : une icône par type
+function getTypesIconsHtml(typeString, sizePx = 22) {
+    if (!typeString || typeString === 'N/A') return '';
+    return typeString.split(',').map(t => t.trim()).filter(Boolean).map(t => getTypeIconHtml(t, sizePx)).join('');
+}
+
+// Construit une ligne de boutons icônes pour filtrer par rareté (multi-sélection possible).
+// Les libellés qui partagent la même icône sont regroupés sous un seul bouton (cf getRarityGroupKey) ;
+// activeValues stocke des clés de groupe, pas les libellés bruts.
+function buildRarityFilterRowHtml(rarities, activeValues, clickHandlerName, iconSizePx = 20) {
     const allBtn = `<button class="rarity-filter-btn ${activeValues.size === 0 ? 'active' : ''}" onclick="${clickHandlerName}('')" data-tooltip="Toutes les raretés" aria-label="Toutes les raretés"><i class="ti ti-asterisk" aria-hidden="true"></i></button>`;
 
-    const rarityBtns = rarities.map(r => {
-        const icon = getRarityIconHtml(r, 20);
-        const isActive = activeValues.has(r);
-        const safeR = r.replace(/'/g, "\\'");
+    // Un seul bouton représentatif par groupe (première rareté rencontrée pour ce groupe)
+    const groups = new Map();
+    rarities.forEach(r => {
+        const key = getRarityGroupKey(r);
+        if (!groups.has(key)) groups.set(key, r);
+    });
+
+    const rarityBtns = [...groups.entries()].map(([groupKey, r]) => {
+        const icon = getRarityIconHtml(r, iconSizePx);
+        const isActive = activeValues.has(groupKey);
+        const safeKey = groupKey.replace(/'/g, "\\'");
         const content = icon || `<span class="rarity-filter-text">${r}</span>`;
-        return `<button class="rarity-filter-btn ${isActive ? 'active' : ''} ${icon ? '' : 'rarity-filter-btn-text'}" onclick="${clickHandlerName}('${safeR}')" data-tooltip="${r}" aria-label="${r}">${content}</button>`;
+        return `<button class="rarity-filter-btn ${isActive ? 'active' : ''} ${icon ? '' : 'rarity-filter-btn-text'}" onclick="${clickHandlerName}('${safeKey}')" data-tooltip="${r}" aria-label="${r}">${content}</button>`;
     }).join('');
 
     return allBtn + rarityBtns;

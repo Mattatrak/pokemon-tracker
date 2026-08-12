@@ -20,8 +20,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=29">
-    <link rel="stylesheet" href="styles-login.css?v=1">
+    <link rel="stylesheet" href="styles.css?v=20260805-1">
+    <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
+    <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
+    <link rel="stylesheet" href="styles-login.css?v=20260805-1">
 </head>
 <body class="login-page">
     <div class="login-background"></div>
@@ -69,7 +71,7 @@
 
                     <div class="form-footer">
                         <div class="form-checkbox">
-                            <input type="checkbox" id="login-remember">
+                            <input type="checkbox" id="login-remember" checked>
                             <label for="login-remember">Se souvenir de moi</label>
                         </div>
                         <a href="#" class="forgot-password-link" id="forgot-password-link">Mot de passe oublié ?</a>
@@ -100,6 +102,16 @@
                 <p class="login-description">Crée ton compte pour commencer à suivre ta collection.</p>
 
                 <form id="signup-form" class="login-form-group">
+                    <div class="form-field">
+                        <div class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <input type="text" id="signup-pseudo" placeholder="Pseudo" required maxlength="24" autocomplete="nickname">
+                    </div>
+
                     <div class="form-field">
                         <div class="input-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -212,9 +224,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="modules/utils.js?v=1"></script>
-    <script src="tracker.js?v=57"></script>
-    <script src="modules/auth-login.js?v=1"></script>
+    <script src="modules/utils.js?v=20260805-1"></script>
+    <script src="modules/profile.js?v=20260805-1"></script>
+    <script src="tracker.js?v=20260805-1"></script>
+    <script src="modules/auth-login.js?v=20260805-1"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

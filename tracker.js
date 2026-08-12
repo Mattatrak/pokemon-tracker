@@ -27,14 +27,52 @@ const API_EN = 'https://api.tcgdex.net/v2/en';
 // toggleQaSettingsPriceField, closeQuickAddSettingsModal, saveQuickAddSettings chargées depuis modules/progression.js
 
 let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
-// sortColumn, sortDirection, duplicatesOnlyFilter, collectionRarityFilterValues, collectionViewMode chargés depuis modules/collection.js
+
+// ===== DASHBOARD (obsolescence) =====
+// renderDashboard chargée depuis modules/dashboard.js. Marqué obsolète par refreshCollection()
+// (ajout/suppression/quantité/prix) et loadWishlists() (souhaits) : pas de recalcul inutile ailleurs.
+let dashboardNeedsRefresh = true;
+
+// Passe à true à la toute fin de init() (auth.js). Tant que c'est false, markDashboardDirty() ne
+// déclenche aucun rendu immédiat : pendant le chargement initial, refreshCollection()/loadWishlists()/
+// le chargement des séries appellent chacun markDashboardDirty(), et tab-dashboard est actif par
+// défaut dans le HTML — sans ce garde-fou, le hero se re-rendait 2-3 fois pendant init() avec des
+// données encore incomplètes (favoris pas chargés, etc.), d'où un flash visible du mauvais thème/carte
+// avant l'affichage final correct.
+let appReady = false;
+
+function markDashboardDirty() {
+    dashboardNeedsRefresh = true;
+    if (appReady && document.getElementById('tab-dashboard')?.classList.contains('active')) {
+        renderDashboard();
+    }
+}
+// sortColumn, sortDirection, collectionFilters, collectionViewMode chargés depuis modules/collection.js
+
+// ===== STATISTIQUES (dirty flag) =====
+// Marqué obsolète uniquement par de vraies écritures (refreshCollection() ; ajout/suppression d'un
+// souhait dans modules/wishlist.js ; premier remplissage réel d'allTcgdexSeries dans
+// modules/progression.js) — jamais par une simple relecture/revisite d'un autre onglet.
+let statsNeedsRefresh = true;
+// Incrémenté à chaque markStatsDirty(). Permet à renderStatsCharts() (modules/stats-render.js) de
+// détecter qu'une mutation a eu lieu PENDANT son propre rendu, et de rester dirty dans ce cas plutôt
+// que de se marquer propre avec des données déjà périmées à l'instant où il finit.
+let statsRenderVersion = 0;
+// Verrou anti-réentrance : statsNeedsRefresh reste vrai pendant toute la durée d'un rendu en cours,
+// donc lui seul ne suffit pas à empêcher un second appel concurrent de démarrer un second rendu.
+let statsRenderInProgress = false;
+
+function markStatsDirty() {
+    statsNeedsRefresh = true;
+    statsRenderVersion++;
+}
 
 // ===== UTILITAIRES =====
 // Fonctions chargées depuis modules/utils.js : showMessage, resizeImageToBlob, resizeBlobToJpeg,
 // sanitizeForPath, getTcgdexImagePath, getSeriesLogoPath, resizeImageToWebpBlob, getSeriesSymbolPath
 
 // Fonctions chargées depuis modules/storage.js : uploadSeriesSymbolManually, uploadSeriesLogoManually,
-// checkExistingSeriesLogo, fetchAndUploadSeriesSymbol, fetchAndUploadSeriesLogo, checkExistingImage,
+// fetchAndUploadSeriesSymbol, fetchAndUploadSeriesLogo, checkExistingImage,
 // fetchAndUploadExternalImage, uploadImageToStorage, getStoredImageFilenames, findExistingCardRow
 
 // Fonctions chargées depuis modules/cards.js : showSearchResultsSkeleton, searchCards, displaySearchResults,
@@ -58,8 +96,10 @@ async function refreshCollection() {
     allCollectionCards = data || [];
     await fillMissingSeriesLogos();
     updateStats();
-    populateCollectionFilters();
+    pruneStaleCollectionFilters();
     filterAndDisplay();
+    markDashboardDirty();
+    markStatsDirty();
 }
 
 // Complète en mémoire les logos manquants avec ceux déjà stockés (auto ou uploadés manuellement),
@@ -169,57 +209,52 @@ async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardNa
     }
 }
 
-async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, onImageUploadStart, customDate, finish = 'normal' }) {
+// Termine l'hébergement Supabase de l'image en tâche de fond (sans bloquer l'ajout) et met à jour la ligne une fois prête
+function hostImageInBackground(tcgdexUrl, tcgdexId, rowId) {
+    fetchAndUploadExternalImage(tcgdexUrl, tcgdexId)
+        .then(url => supabaseClient.from('cards').update({ image: url }).eq('id', rowId))
+        .then(({ error }) => { if (error) console.error('Erreur mise à jour image (arrière-plan):', error); })
+        .catch(error => console.error('Echec hébergement image (arrière-plan):', error));
+}
+
+// Idem pour le logo/symbole de série (une fois par set, réutilisé ensuite via le cache Supabase)
+function hostSeriesAssetsInBackground(card, rowId, hasLogo, hasSymbol) {
+    if (!hasLogo && card.set?.logo && card.set?.id) {
+        fetchAndUploadSeriesLogo(card.set.logo, card.set.id)
+            .then(url => supabaseClient.from('cards').update({ series_logo: url }).eq('id', rowId))
+            .then(({ error }) => { if (error) console.error('Erreur mise à jour logo (arrière-plan):', error); })
+            .catch(error => console.error('Logo de série non récupéré (arrière-plan):', error));
+    }
+    if (!hasSymbol && card.set?.symbol && card.set?.id) {
+        fetchAndUploadSeriesSymbol(card.set.symbol, card.set.id)
+            .then(url => supabaseClient.from('cards').update({ series_symbol: url }).eq('id', rowId))
+            .then(({ error }) => { if (error) console.error('Erreur mise à jour symbole (arrière-plan):', error); })
+            .catch(error => console.error('Symbole de set non récupéré (arrière-plan):', error));
+    }
+}
+
+async function performCardAdd(card, { condition, quantity, acquisitionType, purchasePrice, customImage, customDate, finish = 'normal' }) {
     const name = card.name || '?';
     const series = card.set?.name || 'N/A';
     const number = card.localId || '?';
 
-    // Image, logo de série et recherche de doublon ne dépendent pas les uns des autres : on les lance en parallèle
-    const imagePromise = (async () => {
-        if (customImage) return customImage;
-        if (card.image) {
-            const tcgdexUrl = `${card.image}/high.png`;
-            if (onImageUploadStart) onImageUploadStart();
-            try {
-                return await fetchAndUploadExternalImage(tcgdexUrl, card.id);
-            } catch (error) {
-                console.error('Echec hébergement image, fallback lien TCGdex:', error);
-                return tcgdexUrl;
-            }
-        } else if (card.id) {
-            const existingUrl = await checkExistingImage(card.id);
-            return existingUrl || '';
+    // Image : si déjà hébergée sur Supabase (dédup rapide) on l'utilise tout de suite, sinon on part
+    // sur le lien TCGdex brut pour ne pas bloquer l'ajout, et l'upload se termine en tâche de fond.
+    let imageUrl = customImage || '';
+    let tcgdexFallbackUrl = '';
+    let imageNeedsBackgroundUpload = false;
+    if (!imageUrl && card.image) {
+        tcgdexFallbackUrl = `${card.image}/high.webp`;
+        const existingUrl = card.id ? await checkExistingImage(card.id) : null;
+        if (existingUrl) {
+            imageUrl = existingUrl;
+        } else {
+            imageUrl = tcgdexFallbackUrl;
+            imageNeedsBackgroundUpload = true;
         }
-        return '';
-    })();
+    }
 
-    const logoPromise = (async () => {
-        if (card.set?.logo && card.set?.id) {
-            try {
-                return await fetchAndUploadSeriesLogo(card.set.logo, card.set.id);
-            } catch (error) {
-                console.error('Logo de série non récupéré:', error);
-                return null;
-            }
-        }
-        return null;
-    })();
-
-    const symbolPromise = (async () => {
-        if (card.set?.symbol && card.set?.id) {
-            try {
-                return await fetchAndUploadSeriesSymbol(card.set.symbol, card.set.id);
-            } catch (error) {
-                console.error('Symbole de set non récupéré:', error);
-                return null;
-            }
-        }
-        return null;
-    })();
-
-    const existingRowPromise = findExistingCardRow(card.id, name, series, number, condition, finish);
-
-    const [imageUrl, seriesLogoUrl, seriesSymbolUrl, existingRow] = await Promise.all([imagePromise, logoPromise, symbolPromise, existingRowPromise]);
+    const existingRow = await findExistingCardRow(card.id, name, series, number, condition, finish);
 
     const marketValue = getMarketValueForFinish(card, finish);
 
@@ -231,8 +266,6 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
         const newQuantity = Number(existingRow.quantity || 1) + quantity;
         const updatePayload = { quantity: newQuantity, market_value: marketValue };
         if (!existingRow.image && imageUrl) updatePayload.image = imageUrl;
-        if (!existingRow.series_logo && seriesLogoUrl) updatePayload.series_logo = seriesLogoUrl;
-        if (!existingRow.series_symbol && seriesSymbolUrl) updatePayload.series_symbol = seriesSymbolUrl;
         if (!existingRow.cardmarket_id && card.pricing?.cardmarket?.idProduct) {
             updatePayload.cardmarket_id = card.pricing.cardmarket.idProduct;
         }
@@ -243,6 +276,9 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
         ]);
         if (updateResult.error) throw updateResult.error;
+
+        if (imageNeedsBackgroundUpload) hostImageInBackground(tcgdexFallbackUrl, card.id, existingRow.id);
+        hostSeriesAssetsInBackground(card, existingRow.id, !!existingRow.series_logo, !!existingRow.series_symbol);
 
         // Simple instantané (pas de pré-remplissage, la carte existe déjà dans l'historique)
         if (card.id && marketValue > 0) {
@@ -272,17 +308,20 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
             acquisition_type: acquisitionType,
             quantity,
             image: imageUrl,
-            series_logo: seriesLogoUrl,
-            series_symbol: seriesSymbolUrl,
             tcgdex_id: card.id || null,
             cardmarket_id: card.pricing?.cardmarket?.idProduct || null,
             date_added: dateAddedStr,
             created_at: acquisitionDate.toISOString(),
-            finish
-        }]),
+            finish,
+            illustrator: card.illustrator || null
+        }]).select().single(),
         recordMonthlyStats({ quantity, purchasePrice, marketValue, cardName: name, date: acquisitionDate })
     ]);
     if (insertResult.error) throw insertResult.error;
+
+    const newRowId = insertResult.data.id;
+    if (imageNeedsBackgroundUpload) hostImageInBackground(tcgdexFallbackUrl, card.id, newRowId);
+    hostSeriesAssetsInBackground(card, newRowId, false, false);
 
     // Nouvelle carte : on pré-remplit l'historique avec les moyennes TCGdex (avg1/avg7/avg30) en plus
     // de l'instantané actuel, pour avoir un vrai repère de tendance dès le premier ajout
@@ -325,6 +364,8 @@ async function performCardAdd(card, { condition, quantity, acquisitionType, purc
 async function deleteCard(id) {
     if (!await showConfirmModal('Supprimer cette carte ?', 'Supprimer')) return;
 
+    const card = allCollectionCards.find(c => c.id === id);
+
     const { error } = await supabaseClient.from('cards').delete().eq('id', id);
 
     if (error) {
@@ -333,6 +374,16 @@ async function deleteCard(id) {
         return;
     }
 
+    // Réconcilier l'historique mensuel : une carte supprimée ne doit plus compter dans
+    // "cartes ajoutées"/"valeur ajoutée" du mois où elle avait été enregistrée (même logique
+    // que la réconciliation lors d'une édition, cf. modules/card-detail.js).
+    if (card && card.created_at) {
+        const addedDate = new Date(card.created_at);
+        const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+        const qty = Number(card.quantity || 1);
+        await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
+    }
+
     await refreshCollection();
     await recordValueSnapshot();
 
@@ -343,50 +394,77 @@ async function deleteCard(id) {
     }
 }
 
-async function changeQuantity(id, delta) {
-    const card = allCollectionCards.find(c => c.id === id);
-    if (!card) return;
+// Verrou par carte (pas global) : changeQuantity() lit card.quantity depuis le cache local, donc deux
+// clics rapides sur +/- de la MEME carte avant la fin du premier aller-retour réseau partent tous les
+// deux de la même valeur de départ et un incrément est perdu silencieusement. Les autres cartes restent
+// utilisables pendant ce temps (verrou par id, pas un verrou Collection global).
+const quantityChangeInProgress = new Set();
 
-    const newQuantity = Number(card.quantity || 1) + delta;
+async function changeQuantity(id, delta, btn) {
+    if (quantityChangeInProgress.has(id)) return; // mutation déjà en cours sur cette carte : ignorer
+    quantityChangeInProgress.add(id);
 
-    if (newQuantity <= 0) {
-        if (!await showConfirmModal('Retirer complètement cette carte de la collection ?', 'Retirer')) return;
-        const { error } = await supabaseClient.from('cards').delete().eq('id', id);
-        if (error) {
-            showMessage('Erreur lors de la suppression', 'error');
-            console.error(error);
-            return;
+    // Désactivation visuelle des deux boutons +/- de cette carte : purement cosmétique en cas de succès
+    // (refreshCollection() remplace la ligne juste après), utile surtout si l'appel échoue et que la
+    // ligne n'est donc pas re-rendue.
+    const stepperButtons = btn ? btn.closest('.qty-stepper')?.querySelectorAll('button') : null;
+    if (stepperButtons) stepperButtons.forEach(b => b.disabled = true);
+
+    try {
+        const card = allCollectionCards.find(c => c.id === id);
+        if (!card) return;
+
+        const newQuantity = Number(card.quantity || 1) + delta;
+
+        if (newQuantity <= 0) {
+            if (!await showConfirmModal('Retirer complètement cette carte de la collection ?', 'Retirer')) return;
+            const { error } = await supabaseClient.from('cards').delete().eq('id', id);
+            if (error) {
+                showMessage('Erreur lors de la suppression', 'error');
+                console.error(error);
+                return;
+            }
+
+            // Réconcilier l'historique mensuel (même logique que deleteCard)
+            if (card.created_at) {
+                const addedDate = new Date(card.created_at);
+                const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+                const qty = Number(card.quantity || 1);
+                await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
+            }
+        } else {
+            const { error } = await supabaseClient.from('cards').update({ quantity: newQuantity }).eq('id', id);
+            if (error) {
+                showMessage('Erreur lors de la mise à jour', 'error');
+                console.error(error);
+                return;
+            }
         }
-    } else {
-        const { error } = await supabaseClient.from('cards').update({ quantity: newQuantity }).eq('id', id);
-        if (error) {
-            showMessage('Erreur lors de la mise à jour', 'error');
-            console.error(error);
-            return;
+
+        await refreshCollection();
+        await recordValueSnapshot();
+
+        // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
+        const progressionSetView = document.getElementById('progression-set-view');
+        if (progressionSetView && progressionSetView.style.display === 'block') {
+            renderProgressionCardsGrid();
         }
-    }
-
-    await refreshCollection();
-    await recordValueSnapshot();
-
-    // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
-    const progressionSetView = document.getElementById('progression-set-view');
-    if (progressionSetView && progressionSetView.style.display === 'block') {
-        renderProgressionCardsGrid();
+    } finally {
+        quantityChangeInProgress.delete(id);
+        if (stepperButtons) stepperButtons.forEach(b => b.disabled = false);
     }
 }
 
 // updateStats, recordValueSnapshot, renderHeroValueCard chargées depuis modules/stats.js
 
-// sortCollection, updateSortArrows, applySorting, setCollectionRarityFilter, renderCollectionRarityRow,
-// populateCollectionFilters, getDuplicateGroupKey, computeDuplicateGroupTotals, toggleDuplicatesFilter
-// chargées depuis modules/collection.js
+// sortCollection, updateSortArrows, applySorting, pruneStaleCollectionFilters, getDuplicateGroupKey,
+// computeDuplicateGroupTotals chargées depuis modules/collection.js
 
 // exportCollectionToCSV, toggleCsvDropdown, closeCsvDropdown, exportFullBackupJson, handleJsonRestore,
 // confirmAndProcessJsonRestore, downloadCsvTemplate, findTcgdexMatch, handleCsvImport, processCsvImportRows
 // chargées depuis modules/import-export.js
 
-// filterAndDisplay, renderCollectionTable, getGridNoImageHtml, renderCollectionGrid, changeQuantityInModal
+// filterAndDisplay, renderCollectionTable, getGridNoImageHtml, renderCollectionGrid
 // chargées depuis modules/collection.js
 
 // showCardDetail, renderCardPriceChart, showCardEditForm, toggleEditPurchasePriceField, saveCardEdits,
@@ -403,14 +481,114 @@ async function changeQuantity(id, delta) {
 
 // collectionViewMode, setCollectionView chargées depuis modules/collection.js
 
+// ===== NAVIGATION =====
+// generateDesktopNavigation/updateDesktopNavigation chargées depuis components/navigation/DesktopNavbar.js
+// generateMobileBottomNav/updateMobileBottomNav chargées depuis components/navigation/MobileBottomNavigation.js
+
+// Table de correspondance tabId -> classe de page.
+const TAB_PAGE_MAP = {
+    'tab-dashboard': 'page-dashboard',
+    'tab-add': 'page-add',
+    'tab-collection': 'page-collection',
+    'tab-progression': 'page-progression',
+    'tab-stats': 'page-statistics',
+    'tab-wishlist': 'page-wishlist',
+    'tab-user-profile': 'page-user-profile',
+    'tab-collectors': 'page-collectors',
+    'tab-admin': 'page-admin',
+    'tab-changelog': 'page-changelog'
+};
+
+// Table de correspondance tabId -> route de hash. Volontairement DIFFERENTE des tabId : tab-dashboard etc.
+// sont déjà des id réels d'éléments du DOM (<div id="tab-dashboard">...). Si le hash de l'URL correspondait
+// à un id existant, le navigateur le traiterait comme une ancre HTML native et déclencherait un scroll
+// natif vers cet élément (au clic, au retour arrière, ou au chargement direct) — d'où des routes dédiées,
+// préfixées par "/", qui ne matchent aucun id du DOM.
+const TAB_ROUTES = {
+    'tab-dashboard': '/dashboard',
+    'tab-add': '/add',
+    'tab-collection': '/collection',
+    'tab-progression': '/progression',
+    'tab-stats': '/statistics',
+    'tab-wishlist': '/wishlist',
+    'tab-collectors': '/collectors',
+    'tab-admin': '/admin',
+    'tab-changelog': '/changelog'
+};
+
+// Mapping inverse route -> tabId, dérivé de TAB_ROUTES pour éviter de dupliquer la liste à la main.
+const ROUTE_TO_TAB = Object.fromEntries(
+    Object.entries(TAB_ROUTES).map(([tabId, route]) => [route, tabId])
+);
+
+// Affiche l'onglet demandé (DOM + nav), et son rendu métier (activateTabContent) sauf si activateContent
+// est explicitement à false. Ne touche jamais au hash de l'URL : c'est le hashchange (ou l'appel direct au
+// chargement/après appReady) qui invoque cette fonction, jamais l'inverse — le hash est la seule source de
+// vérité, il n'y a qu'un seul chemin de rendu possible.
+// activateContent=false sert au tout premier affichage (avant que les données Supabase soient chargées) :
+// la bonne section est visible immédiatement, mais son rendu métier (renderDashboard/loadWishlists/...)
+// n'a lieu qu'une seule fois, après appReady = true (voir modules/auth.js), pour ne pas tourner sur des
+// données encore vides puis une seconde fois pour rien une fois les données prêtes.
+function renderTab(tabId, { activateContent = true } = {}) {
+    const targetTab = document.getElementById(tabId);
+    if (!targetTab) return; // tabId inconnu ou DOM pas prêt : on ignore plutôt que planter sur classList
+
+    document.body.className = TAB_PAGE_MAP[tabId] || '';
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    targetTab.classList.add('active');
+
+    updateDesktopNavigation(tabId);
+    updateMobileBottomNav(tabId);
+    if (activateContent) activateTabContent(tabId);
+}
+
+// Lit la route dans le hash de l'URL (ex: "#/collection" -> "/collection"), la valide dans ROUTE_TO_TAB
+// et retourne le tabId correspondant, avec repli sur tab-dashboard si absent, vide, ou route inconnue.
+// Cas particulier #/user/<username> (Phase 3, modules/public-profile.js) : route paramétrée, donc absente
+// de ROUTE_TO_TAB par construction (table figée tabId<->route fixe) — interceptée avant ce lookup plutôt
+// que d'étendre TAB_ROUTES/ROUTE_TO_TAB/navigateToTab, qui ne gèrent que des routes fixes 1:1 avec un tabId.
+function getTabIdFromHash() {
+    const route = window.location.hash.replace('#', '');
+    if (route.startsWith('/user/')) return 'tab-user-profile';
+    return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) ? ROUTE_TO_TAB[route] : 'tab-dashboard';
+}
+
+// Point d'entrée pour toute navigation programmatique (widgets internes type dashboard/wishlist/stats qui
+// redirigent vers un autre onglet). Normalise d'abord le tabId (repli sur tab-dashboard si inconnu), puis
+// convertit ce validTabId en route et écrit le hash ; c'est le listener hashchange qui rend. Si le hash
+// cible est déjà l'actuel (re-clic sur l'onglet actif), hashchange ne se déclenche pas : on rend directement
+// avec ce même validTabId.
+function navigateToTab(tabId) {
+    const validTabId = Object.prototype.hasOwnProperty.call(TAB_ROUTES, tabId) ? tabId : 'tab-dashboard';
+    const targetHash = '#' + TAB_ROUTES[validTabId];
+    if (window.location.hash === targetHash) {
+        renderTab(validTabId);
+    } else {
+        window.location.hash = targetHash;
+    }
+}
+
+// Seule source de rendu déclenchée par un changement d'URL : clic sur un vrai lien de nav (<a href="#/xxx">),
+// bouton précédent/suivant du navigateur, ou modification manuelle de l'URL. Peut se déclencher avant que
+// les données soient chargées (ex: clic pendant le chargement initial) : activateContent est conditionné à
+// appReady pour ne jamais lancer activateTabContent sur des données pas encore prêtes — seul le changement
+// visuel d'onglet a lieu dans ce cas, le rendu métier réel étant de toute façon rejoué après appReady = true
+// (voir l'appel dans modules/auth.js).
+window.addEventListener('hashchange', () => {
+    closeWishlistItemDetail();
+    closeMobileMorePanel();
+    closeMobileAddPanel();
+    renderTab(getTabIdFromHash(), { activateContent: appReady === true });
+});
+
 // ===== ONGLETS =====
 
-function switchTab(event, tabId) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
-    document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
+// Rendu paresseux propre à un onglet, extrait de switchTab pour être réutilisable sans évènement de
+// clic (ex: boutons de navigation internes au Dashboard)
+function activateTabContent(tabId) {
+    if (tabId === 'tab-dashboard') {
+        renderDashboard();
+    }
 
     // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture
     if (tabId === 'tab-stats') {
@@ -420,34 +598,57 @@ function switchTab(event, tabId) {
     if (tabId === 'tab-progression') {
         if (currentProgressionSetId && document.getElementById('progression-set-view').style.display === 'block') {
             renderProgressionCardsGrid();
+            loadFollowedSets();
         } else {
-            loadSeriesProgress();
+            loadSeriesProgress().then(loadFollowedSets);
         }
     }
 
     if (tabId === 'tab-wishlist') {
         loadWishlists();
     }
+
+    if (tabId === 'tab-user-profile') {
+        loadPublicProfile(getUsernameFromHash());
+    }
+
+    if (tabId === 'tab-collectors') {
+        resetCollectorsSearchView();
+    }
+
+    if (tabId === 'tab-admin') {
+        renderAdminGate();
+    }
+
+    if (tabId === 'tab-changelog') {
+        renderChangelogPage();
+    }
 }
 
 // ===== INITIALISATION =====
 // ===== RAFRAICHISSEMENT DES PRIX MARCHE =====
 
-function updateLastRefreshLabel() {
-    const status = document.getElementById('refresh-prices-status');
-    const last = localStorage.getItem('lastPriceRefresh');
-    if (last) {
-        const date = new Date(last);
-        status.textContent = `${date.toLocaleDateString('fr-FR')} à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
-    } else {
-        status.textContent = 'Jamais rafraîchi';
+// Verrou de réentrance : refreshAllMarketPrices() est déclenchable à la fois automatiquement au
+// login (modules/auth.js, non attendue) et manuellement depuis le todo du Dashboard (modules/
+// dashboard.js). Sans ce verrou, deux exécutions concurrentes dupliquent card_price_history et
+// s'écrasent mutuellement sur localStorage (lastPriceMovers/lastPriceRefresh).
+let marketPriceRefreshInProgress = false;
+
+async function refreshAllMarketPrices() {
+    if (marketPriceRefreshInProgress) {
+        showMessage('Rafraîchissement des prix déjà en cours...', 'success');
+        return;
+    }
+    marketPriceRefreshInProgress = true;
+
+    try {
+        await refreshAllMarketPricesInternal();
+    } finally {
+        marketPriceRefreshInProgress = false;
     }
 }
 
-async function refreshAllMarketPrices() {
-    const btn = document.getElementById('refresh-prices-btn');
-    const status = document.getElementById('refresh-prices-status');
-
+async function refreshAllMarketPricesInternal() {
     const cardsWithId = allCollectionCards.filter(c => c.tcgdex_id);
     if (cardsWithId.length === 0) {
         showMessage('Aucune carte avec un identifiant TCGdex à rafraîchir', 'error');
@@ -458,10 +659,6 @@ async function refreshAllMarketPrices() {
     const priceMap = {};
     const pricingDetailMap = {};
     const setInfoMap = {};
-    let done = 0;
-
-    btn.disabled = true;
-    const originalText = btn.innerHTML;
 
     // Traiter par lots de 5 pour ne pas surcharger l'API
     const batchSize = 5;
@@ -487,8 +684,6 @@ async function refreshAllMarketPrices() {
             } catch (error) {
                 console.error(`Erreur récupération prix pour ${id}:`, error);
             }
-            done++;
-            btn.innerHTML = `<span class="loading"></span>Rafraîchissement... ${done}/${uniqueIds.length}`;
         }));
     }
 
@@ -605,11 +800,7 @@ async function refreshAllMarketPrices() {
     });
     localStorage.setItem('lastPriceMovers', JSON.stringify(Object.values(moversByKey)));
 
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-
     localStorage.setItem('lastPriceRefresh', new Date().toISOString());
-    updateLastRefreshLabel();
 
     const failCount = uniqueIds.length - Object.keys(priceMap).length;
     if (failCount > 0) {
@@ -642,7 +833,13 @@ function renderPriceMovers() {
 
     const stored = localStorage.getItem('lastPriceMovers');
     if (!stored) {
-        container.innerHTML = '<p style="text-align: center; color: var(--slate); padding: 1rem;">Clique sur "Rafraîchir les prix du marché" pour voir les variations.</p>';
+        container.innerHTML = `
+            <div class="stx-movers-empty">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+                <div class="stx-movers-empty-title">Aucun rafraîchissement récent</div>
+                <p class="stx-movers-empty-sub">Clique sur « Rafraîchir les prix du marché » pour voir les variations.</p>
+            </div>
+        `;
         return;
     }
 
@@ -651,17 +848,30 @@ function renderPriceMovers() {
     const losers = movers.filter(m => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 5);
 
     const renderList = (list, positive) => {
-        if (list.length === 0) return '<p style="color: var(--slate); font-size: 0.85rem;">Aucune variation</p>';
-        return list.map(m => `
-            <div class="mover-row">
+        if (list.length === 0) return '<p class="stx-movers-column-empty">Aucune variation</p>';
+        return list.map(m => {
+            // Résolution de la carte possédée par nom+numéro (même clé que la déduplication ci-dessus)
+            // pour ouvrir sa fiche au clic, comme dans Collection.
+            const owned = allCollectionCards.find(c => c.name === m.name && String(c.number) === String(m.number));
+            const clickAttr = owned ? ` onclick="showCardDetail(${owned.id})"` : '';
+            const clickClass = owned ? ' stx-clickable-card' : '';
+            return `
+            <div class="mover-row${clickClass}"${clickAttr}>
                 <span class="mover-name">${m.name} <span class="mover-number">#${m.number}</span></span>
                 <span class="mover-delta ${positive ? 'positive' : 'negative'}">${positive ? '+' : ''}${m.delta.toFixed(2)}€</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     };
 
     if (movers.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune variation détectée lors du dernier rafraîchissement.</p>';
+        container.innerHTML = `
+            <div class="stx-movers-empty">
+                <i class="ti ti-chart-bar" aria-hidden="true"></i>
+                <div class="stx-movers-empty-title">Aucune variation</div>
+                <p class="stx-movers-empty-sub">Aucune variation détectée lors du dernier rafraîchissement.</p>
+            </div>
+        `;
         return;
     }
 
@@ -695,13 +905,25 @@ function initEventListeners() {
         clearTimeout(collectionSearchDebounceTimer);
         collectionSearchDebounceTimer = setTimeout(filterAndDisplay, 150);
     });
-    document.getElementById('filter-condition').addEventListener('change', filterAndDisplay);
-    document.getElementById('filter-collection-series').addEventListener('change', filterAndDisplay);
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeCardDetail();
-    });
+        if (e.key === 'Escape') {
+            closeCardDetail();
+            closeWishlistItemDetail();
+            closeMobileMorePanel();
+            closeCollectionFilterPicker();
 
-    document.getElementById('filter-collection-type').addEventListener('change', filterAndDisplay);
+            // Priorité de couche : le picker Wishlist peut s'ouvrir par-dessus la modale Ajouter. Un appui
+            // ne doit fermer que la couche du dessus : s'il est actif, on ferme uniquement lui (il n'avait
+            // jusqu'ici aucun handler Échap) ; sinon, un appui suivant ferme la modale Ajouter en dessous.
+            const wishlistPickerOverlay = document.getElementById('wishlist-picker-overlay');
+            const wishlistPickerOpen = !!wishlistPickerOverlay && wishlistPickerOverlay.classList.contains('active');
+            if (wishlistPickerOpen) {
+                closeWishlistPicker();
+            } else {
+                closeMobileAddPanel();
+            }
+        }
+    });
 
     document.getElementById('card-acquisition').addEventListener('change', (e) => {
         const group = document.getElementById('purchase-price-group');
@@ -753,3 +975,8 @@ function initEventListeners() {
 
 if (document.getElementById('search-collection')) initEventListeners();
 
+function initDesktopNavigation() {
+    renderTab(getTabIdFromHash(), { activateContent: false });
+}
+
+document.addEventListener('DOMContentLoaded', initDesktopNavigation);

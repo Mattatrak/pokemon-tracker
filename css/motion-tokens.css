@@ -1,0 +1,22 @@
+/* MOTION TOKENS - Sprint 3.2.1
+   Source de verite unique pour durees, easings, distances et scales de mouvement.
+   Toute nouvelle animation structurelle doit consommer ces tokens plutot qu'une valeur en dur. */
+
+:root {
+    --motion-duration-fast: 150ms;
+    --motion-duration-normal: 260ms;
+    --motion-duration-emphasized: 480ms;
+
+    --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --motion-ease-enter: cubic-bezier(0.33, 1, 0.68, 1);
+
+    --motion-distance-xs: 2px;
+    --motion-distance-sm: 4px;
+    --motion-distance-md: 4px;
+    --motion-distance-lg: 12px;
+
+    --motion-scale-pressed: 0.98;
+    --motion-scale-enter: 0.985;
+
+    --motion-stagger-normal: 55ms;
+}

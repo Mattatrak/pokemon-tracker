@@ -1,13 +1,19 @@
 // Recherche + aperçu + ajout onglet "Ajouter" - Pokémon Tracker
 // Dépend de: supabaseClient/API_BASE/API_EN (tracker.js), utils.js, storage.js,
 // allCollectionCards/performCardAdd/refreshCollection/recordValueSnapshot (tracker.js)
-// Etat possédé : selectedCard, lastSearchResults, customPreviewImage, searchRequestId, currentMarketValue
+// Etat possédé : selectedCard, lastSearchResults, customPreviewImage, searchRequestId, currentMarketValue,
+// catalogueViewUserSet
 
 let selectedCard = null;
 let lastSearchResults = [];
 let customPreviewImage = null; // URL Supabase Storage une fois uploadée
 
 let currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
+
+// Devient true dès que l'utilisateur clique explicitement sur un bouton grille/liste
+// (setCatalogueView) : au-delà, on ne réapplique plus jamais le défaut mobile automatique
+// pour respecter son choix pour le reste de la session (cf displaySearchResults).
+let catalogueViewUserSet = false;
 
 // ===== RECHERCHE DE CARTES (TCGdex) =====
 
@@ -31,7 +37,7 @@ let searchRequestId = 0;
 async function searchCards() {
     const search = document.getElementById('card-search').value.trim();
     if (!search) {
-        showMessage('Veuillez entrer un nom de carte', 'error');
+        showMessage('Veuillez entrer un nom, une série, un numéro ou un illustrateur', 'error');
         return;
     }
 
@@ -43,27 +49,36 @@ async function searchCards() {
 
     showSearchResultsSkeleton();
 
-    try {
-        const [frResponse, enResponse] = await Promise.all([
-            fetch(`${API_BASE}/cards?name=${encodeURIComponent(search)}`),
-            fetch(`${API_EN}/cards?name=${encodeURIComponent(search)}`)
-        ]);
+    // Recherche combinée : le champ peut matcher le nom, la série, l'illustrateur ou le
+    // numéro. On interroge TCGdex sur chaque attribut en parallèle (FR+EN) et on
+    // fusionne/déduplique les résultats par id de carte. localId seulement si des
+    // chiffres sont tapés, pour éviter une requête inutile.
+    const encoded = encodeURIComponent(search);
+    const searchFields = ['name', 'illustrator', 'set.name'];
+    if (/\d/.test(search)) searchFields.push('localId');
 
-        const frData = await frResponse.json();
-        const enData = await enResponse.json();
+    const urls = [];
+    for (const field of searchFields) {
+        urls.push(`${API_BASE}/cards?${field}=${encoded}`);
+        urls.push(`${API_EN}/cards?${field}=${encoded}`);
+    }
+
+    try {
+        const settled = await Promise.allSettled(urls.map(url => fetch(url).then(r => r.json())));
 
         // Une recherche plus récente a déjà démarré entre-temps : on abandonne celle-ci
         if (myRequestId !== searchRequestId) return;
 
-        const frList = Array.isArray(frData) ? frData : [];
-        const enList = Array.isArray(enData) ? enData : [];
-
-        const merged = [...frList];
-        const existingIds = new Set(frList.map(c => c.id));
-        for (const card of enList) {
-            if (!existingIds.has(card.id)) {
-                merged.push(card);
-                existingIds.add(card.id);
+        const merged = [];
+        const seenIds = new Set();
+        for (const result of settled) {
+            if (result.status !== 'fulfilled') continue;
+            const list = Array.isArray(result.value) ? result.value : [];
+            for (const card of list) {
+                if (!seenIds.has(card.id)) {
+                    merged.push(card);
+                    seenIds.add(card.id);
+                }
             }
         }
 
@@ -86,6 +101,12 @@ async function searchCards() {
             btn.innerHTML = '<i class="ti ti-search" aria-hidden="true"></i> Rechercher';
         }
     }
+}
+
+function searchByIllustrator() {
+    if (!selectedCard?.illustrator) return;
+    document.getElementById('card-search').value = selectedCard.illustrator;
+    searchCards();
 }
 
 async function displaySearchResults(cards) {
@@ -116,6 +137,13 @@ async function displaySearchResults(cards) {
         }
     }
 
+    // Défaut vue liste sur mobile (grille illisible à cette largeur, cf audit) : seulement tant que
+    // l'utilisateur n'a jamais cliqué lui-même sur un bouton grille/liste (catalogueViewUserSet).
+    // Même seuil que getCataloguePageSize() plus bas dans ce fichier (cohérence mobile/desktop).
+    if (!catalogueViewUserSet && window.matchMedia('(max-width: 960px)').matches) {
+        setCatalogueView('list', false);
+    }
+
     lastSearchResults = cardsWithDetails;
     populateSearchFilters(cardsWithDetails);
     applySearchFilters();
@@ -142,6 +170,17 @@ function populateSearchFilters(cards) {
     if (series.includes(currentSeries)) seriesSelect.value = currentSeries;
 }
 
+// Desktop (>960px, cf .catalogue-scene) affiche plus de résultats par page grâce à la densité de
+// grille retrouvée sans sélection ; mobile garde 8 pour éviter une liste trop longue. Lue à chaque
+// reset/clic "Charger plus", jamais mise en cache : un resize entre-temps s'applique naturellement
+// à la prochaine évaluation, sans listener dédié.
+function getCataloguePageSize() {
+    return window.matchMedia('(min-width: 961px)').matches ? 24 : 8;
+}
+
+let lastFilteredResults = [];
+let catalogueVisibleCount = getCataloguePageSize();
+
 function applySearchFilters() {
     const rarityFilter = document.getElementById('filter-rarity').value;
     const seriesFilter = document.getElementById('filter-series').value;
@@ -153,8 +192,32 @@ function applySearchFilters() {
     if (seriesFilter) {
         filtered = filtered.filter(c => c.set?.name === seriesFilter);
     }
+    filtered = sortSearchResults(filtered);
 
-    renderSearchResults(filtered);
+    lastFilteredResults = filtered;
+    catalogueVisibleCount = getCataloguePageSize();
+
+    updateCatalogueResultsInfo(filtered.length);
+    renderSearchResults(filtered.slice(0, catalogueVisibleCount));
+    updateCatalogueLoadMoreButton(filtered.length);
+}
+
+function loadMoreCatalogueResults() {
+    catalogueVisibleCount += getCataloguePageSize();
+    renderSearchResults(lastFilteredResults.slice(0, catalogueVisibleCount));
+    updateCatalogueLoadMoreButton(lastFilteredResults.length);
+}
+
+function updateCatalogueLoadMoreButton(totalCount) {
+    const row = document.getElementById('catalogue-load-more-row');
+    if (!row) return;
+    const remaining = totalCount - catalogueVisibleCount;
+    if (remaining > 0) {
+        row.style.display = 'flex';
+        document.getElementById('catalogue-load-more-btn').textContent = `Charger plus de résultats (${remaining} restante${remaining > 1 ? 's' : ''})`;
+    } else {
+        row.style.display = 'none';
+    }
 }
 
 function renderSearchResults(cards) {
@@ -167,12 +230,12 @@ function renderSearchResults(cards) {
     }
 
     container.innerHTML = cards.map(card => {
-        const imageUrl = card.image ? `${card.image}/high.png` : (card._localImage || '');
+        const imageUrl = card.image ? `${card.image}/high.webp` : (card._localImage || '');
         const setName = card.set?.name || card.set?.id || 'N/A';
         const cardNumber = card.localId || '?';
         const logoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
         const imgHtml = imageUrl
-            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="this.outerHTML='<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
+            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="handleTcgdexImgError(this, '<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>')">`
             : '<div class="no-image-placeholder small"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 
         let price = 0;
@@ -183,13 +246,16 @@ function renderSearchResults(cards) {
         }
 
         return `
-            <div class="search-result-item" onclick="selectCard(${JSON.stringify(card).replace(/"/g, '&quot;')})">
+            <div class="search-result-item" onclick="onSearchResultClick(${JSON.stringify(card).replace(/"/g, '&quot;')}, this)">
                 ${imgHtml}
                 <div class="search-result-info">
-                    <div class="search-result-name">${card.name || '?'}</div>
-                    <div class="search-result-set">${logoUrl ? `<img src="${logoUrl}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${setName} - #${cardNumber}</div>
+                    <div class="search-result-text">
+                        <div class="search-result-name">${card.name || '?'}</div>
+                        <div class="search-result-set">${setName} - #${cardNumber}</div>
+                        ${price > 0 ? `<div class="search-result-price">${price.toFixed(2)}€</div>` : ''}
+                    </div>
+                    ${logoUrl ? `<img src="${logoUrl}" class="search-result-series-logo" alt="" onerror="this.remove()">` : ''}
                 </div>
-                ${price > 0 ? `<div class="search-result-price">${price.toFixed(2)}€</div>` : ''}
             </div>
         `;
     }).join('');
@@ -198,11 +264,48 @@ function renderSearchResults(cards) {
 
 // ===== APERCU DE CARTE =====
 
+let selectionToken = 0;
+
+// Transition en deux temps : si une carte était déjà affichée, on atténue l'ancien contenu
+// (~90ms) avant de remplacer les données dans le DOM, puis on fait entrer le nouveau contenu.
+// selectedCard est mis à jour immédiatement (synchrone) pour que le reste de l'app (ajout,
+// double-clic rapide...) travaille toujours sur la bonne carte, même pendant la transition visuelle.
 function selectCard(card) {
+    const myToken = ++selectionToken;
+    const hadPreviousCard = !!selectedCard;
     selectedCard = card;
     customPreviewImage = null;
     document.getElementById('search-results').classList.remove('active');
 
+    const imageEl = document.querySelector('.preview-image');
+    const detailsEl = document.querySelector('.preview-details');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (hadPreviousCard && !reduceMotion) {
+        imageEl.classList.remove('card-swap-enter');
+        detailsEl.classList.remove('card-swap-enter');
+        imageEl.classList.add('card-swap-exit');
+        detailsEl.classList.add('card-swap-exit');
+
+        setTimeout(() => {
+            // Une sélection plus récente a pris le relais entre-temps : on abandonne celle-ci
+            if (myToken !== selectionToken) return;
+            imageEl.classList.remove('card-swap-exit');
+            detailsEl.classList.remove('card-swap-exit');
+            applyCardToPreview(card);
+            replaySelectionEntrance(imageEl);
+            replaySelectionEntrance(detailsEl);
+        }, 90);
+    } else {
+        applyCardToPreview(card);
+        if (!reduceMotion) {
+            replaySelectionEntrance(imageEl);
+            replaySelectionEntrance(detailsEl);
+        }
+    }
+}
+
+function applyCardToPreview(card) {
     // Vérifier si cette carte est déjà dans la collection (par identifiant TCGdex)
     const duplicateAlert = document.getElementById('preview-duplicate-alert');
     const ownedRows = card.id ? allCollectionCards.filter(c => c.tcgdex_id === card.id) : [];
@@ -221,7 +324,7 @@ function selectCard(card) {
         duplicateAlert.innerHTML = '';
     }
 
-    const imageUrl = card.image ? `${card.image}/high.png` : '';
+    const imageUrl = card.image ? `${card.image}/high.webp` : '';
     const previewImageContainer = document.querySelector('.preview-image');
 
     document.getElementById('card-finish').innerHTML = buildFinishOptionsHtml(card, 'normal');
@@ -230,7 +333,7 @@ function selectCard(card) {
         previewImageContainer.innerHTML = '<img id="preview-img" src="" alt="Carte">';
         const img = document.getElementById('preview-img');
         img.onerror = function() {
-            showPreviewUploadPlaceholder();
+            handleTcgdexImgError(img, showPreviewUploadPlaceholder);
         };
         img.src = imageUrl;
     } else if (card._localImage) {
@@ -266,31 +369,87 @@ function selectCard(card) {
     } else {
         previewLogo.style.display = 'none';
     }
-    document.getElementById('preview-number').textContent = card.localId || '-';
+    const totalCards = card.set?.cardCount?.official || card.set?.cardCount?.total;
+    document.getElementById('preview-number').textContent = card.localId
+        ? (totalCards ? `${card.localId}/${totalCards}` : card.localId)
+        : '-';
+
+    const favStarEl = document.getElementById('preview-favorite-star');
+    if (favStarEl) {
+        if (card.id) {
+            favStarEl.style.display = 'inline-flex';
+            favStarEl.onclick = () => toggleFavorite(card.id, favStarEl);
+            applyFavoriteButtonState(favStarEl, isFavorite(card.id));
+        } else {
+            favStarEl.style.display = 'none';
+        }
+    }
 
     let types = 'N/A';
     if (card.types && Array.isArray(card.types)) {
         types = card.types.join(', ');
     }
-    document.getElementById('preview-type').textContent = types;
+    document.getElementById('preview-type').innerHTML = `${getTypesIconsHtml(types)} ${types}`;
+
+    const illustratorEl = document.getElementById('preview-illustrator');
+    illustratorEl.textContent = card.illustrator || '-';
+    illustratorEl.classList.toggle('preview-info-value-clickable', !!card.illustrator);
 
     document.getElementById('preview-rarity').innerHTML = `${getRarityIconHtml(card.rarity)} ${card.rarity || '-'}`;
+    document.getElementById('preview-rarity-badge').innerHTML = card.rarity
+        ? `${getRarityIconHtml(card.rarity)} ${card.rarity}`
+        : '';
 
     let price = 0;
+    let avg30 = 0;
     if (card.pricing?.cardmarket?.avg) {
         price = card.pricing.cardmarket.avg;
+        avg30 = card.pricing.cardmarket.avg30 || 0;
     } else if (card.pricing?.cardmarket?.['avg-holo']) {
         price = card.pricing.cardmarket['avg-holo'];
+        avg30 = card.pricing.cardmarket['avg30-holo'] || 0;
     }
     currentMarketValue = price;
     document.getElementById('preview-price').textContent = price > 0 ? price.toFixed(2) + '€' : '-';
     document.getElementById('card-value').value = price > 0 ? price.toFixed(2) : '';
+
+    const priceBox = document.getElementById('preview-price-box');
+    const trendEl = document.getElementById('preview-price-trend');
+    if (price > 0) {
+        priceBox.style.display = '';
+        document.getElementById('preview-price-big').textContent = `${price.toFixed(2)} €`;
+        if (avg30 > 0) {
+            const deltaPct = ((price - avg30) / avg30) * 100;
+            const arrow = deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '';
+            trendEl.textContent = `${arrow} ${Math.abs(deltaPct).toFixed(1)}%`;
+            trendEl.className = 'hero-fluctuation ' + (deltaPct > 0 ? 'positive' : deltaPct < 0 ? 'negative' : 'neutral');
+        } else {
+            trendEl.textContent = '';
+            trendEl.className = 'hero-fluctuation';
+        }
+    } else {
+        priceBox.style.display = 'none';
+    }
+
+    const cardmarketLink = document.getElementById('preview-cardmarket-link');
+    cardmarketLink.href = getCardmarketUrl(card.pricing?.cardmarket?.idProduct, card.name);
+    cardmarketLink.style.display = '';
 
     // Réinitialiser le mode d'obtention à "Achetée" par défaut pour chaque nouvelle carte
     document.getElementById('card-acquisition').value = 'achat';
     document.getElementById('purchase-price-group').style.display = '';
 
     document.getElementById('card-preview').classList.add('active');
+}
+
+// Rejoue l'animation d'entrée CSS (.card-swap-enter) sur un élément après un changement de
+// sélection de carte : reflow forcé pour redémarrer même si la classe était déjà présente
+// (sélections rapides successives -> la dernière gagne, pas d'accumulation).
+function replaySelectionEntrance(el) {
+    if (!el) return;
+    el.classList.remove('card-swap-enter');
+    void el.offsetWidth;
+    el.classList.add('card-swap-enter');
 }
 
 function showPreviewUploadPlaceholder() {
@@ -345,7 +504,7 @@ async function addCard() {
         : (parseFloat(document.getElementById('card-value').value) || 0);
     const customDate = document.getElementById('card-date-added').value || null;
 
-    const addBtn = document.querySelector('.form-section .full-width');
+    const addBtn = document.querySelector('.add-panel-submit');
     const originalBtnText = addBtn.textContent;
     addBtn.disabled = true;
 
@@ -358,8 +517,7 @@ async function addCard() {
             purchasePrice,
             customImage: customPreviewImage,
             customDate,
-            finish,
-            onImageUploadStart: () => { addBtn.innerHTML = '<span class="loading"></span>Sauvegarde de l\'image...'; }
+            finish
         });
     } catch (error) {
         addBtn.disabled = false;
@@ -392,6 +550,216 @@ async function addCard() {
     customPreviewImage = null;
     currentMarketValue = 0;
 
+    // Uniquement après un ajout Collection réellement réussi (jamais dans le catch ci-dessus) : la
+    // modale mobile doit rester ouverte avec les champs conservés en cas d'erreur. closeMobileAddPanel()
+    // ne dépend pas de selectedCard, donc fonctionne même après sa remise à null juste au-dessus.
+    if (isMobileAddPanelOpen()) closeMobileAddPanel();
+
     await refreshCollection();
     await recordValueSnapshot();
 }
+
+// ===== PHASE 2 CATALOGUE : bascule fiche consultation / formulaire d'ajout =====
+// Purement visuel (classes CSS) : ne lit ni n'écrit aucune donnée, n'altère pas
+// selectCard()/addCard(). Les champs du formulaire restent dans le DOM en permanence
+// pour que addCard() continue de les trouver, qu'ils soient repliés ou non.
+
+function toggleAddPanel(show) {
+    const expand = document.getElementById('catalogue-add-expand');
+    const toggleBtn = document.getElementById('add-panel-toggle');
+    if (!expand) return;
+    const next = typeof show === 'boolean' ? show : !expand.classList.contains('open');
+    expand.classList.toggle('open', next);
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(next));
+}
+
+// Grand desktop (>=1920px, cf mockup) : le panneau "Ajouter à ma collection" reste
+// déplié par défaut pour remplir la fiche, au lieu de nécessiter un clic.
+function isAddPanelDefaultOpen() {
+    return window.matchMedia('(min-width: 1920px)').matches;
+}
+
+if (isAddPanelDefaultOpen()) toggleAddPanel(true);
+
+function stepAddQuantity(delta) {
+    const input = document.getElementById('card-quantity');
+    if (!input) return;
+    const min = Number(input.min) || 1;
+    const max = Number(input.max) || 100;
+    const next = Math.min(max, Math.max(min, (parseInt(input.value, 10) || min) + delta));
+    input.value = next;
+}
+
+function markResultSelected(el) {
+    document.querySelectorAll('.search-result-item.selected').forEach(item => item.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function onSearchResultClick(card, el) {
+    selectCard(card);
+    markResultSelected(el);
+    toggleAddPanel(isAddPanelDefaultOpen());
+
+    // openMobileAddPanel() est déjà défensive (no-op si >960px ou déjà ouverte) : rien à vérifier ici.
+    openMobileAddPanel();
+}
+
+// ===== PHASE 3 CATALOGUE : tri, vue grille/liste, filtres avancés =====
+// Filtrage/tri purement côté client sur lastSearchResults (déjà chargé par searchCards()).
+// N'appelle ni ne modifie addCard()/selectCard()/performCardAdd() : aucune donnée persistée
+// n'est lue ni écrite ici.
+
+let activeSort = 'set-asc';
+
+function getSearchResultPrice(card) {
+    if (card.pricing?.cardmarket?.avg) return card.pricing.cardmarket.avg;
+    if (card.pricing?.cardmarket?.['avg-holo']) return card.pricing.cardmarket['avg-holo'];
+    return 0;
+}
+
+function sortSearchResults(cards) {
+    const sorted = [...cards];
+    if (activeSort === 'name-asc') {
+        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    } else if (activeSort === 'price-desc') {
+        sorted.sort((a, b) => getSearchResultPrice(b) - getSearchResultPrice(a));
+    } else {
+        sorted.sort((a, b) => (a.set?.name || '').localeCompare(b.set?.name || ''));
+    }
+    return sorted;
+}
+
+function updateCatalogueResultsInfo(count) {
+    const label = document.getElementById('catalogue-results-label');
+    const countEl = document.getElementById('catalogue-results-count');
+    const query = document.getElementById('card-search').value.trim();
+    if (label) {
+        if (query) {
+            const escaped = query.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            label.innerHTML = `Résultats pour : <span class="catalogue-toolbar-query-highlight">${escaped}</span>`;
+        } else {
+            label.textContent = '';
+        }
+    }
+    if (countEl) countEl.textContent = query ? `${count} carte${count !== 1 ? 's' : ''} trouvée${count !== 1 ? 's' : ''}` : '';
+}
+
+function setSearchSort(value) {
+    activeSort = value;
+    applySearchFilters();
+}
+
+// isUserAction=false réservé au défaut mobile automatique (displaySearchResults) : ne marque pas
+// catalogueViewUserSet, pour que ce défaut puisse continuer à s'appliquer tant que l'utilisateur n'a
+// pas lui-même cliqué sur un bouton grille/liste (onclick="setCatalogueView('grid'|'list')", sans
+// second argument, garde donc isUserAction=true).
+function setCatalogueView(mode, isUserAction = true) {
+    if (isUserAction) catalogueViewUserSet = true;
+    const grid = document.getElementById('search-results');
+    if (grid) grid.classList.toggle('list-view', mode === 'list');
+    document.querySelectorAll('.catalogue-view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+}
+
+function toggleCatalogueFilterPopover(event) {
+    if (event) event.stopPropagation();
+    document.getElementById('catalogue-filter-popover').classList.toggle('active');
+}
+
+document.addEventListener('click', (e) => {
+    const popover = document.getElementById('catalogue-filter-popover');
+    if (popover && popover.classList.contains('active') && !e.target.closest('.catalogue-filter-popover-wrap')) {
+        popover.classList.remove('active');
+    }
+});
+
+// ===== MODALE MOBILE "AJOUTER" (<=960px) =====
+// Déplace physiquement .catalogue-sheet-sticky (même nœud, formulaire inclus) entre .catalogue-sheet-col
+// (desktop) et #mobile-add-overlay-card (modale mobile) : un seul formulaire, jamais recréé/dupliqué,
+// aucun ID dupliqué, aucun listener rajouté sur les champs (tout est déjà en onclick inline sur les
+// éléments déplacés, donc conservé automatiquement par le déplacement).
+
+function isMobileAddPanelViewport() {
+    return window.matchMedia('(max-width: 960px)').matches;
+}
+
+function isMobileAddPanelOpen() {
+    const overlay = document.getElementById('mobile-add-overlay');
+    return !!overlay && overlay.classList.contains('active');
+}
+
+// Le popup flatpickr est positionné en absolute par rapport à l'input au moment de l'ouverture : un
+// changement de parent pendant qu'il est ouvert le laisserait mal ancré, d'où la fermeture préalable
+// systématique avant tout déplacement de nœud (ouverture comme fermeture de la modale).
+function closeCardDateFlatpickr() {
+    const input = document.getElementById('card-date-added');
+    if (input && input._flatpickr) input._flatpickr.close();
+}
+
+// Verrou de scroll dédié à cette modale (jamais partagé avec la fiche Wishlist ou une autre modale) :
+// mémorise document.body.style.overflow uniquement au premier verrouillage, pour ne jamais écraser une
+// valeur déjà modifiée par un autre overlay si jamais deux venaient à se chevaucher.
+let mobileAddPanelScrollLocked = false;
+let mobileAddPanelPreviousBodyOverflow = '';
+
+function lockMobileAddPanelScroll() {
+    if (mobileAddPanelScrollLocked) return;
+    mobileAddPanelPreviousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    mobileAddPanelScrollLocked = true;
+}
+
+function unlockMobileAddPanelScroll() {
+    if (!mobileAddPanelScrollLocked) return;
+    document.body.style.overflow = mobileAddPanelPreviousBodyOverflow;
+    mobileAddPanelScrollLocked = false;
+}
+
+function openMobileAddPanel() {
+    if (!isMobileAddPanelViewport()) return;
+    if (isMobileAddPanelOpen()) return;
+
+    const sheet = document.querySelector('.catalogue-sheet-sticky');
+    const overlayCard = document.getElementById('mobile-add-overlay-card');
+    const overlay = document.getElementById('mobile-add-overlay');
+    if (!sheet || !overlayCard || !overlay) return;
+
+    closeCardDateFlatpickr();
+    overlayCard.appendChild(sheet);
+    overlay.classList.add('active');
+    lockMobileAddPanelScroll();
+}
+
+function closeMobileAddPanel() {
+    if (!isMobileAddPanelOpen()) return;
+
+    closeCardDateFlatpickr();
+    document.getElementById('mobile-add-overlay').classList.remove('active');
+    unlockMobileAddPanelScroll();
+
+    const sheet = document.querySelector('.catalogue-sheet-sticky');
+    const desktopSlot = document.querySelector('.catalogue-sheet-col');
+    if (sheet && desktopSlot) desktopSlot.appendChild(sheet);
+}
+
+// Un seul listener resize, débouncé, installé une fois au chargement du script (pas de duplication
+// possible). N'agit que si le viewport franchit réellement le seuil 960px depuis le dernier passage
+// (mobileAddPanelWasMobile sert de mémoire) : ne rerend jamais le formulaire, ne rappelle jamais
+// selectCard(), s'appuie uniquement sur openMobileAddPanel()/closeMobileAddPanel() déjà défensives.
+let mobileAddPanelWasMobile = isMobileAddPanelViewport();
+let mobileAddPanelResizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(mobileAddPanelResizeTimer);
+    mobileAddPanelResizeTimer = setTimeout(() => {
+        const isMobileNow = isMobileAddPanelViewport();
+        if (isMobileNow === mobileAddPanelWasMobile) return;
+        mobileAddPanelWasMobile = isMobileNow;
+
+        if (isMobileNow) {
+            if (selectedCard) openMobileAddPanel();
+        } else {
+            closeMobileAddPanel();
+        }
+    }, 150);
+});

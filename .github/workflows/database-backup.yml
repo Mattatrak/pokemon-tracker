@@ -1,0 +1,72 @@
+name: PokéTracker Database Backup
+
+# Sauvegarde uniquement la base Postgres (schema + data + roles), pas Supabase Storage (card-images) -
+# hors scope de ce ticket, viendra dans un workflow séparé. Free plan Supabase : pas de backups
+# automatiques fournis par la plateforme, Supabase recommande explicitement `supabase db dump` +
+# stockage hors-site (cf docs Backups). Rétention 30 jours = filet de sécurité court terme, pas un
+# stockage long terme (sujet d'un prochain ticket : destination externe S3/Drive/etc).
+
+on:
+  schedule:
+    # 02:00 UTC, quotidien. Heure arbitraire mais creuse (peu de risque de chevaucher un usage actif).
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    name: Dump & archive Supabase database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Session pooler uniquement (IPv4) : la connexion "Direct" Supabase exige IPv6 sur le plan Free,
+      # injoignable depuis les runners GitHub Actions (IPv4-only). Le secret SUPABASE_DB_URL doit
+      # contenir l'URL "Session pooler" (Dashboard -> Connect -> Session pooler), jamais la "Direct
+      # connection". Le mot de passe n'est jamais echo/affiché - seulement passé en argument de commande,
+      # que GitHub masque automatiquement dans les logs car il correspond exactement au secret enregistré.
+      - name: Dump schema (tables, RLS, functions, triggers, indexes, constraints)
+        run: supabase db dump --db-url "${{ secrets.SUPABASE_DB_URL }}" -f schema.sql
+
+      - name: Dump data
+        run: supabase db dump --db-url "${{ secrets.SUPABASE_DB_URL }}" --data-only -f data.sql
+
+      - name: Dump roles
+        run: supabase db dump --db-url "${{ secrets.SUPABASE_DB_URL }}" --role-only -f roles.sql
+
+      # Vérification minimale mais explicite : un dump qui a "réussi" (exit code 0) mais produit un
+      # fichier vide (mauvaise URL, connexion refusée silencieusement dans de rares cas) ne doit jamais
+      # être uploadé comme s'il était valide - le job échoue avant d'atteindre l'étape d'upload.
+      - name: Verify dumps are non-empty
+        run: |
+          set -euo pipefail
+          for f in schema.sql data.sql roles.sql; do
+            if [ ! -s "$f" ]; then
+              echo "::error::$f is missing or empty - aborting, not uploading an invalid backup."
+              exit 1
+            fi
+            echo "$f: $(wc -c < "$f") bytes"
+          done
+
+      - name: Build archive
+        id: archive
+        run: |
+          set -euo pipefail
+          timestamp=$(date -u +"%Y-%m-%d_%H%M%SUTC")
+          name="poketracker-db-${timestamp}.tar.gz"
+          tar czf "$name" schema.sql data.sql roles.sql
+          if [ ! -s "$name" ]; then
+            echo "::error::Archive $name is missing or empty."
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.archive.outputs.name }}
+          path: ${{ steps.archive.outputs.name }}
+          retention-days: 30
+          if-no-files-found: error

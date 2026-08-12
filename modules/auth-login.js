@@ -1,5 +1,26 @@
 // Login form handling - Pokémon Tracker
-// Dépend de: supabaseClient, REMEMBER_ME_KEY (tracker.js)
+// Dépend de: supabaseClient, REMEMBER_ME_KEY, ROUTE_TO_TAB, TAB_ROUTES (tracker.js)
+
+// Dupliquée depuis modules/auth.js (voir commentaire là-bas) pour ne pas toucher à tracker.js.
+const REDIRECT_ROUTE_KEY = 'poketracker-redirect-route';
+
+// Dupliquée depuis modules/auth.js (même raison). Liste blanche réelle, pas une confiance aveugle dans
+// sessionStorage : les 6 routes fixes plus #/user/<username> borné au format de profiles.username.
+function isValidRedirectRoute(route) {
+    return Object.prototype.hasOwnProperty.call(ROUTE_TO_TAB, route) || /^\/user\/[A-Za-z0-9_-]{3,20}$/.test(route);
+}
+
+// Consomme (lit + supprime, usage unique) la route mémorisée par modules/auth.js avant la redirection vers
+// login.html. Revalidée contre ROUTE_TO_TAB (défense en profondeur : jamais faire confiance à une valeur
+// lue en storage sans revalidation) — repli sur /dashboard si absente ou invalide.
+function getPostLoginRedirectHash() {
+    const requestedRoute = sessionStorage.getItem(REDIRECT_ROUTE_KEY);
+    sessionStorage.removeItem(REDIRECT_ROUTE_KEY);
+    const validRoute = requestedRoute && isValidRedirectRoute(requestedRoute)
+        ? requestedRoute
+        : TAB_ROUTES['tab-dashboard'];
+    return './#' + validRoute;
+}
 
 function showLoginView() {
     document.querySelectorAll('.login-view').forEach(v => v.classList.remove('active'));
@@ -62,7 +83,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         btn.disabled = false;
         btn.textContent = 'Se connecter';
     } else {
-        window.location.href = 'index.html';
+        window.location.replace(getPostLoginRedirectHash());
     }
 });
 
@@ -70,6 +91,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
 document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const pseudo = document.getElementById('signup-pseudo').value.trim();
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
     const passwordConfirm = document.getElementById('signup-password-confirm').value;
@@ -89,12 +111,19 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.textContent = 'Création...';
 
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-
-    btn.disabled = false;
-    btn.textContent = 'Créer mon compte';
+    // Sans emailRedirectTo, Supabase retombe sur le "Site URL" configuré dans le dashboard du projet
+    // pour le lien de confirmation de l'e-mail — qui peut valoir localhost (valeur par défaut) et n'a
+    // aucune raison de correspondre à l'origine réelle d'où l'inscription a été faite. Même pattern que
+    // resetPasswordForEmail juste plus bas dans ce fichier.
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
 
     if (error) {
+        btn.disabled = false;
+        btn.textContent = 'Créer mon compte';
         errorEl.textContent = error.message.includes('already registered') || error.message.includes('User already')
             ? 'Un compte existe déjà avec cette adresse e-mail.'
             : 'Impossible de créer le compte. Réessaie.';
@@ -102,9 +131,23 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
         return;
     }
 
+    if (data.user) {
+        // Profil créé même si la confirmation e-mail est activée (data.user existe dans les deux cas,
+        // data.session seulement si la confirmation est désactivée). Erreur non bloquante pour l'inscription
+        // (ex: table profiles pas encore migrée) : le profil pourra être complété plus tard via la modale.
+        const { error: profileError } = await supabaseClient.from('profiles').insert({
+            id: data.user.id,
+            pseudo
+        });
+        if (profileError) console.error('Erreur création profil:', profileError);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Créer mon compte';
+
     if (data.session) {
         // Confirmation e-mail désactivée côté Supabase : le compte est actif immédiatement
-        window.location.href = 'index.html';
+        window.location.replace(getPostLoginRedirectHash());
         return;
     }
 
@@ -175,7 +218,7 @@ document.getElementById('reset-form').addEventListener('submit', async (e) => {
         return;
     }
 
-    window.location.href = 'index.html';
+    window.location.replace(getPostLoginRedirectHash());
 });
 
 supabaseClient.auth.onAuthStateChange((event) => {

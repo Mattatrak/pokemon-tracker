@@ -30,7 +30,68 @@ async function recordValueSnapshot() {
     renderHeroValueCard();
 }
 
-let heroSparklineChart = null;
+const heroSparklineCharts = {};
+
+// Variation de valeur sur une fenêtre de temps, basée uniquement sur card_price_history (prix marché
+// par carte, alimenté seulement par les rafraîchissements de prix) plutôt que sur value_history (qui
+// bouge aussi à chaque ajout/suppression/changement de quantité). La quantité ACTUELLE de chaque carte
+// est utilisée des deux côtés du calcul (avant/après), ce qui neutralise tout changement de composition
+// de la collection : seul un vrai mouvement de prix côté marché fait bouger ce chiffre.
+async function computeMarketFluctuation(windowMs) {
+    const uniqueIds = [...new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id))];
+    if (uniqueIds.length === 0) return null;
+
+    // Fenêtre + tri décroissant avec limite explicite (voir showTopMoversModal pour l'explication
+    // complète) : même avec un filtre de date, une grosse collection très rafraîchie peut dépasser
+    // la limite par défaut de 1000 lignes de PostgREST. Trier du plus récent au plus ancien garantit
+    // qu'une troncature éventuelle ne sacrifie que les points anciens, jamais les points récents.
+    const windowStart = new Date(Date.now() - windowMs - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: dataDesc, error } = await supabaseClient
+        .from('card_price_history')
+        .select('*')
+        .in('tcgdex_id', uniqueIds)
+        .gte('recorded_at', windowStart)
+        .order('recorded_at', { ascending: false })
+        .limit(20000);
+    const data = dataDesc ? [...dataDesc].reverse() : dataDesc;
+
+    if (error || !data || data.length === 0) return null;
+
+    const historyByCard = {};
+    data.forEach(point => {
+        if (!historyByCard[point.tcgdex_id]) historyByCard[point.tcgdex_id] = [];
+        historyByCard[point.tcgdex_id].push(point);
+    });
+
+    const qtyByCard = {};
+    const currentPriceByCard = {};
+    allCollectionCards.forEach(c => {
+        if (!c.tcgdex_id) return;
+        qtyByCard[c.tcgdex_id] = (qtyByCard[c.tcgdex_id] || 0) + Number(c.quantity || 1);
+        if (!(c.tcgdex_id in currentPriceByCard)) currentPriceByCard[c.tcgdex_id] = Number(c.market_value || 0);
+    });
+
+    const cutoff = Date.now() - windowMs;
+    let baselineTotal = 0;
+    let currentTotal = 0;
+
+    uniqueIds.forEach(id => {
+        const points = historyByCard[id];
+        if (!points || points.length === 0) return;
+
+        let baseline = points[0];
+        for (const point of points) {
+            if (new Date(point.recorded_at).getTime() <= cutoff) baseline = point;
+            else break;
+        }
+
+        const qty = qtyByCard[id] || 0;
+        baselineTotal += Number(baseline.market_value) * qty;
+        currentTotal += (currentPriceByCard[id] || 0) * qty;
+    });
+
+    return { delta: currentTotal - baselineTotal, baselineTotal, currentTotal };
+}
 
 async function renderHeroValueCard() {
     const { value } = updateStats();
@@ -50,20 +111,22 @@ async function renderHeroValueCard() {
 
     const data = recentDesc.slice().reverse(); // remis en ordre chronologique (ascendant)
 
-    // Mini-graphique en fond (sparkline)
-    const canvas = document.getElementById('hero-sparkline');
-    if (canvas && typeof Chart !== 'undefined') {
+    // Mini-graphique en fond (sparkline) — dupliqué sur chaque page qui affiche la carte valeur
+    ['hero-sparkline', 'collection-hero-sparkline'].forEach(canvasId => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || typeof Chart === 'undefined') return;
+
         const values = data.map(d => Number(d.total_value));
         const trendUp = values[values.length - 1] >= values[0];
 
-        if (heroSparklineChart) heroSparklineChart.destroy();
-        heroSparklineChart = new Chart(canvas, {
+        if (heroSparklineCharts[canvasId]) heroSparklineCharts[canvasId].destroy();
+        heroSparklineCharts[canvasId] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: values.map((_, i) => i),
                 datasets: [{
                     data: values,
-                    borderColor: trendUp ? '#4ade80' : '#ff6b6b',
+                    borderColor: trendUp ? '#7ED9A7' : '#ff6b6b',
                     backgroundColor: trendUp ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 107, 107, 0.12)',
                     borderWidth: 2,
                     fill: true,
@@ -82,24 +145,19 @@ async function renderHeroValueCard() {
                 }
             }
         });
-    }
+    });
 
-    // Fluctuation sur les dernières 24h
-    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    let baseline = data[0]; // par défaut : tout premier point connu (si collection < 24h)
-    for (const point of data) {
-        if (new Date(point.recorded_at).getTime() <= dayAgo) {
-            baseline = point;
-        } else {
-            break;
-        }
-    }
-
-    const delta = value - Number(baseline.total_value);
+    // Fluctuation sur les dernières 24h (prix marché uniquement, cf. computeMarketFluctuation)
+    const fluctuation = await computeMarketFluctuation(24 * 60 * 60 * 1000);
     if (fluctEl) {
-        const sign = delta > 0 ? '+' : '';
-        fluctEl.textContent = `${sign}${delta.toFixed(2)}€ (24h)`;
-        fluctEl.className = 'hero-fluctuation ' + (delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral');
+        if (!fluctuation) {
+            fluctEl.textContent = '';
+            fluctEl.className = 'hero-fluctuation';
+        } else {
+            const sign = fluctuation.delta > 0 ? '+' : '';
+            fluctEl.textContent = `${sign}${fluctuation.delta.toFixed(2)}€ (24h)`;
+            fluctEl.className = 'hero-fluctuation ' + (fluctuation.delta > 0 ? 'positive' : fluctuation.delta < 0 ? 'negative' : 'neutral');
+        }
     }
 }
 
@@ -109,8 +167,10 @@ async function showTopMoversModal() {
     const content = document.getElementById('top-movers-content');
     content.innerHTML = `
         <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-        <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-        <p style="text-align: center; color: var(--slate); padding: 1rem;">Chargement...</p>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+            <p style="text-align: center; color: var(--slate); padding: 1rem;">Chargement...</p>
+        </div>
     `;
     document.getElementById('top-movers-overlay').classList.add('active');
 
@@ -118,23 +178,37 @@ async function showTopMoversModal() {
     if (uniqueIds.length === 0) {
         content.innerHTML = `
             <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-            <p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune carte avec un historique de prix.</p>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+                <p style="text-align: center; color: var(--slate); padding: 1rem;">Aucune carte avec un historique de prix.</p>
+            </div>
         `;
         return;
     }
 
-    const { data, error } = await supabaseClient
+    // Fenêtre limitée à 3 jours : même avec ce filtre, une grosse collection très rafraîchie peut
+    // encore dépasser la limite par défaut de 1000 lignes de PostgREST (vérifié en pratique). On
+    // trie donc en DESCENDANT (le plus récent d'abord) avec une limite explicite généreuse, pour
+    // que si troncature il y a malgré tout, ce soit les points les plus ANCIENS qui sautent — jamais
+    // les points récents dont on a besoin pour "maintenant" et "il y a ~24h". On ré-inverse ensuite
+    // pour retrouver l'ordre croissant attendu par le reste du code.
+    const windowStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: dataDesc, error } = await supabaseClient
         .from('card_price_history')
         .select('*')
         .in('tcgdex_id', uniqueIds)
-        .order('recorded_at', { ascending: true });
+        .gte('recorded_at', windowStart)
+        .order('recorded_at', { ascending: false })
+        .limit(20000);
+    const data = dataDesc ? [...dataDesc].reverse() : dataDesc;
 
     if (error || !data) {
         content.innerHTML = `
             <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-            <p style="text-align: center; color: var(--slate); padding: 1rem;">Erreur de chargement.</p>
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+                <p style="text-align: center; color: var(--slate); padding: 1rem;">Erreur de chargement.</p>
+            </div>
         `;
         return;
     }
@@ -145,10 +219,13 @@ async function showTopMoversModal() {
         historyByCard[point.tcgdex_id].push(point);
     });
 
-    const currentByCard = {};
+    // Nom/numéro affichés depuis la collection, mais la VALEUR actuelle vient du dernier point de
+    // card_price_history (même source que la fiche carte, cf. renderCardPriceChart) — sinon les deux
+    // vues peuvent se contredire si cards.market_value n'est pas parfaitement synchronisé.
+    const nameByCard = {};
     allCollectionCards.forEach(c => {
-        if (c.tcgdex_id && !(c.tcgdex_id in currentByCard)) {
-            currentByCard[c.tcgdex_id] = { name: c.name, number: c.number, value: Number(c.market_value || 0) };
+        if (c.tcgdex_id && !(c.tcgdex_id in nameByCard)) {
+            nameByCard[c.tcgdex_id] = { name: c.name, number: c.number };
         }
     });
 
@@ -157,10 +234,12 @@ async function showTopMoversModal() {
 
     uniqueIds.forEach(id => {
         const points = historyByCard[id];
-        const current = currentByCard[id];
-        if (!points || points.length === 0 || !current) return;
+        const info = nameByCard[id];
+        if (!points || points.length === 0 || !info) return;
 
-        let baseline = points[0];
+        const current = { ...info, value: Number(points[points.length - 1].market_value) };
+
+        let baseline = null;
         for (const point of points) {
             if (new Date(point.recorded_at).getTime() <= dayAgo) {
                 baseline = point;
@@ -168,6 +247,11 @@ async function showTopMoversModal() {
                 break;
             }
         }
+
+        // Pas de point antérieur à 24h (carte trop récemment suivie) : impossible de calculer
+        // une variation sur cette fenêtre, on n'affiche rien pour cette carte plutôt que de
+        // comparer au premier point disponible (qui pourrait dater de quelques heures).
+        if (!baseline) return;
 
         const baselineValue = Number(baseline.market_value);
         if (baselineValue <= 0) return;
@@ -192,8 +276,10 @@ async function showTopMoversModal() {
 
     content.innerHTML = `
         <button class="modal-close" onclick="closeTopMoversModal()">✕</button>
-        <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
-        ${listHtml}
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 1rem;">Plus grosses variations (24h)</div>
+            ${listHtml}
+        </div>
     `;
 }
 
