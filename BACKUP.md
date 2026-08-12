@@ -1,7 +1,14 @@
 # Backups PokéTracker
 
-Sauvegarde automatique de la base de données Supabase, quotidienne, via GitHub Actions.
-Workflow : [`.github/workflows/database-backup.yml`](.github/workflows/database-backup.yml).
+Deux workflows GitHub Actions indépendants, quotidiens :
+- **Base de données** — [`.github/workflows/database-backup.yml`](.github/workflows/database-backup.yml) (02:00 UTC)
+- **Storage (`card-images`)** — [`.github/workflows/storage-backup.yml`](.github/workflows/storage-backup.yml) (03:00 UTC)
+
+Décalés d'une heure pour ne pas cumuler la charge sur l'API Supabase, mais totalement indépendants l'un de l'autre (aucun ne dépend du succès de l'autre).
+
+---
+
+# Base de données
 
 ## Ce qui est sauvegardé
 
@@ -13,7 +20,6 @@ Les 3 fichiers sont regroupés dans une seule archive `poketracker-db-<date>_<he
 
 ## Ce qui N'EST PAS sauvegardé (pour l'instant)
 
-- **Supabase Storage** (bucket `card-images`) — hors scope de ce ticket, prévu séparément.
 - **Utilisateurs d'authentification** (`auth.users`, mots de passe, sessions) — `supabase db dump` exclut par construction les schémas internes `auth`/`storage`. Une vraie sauvegarde des comptes utilisateurs nécessite une méthode différente (Auth Admin API), à traiter dans un ticket dédié si besoin.
 - Toute donnée hors du schéma `public` (extensions, schémas internes Supabase).
 
@@ -54,37 +60,107 @@ Rétention actuelle : **30 jours**. Au-delà, l'artifact disparaît automatiquem
 
 ## Procédure de restauration (projet Supabase de test)
 
+**Validée en conditions réelles le 2026-08-12** (restauration testée de bout en bout sur un vrai projet de test, données de prod : 791 cartes, 4 wishlists, 18 items, 30 policies RLS, 6 fonctions RPC — toutes retrouvées intactes).
+
 À tester dans un **projet Supabase séparé**, jamais directement sur le projet de production.
 
 ### Prérequis
 
 - Un projet Supabase de test (nouveau projet, vide).
-- `psql` installé localement, ou la CLI Supabase.
+- Node.js installé localement (pour lancer la CLI Supabase via `npx`, sans installation permanente — la CLI Supabase ne supporte pas `npm install -g`).
 - L'archive téléchargée et extraite (`schema.sql`, `data.sql`, `roles.sql`).
+
+Pas besoin de `psql` : la CLI embarque tout ce qu'il faut.
 
 ### Étapes
 
-Utiliser la connexion **Session pooler** du projet de test (même logique que pour le backup), dans cet ordre précis — les rôles et le schéma doivent exister avant d'insérer les données :
+1. **Placer les fichiers dans la structure attendue par la CLI.** Depuis un dossier de travail (ex. `Downloads`), les 3 fichiers doivent être dans un sous-dossier nommé exactement `supabase/`, avec `schema.sql`/`data.sql` renommés en migrations timestampées dans `supabase/migrations/` :
 
-```bash
-# 1. Rôles (si le dump en contient de personnalisés)
-psql "postgresql://postgres.[ref-test]:[password]@aws-[region].pooler.supabase.com:5432/postgres" -f roles.sql
+   ```bash
+   cd chemin/vers/dossier-de-travail/supabase
+   cp schema.sql migrations/00000000000001_schema.sql
+   cp data.sql migrations/00000000000002_data.sql
+   cd ..
+   ```
 
-# 2. Schéma (tables, RLS, fonctions, triggers, indexes, contraintes)
-psql "postgresql://postgres.[ref-test]:[password]@aws-[region].pooler.supabase.com:5432/postgres" -f schema.sql
+   Structure finale attendue :
+   ```
+   dossier-de-travail/
+     supabase/
+       roles.sql
+       migrations/
+         00000000000001_schema.sql
+         00000000000002_data.sql
+   ```
 
-# 3. Données
-psql "postgresql://postgres.[ref-test]:[password]@aws-[region].pooler.supabase.com:5432/postgres" -f data.sql
-```
+2. **Restaurer en une seule commande**, depuis `dossier-de-travail` (celui qui contient `supabase/`), avec la connexion **Session pooler** du projet de test :
+
+   ```bash
+   npx -y supabase@latest db push --db-url "postgresql://postgres.[ref-test]:[password]@aws-[region].pooler.supabase.com:5432/postgres" --include-roles
+   ```
+
+   `--include-roles` applique `supabase/roles.sql` en premier, puis les migrations sont appliquées dans l'ordre (schéma avant données, grâce au préfixe timestamp).
 
 ### Vérifications après restauration
 
+Toujours via la CLI, pas besoin de `psql` :
+
+```bash
+npx -y supabase@latest db query --db-url "<connexion test>" "select 'cards' as t, count(*) from public.cards union all select 'wishlists', count(*) from public.wishlists union all select 'wishlist', count(*) from public.wishlist;"
+
+npx -y supabase@latest db query --db-url "<connexion test>" "select count(*) as policy_count from pg_policies where schemaname='public';"
+
+npx -y supabase@latest db query --db-url "<connexion test>" "select routine_name from information_schema.routines where routine_schema='public' order by routine_name;"
+```
+
 - Le nombre de lignes dans les tables clés (`cards`, `wishlists`, `wishlist`) correspond à ce qui était attendu.
-- Les policies RLS sont bien présentes (`select * from pg_policies;`).
-- Les fonctions/RPC utilisées par l'app (`is_admin`, `get_wishlist_items_public`, etc.) existent et s'exécutent sans erreur.
+- Le nombre de policies RLS correspond à ce qui était attendu.
+- Les fonctions/RPC utilisées par l'app (`is_admin`, `get_wishlist_items_public`, `admin_set_card_image`, `get_cards_public`, `get_missing_image_cards`, `get_wishlists_public`) existent toutes.
 - Aucune donnée `auth.users` n'est présente — normal, non couvert par ce backup (cf plus haut). Un projet de test nécessite donc de recréer manuellement un compte pour se connecter à l'app pointée dessus.
+
+**Note** : `supabase db query` fait remonter automatiquement des alertes de sécurité structurelles (ex. RLS désactivée sur une table) au-dessus du résultat de la requête — utile à surveiller, indépendant du contenu du backup lui-même.
 
 ### Ce qui manquera après une restauration complète
 
-- Les images du bucket Storage `card-images` (pas encore sauvegardées, ticket séparé).
+- Les images du bucket Storage `card-images` — voir la section Storage ci-dessous, sauvegardées séparément.
 - Les comptes utilisateurs Auth (email/mot de passe, sessions) — à recréer manuellement dans le projet de test.
+
+### Après un test de restauration
+
+- **Supprimer le projet Supabase de test** une fois la vérification terminée — ne pas laisser traîner une copie des données de prod.
+- Si le mot de passe du projet de test a été partagé (chat, ticket, etc.), le régénérer par précaution même si le projet est ensuite supprimé.
+
+---
+
+# Storage (`card-images`)
+
+## Ce qui est sauvegardé
+
+Tous les fichiers du bucket `card-images`, arborescence complète (`ball/`, `custom/`, `energy/`, `logos/`, `symbols/`, `tcgdex/...`), listés récursivement puis téléchargés un par un, regroupés dans `poketracker-storage-<date>_<heure>UTC.tar.gz`.
+
+Script : [`.github/scripts/backup-storage.mjs`](.github/scripts/backup-storage.mjs). Testé en conditions réelles le 2026-08-12 : 725 fichiers, ~40,5 Mo, arborescence (y compris les sous-dossiers imbriqués) intacte après téléchargement.
+
+## Ce qui N'EST PAS sauvegardé
+
+- Les autres buckets Storage éventuels (ce workflow ne couvre que `card-images`).
+- Les métadonnées Storage internes non exposées par `list()` (policies du bucket lui-même, configuration) — seuls les fichiers et leur chemin sont sauvegardés, pas la configuration du bucket.
+
+## Méthode et secrets requis
+
+**REST API Storage + clé `anon`, pas de `service_role`, pas de jeton de compte Supabase.** Le bucket `card-images` est configuré public : `list()` et le téléchargement fonctionnent avec la clé `anon` sans policy SELECT dédiée sur `storage.objects` — vérifié empiriquement (requêtes réelles contre le bucket) avant d'écrire le workflow, pas juste supposé.
+
+Deux secrets GitHub, tous deux déjà publics par nature (visibles dans le code source client de l'app), mis en secrets par propreté plutôt que par nécessité de confidentialité stricte :
+- `SUPABASE_PROJECT_URL` : `https://[project-ref].supabase.co`
+- `SUPABASE_ANON_KEY` : la clé `anon` du projet (Dashboard → Project Settings → API)
+
+## Lancer une sauvegarde manuellement
+
+Repo GitHub → onglet **Actions** → workflow **PokéTracker Storage Backup** → bouton **Run workflow**.
+
+## Télécharger un backup
+
+Même procédure que pour la base : Actions → l'exécution du workflow → section **Artifacts** → télécharger le `.zip` (contient l'archive `.tar.gz`). Rétention 30 jours, même logique que le backup base de données (filet de sécurité court terme, pas un stockage long terme).
+
+## Procédure de restauration
+
+Pas encore documentée/testée — à faire dans un prochain ticket (ré-upload des fichiers vers le bucket d'un projet de test via l'API Storage ou la CLI, en conservant l'arborescence).
