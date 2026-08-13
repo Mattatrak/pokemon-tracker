@@ -31,7 +31,11 @@ const PTCG_SET_ID_MAP = {
     // Identité (pas de transformation) : id identique des deux côtés. Couverture PTCG plus restreinte
     // que TCGdex sur ce set (196 cartes indexées vs 226) - certaines cartes svp-### resteront donc
     // "indisponible" même mappées, c'est attendu (promos ajoutées de façon irrégulière côté PTCG).
-    'svp': 'svp' // SVP Black Star Promos -> Scarlet & Violet Black Star Promos
+    'svp': 'svp', // SVP Black Star Promos -> Scarlet & Violet Black Star Promos
+    // Identité également (vérifié directement sur l'API : set.id "swshp", 304 cartes indexées).
+    // swshp-SWSH301 en particulier reste "indisponible" même mappé (absent du catalogue PTCG malgré
+    // la présence de SWSH300/303/304/305/306/307) - même situation d'irrégularité que svp ci-dessus.
+    'swshp': 'swshp' // SWSH Black Star Promos -> Sword & Shield Black Star Promos
 };
 
 const PTCG_API_BASE = 'https://api.pokemontcg.io/v2';

@@ -2848,6 +2848,7 @@ tbody tr:hover {
 
 .wishlist-picker-new input {
     flex: 1;
+    min-width: 0;
 }
 
 .wishlist-picker-add-btn {

@@ -1,8 +1,12 @@
 // Profil public (Phase 3) - Pokémon Tracker
 // Dépend de: supabaseClient (tracker.js), escapeHtml/sortRaritiesByTier/buildRarityFilterRowHtml/
 // getRarityGroupKey/getRarityIconHtml/renderFinishBadge/getTypesIconsHtml/getCardmarketUrl (utils.js),
-// getGridNoImageHtml (collection.js) — réutilisés en lecture seule (générateurs HTML purs). cardmarket_id
-// exposé par get_cards_public/get_wishlist_items_public depuis 2026-08-09
+// getGridNoImageHtml/getDuplicateCardsWithQuantity (collection.js) — réutilisés en lecture seule
+// (générateurs HTML purs / calcul pur). getDuplicateCardsWithQuantity applique la même définition
+// métier du doublon que le filtre "Doublons" de la Collection propriétaire (aucune donnée SQL
+// supplémentaire, aucune nouvelle notion "à l'échange" persistée, cf audit du 2026-08-12) pour la
+// section "Doublons à l'échange" et le match associé. cardmarket_id exposé par
+// get_cards_public/get_wishlist_items_public depuis 2026-08-09
 // (sql/migrations/2026-08-09_public_surfaces_cardmarket_id.sql). computeWishlistMatch (Ticket 2,
 // modules/collector-match.js, module pur sans effet de bord) pour le bloc "Correspondances avec toi".
 // Route #/user/<username>, gérée par getTabIdFromHash()/activateTabContent() dans tracker.js (tabId
@@ -47,6 +51,29 @@ let viewedPublicWishlistExpandedIds = new Set();
 let profileMatchesA = [];
 let profileMatchesB = [];
 let profileMatchDetailExpanded = false;
+
+// Doublons à l'échange (V1 simplifiée, cf audit du 2026-08-12) : dérivés à 100% de viewedPublicCards
+// via getDuplicateCardsWithQuantity (modules/collection.js, même définition métier que le filtre
+// "Doublons" de la Collection propriétaire — pas de deuxième définition). Aucune donnée persistée,
+// aucune requête dédiée. profileDuplicateMatches = doublons du profil consulté qui sont dans MA
+// wishlist (allWishlistItems), calculé via computeWishlistMatch existant (modules/collector-match.js)
+// en substituant quantity par duplicateQuantity — le principe "1 exemplaire principal + N doublons"
+// s'applique aussi au matching (cf audit : 3 possédées = 2 potentiellement échangeables, pas 3).
+let viewedPublicDuplicateCards = [];
+let profileDuplicateMatches = [];
+
+// Raretés jamais retenues comme "doublon à l'échange" (trop communes pour être un vrai signal
+// d'échange, cf demande utilisateur du 2026-08-12) : Commune, Peu commune, Holo (rare de base).
+// Comparaison par clé de groupe (getRarityGroupKey, utils.js) plutôt que par texte brut : couvre
+// toutes les variantes de libellé TCGdex d'une même rareté (ex "Rare Holo"/"Holo Rare"/"Holographique"
+// -> même groupe holo.webp). N'affecte QUE cette section et son matching : le filtre "Doublons" de la
+// Collection propriétaire (modules/collection.js, getDuplicateCardsWithQuantity) reste inchangé et
+// sans notion d'exclusion — l'exclusion est appliquée ici, en amont, sur les données déjà chargées.
+const DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS = new Set(['commune.webp', 'peu-commune.webp', 'holo.webp']);
+
+function getPublicDuplicateEligibleCards(cards) {
+    return (cards || []).filter(c => !DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS.has(getRarityGroupKey(c.rarity)));
+}
 
 // Id (viewedPublicCards) de la carte actuellement affichée dans la fiche détail publique, pour pouvoir
 // rafraîchir uniquement son bouton "Ajouter à ma wishlist" après un ajout (cf. addPublicCardToWishlistInternal,
@@ -96,6 +123,8 @@ async function loadPublicProfile(username) {
     profileMatchesA = [];
     profileMatchesB = [];
     profileMatchDetailExpanded = false;
+    viewedPublicDuplicateCards = [];
+    profileDuplicateMatches = [];
 
     if (!username) {
         renderPublicProfileNotFound(container);
@@ -126,6 +155,7 @@ async function loadPublicProfile(username) {
             viewedPublicCards = cards;
             cardCount = cards.reduce((sum, c) => sum + Number(c.quantity || 0), 0);
             collectionValue = cards.reduce((sum, c) => sum + Number(c.quantity || 0) * Number(c.market_value || 0), 0);
+            viewedPublicDuplicateCards = getDuplicateCardsWithQuantity(getPublicDuplicateEligibleCards(viewedPublicCards));
         }
     }
 
@@ -143,6 +173,12 @@ async function loadPublicProfile(username) {
     if (!isSelf) {
         if (profile.collection_visible) {
             profileMatchesA = computeWishlistMatch(allWishlistItems, viewedPublicCards);
+            // quantity substituée par duplicateQuantity (surplus au-delà de l'exemplaire principal) :
+            // computeWishlistMatch ne lit que .quantity, aucune modification de cette fonction requise.
+            profileDuplicateMatches = computeWishlistMatch(
+                allWishlistItems,
+                viewedPublicDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }))
+            );
         }
         if (profile.wishlist_visible) {
             profileMatchesB = computeWishlistMatch(viewedPublicWishlistItems, allCollectionCards);
@@ -250,6 +286,15 @@ function renderPublicProfileShell(container, profile) {
             </div>
         ` : ''}
 
+        ${(profile.collection_visible && viewedPublicDuplicateCards.length > 0) ? `
+            <div class="user-profile-section user-profile-duplicates-browser">
+                <div class="user-profile-section-title"><i class="ti ti-copy" aria-hidden="true"></i> Doublons à l'échange</div>
+                <div class="collection-display-case">
+                    <div class="collection-grid">${renderPublicDuplicateCardsHtml()}</div>
+                </div>
+            </div>
+        ` : ''}
+
         ${profile.collection_visible ? `
             <div class="user-profile-section user-profile-collection-browser">
                 <div class="user-profile-section-title"><i class="ti ti-cards" aria-hidden="true"></i> Collection</div>
@@ -296,13 +341,20 @@ function renderPublicProfileShell(container, profile) {
 function renderProfileMatchSection(profile) {
     const summaryLines = [];
 
+    // Match prioritaire (V1 doublons, cf audit du 2026-08-12) : placé en tête, wording explicite sur
+    // l'actionnabilité réelle ("ses doublons", pas juste "sa collection"). Remplace la sous-ligne
+    // "possédée en plusieurs exemplaires" de profileMatchesA ci-dessous (même signal, devenu redondant
+    // maintenant qu'il existe une version précise) sans retirer la ligne principale de profileMatchesA,
+    // qui reste utile même hors doublon (carte possédée en un seul exemplaire, toujours pas échangeable
+    // mais toujours une info valide "il l'a").
+    if (profileDuplicateMatches.length > 0) {
+        const n = profileDuplicateMatches.length;
+        summaryLines.push(`${n} de ses doublon${n > 1 ? 's' : ''} correspond${n > 1 ? 'ent' : ''} à ta wishlist`);
+    }
+
     if (profileMatchesA.length > 0) {
         const n = profileMatchesA.length;
         summaryLines.push(`${n} carte${n > 1 ? 's' : ''} de ta wishlist ${n > 1 ? 'sont' : 'est'} dans sa collection`);
-        const multipleA = profileMatchesA.filter(m => m.multiple).length;
-        if (multipleA > 0) {
-            summaryLines.push(`${multipleA} ${multipleA > 1 ? 'sont' : 'est'} possédée${multipleA > 1 ? 's' : ''} en plusieurs exemplaires`);
-        }
     }
 
     if (profileMatchesB.length > 0) {
@@ -319,6 +371,12 @@ function renderProfileMatchSection(profile) {
     const expanded = profileMatchDetailExpanded;
 
     const groupsHtml = `
+        ${profileDuplicateMatches.length > 0 ? `
+            <div class="user-profile-match-group">
+                <div class="user-profile-match-group-title">Ses doublons qui t'intéressent</div>
+                <div class="wishlist-thumb-grid">${profileDuplicateMatches.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
+            </div>
+        ` : ''}
         ${profileMatchesA.length > 0 ? `
             <div class="user-profile-match-group">
                 <div class="user-profile-match-group-title">Dans ta wishlist</div>
@@ -446,6 +504,40 @@ function getFilteredSortedPublicCollection() {
             sorted.sort((a, b) => (Number(b.market_value || 0) * Number(b.quantity || 1)) - (Number(a.market_value || 0) * Number(a.quantity || 1)));
     }
     return sorted;
+}
+
+// Section "Doublons à l'échange" (V1 simplifiée, cf audit du 2026-08-12). Même trame visuelle que
+// renderPublicCollectionGrid (.collection-card, .price-badge, badges série/rareté) : aucune nouvelle
+// fiche détail, clic -> showPublicCardDetail existant (card.id reste un id valide de viewedPublicCards,
+// getDuplicateCardsWithQuantity ne fait que sélectionner une carte représentative par groupe). Le badge
+// affiche duplicateQuantity (surplus au-delà de l'exemplaire principal), jamais quantity brute — cf audit
+// "3 exemplaires = 2 doublons potentiels, pas 3".
+function renderPublicDuplicateCardsHtml() {
+    return viewedPublicDuplicateCards.map(card => {
+        const lineTotal = Number(card.market_value || 0) * Number(card.quantity || 1);
+        const conditionClass = (card.condition || '').toLowerCase();
+
+        return `
+            <div class="collection-card" onclick="showPublicCardDetail(${card.id})">
+                ${card.image
+                    ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
+                    : getGridNoImageHtml()
+                }
+                <div class="qty-badge" title="Doublons disponibles">↔ ${card.duplicateQuantity}</div>
+                <div class="price-badge">${lineTotal.toFixed(2)}€</div>
+                <div class="set-rarity-badge-row">
+                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
+                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
+                </div>
+                <div class="collection-card-overlay">
+                    <div class="collection-card-name">${escapeHtml(card.name)}</div>
+                    <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)} · #${card.number}</div>
+                    <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
+                    ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // Réutilise les classes CSS de la grille personnelle (.collection-card, .qty-badge, .price-badge,

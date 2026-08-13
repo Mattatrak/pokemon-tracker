@@ -697,25 +697,6 @@ function closeCardDateFlatpickr() {
     if (input && input._flatpickr) input._flatpickr.close();
 }
 
-// Verrou de scroll dédié à cette modale (jamais partagé avec la fiche Wishlist ou une autre modale) :
-// mémorise document.body.style.overflow uniquement au premier verrouillage, pour ne jamais écraser une
-// valeur déjà modifiée par un autre overlay si jamais deux venaient à se chevaucher.
-let mobileAddPanelScrollLocked = false;
-let mobileAddPanelPreviousBodyOverflow = '';
-
-function lockMobileAddPanelScroll() {
-    if (mobileAddPanelScrollLocked) return;
-    mobileAddPanelPreviousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    mobileAddPanelScrollLocked = true;
-}
-
-function unlockMobileAddPanelScroll() {
-    if (!mobileAddPanelScrollLocked) return;
-    document.body.style.overflow = mobileAddPanelPreviousBodyOverflow;
-    mobileAddPanelScrollLocked = false;
-}
-
 function openMobileAddPanel() {
     if (!isMobileAddPanelViewport()) return;
     if (isMobileAddPanelOpen()) return;
@@ -727,8 +708,7 @@ function openMobileAddPanel() {
 
     closeCardDateFlatpickr();
     overlayCard.appendChild(sheet);
-    overlay.classList.add('active');
-    lockMobileAddPanelScroll();
+    overlay.classList.add('active'); // verrou de scroll générique : cf syncModalScrollLock (tracker.js)
 }
 
 function closeMobileAddPanel() {
@@ -736,7 +716,6 @@ function closeMobileAddPanel() {
 
     closeCardDateFlatpickr();
     document.getElementById('mobile-add-overlay').classList.remove('active');
-    unlockMobileAddPanelScroll();
 
     const sheet = document.querySelector('.catalogue-sheet-sticky');
     const desktopSlot = document.querySelector('.catalogue-sheet-col');

@@ -33,12 +33,28 @@ const CHANGELOG = [
         date: '2026-08-12 02:00',
         title: 'Patch correctif mobile',
         changes: [
+            { type: 'new', text: 'L\'affichage des résultats d\'une recherche de cartes depuis le menu ajouter s\'ouvre maintenant en mode tableau par défaut sur mobile.' },
+            { type: 'fix', text: 'Comportement du scroll lorsqu\'une fenêtre est ouverte.' },
             { type: 'fix', text: 'Correctif alignement de la page wishlist pour mobile.' },
             { type: 'fix', text: 'Correctifs divers sur la page d\'ajout pour mobile.' },
             { type: 'fix', text: 'Correctifs sur le mécanisme de fermeture des fenêtre sur mobile.' },
             { type: 'improved', text: 'Améliorations visuelles de la page collectionneurs pour mobile.' },
             { type: 'improved', text: 'Améliorations visuelles de la page wishlist pour mobile.' },
-            { type: 'new', text: 'L\'affichage des résultats d\'une recherche de cartes depuis le menu ajouter s\'ouvre maintenant en mode tableau par défaut sur mobile.' },
-        ]
-    }
+                    ]
+    },
+
+    {
+            version: '1.1.0',
+            date: '2026-08-12 02:00',
+            title: 'Patch correctif mobile',
+            changes: [
+                { type: 'new', text: 'Affichage des doublons échangeable dans la page collectionneur' },
+                { type: 'fix', text: 'Comportement du scroll lorsqu\'une fenêtre est ouverte.' },
+                { type: 'fix', text: 'Correctif alignement de la page wishlist pour mobile.' },
+                { type: 'fix', text: 'Correctifs divers sur la page d\'ajout pour mobile.' },
+                { type: 'fix', text: 'Correctifs sur le mécanisme de fermeture des fenêtre sur mobile.' },
+                { type: 'improved', text: 'Améliorations visuelles de la page collectionneurs pour mobile.' },
+                { type: 'improved', text: 'Améliorations visuelles de la page wishlist pour mobile.' },
+                        ]
+        }
 ];

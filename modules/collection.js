@@ -516,6 +516,29 @@ function computeDuplicateGroupTotals() {
     return totals;
 }
 
+// Version générique de la logique doublon ci-dessus (même regroupement via getDuplicateGroupKey, même
+// seuil total > 1), mais paramétrée sur un tableau de cartes arbitraire au lieu du global
+// allCollectionCards — réutilisable pour une collection publique tierce (profil public, matching).
+// Ne modifie ni ne duplique la définition métier existante, se contente de l'appliquer ailleurs.
+// Retourne une carte représentative par groupe (la première rencontrée) enrichie d'un champ
+// duplicateQuantity = total du groupe - 1 : le total inclut l'exemplaire "principal" qu'on ne
+// considère jamais comme échangeable, seul le surplus l'est (cf audit demandé : quantity=4 -> 3
+// doublons potentiels, pas 4).
+function getDuplicateCardsWithQuantity(cards) {
+    const totals = {};
+    const representative = {};
+
+    (cards || []).forEach(card => {
+        const key = getDuplicateGroupKey(card);
+        totals[key] = (totals[key] || 0) + Number(card.quantity || 1);
+        if (!representative[key]) representative[key] = card;
+    });
+
+    return Object.keys(totals)
+        .filter(key => totals[key] > 1)
+        .map(key => ({ ...representative[key], duplicateQuantity: totals[key] - 1 }));
+}
+
 // Un filtre actif (hors recherche, hors tri) : condition/série/type/rareté/doublons/illustrateur
 function hasActiveCollectionFilters() {
     return !!collectionFilters.condition ||

@@ -980,3 +980,36 @@ function initDesktopNavigation() {
 }
 
 document.addEventListener('DOMContentLoaded', initDesktopNavigation);
+
+// ===== VERROU DE SCROLL PENDANT UNE MODALE =====
+// Générique : ne connaît aucun modal en particulier, ne dépend d'aucune fonction d'ouverture/fermeture.
+// Chaque modal bascule déjà .active sur son .modal-overlay (pattern déjà systématique dans ce projet) -
+// un MutationObserver par overlay suffit à savoir si au moins un modal est ouvert, sans toucher aux ~14
+// fonctions d'ouverture/fermeture existantes ni aux futures. Remplace lockMobileAddPanelScroll/
+// unlockMobileAddPanelScroll (modules/cards.js), qui ne couvrait que la modale "Ajouter" mobile - retirées
+// pour ne pas avoir deux mécanismes qui se disputent le même overflow.
+//
+// documentElement (html), pas body : body n'a jamais eu de règle overflow (cf styles.css, seul html a
+// overflow-x:hidden en permanence) - c'est html qui est l'élément qui scroll réellement sur ce site.
+// Verrouiller body.style.overflow n'avait donc aucun effet (vérifié en usage réel). overflow-x reste
+// déjà hidden en CSS (permanent, non touché ici) ; seul overflow-y est ajouté temporairement pendant
+// qu'un modal est ouvert, jamais overflow-x sur les deux (html et body) en même temps - c'est
+// spécifiquement ce que le commentaire de html évite pour ne pas casser position:sticky.
+let modalScrollLockPreviousOverflowY = '';
+let modalScrollLocked = false;
+
+function syncModalScrollLock() {
+    const anyModalActive = document.querySelector('.modal-overlay.active') !== null;
+    if (anyModalActive && !modalScrollLocked) {
+        modalScrollLockPreviousOverflowY = document.documentElement.style.overflowY;
+        document.documentElement.style.overflowY = 'hidden';
+        modalScrollLocked = true;
+    } else if (!anyModalActive && modalScrollLocked) {
+        document.documentElement.style.overflowY = modalScrollLockPreviousOverflowY;
+        modalScrollLocked = false;
+    }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    new MutationObserver(syncModalScrollLock).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+});
