@@ -1,9 +1,12 @@
 name: PokéTracker Release Check
 
-# Vérification minimale avant/après déploiement (cf RELEASE.md étapes 6 et 7) : syntaxe JS + cohérence
-# des tokens ?v= entre index.html/login.html et sw.js (CORE_ASSETS). Ne bloque aucun déploiement -
-# GitHub Pages sert directement la branche, il n'y a pas de pipeline de build à gater. Sert uniquement
-# à rendre visible, via un check GitHub, ce que RELEASE.md demande de vérifier à la main aujourd'hui.
+# Vérification minimale avant/après déploiement (ticket V7, post-Vite) : `npm run check-release`
+# (scripts/check-release.js) fait tourner `vite build` et vérifie que dist/ contient bien
+# index.html/login.html/sw.js. Avant Vite, ce workflow vérifiait la syntaxe fichier par fichier et
+# la cohérence des tokens ?v= entre index.html/login.html et sw.js (CORE_ASSETS) - les deux sont
+# devenus sans objet, `vite build` couvre la syntaxe et scripts/build-sw.js (ticket V5) élimine les
+# tokens manuels. Ne bloque aucun déploiement (le vrai déploiement est .github/workflows/deploy.yml,
+# ticket V6) - sert uniquement de check visible sur chaque push/PR.
 
 on:
   push:
@@ -13,10 +16,14 @@ on:
 
 jobs:
   check:
-    name: Syntaxe JS + cohérence des versions de cache
+    name: Build Vite + vérification dist/
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run check-release.js
-        run: node scripts/check-release.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+      - run: npm run check-release
