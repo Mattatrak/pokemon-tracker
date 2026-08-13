@@ -30,6 +30,7 @@ const CORE_ASSETS = [
     `./components/navigation/DesktopNavbar.js?v=${DEPLOY_VERSION}`,
     `./components/navigation/MobileBottomNavigation.js?v=${DEPLOY_VERSION}`,
     `./data/changelog.js?v=${DEPLOY_VERSION}`,
+    `./modules/error-tracking.js?v=${DEPLOY_VERSION}`,
     `./modules/utils.js?v=${DEPLOY_VERSION}`,
     `./modules/storage.js?v=${DEPLOY_VERSION}`,
     `./modules/favorites.js?v=${DEPLOY_VERSION}`,

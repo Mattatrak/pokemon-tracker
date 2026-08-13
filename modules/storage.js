@@ -5,6 +5,7 @@
 // Upload manuel d'un logo de série : même chemin déterministe que l'auto-téléchargement (dédup garantie),
 // et applique le logo à TOUTES les cartes déjà en collection pour ce set
 async function uploadSeriesSymbolManually(file, setId) {
+    validateImageFile(file);
     const blob = await resizeImageToWebpBlob(file, 100);
     const path = getSeriesSymbolPath(setId);
 
@@ -23,6 +24,7 @@ async function uploadSeriesSymbolManually(file, setId) {
 }
 
 async function uploadSeriesLogoManually(file, setId) {
+    validateImageFile(file);
     const blob = await resizeImageToWebpBlob(file, 300);
     const path = getSeriesLogoPath(setId);
 
@@ -147,6 +149,7 @@ async function fetchAndUploadExternalImage(externalUrl, tcgdexId) {
 // Upload une image personnelle (uploadée manuellement) vers Supabase Storage
 // Si un tcgdexId est fourni, l'image est rangée au même endroit que les images auto (réutilisable plus tard)
 async function uploadImageToStorage(file, tcgdexId = null) {
+    validateImageFile(file);
     const blob = await resizeImageToBlob(file, 400);
     const path = tcgdexId
         ? getTcgdexImagePath(tcgdexId)

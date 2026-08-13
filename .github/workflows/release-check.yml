@@ -1,0 +1,22 @@
+name: PokéTracker Release Check
+
+# Vérification minimale avant/après déploiement (cf RELEASE.md étapes 6 et 7) : syntaxe JS + cohérence
+# des tokens ?v= entre index.html/login.html et sw.js (CORE_ASSETS). Ne bloque aucun déploiement -
+# GitHub Pages sert directement la branche, il n'y a pas de pipeline de build à gater. Sert uniquement
+# à rendre visible, via un check GitHub, ce que RELEASE.md demande de vérifier à la main aujourd'hui.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    name: Syntaxe JS + cohérence des versions de cache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run check-release.js
+        run: node scripts/check-release.js
