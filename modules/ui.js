@@ -83,3 +83,19 @@ function closeConfirmModal(result) {
         confirmModalResolve = null;
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.textPromptResolve = textPromptResolve;
+window.showTextPromptModal = showTextPromptModal;
+window.submitTextPrompt = submitTextPrompt;
+window.closeTextPrompt = closeTextPrompt;
+window.confirmModalResolve = confirmModalResolve;
+window.showConfirmModal = showConfirmModal;
+window.closeConfirmModal = closeConfirmModal;

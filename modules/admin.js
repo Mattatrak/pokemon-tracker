@@ -327,3 +327,32 @@ async function submitAdminImageUpload() {
         btn.innerHTML = originalHtml;
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.adminMissingImageCards = adminMissingImageCards;
+window.adminSearchQuery = adminSearchQuery;
+window.adminUploadTargetTcgdexId = adminUploadTargetTcgdexId;
+window.adminUploadFile = adminUploadFile;
+window.adminAutoSearchResult = adminAutoSearchResult;
+window.PTCG_SET_ID_MAP = PTCG_SET_ID_MAP;
+window.PTCG_API_BASE = PTCG_API_BASE;
+window.PTCG_API_KEY = PTCG_API_KEY;
+window.renderAdminGate = renderAdminGate;
+window.loadAdminMissingImages = loadAdminMissingImages;
+window.onAdminSearchInput = onAdminSearchInput;
+window.renderAdminMissingImagesTable = renderAdminMissingImagesTable;
+window.fetchPtcgCard = fetchPtcgCard;
+window.searchAdminAutoImage = searchAdminAutoImage;
+window.openAdminAutoImageModal = openAdminAutoImageModal;
+window.submitAdminAutoImage = submitAdminAutoImage;
+window.openAdminImageUploadModal = openAdminImageUploadModal;
+window.closeAdminImageUploadModal = closeAdminImageUploadModal;
+window.handleAdminImageFileChange = handleAdminImageFileChange;
+window.submitAdminImageUpload = submitAdminImageUpload;

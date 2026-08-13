@@ -385,3 +385,37 @@ function buildWishlistDetailHtml(item) {
         </div>
     `;
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.wishlistDetailScrollLocked = wishlistDetailScrollLocked;
+window.wishlistDetailPrevBodyOverflow = wishlistDetailPrevBodyOverflow;
+window.wishlistDetailCurrentItemId = wishlistDetailCurrentItemId;
+window.wishlistDetailMoveOpen = wishlistDetailMoveOpen;
+window.wishlistDetailBusy = wishlistDetailBusy;
+window.wishlistDetailAcquisitionOpen = wishlistDetailAcquisitionOpen;
+window.wishlistDetailAcquisitionType = wishlistDetailAcquisitionType;
+window.wishlistDetailAcquisitionPrice = wishlistDetailAcquisitionPrice;
+window.wishlistDetailAcquisitionDate = wishlistDetailAcquisitionDate;
+window.wishlistDetailTodayIso = wishlistDetailTodayIso;
+window.openWishlistItemDetail = openWishlistItemDetail;
+window.closeWishlistItemDetail = closeWishlistItemDetail;
+window.refreshWishlistItemDetail = refreshWishlistItemDetail;
+window.destroyWishlistDetailAcquisitionDatePicker = destroyWishlistDetailAcquisitionDatePicker;
+window.renderWishlistItemDetail = renderWishlistItemDetail;
+window.lockBodyScrollForWishlistDetail = lockBodyScrollForWishlistDetail;
+window.unlockBodyScrollForWishlistDetail = unlockBodyScrollForWishlistDetail;
+window.wishlistDetailOpenAcquisition = wishlistDetailOpenAcquisition;
+window.wishlistDetailCloseAcquisition = wishlistDetailCloseAcquisition;
+window.wishlistDetailSetAcquisitionType = wishlistDetailSetAcquisitionType;
+window.wishlistDetailConfirmAcquisition = wishlistDetailConfirmAcquisition;
+window.wishlistDetailToggleMove = wishlistDetailToggleMove;
+window.wishlistDetailMove = wishlistDetailMove;
+window.wishlistDetailRemove = wishlistDetailRemove;
+window.buildWishlistDetailHtml = buildWishlistDetailHtml;

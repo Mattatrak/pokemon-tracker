@@ -456,3 +456,47 @@ function initDatePicker(selector, presetValue) {
         defaultDate: presetValue || null
     });
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.toLocalDateInputValue = toLocalDateInputValue;
+window.handleTcgdexImgError = handleTcgdexImgError;
+window.escapeHtml = escapeHtml;
+window.showMessage = showMessage;
+window.MAX_UPLOAD_IMAGE_BYTES = MAX_UPLOAD_IMAGE_BYTES;
+window.validateImageFile = validateImageFile;
+window.resizeImageToBlob = resizeImageToBlob;
+window.resizeBlobToJpeg = resizeBlobToJpeg;
+window.sanitizeForPath = sanitizeForPath;
+window.getTcgdexImagePath = getTcgdexImagePath;
+window.getSeriesLogoPath = getSeriesLogoPath;
+window.resizeImageToWebpBlob = resizeImageToWebpBlob;
+window.getSeriesSymbolPath = getSeriesSymbolPath;
+window.getSetIdFromTcgdexId = getSetIdFromTcgdexId;
+window.normalizeForMatch = normalizeForMatch;
+window.getCardmarketSearchUrl = getCardmarketSearchUrl;
+window.getCardmarketUrl = getCardmarketUrl;
+window.RARITY_ICON_MAP = RARITY_ICON_MAP;
+window.RARITY_ORDER = RARITY_ORDER;
+window.sortRaritiesByTier = sortRaritiesByTier;
+window.buildFinishOptionsFromCard = buildFinishOptionsFromCard;
+window.buildFinishOptionsHtml = buildFinishOptionsHtml;
+window.getMarketValueForFinish = getMarketValueForFinish;
+window.FOIL_ICON_MAP = FOIL_ICON_MAP;
+window.getFoilIconHtml = getFoilIconHtml;
+window.renderFinishBadge = renderFinishBadge;
+window.getFinishLabel = getFinishLabel;
+window.getRarityIconHtml = getRarityIconHtml;
+window.getRarityGroupKey = getRarityGroupKey;
+window.TYPE_ICON_BASE_URL = TYPE_ICON_BASE_URL;
+window.getTypeIconHtml = getTypeIconHtml;
+window.getTypesIconsHtml = getTypesIconsHtml;
+window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
+window.parseCsvDate = parseCsvDate;
+window.initDatePicker = initDatePicker;

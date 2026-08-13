@@ -3,10 +3,13 @@
 // selectedCard/customPreviewImage (cards.js), showTextPromptModal/showConfirmModal (ui.js), showMessage (utils.js), normalizeForMatch (utils.js)
 // Etat possédé : allWishlists, allWishlistItems, expandedWishlistIds, wishlistPriceMap, wishlistSearchQuery, wishlistSortMode, wishlistEditResolve
 
-let allWishlists = [];
-let allWishlistItems = [];
+// window.x plutôt que let (ticket V2 Vite, type="module") pour allWishlists/allWishlistItems/
+// wishlistPriceMap : lus depuis import-export.js/wishlist-detail.js/stats-render.js/dashboard.js/
+// public-profile.js aussi. Les autres restent 100% locales à ce fichier, gardées en let normal.
+window.allWishlists = [];
+window.allWishlistItems = [];
 let expandedWishlistIds = new Set();
-let wishlistPriceMap = {};
+window.wishlistPriceMap = {};
 let wishlistSearchQuery = '';
 let wishlistSortMode = 'date-desc';
 let wishlistEditResolve = null;
@@ -744,3 +747,54 @@ async function createWishlistOnly() {
         createWishlistOnlyBusy = false;
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.expandedWishlistIds = expandedWishlistIds;
+window.wishlistSearchQuery = wishlistSearchQuery;
+window.wishlistSortMode = wishlistSortMode;
+window.wishlistEditResolve = wishlistEditResolve;
+window.WISHLIST_ICON_PRESET = WISHLIST_ICON_PRESET;
+window.WISHLIST_COLOR_PRESET = WISHLIST_COLOR_PRESET;
+window.WISHLIST_THUMB_CAP = WISHLIST_THUMB_CAP;
+window.loadWishlists = loadWishlists;
+window.loadWishlistPrices = loadWishlistPrices;
+window.filterWishlist = filterWishlist;
+window.setWishlistSort = setWishlistSort;
+window.sortWishlistItems = sortWishlistItems;
+window.moveWishlistItem = moveWishlistItem;
+window.toggleWishlistSection = toggleWishlistSection;
+window.renameWishlist = renameWishlist;
+window.deleteWishlist = deleteWishlist;
+window.deleteWishlistItem = deleteWishlistItem;
+window.markWishlistItemOwned = markWishlistItemOwned;
+window.renderWishlistsUI = renderWishlistsUI;
+window.WISHLIST_THUMB_CARD_WIDTH = WISHLIST_THUMB_CARD_WIDTH;
+window.WISHLIST_THUMB_CARD_GAP = WISHLIST_THUMB_CARD_GAP;
+window.refreshWishlistThumbPlaceholders = refreshWishlistThumbPlaceholders;
+window.wishlistPlaceholderResizeTimer = wishlistPlaceholderResizeTimer;
+window.updateWishlistKpis = updateWishlistKpis;
+window.openWishlistItemCardmarket = openWishlistItemCardmarket;
+window.showWishlistEditModal = showWishlistEditModal;
+window.selectWishlistEditIcon = selectWishlistEditIcon;
+window.selectWishlistEditColor = selectWishlistEditColor;
+window.submitWishlistEditModal = submitWishlistEditModal;
+window.closeWishlistEditModal = closeWishlistEditModal;
+window.wishlistPickerCard = wishlistPickerCard;
+window.wishlistPickerContext = wishlistPickerContext;
+window.openWishlistPicker = openWishlistPicker;
+window.closeWishlistPicker = closeWishlistPicker;
+window.renderWishlistPicker = renderWishlistPicker;
+window.wishlistPickerBusy = wishlistPickerBusy;
+window.addCardToSpecificWishlist = addCardToSpecificWishlist;
+window.addCardToSpecificWishlistInternal = addCardToSpecificWishlistInternal;
+window.addPublicCardToWishlistInternal = addPublicCardToWishlistInternal;
+window.createWishlistAndAddCard = createWishlistAndAddCard;
+window.createWishlistOnlyBusy = createWishlistOnlyBusy;
+window.createWishlistOnly = createWishlistOnly;

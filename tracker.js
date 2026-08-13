@@ -26,12 +26,17 @@ const API_EN = 'https://api.tcgdex.net/v2/en';
 // customQuickAddImage, QUICKADD_DEFAULTS_KEY, getQuickAddDefaults, saveQuickAddDefaultsToStorage, openQuickAddSettingsModal,
 // toggleQaSettingsPriceField, closeQuickAddSettingsModal, saveQuickAddSettings chargées depuis modules/progression.js
 
-let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
+// window.x plutôt que let (ticket V2 Vite, type="module") : ces variables sont lues et/ou écrites
+// depuis de nombreux autres fichiers (collection.js, dashboard.js, stats.js, stats-render.js,
+// progression.js, wishlist.js, cards.js, card-detail.js, import-export.js, auth.js...). Une déclaration
+// locale isolerait tracker.js de leurs écritures/lectures — cf audit du 2026-08-14. Toute ligne de ce
+// fichier qui fait ensuite "nom = valeur"/"nom++" continue de cibler ces mêmes propriétés window.
+window.allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
 
 // ===== DASHBOARD (obsolescence) =====
 // renderDashboard chargée depuis modules/dashboard.js. Marqué obsolète par refreshCollection()
 // (ajout/suppression/quantité/prix) et loadWishlists() (souhaits) : pas de recalcul inutile ailleurs.
-let dashboardNeedsRefresh = true;
+window.dashboardNeedsRefresh = true;
 
 // Passe à true à la toute fin de init() (auth.js). Tant que c'est false, markDashboardDirty() ne
 // déclenche aucun rendu immédiat : pendant le chargement initial, refreshCollection()/loadWishlists()/
@@ -39,7 +44,7 @@ let dashboardNeedsRefresh = true;
 // défaut dans le HTML — sans ce garde-fou, le hero se re-rendait 2-3 fois pendant init() avec des
 // données encore incomplètes (favoris pas chargés, etc.), d'où un flash visible du mauvais thème/carte
 // avant l'affichage final correct.
-let appReady = false;
+window.appReady = false;
 
 function markDashboardDirty() {
     dashboardNeedsRefresh = true;
@@ -53,14 +58,14 @@ function markDashboardDirty() {
 // Marqué obsolète uniquement par de vraies écritures (refreshCollection() ; ajout/suppression d'un
 // souhait dans modules/wishlist.js ; premier remplissage réel d'allTcgdexSeries dans
 // modules/progression.js) — jamais par une simple relecture/revisite d'un autre onglet.
-let statsNeedsRefresh = true;
+window.statsNeedsRefresh = true;
 // Incrémenté à chaque markStatsDirty(). Permet à renderStatsCharts() (modules/stats-render.js) de
 // détecter qu'une mutation a eu lieu PENDANT son propre rendu, et de rester dirty dans ce cas plutôt
 // que de se marquer propre avec des données déjà périmées à l'instant où il finit.
-let statsRenderVersion = 0;
+window.statsRenderVersion = 0;
 // Verrou anti-réentrance : statsNeedsRefresh reste vrai pendant toute la durée d'un rendu en cours,
 // donc lui seul ne suffit pas à empêcher un second appel concurrent de démarrer un second rendu.
-let statsRenderInProgress = false;
+window.statsRenderInProgress = false;
 
 function markStatsDirty() {
     statsNeedsRefresh = true;
@@ -1013,3 +1018,48 @@ function syncModalScrollLock() {
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
     new MutationObserver(syncModalScrollLock).observe(overlay, { attributes: true, attributeFilter: ['class'] });
 });
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+window.REMEMBER_ME_KEY = REMEMBER_ME_KEY;
+window.rememberAwareStorage = rememberAwareStorage;
+window.supabaseClient = supabaseClient;
+window.API_BASE = API_BASE;
+window.API_EN = API_EN;
+window.markDashboardDirty = markDashboardDirty;
+window.markStatsDirty = markStatsDirty;
+window.refreshCollection = refreshCollection;
+window.fillMissingSeriesLogos = fillMissingSeriesLogos;
+window.adjustMonthlyStatsAmount = adjustMonthlyStatsAmount;
+window.recordMonthlyStats = recordMonthlyStats;
+window.hostImageInBackground = hostImageInBackground;
+window.hostSeriesAssetsInBackground = hostSeriesAssetsInBackground;
+window.performCardAdd = performCardAdd;
+window.deleteCard = deleteCard;
+window.quantityChangeInProgress = quantityChangeInProgress;
+window.changeQuantity = changeQuantity;
+window.TAB_PAGE_MAP = TAB_PAGE_MAP;
+window.TAB_ROUTES = TAB_ROUTES;
+window.ROUTE_TO_TAB = ROUTE_TO_TAB;
+window.renderTab = renderTab;
+window.getTabIdFromHash = getTabIdFromHash;
+window.navigateToTab = navigateToTab;
+window.activateTabContent = activateTabContent;
+window.marketPriceRefreshInProgress = marketPriceRefreshInProgress;
+window.refreshAllMarketPrices = refreshAllMarketPrices;
+window.refreshAllMarketPricesInternal = refreshAllMarketPricesInternal;
+window.purgeOldPriceHistory = purgeOldPriceHistory;
+window.renderPriceMovers = renderPriceMovers;
+window.initEventListeners = initEventListeners;
+window.initDesktopNavigation = initDesktopNavigation;
+window.modalScrollLockPreviousOverflowY = modalScrollLockPreviousOverflowY;
+window.modalScrollLocked = modalScrollLocked;
+window.syncModalScrollLock = syncModalScrollLock;

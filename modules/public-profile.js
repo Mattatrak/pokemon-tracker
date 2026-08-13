@@ -871,3 +871,53 @@ function showPublicWishlistItemDetail(itemId) {
 
     document.getElementById('public-card-detail-overlay').classList.add('active');
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.viewedPublicProfile = viewedPublicProfile;
+window.viewedPublicCards = viewedPublicCards;
+window.publicCollectionSort = publicCollectionSort;
+window.publicCollectionRarityFilterValues = publicCollectionRarityFilterValues;
+window.viewedPublicWishlists = viewedPublicWishlists;
+window.viewedPublicWishlistItems = viewedPublicWishlistItems;
+window.viewedPublicWishlistPriceMap = viewedPublicWishlistPriceMap;
+window.viewedPublicWishlistExpandedIds = viewedPublicWishlistExpandedIds;
+window.profileMatchesA = profileMatchesA;
+window.profileMatchesB = profileMatchesB;
+window.profileMatchDetailExpanded = profileMatchDetailExpanded;
+window.viewedPublicDuplicateCards = viewedPublicDuplicateCards;
+window.profileDuplicateMatches = profileDuplicateMatches;
+window.DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS = DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS;
+window.getPublicDuplicateEligibleCards = getPublicDuplicateEligibleCards;
+window.publicCardDetailOpenId = publicCardDetailOpenId;
+window.getUsernameFromHash = getUsernameFromHash;
+window.escapePublicUsernameIlike = escapePublicUsernameIlike;
+window.formatPublicMemberSince = formatPublicMemberSince;
+window.renderPublicProfileNotFound = renderPublicProfileNotFound;
+window.loadPublicProfile = loadPublicProfile;
+window.loadPublicWishlistData = loadPublicWishlistData;
+window.loadPublicWishlistPrices = loadPublicWishlistPrices;
+window.renderPublicProfileShell = renderPublicProfileShell;
+window.renderProfileMatchSection = renderProfileMatchSection;
+window.renderProfileMatchThumb = renderProfileMatchThumb;
+window.toggleProfileMatchDetail = toggleProfileMatchDetail;
+window.populatePublicCollectionSeriesFilter = populatePublicCollectionSeriesFilter;
+window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
+window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
+window.setPublicCollectionSort = setPublicCollectionSort;
+window.getFilteredSortedPublicCollection = getFilteredSortedPublicCollection;
+window.renderPublicDuplicateCardsHtml = renderPublicDuplicateCardsHtml;
+window.renderPublicCollectionGrid = renderPublicCollectionGrid;
+window.showPublicCardDetail = showPublicCardDetail;
+window.closePublicCardDetail = closePublicCardDetail;
+window.openWishlistPickerForPublicCard = openWishlistPickerForPublicCard;
+window.refreshPublicCardDetailWishlistState = refreshPublicCardDetailWishlistState;
+window.renderPublicWishlistLists = renderPublicWishlistLists;
+window.togglePublicWishlistSection = togglePublicWishlistSection;
+window.showPublicWishlistItemDetail = showPublicWishlistItemDetail;

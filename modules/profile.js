@@ -23,7 +23,9 @@ function getAvatarUrlPrefix() {
 }
 const USERNAME_FORMAT = /^[A-Za-z0-9_-]{3,20}$/;
 
-let currentUserProfile = null;
+// window.x plutôt que let (ticket V2 Vite, type="module") : currentUserProfile lu depuis
+// DesktopNavbar.js/dashboard.js/public-profile.js aussi. cachedAvatarOptions reste 100% locale.
+window.currentUserProfile = null;
 let cachedAvatarOptions = null; // liste des fichiers du bucket, chargée à la demande
 
 async function loadUserProfile() {
@@ -342,3 +344,30 @@ document.addEventListener('click', (event) => {
         closeProfileMenu();
     }
 });
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.AVATAR_BUCKET = AVATAR_BUCKET;
+window.PROFILE_FALLBACK_EMOJI = PROFILE_FALLBACK_EMOJI;
+window.getAvatarUrlPrefix = getAvatarUrlPrefix;
+window.USERNAME_FORMAT = USERNAME_FORMAT;
+window.cachedAvatarOptions = cachedAvatarOptions;
+window.loadUserProfile = loadUserProfile;
+window.formatMemberSince = formatMemberSince;
+window.fetchAvatarOptions = fetchAvatarOptions;
+window.profileAvatarHtml = profileAvatarHtml;
+window.openProfileModal = openProfileModal;
+window.selectProfileAvatar = selectProfileAvatar;
+window.checkProfileDirty = checkProfileDirty;
+window.onProfileUsernameInput = onProfileUsernameInput;
+window.saveProfile = saveProfile;
+window.closeProfileModal = closeProfileModal;
+window.openProfileMenuEl = openProfileMenuEl;
+window.toggleProfileMenu = toggleProfileMenu;
+window.closeProfileMenu = closeProfileMenu;

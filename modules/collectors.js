@@ -286,3 +286,34 @@ const dashboardCollectorsSearchController = createCollectorsSearchController({
 function onDashboardCollectorsSearchInput() {
     dashboardCollectorsSearchController.handleInput(document.getElementById('dashboard-collectors-input')?.value);
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.COLLECTORS_MIN_QUERY_LENGTH = COLLECTORS_MIN_QUERY_LENGTH;
+window.COLLECTORS_DEBOUNCE_MS = COLLECTORS_DEBOUNCE_MS;
+window.COLLECTORS_RESULT_LIMIT = COLLECTORS_RESULT_LIMIT;
+window.DASHBOARD_COLLECTORS_RESULT_LIMIT = DASHBOARD_COLLECTORS_RESULT_LIMIT;
+window.escapeCollectorsIlike = escapeCollectorsIlike;
+window.searchPublicCollectors = searchPublicCollectors;
+window.renderCollectorsHint = renderCollectorsHint;
+window.renderCollectorsLoading = renderCollectorsLoading;
+window.renderCollectorsError = renderCollectorsError;
+window.renderCollectorsNoResults = renderCollectorsNoResults;
+window.renderCollectorsNoPublicProfiles = renderCollectorsNoPublicProfiles;
+window.renderCollectorsResults = renderCollectorsResults;
+window.renderDashboardCollectorsResults = renderDashboardCollectorsResults;
+window.createCollectorsSearchController = createCollectorsSearchController;
+window.createDefaultCollectorsLoader = createDefaultCollectorsLoader;
+window.collectorsPageDefaultLoader = collectorsPageDefaultLoader;
+window.collectorsPageSearchController = collectorsPageSearchController;
+window.onCollectorsSearchInput = onCollectorsSearchInput;
+window.resetCollectorsSearchView = resetCollectorsSearchView;
+window.dashboardCollectorsDefaultLoader = dashboardCollectorsDefaultLoader;
+window.dashboardCollectorsSearchController = dashboardCollectorsSearchController;
+window.onDashboardCollectorsSearchInput = onDashboardCollectorsSearchInput;

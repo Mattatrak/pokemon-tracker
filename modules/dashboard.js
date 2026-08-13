@@ -650,3 +650,36 @@ async function dashboardUpdateWishlistTrends(items) {
         el.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-arrow-up' : 'ti-arrow-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€`;
     });
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.dashboardRenderSafe = dashboardRenderSafe;
+window.renderDashboard = renderDashboard;
+window.dashboardBuildSkeleton = dashboardBuildSkeleton;
+window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
+window.renderDashboardHeader = renderDashboardHeader;
+window.dashboardGetLastMovers = dashboardGetLastMovers;
+window.DASHBOARD_FEATURED_FAVORITE_KEY = DASHBOARD_FEATURED_FAVORITE_KEY;
+window.dashboardGetFeaturedFavoriteIndex = dashboardGetFeaturedFavoriteIndex;
+window.dashboardShowNextFavorite = dashboardShowNextFavorite;
+window.renderDashboardHero = renderDashboardHero;
+window.dashboardUpdateHeroVariation = dashboardUpdateHeroVariation;
+window.renderDashboardKpis = renderDashboardKpis;
+window.dashboardKpiHtml = dashboardKpiHtml;
+window.dashboardRelativeTime = dashboardRelativeTime;
+window.renderDashboardActivity = renderDashboardActivity;
+window.dashboardFindBestObjective = dashboardFindBestObjective;
+window.renderDashboardObjective = renderDashboardObjective;
+window.renderDashboardTopMovers = renderDashboardTopMovers;
+window.renderDashboardAcquisitions = renderDashboardAcquisitions;
+window.renderDashboardTodo = renderDashboardTodo;
+window.dashboardWishlistEmptyHtml = dashboardWishlistEmptyHtml;
+window.renderDashboardWishlist = renderDashboardWishlist;
+window.renderDashboardCollectorsSearch = renderDashboardCollectorsSearch;
+window.dashboardUpdateWishlistTrends = dashboardUpdateWishlistTrends;

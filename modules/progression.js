@@ -9,7 +9,8 @@
 // currentProgressionCards, progressionFilter, progressionFinishMode, currentProgressionStoredFilenames,
 // progressionRarityFilterValues
 
-let customQuickAddImage = null; // URL Supabase Storage une fois uploadée (vignette d'ajout rapide)
+// window.x plutôt que let (ticket V2 Vite, type="module") : lu depuis tracker.js aussi.
+window.customQuickAddImage = null; // URL Supabase Storage une fois uploadée (vignette d'ajout rapide)
 
 // ===== REGLAGES D'AJOUT RAPIDE (Progression) =====
 
@@ -103,8 +104,10 @@ function saveQuickAddSettings() {
 
 // ===== PROGRESSION PAR SERIE =====
 
-let allTcgdexSeries = [];
-let currentProgressionSetId = null;
+// window.x plutôt que let (ticket V2 Vite, type="module") pour allTcgdexSeries/currentProgressionSetId :
+// lus depuis stats-render.js/dashboard.js/tracker.js aussi. currentProgressionCards reste 100% locale.
+window.allTcgdexSeries = [];
+window.currentProgressionSetId = null;
 let currentProgressionCards = [];
 let progressionFilter = 'all';
 let progressionFinishMode = 'normal';
@@ -997,3 +1000,55 @@ async function submitQuickAdd(card) {
         renderProgressionCardsGrid();
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.QUICKADD_DEFAULTS_KEY = QUICKADD_DEFAULTS_KEY;
+window.getQuickAddDefaults = getQuickAddDefaults;
+window.saveQuickAddDefaultsToStorage = saveQuickAddDefaultsToStorage;
+window.openQuickAddSettingsModal = openQuickAddSettingsModal;
+window.toggleQaSettingsPriceField = toggleQaSettingsPriceField;
+window.closeQuickAddSettingsModal = closeQuickAddSettingsModal;
+window.saveQuickAddSettings = saveQuickAddSettings;
+window.currentProgressionCards = currentProgressionCards;
+window.progressionFilter = progressionFilter;
+window.progressionFinishMode = progressionFinishMode;
+window.currentProgressionStoredFilenames = currentProgressionStoredFilenames;
+window.progressionStoredLogoFilenames = progressionStoredLogoFilenames;
+window.progressionLogosLoaded = progressionLogosLoaded;
+window.progressionOpenSeriesIds = progressionOpenSeriesIds;
+window.progressionLogoCachingTriggered = progressionLogoCachingTriggered;
+window.resolveCachedLogoUrl = resolveCachedLogoUrl;
+window.loadSeriesProgress = loadSeriesProgress;
+window.computeProgressionKpiData = computeProgressionKpiData;
+window.renderProgressionKpis = renderProgressionKpis;
+window.renderProgressionSeriesList = renderProgressionSeriesList;
+window.toggleProgressionSeries = toggleProgressionSeries;
+window.followedSets = followedSets;
+window.loadFollowedSets = loadFollowedSets;
+window.renderFollowedSetsSection = renderFollowedSetsSection;
+window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
+window.openSetProgression = openSetProgression;
+window.progressionRarityFilterValues = progressionRarityFilterValues;
+window.setProgressionRarityFilter = setProgressionRarityFilter;
+window.populateProgressionRarityFilter = populateProgressionRarityFilter;
+window.renderProgressionCardsGrid = renderProgressionCardsGrid;
+window.computeAvailableFinishModes = computeAvailableFinishModes;
+window.renderProgressionFinishToggle = renderProgressionFinishToggle;
+window.cardHasFinishVariant = cardHasFinishVariant;
+window.setProgressionFinishMode = setProgressionFinishMode;
+window.setProgressionFilter = setProgressionFilter;
+window.backToSeriesProgress = backToSeriesProgress;
+window.addFromProgression = addFromProgression;
+window.quickInstantAdd = quickInstantAdd;
+window.getQuickAddUploadPlaceholderHtml = getQuickAddUploadPlaceholderHtml;
+window.handleQuickAddImageUpload = handleQuickAddImageUpload;
+window.showAddCardModal = showAddCardModal;
+window.toggleQuickAddPurchasePriceField = toggleQuickAddPurchasePriceField;
+window.submitQuickAdd = submitQuickAdd;

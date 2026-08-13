@@ -3,8 +3,10 @@
 // renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js)
 // Etat possédé : sortColumn, sortDirection, collectionFilters, collectionViewMode
 
-let sortColumn = 'value';
-let sortDirection = 'desc';
+// window.x plutôt que let (ticket V2 Vite, type="module") : sortColumn/sortDirection sont lus/écrits
+// depuis tracker.js aussi.
+window.sortColumn = 'value';
+window.sortDirection = 'desc';
 
 // Source de vérité unique pour tous les filtres Collection (refonte filtres, cf. audit du 2026-08-11).
 // Seul point d'écriture manuel : le picker "+ Ajouter un filtre" (applyCollectionFilter/removeCollectionFilter
@@ -953,7 +955,8 @@ function renderCollectionGrid(filtered) {
     replayEntrance(grid);
 }
 
-let collectionViewMode = 'grid';
+// window.x plutôt que let (ticket V2 Vite, type="module") : lu depuis tracker.js aussi.
+window.collectionViewMode = 'grid';
 
 function isCollectionMobileViewport() {
     return window.matchMedia('(max-width: 768px)').matches;
@@ -1022,3 +1025,72 @@ async function backfillIllustrators() {
     await refreshCollection();
     showMessage(`Illustrateur ajouté sur ${updated}/${missing.length} carte(s)`, 'success');
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.collectionFilters = collectionFilters;
+window.filterCollectionByIllustrator = filterCollectionByIllustrator;
+window.COLLECTION_CONDITION_LABELS = COLLECTION_CONDITION_LABELS;
+window.getRarityLabelForGroupKey = getRarityLabelForGroupKey;
+window.getActiveCollectionFilterChips = getActiveCollectionFilterChips;
+window.renderCollectionFilterChips = renderCollectionFilterChips;
+window.removeCollectionFilter = removeCollectionFilter;
+window.collectionFilterPickerStep = collectionFilterPickerStep;
+window.collectionFilterPickerActiveKey = collectionFilterPickerActiveKey;
+window.collectionFilterPickerSearchTerm = collectionFilterPickerSearchTerm;
+window.COLLECTION_FILTER_TYPES = COLLECTION_FILTER_TYPES;
+window.COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD = COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD;
+window.getCollectionFilterPickerOptions = getCollectionFilterPickerOptions;
+window.isCollectionFilterTypeAvailable = isCollectionFilterTypeAvailable;
+window.hasAvailableCollectionFilterTypes = hasAvailableCollectionFilterTypes;
+window.updateCollectionAddFilterButtonState = updateCollectionAddFilterButtonState;
+window.openCollectionFilterPicker = openCollectionFilterPicker;
+window.closeCollectionFilterPicker = closeCollectionFilterPicker;
+window.positionCollectionFilterPicker = positionCollectionFilterPicker;
+window.showCollectionFilterTypeOptions = showCollectionFilterTypeOptions;
+window.showCollectionFilterValueOptions = showCollectionFilterValueOptions;
+window.renderCollectionFilterPickerValueRows = renderCollectionFilterPickerValueRows;
+window.setCollectionFilterPickerSearch = setCollectionFilterPickerSearch;
+window.applyCollectionFilter = applyCollectionFilter;
+window.sortCollection = sortCollection;
+window.updateSortArrows = updateSortArrows;
+window.applySorting = applySorting;
+window.pruneStaleCollectionFilters = pruneStaleCollectionFilters;
+window.getDuplicateGroupKey = getDuplicateGroupKey;
+window.computeDuplicateGroupTotals = computeDuplicateGroupTotals;
+window.getDuplicateCardsWithQuantity = getDuplicateCardsWithQuantity;
+window.hasActiveCollectionFilters = hasActiveCollectionFilters;
+window.updateResetFiltersButtonVisibility = updateResetFiltersButtonVisibility;
+window.resetCollectionFilters = resetCollectionFilters;
+window.getFilteredSortedCollection = getFilteredSortedCollection;
+window.COLLECTION_PAGE_SIZE = COLLECTION_PAGE_SIZE;
+window.collectionDisplayLimit = collectionDisplayLimit;
+window.selectedCardIds = selectedCardIds;
+window.clearSelection = clearSelection;
+window.toggleCardSelection = toggleCardSelection;
+window.toggleSelectAllVisible = toggleSelectAllVisible;
+window.updateSelectAllCheckboxState = updateSelectAllCheckboxState;
+window.updateBulkActionsBar = updateBulkActionsBar;
+window.bulkUpdateCondition = bulkUpdateCondition;
+window.bulkDeleteSelected = bulkDeleteSelected;
+window.filterAndDisplay = filterAndDisplay;
+window.loadMoreCollectionCards = loadMoreCollectionCards;
+window.getSortLabel = getSortLabel;
+window.updateCollectionSummary = updateCollectionSummary;
+window.renderCollectionHeaderKpis = renderCollectionHeaderKpis;
+window.renderFilteredCollection = renderFilteredCollection;
+window.renderCollectionTable = renderCollectionTable;
+window.replayEntrance = replayEntrance;
+window.getGridNoImageHtml = getGridNoImageHtml;
+window.renderCollectionGrid = renderCollectionGrid;
+window.isCollectionMobileViewport = isCollectionMobileViewport;
+window.getEffectiveCollectionViewMode = getEffectiveCollectionViewMode;
+window.setCollectionView = setCollectionView;
+window.collectionViewResizeTimer = collectionViewResizeTimer;
+window.backfillIllustrators = backfillIllustrators;
