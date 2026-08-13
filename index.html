@@ -1100,8 +1100,11 @@
     <script type="module" src="modules/changelog.js?v=20260812-7"></script>
     <script type="module" src="tracker.js?v=20260812-7"></script>
     <script type="module" src="modules/auth.js?v=20260811-1"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
+    <script type="module">
+        // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre
+        // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
+        // (`vite preview`) ou en production. Comportement de production inchangé.
+        if (import.meta.env.PROD && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
             });

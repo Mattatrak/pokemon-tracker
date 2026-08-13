@@ -1,60 +1,14 @@
 // Service Worker - Pokémon Tracker
-// Jeton de version de déploiement unique, partagé avec les query strings de index.html/login.html.
-// A chaque déploiement touchant un fichier local : bumper ce jeton ICI + dans les deux HTML, en une
-// seule passe, pour que CACHE_NAME et les URLs précachées correspondent exactement à ce qui est servi.
-const DEPLOY_VERSION = '20260812-7';
-const CACHE_NAME = `poketracker-${DEPLOY_VERSION}`;
-
-// App shell minimal permettant de démarrer hors ligne après une première visite en ligne : les deux
-// documents HTML, le nécessaire pour les faire fonctionner (CSS/JS locaux), le manifeste et les icônes.
-// Ne couvre PAS : Supabase/TCGdex (jamais mis en cache, voir fetch handler), les CDN externes (Chart.js,
-// flatpickr, PapaParse, Google Fonts, Tabler icons - jamais interceptés), ni les grandes images
-// (Hero, cartes) - celles-ci sont couvertes en stale-while-revalidate au fil de l'usage, pas précachées.
-// cache.addAll() échoue entièrement si UNE SEULE de ces URLs est absente ou renvoie une erreur : chaque
-// chemin ci-dessous a été vérifié présent sur disque avant d'écrire cette liste (2026-08-05).
-const CORE_ASSETS = [
-    './',
-    './index.html',
-    './login.html',
-    './manifest.json',
-    './images/icon-192.png',
-    './images/icon-512.png',
-    './images/icon-180.png',
-    './images/balle.png',
-    `./styles.css?v=${DEPLOY_VERSION}`,
-    `./styles-login.css?v=${DEPLOY_VERSION}`,
-    `./css/layout-tokens.css?v=${DEPLOY_VERSION}`,
-    `./css/motion-tokens.css?v=${DEPLOY_VERSION}`,
-    `./css/motion-components.css?v=${DEPLOY_VERSION}`,
-    `./components/navigation/navigation.css?v=${DEPLOY_VERSION}`,
-    `./components/navigation/DesktopNavbar.js?v=${DEPLOY_VERSION}`,
-    `./components/navigation/MobileBottomNavigation.js?v=${DEPLOY_VERSION}`,
-    `./data/changelog.js?v=${DEPLOY_VERSION}`,
-    `./modules/error-tracking.js?v=${DEPLOY_VERSION}`,
-    `./modules/utils.js?v=${DEPLOY_VERSION}`,
-    `./modules/storage.js?v=${DEPLOY_VERSION}`,
-    `./modules/favorites.js?v=${DEPLOY_VERSION}`,
-    `./modules/cards.js?v=${DEPLOY_VERSION}`,
-    `./modules/stats.js?v=${DEPLOY_VERSION}`,
-    `./modules/collection.js?v=${DEPLOY_VERSION}`,
-    `./modules/import-export.js?v=${DEPLOY_VERSION}`,
-    `./modules/card-detail.js?v=${DEPLOY_VERSION}`,
-    `./modules/ui.js?v=${DEPLOY_VERSION}`,
-    `./modules/wishlist.js?v=${DEPLOY_VERSION}`,
-    `./modules/stats-render.js?v=${DEPLOY_VERSION}`,
-    `./modules/progression.js?v=${DEPLOY_VERSION}`,
-    `./modules/dashboard.js?v=${DEPLOY_VERSION}`,
-    `./modules/profile.js?v=${DEPLOY_VERSION}`,
-    `./tracker.js?v=${DEPLOY_VERSION}`,
-    `./modules/auth.js?v=${DEPLOY_VERSION}`,
-    `./modules/auth-login.js?v=${DEPLOY_VERSION}`,
-    `./modules/admin.js?v=${DEPLOY_VERSION}`,
-    `./modules/changelog.js?v=${DEPLOY_VERSION}`,
-    `./modules/collectors.js?v=${DEPLOY_VERSION}`,
-    `./modules/collector-match.js?v=${DEPLOY_VERSION}`,
-    `./modules/public-profile.js?v=${DEPLOY_VERSION}`,
-    `./modules/wishlist-detail.js?v=${DEPLOY_VERSION}`
-];
+// CACHE_NAME et CORE_ASSETS ci-dessous sont générés automatiquement par scripts/build-sw.js (exécuté
+// après `vite build`, à partir de dist/.vite/manifest.json) — ne plus les éditer à la main, ce fichier
+// source (public/sw.js) ne contient que des valeurs de secours utilisées si le script de génération
+// n'a pas tourné (ex: `vite dev`, où le Service Worker est de toute façon désactivé, cf tracker.js/
+// auth.js — import.meta.env.PROD). Pour changer ce qui est précaché, modifier ce que référencent
+// index.html/login.html (Vite le détecte automatiquement), pas ce fichier.
+// ===== AUTO-GENERATED:START =====
+const CACHE_NAME = 'poketracker-dev';
+const CORE_ASSETS = [];
+// ===== AUTO-GENERATED:END =====
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
@@ -87,7 +41,12 @@ function networkFirst(request, fallbackUrl) {
             return response;
         })
         .catch(() =>
-            caches.match(request).then((cached) => cached || (fallbackUrl ? caches.match(fallbackUrl) : undefined))
+            // ignoreVary: la Cache API respecte par défaut l'en-tête Vary de la réponse d'origine - un
+            // Vary présent sur certaines réponses statiques (observé sur les CSS servis par vite preview,
+            // absent sur les JS) suffit à faire échouer un match pourtant réellement précaché. Aucune
+            // réponse ici n'est jamais négociée par en-tête (pas de contenu différent par Accept/Origin),
+            // ignorer Vary est donc sans risque de corruption de cache.
+            caches.match(request, { ignoreVary: true }).then((cached) => cached || (fallbackUrl ? caches.match(fallbackUrl, { ignoreVary: true }) : undefined))
         );
 }
 
@@ -96,7 +55,7 @@ function networkFirst(request, fallbackUrl) {
 // prochaine fois. Si rien n'est en cache, utilise directement la réponse réseau. Utilisé pour les
 // images/icônes locales - pas de revalidation bloquante à chaque affichage.
 function staleWhileRevalidate(request) {
-    return caches.match(request).then((cached) => {
+    return caches.match(request, { ignoreVary: true }).then((cached) => {
         const fetchPromise = fetch(request).then((response) => {
             if (response.ok) {
                 const responseClone = response.clone();
