@@ -528,7 +528,7 @@ async function dashboardEnrichObjectiveBudget(best, myToken) {
         return;
     }
 
-    budgetEl.innerHTML = `<i class="ti ti-wallet" aria-hidden="true"></i> ≈ ${budget.totalKnown.toFixed(2)} € pour finir cette série${budget.countUnknown > 0 ? ` (${budget.countUnknown} sans prix connu)` : ''}`;
+    budgetEl.innerHTML = `<i class="ti ti-wallet" aria-hidden="true"></i> ≈ ${budget.totalKnown.toFixed(2)} € pour compléter cette série${budget.countUnknown > 0 ? ` (${budget.countUnknown} sans prix connu)` : ''}`;
 }
 
 // ===== TOP HAUSSES =====
