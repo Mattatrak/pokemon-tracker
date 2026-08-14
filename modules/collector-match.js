@@ -60,6 +60,11 @@ function computeWishlistMatch(wishlistItems, ownedCards) {
             image: item.image,
             series: item.series || '',
             ownedQty,
+            // multiple (ownedQty>=2) : conservé pour d'éventuels autres usages (affichage informatif),
+            // mais ne détermine plus l'existence d'une opportunité d'échange (Phase 5, P5-1) — c'est
+            // désormais au tableau reçu par cette fonction d'être déjà filtré au surplus échangeable
+            // (cf hasPotentialTrade ci-dessous). Un ownedQty=1 sur un tableau déjà filtré au surplus
+            // représente bien une carte à proposer.
             multiple: ownedQty >= 2,
             wishlistItemId: item.id,
             ownedCardId: ownedFirstId.get(id)
@@ -69,12 +74,15 @@ function computeWishlistMatch(wishlistItems, ownedCards) {
     return matches;
 }
 
-// Signal préparatoire uniquement (cf audit, Cas C) : true si un échange "bidirectionnel viable"
-// existe au sens le plus faible (chaque côté a au moins une carte en double correspondant au désir
-// de l'autre). Ne préjuge jamais de l'intention réelle du propriétaire — aucune UI "échange
-// potentiel" ne doit être construite sur ce seul booléen pour l'instant (Ticket 3, hors scope ici).
+// Match réciproque (Phase 5, P5-1) : true si chaque sens du matching a au moins une correspondance.
+// CONTRAT IMPORTANT — matchesA/matchesB doivent DÉJÀ représenter des correspondances échangeables : le
+// surplus réel (duplicateQuantity, cf getDuplicateCardsWithQuantity/modules/collection.js), jamais une
+// quantité totale possédée brute. Cette fonction ne fait plus la distinction elle-même (elle faisait
+// auparavant .some(m => m.multiple), un seuil ownedQty>=2 qui n'a plus de sens une fois que ownedQty
+// représente déjà un surplus : un surplus de 1 suffit à avoir quelque chose à proposer, la fonction ne
+// doit pas en exiger 2). Ne préjuge toujours pas de l'intention réelle du propriétaire de céder la carte.
 function hasPotentialTrade(matchesA, matchesB) {
-    return (matchesA || []).some(m => m.multiple) && (matchesB || []).some(m => m.multiple);
+    return (matchesA || []).length > 0 && (matchesB || []).length > 0;
 }
 
 // ===== Exports window (ticket V2 Vite, type="module") =====

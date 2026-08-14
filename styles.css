@@ -3684,8 +3684,10 @@ tbody tr:hover {
     gap: 0.4rem;
 }
 
-/* Bloc "Correspondances avec toi" (Ticket 2) : reprend .user-profile-section (bordure/radius) mais
-   hors du flex .user-profile-sections, donc margin-bottom explicite ici plutôt que le gap du parent. */
+/* Bloc "Opportunités d'échange" (Phase 5, P5-4 - anciennement "Correspondances avec toi") : reprend
+   .user-profile-section (bordure/radius) mais hors du flex .user-profile-sections, donc margin-bottom
+   explicite ici plutôt que le gap du parent. Toujours dépliée (plus de résumé replié + détail au clic -
+   ce bloc EST le détail), donc header statique (pas de cursor/hover interactif). */
 .user-profile-match-section {
     margin-bottom: 1.25rem;
     padding: 0;
@@ -3695,40 +3697,43 @@ tbody tr:hover {
 .user-profile-match-header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.5rem 0.75rem;
     padding: 1rem 1.25rem;
-    cursor: pointer;
-    transition: background var(--motion-duration-fast) var(--motion-ease-standard);
-}
-
-.user-profile-match-header:hover {
-    background: rgba(255,255,255,0.03);
 }
 
 .user-profile-match-header .user-profile-section-title {
     margin-bottom: 0;
 }
 
-.user-profile-match-summary {
-    padding: 0 1.25rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+/* Badge sobre : chiffres/texte explicites ailleurs dans la section, jamais un pourcentage ici,
+   aucune animation (consigne P5-4). */
+.trade-reciprocal-badge {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink-navy);
+    background: var(--gold);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
 }
 
-.user-profile-match-summary p {
-    color: var(--slate);
-    font-size: 0.88rem;
-}
-
-.user-profile-match-detail {
+/* 2 colonnes desktop si les deux directions existent (une direction seule occupe naturellement toute
+   la largeur via 1fr), 1 colonne mobile - jamais de scroll horizontal. */
+.trade-opportunity-groups {
     padding: 0 1.25rem 1.25rem;
     border-top: 1px solid var(--border);
     padding-top: 1rem;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .trade-opportunity-groups {
+        grid-template-columns: 1fr;
+    }
 }
 
 .user-profile-match-group-title {
@@ -3736,6 +3741,10 @@ tbody tr:hover {
     font-size: 0.85rem;
     color: var(--text-primary);
     margin-bottom: 0.6rem;
+}
+
+.user-profile-match-group-full {
+    grid-column: 1 / -1;
 }
 
 .user-profile-notfound {
@@ -3868,6 +3877,61 @@ tbody tr:hover {
 .collectors-result-chevron {
     color: var(--slate);
     flex-shrink: 0;
+}
+
+/* Signaux d'échange (Phase 5, P5-3) : chiffres explicites, pas de score - reste discret par rapport à
+   l'identité (flex:1) mais reste lisible. */
+.collectors-result-signals {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    max-width: 40%;
+}
+
+.collectors-signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--slate);
+    border: 1px solid var(--border);
+}
+
+.collectors-signal-for-me {
+    color: var(--gold);
+    border-color: rgba(227, 188, 132, 0.35);
+}
+
+.collectors-signal-for-them {
+    color: var(--positive);
+    border-color: rgba(126, 217, 167, 0.35);
+}
+
+.collectors-signal-reciprocal {
+    color: var(--ink-navy);
+    background: var(--gold);
+    border-color: var(--gold);
+}
+
+@media (max-width: 640px) {
+    .collectors-result-row {
+        flex-wrap: wrap;
+    }
+
+    .collectors-result-signals {
+        max-width: 100%;
+        width: 100%;
+        justify-content: flex-start;
+        order: 3;
+        padding-left: calc(44px + 0.9rem); /* aligné sous l'identité, largeur de l'avatar + gap de la ligne */
+    }
 }
 
 /* Bloc "Trouver un collectionneur" du Dashboard (modules/dashboard.js) : mêmes classes de résultat

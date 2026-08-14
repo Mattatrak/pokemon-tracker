@@ -19,11 +19,11 @@
 // allWishlistItems, cf tracker.js/wishlist.js) : les données publiques affichées ici (viewedPublicCards/
 // viewedPublicWishlistItems/...) appartiennent à un autre utilisateur, les mélanger à l'état personnel
 // serait une vraie fuite de confiance au moindre bug. Seule exception volontaire (Ticket 2) :
-// profileMatchesA/B LISENT allWishlistItems/allCollectionCards (déjà garantis chargés au moment de
-// loadPublicProfile, cf init() dans modules/auth.js) en lecture seule, jamais écrits depuis ce fichier,
-// et currentUserProfile (modules/profile.js) pour détecter la consultation de son propre profil.
+// profileMatchesB LIT allCollectionCards (déjà garanti chargé au moment de loadPublicProfile, cf init()
+// dans modules/auth.js) en lecture seule, jamais écrit depuis ce fichier, et currentUserProfile
+// (modules/profile.js) pour détecter la consultation de son propre profil.
 // Etat possédé : viewedPublicProfile, viewedPublicCards, publicCollectionSort, publicCollectionRarityFilterValues,
-// profileMatchesA, profileMatchesB, profileMatchDetailExpanded
+// profileMatchesB, hasReciprocalTrade
 
 let viewedPublicProfile = null;
 
@@ -45,12 +45,22 @@ let viewedPublicWishlistPriceMap = {};
 let viewedPublicWishlistExpandedIds = new Set();
 
 // Correspondances Wishlist/Collection (Ticket 2, modules/collector-match.js) — dérivées à 100% de
-// globals déjà chargés (allWishlistItems/allCollectionCards, cf tracker.js/modules/auth.js:init())
-// et des données publiques ci-dessus, aucune requête dédiée. profileMatchesA = ma wishlist trouvée
-// dans sa collection ; profileMatchesB = sa wishlist trouvée dans ma collection.
-let profileMatchesA = [];
+// globals déjà chargés (allCollectionCards, cf tracker.js) et des données publiques ci-dessus, aucune
+// requête dédiée. profileMatchesB = sa wishlist trouvée dans MES doublons réellement échangeables
+// (Phase 5, P5-1 : corrigé pour ne plus lire ma collection brute, cf loadPublicProfile - un exemplaire
+// unique ne doit jamais générer de signal d'échange).
+// profileMatchesA (ma wishlist ∩ sa collection BRUTE, non restreinte aux doublons) a existé un temps
+// dans ce fichier mais retiré en Phase 5 (P5-1, audit demandé) : son seul consommateur était
+// renderProfileMatchSection ci-dessous, où il se présentait de façon ambiguë comme une correspondance
+// d'échange alors qu'il ne l'était pas (comptait aussi mes cartes en un seul exemplaire chez lui). La
+// même direction ("ma wishlist trouvée chez lui"), correctement restreinte au surplus échangeable, est
+// déjà couverte par profileDuplicateMatches - pas de perte d'information utile, juste une ambiguïté en
+// moins. À réintroduire uniquement si un futur usage explicitement non lié à l'échange en a besoin.
 let profileMatchesB = [];
-let profileMatchDetailExpanded = false;
+// Signal "Pour moi" ∩ "Pour lui" (Phase 5, P5-1) : true si profileDuplicateMatches ET profileMatchesB
+// (les deux tableaux déjà restreints au surplus échangeable) ont chacun au moins une correspondance.
+// Affiché en badge "Match réciproque" dans la section Opportunités d'échange (P5-4).
+let hasReciprocalTrade = false;
 
 // Doublons à l'échange (V1 simplifiée, cf audit du 2026-08-12) : dérivés à 100% de viewedPublicCards
 // via getDuplicateCardsWithQuantity (modules/collection.js, même définition métier que le filtre
@@ -120,11 +130,10 @@ async function loadPublicProfile(username) {
     viewedPublicWishlistItems = [];
     viewedPublicWishlistPriceMap = {};
     viewedPublicWishlistExpandedIds = new Set();
-    profileMatchesA = [];
     profileMatchesB = [];
-    profileMatchDetailExpanded = false;
     viewedPublicDuplicateCards = [];
     profileDuplicateMatches = [];
+    hasReciprocalTrade = false;
 
     if (!username) {
         renderPublicProfileNotFound(container);
@@ -172,7 +181,6 @@ async function loadPublicProfile(username) {
     const isSelf = currentUserProfile && currentUserProfile.id === profile.id;
     if (!isSelf) {
         if (profile.collection_visible) {
-            profileMatchesA = computeWishlistMatch(allWishlistItems, viewedPublicCards);
             // quantity substituée par duplicateQuantity (surplus au-delà de l'exemplaire principal) :
             // computeWishlistMatch ne lit que .quantity, aucune modification de cette fonction requise.
             profileDuplicateMatches = computeWishlistMatch(
@@ -181,8 +189,23 @@ async function loadPublicProfile(username) {
             );
         }
         if (profile.wishlist_visible) {
-            profileMatchesB = computeWishlistMatch(viewedPublicWishlistItems, allCollectionCards);
+            // "Pour lui" (Phase 5, P5-1) : mes doublons réellement échangeables ∩ sa wishlist - même
+            // pipeline symétrique que profileDuplicateMatches ci-dessus (même filtre de raretés
+            // getPublicDuplicateEligibleCards, même substitution quantity -> duplicateQuantity), pour
+            // éviter deux définitions différentes d'une opportunité d'échange. AVANT : lisait
+            // allCollectionCards brut, ce qui comptait aussi mes exemplaires uniques comme échangeables
+            // - incorrect (cf audit Phase 5).
+            const myDuplicateCards = getDuplicateCardsWithQuantity(getPublicDuplicateEligibleCards(allCollectionCards));
+            profileMatchesB = computeWishlistMatch(
+                viewedPublicWishlistItems,
+                myDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }))
+            );
         }
+
+        // Match réciproque : les deux signaux ("Pour moi" = profileDuplicateMatches, "Pour lui" =
+        // profileMatchesB) sont déjà restreints au surplus échangeable à ce stade - hasPotentialTrade
+        // n'a plus qu'à vérifier qu'aucun des deux n'est vide (modules/collector-match.js).
+        hasReciprocalTrade = hasPotentialTrade(profileDuplicateMatches, profileMatchesB);
     }
 
     viewedPublicProfile = { ...profile, cardCount, collectionValue, wishlistCount };
@@ -288,7 +311,7 @@ function renderPublicProfileShell(container, profile) {
 
         ${(profile.collection_visible && viewedPublicDuplicateCards.length > 0) ? `
             <div class="user-profile-section user-profile-duplicates-browser">
-                <div class="user-profile-section-title"><i class="ti ti-copy" aria-hidden="true"></i> Doublons à l'échange</div>
+                <div class="user-profile-section-title"><i class="ti ti-copy" aria-hidden="true"></i> Ses doublons disponibles</div>
                 <div class="collection-display-case">
                     <div class="collection-grid">${renderPublicDuplicateCardsHtml()}</div>
                 </div>
@@ -334,74 +357,47 @@ function renderPublicProfileShell(container, profile) {
     }
 }
 
-// Bloc "Correspondances avec toi" (Ticket 2, s'appuie sur modules/collector-match.js). Wording
-// volontairement neutre sur la quantité : "possédée en plusieurs exemplaires" ne dit jamais que le
-// propriétaire souhaite s'en séparer, cf audit. Retourne '' (rien affiché) si aucune ligne pertinente
-// (isSelf déjà filtré en amont via profileMatchesA/B laissés vides dans loadPublicProfile).
+// Bloc "Opportunités d'échange" (Phase 5, P5-4 - anciennement "Correspondances avec toi"). Retourne ''
+// (rien affiché) si aucune direction n'a de correspondance (isSelf déjà filtré en amont via
+// profileDuplicateMatches/profileMatchesB laissés vides dans loadPublicProfile) - pas de section vide
+// sur les profils sans opportunité, pas de faux compteur à 0 (décision explicite, cf demande P5-4 §6).
+// Toujours affichée dépliée (l'ancien résumé replié + détail à double-clic a été retiré : ce bloc EST
+// déjà le détail, pas une redite d'un résumé au-dessus) - titres de groupe génériques ("il"/"tu") plutôt
+// que le pseudo répété partout, décision produit explicite.
 function renderProfileMatchSection(profile) {
-    const summaryLines = [];
+    if (profileDuplicateMatches.length === 0 && profileMatchesB.length === 0) return '';
 
-    // Match prioritaire (V1 doublons, cf audit du 2026-08-12) : placé en tête, wording explicite sur
-    // l'actionnabilité réelle ("ses doublons", pas juste "sa collection"). Remplace la sous-ligne
-    // "possédée en plusieurs exemplaires" de profileMatchesA ci-dessous (même signal, devenu redondant
-    // maintenant qu'il existe une version précise) sans retirer la ligne principale de profileMatchesA,
-    // qui reste utile même hors doublon (carte possédée en un seul exemplaire, toujours pas échangeable
-    // mais toujours une info valide "il l'a").
-    if (profileDuplicateMatches.length > 0) {
-        const n = profileDuplicateMatches.length;
-        summaryLines.push(`${n} de ses doublon${n > 1 ? 's' : ''} correspond${n > 1 ? 'ent' : ''} à ta wishlist`);
-    }
+    // Une seule direction présente -> le groupe occupe toute la largeur (grid-column: 1/-1) plutôt que
+    // de laisser une colonne vide à côté (la grille 2 colonnes de .trade-opportunity-groups ne s'adapte
+    // pas seule au nombre d'enfants réels).
+    const onlyOneDirection = profileDuplicateMatches.length === 0 || profileMatchesB.length === 0;
+    const groupClass = onlyOneDirection ? 'user-profile-match-group user-profile-match-group-full' : 'user-profile-match-group';
 
-    if (profileMatchesA.length > 0) {
-        const n = profileMatchesA.length;
-        summaryLines.push(`${n} carte${n > 1 ? 's' : ''} de ta wishlist ${n > 1 ? 'sont' : 'est'} dans sa collection`);
-    }
+    // Groupe A - "Pour moi" : ses doublons échangeables qui correspondent à ma wishlist.
+    const groupA = profileDuplicateMatches.length > 0 ? `
+        <div class="${groupClass}">
+            <div class="user-profile-match-group-title">Ce qu'il peut te proposer</div>
+            <div class="wishlist-thumb-grid">${profileDuplicateMatches.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
+        </div>
+    ` : '';
 
-    if (profileMatchesB.length > 0) {
-        const n = profileMatchesB.length;
-        summaryLines.push(`${n} carte${n > 1 ? 's' : ''} de sa wishlist ${n > 1 ? 'sont' : 'est'} dans ta collection`);
-        const multipleB = profileMatchesB.filter(m => m.multiple).length;
-        if (multipleB > 0) {
-            summaryLines.push(`${multipleB} ${multipleB > 1 ? 'sont' : 'est'} présente${multipleB > 1 ? 's' : ''} en plusieurs exemplaires chez toi`);
-        }
-    }
-
-    if (summaryLines.length === 0) return ''; // rien d'exploitable : ni collection privée à tester, ni wishlist vide/privée n'ont produit de match
-
-    const expanded = profileMatchDetailExpanded;
-
-    const groupsHtml = `
-        ${profileDuplicateMatches.length > 0 ? `
-            <div class="user-profile-match-group">
-                <div class="user-profile-match-group-title">Ses doublons qui t'intéressent</div>
-                <div class="wishlist-thumb-grid">${profileDuplicateMatches.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
-            </div>
-        ` : ''}
-        ${profileMatchesA.length > 0 ? `
-            <div class="user-profile-match-group">
-                <div class="user-profile-match-group-title">Dans ta wishlist</div>
-                <div class="wishlist-thumb-grid">${profileMatchesA.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
-            </div>
-        ` : ''}
-        ${profileMatchesB.length > 0 ? `
-            <div class="user-profile-match-group">
-                <div class="user-profile-match-group-title">Dans la wishlist de ${escapeHtml(profile.pseudo || profile.username)}</div>
-                <div class="wishlist-thumb-grid">${profileMatchesB.map(m => renderProfileMatchThumb(m, `showPublicWishlistItemDetail(${m.wishlistItemId})`)).join('')}</div>
-            </div>
-        ` : ''}
-    `;
+    // Groupe B - "Pour lui" : mes doublons échangeables qui correspondent à sa wishlist.
+    const groupB = profileMatchesB.length > 0 ? `
+        <div class="${groupClass}">
+            <div class="user-profile-match-group-title">Ce que tu peux lui proposer</div>
+            <div class="wishlist-thumb-grid">${profileMatchesB.map(m => renderProfileMatchThumb(m, `showPublicWishlistItemDetail(${m.wishlistItemId})`)).join('')}</div>
+        </div>
+    ` : '';
 
     return `
         <div class="user-profile-section user-profile-match-section">
-            <div class="user-profile-match-header" onclick="toggleProfileMatchDetail()">
-                <div class="user-profile-section-title"><i class="ti ti-repeat" aria-hidden="true"></i> Correspondances avec toi</div>
-                <i class="ti ti-chevron-right wishlist-chevron ${expanded ? 'expanded' : ''}" aria-hidden="true"></i>
+            <div class="user-profile-match-header">
+                <div class="user-profile-section-title"><i class="ti ti-repeat" aria-hidden="true"></i> Opportunités d'échange</div>
+                ${hasReciprocalTrade ? '<span class="trade-reciprocal-badge">Match réciproque</span>' : ''}
             </div>
-            <div class="user-profile-match-summary">
-                ${summaryLines.map(line => `<p>${escapeHtml(line)}</p>`).join('')}
-            </div>
-            <div class="user-profile-match-detail" style="display:${expanded ? 'block' : 'none'};">
-                ${groupsHtml}
+            <div class="trade-opportunity-groups">
+                ${groupA}
+                ${groupB}
             </div>
         </div>
     `;
@@ -427,16 +423,6 @@ function renderProfileMatchThumb(match, onclickExpr) {
             </div>
         </div>
     `;
-}
-
-// Bascule DOM pure (pas de re-fetch/re-render du shell entier) : aucun état propriétaire touché,
-// juste l'affichage du détail déjà présent dans le DOM.
-function toggleProfileMatchDetail() {
-    profileMatchDetailExpanded = !profileMatchDetailExpanded;
-    const detail = document.querySelector('.user-profile-match-detail');
-    const chevron = document.querySelector('.user-profile-match-header .wishlist-chevron');
-    if (detail) detail.style.display = profileMatchDetailExpanded ? 'block' : 'none';
-    if (chevron) chevron.classList.toggle('expanded', profileMatchDetailExpanded);
 }
 
 function populatePublicCollectionSeriesFilter() {
@@ -851,9 +837,8 @@ window.viewedPublicWishlists = viewedPublicWishlists;
 window.viewedPublicWishlistItems = viewedPublicWishlistItems;
 window.viewedPublicWishlistPriceMap = viewedPublicWishlistPriceMap;
 window.viewedPublicWishlistExpandedIds = viewedPublicWishlistExpandedIds;
-window.profileMatchesA = profileMatchesA;
 window.profileMatchesB = profileMatchesB;
-window.profileMatchDetailExpanded = profileMatchDetailExpanded;
+window.hasReciprocalTrade = hasReciprocalTrade;
 window.viewedPublicDuplicateCards = viewedPublicDuplicateCards;
 window.profileDuplicateMatches = profileDuplicateMatches;
 window.DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS = DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS;
@@ -869,7 +854,6 @@ window.loadPublicWishlistPrices = loadPublicWishlistPrices;
 window.renderPublicProfileShell = renderPublicProfileShell;
 window.renderProfileMatchSection = renderProfileMatchSection;
 window.renderProfileMatchThumb = renderProfileMatchThumb;
-window.toggleProfileMatchDetail = toggleProfileMatchDetail;
 window.populatePublicCollectionSeriesFilter = populatePublicCollectionSeriesFilter;
 window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
 window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
