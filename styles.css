@@ -5138,6 +5138,45 @@ tbody tr:hover {
     pointer-events: none;
 }
 
+/* Fiche détail carte publique (modules/public-profile.js, showPublicCardDetail/showPublicWishlistItemDetail)
+   : rejoint la même famille visuelle que #card-detail-card/#wishlist-detail-card (verre fumé, liseré or
+   conique) au lieu de retomber sur le rectangle gris générique de .modal-card - demandé explicitement
+   après le correctif backdrop-filter (2026-08-14), les autres fiches carte l'avaient déjà. Mêmes valeurs
+   exactes que #card-detail-card (fond/flou/glow), seul border-radius aligné sur #wishlist-detail-card
+   (22px, cette fiche est plus étroite que #card-detail-card - cf max-width:800px plus bas dans le
+   fichier). Layout/max-width/paddings propres à cette fiche restent inchangés, seul l'habillage visuel
+   est ajouté ici. */
+#public-card-detail-card {
+    border-radius: 22px;
+    border: 1px solid transparent;
+    background:
+        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
+        rgba(19,19,19,0.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
+    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 20px rgba(232,169,59,0.1);
+}
+
+#public-card-detail-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 200deg at 50% 50%,
+        rgba(230,192,123,0.12),
+        rgba(230,192,123,0.7) 12%,
+        rgba(230,192,123,0.12) 30%,
+        rgba(230,192,123,0.12) 60%,
+        rgba(230,192,123,0.6) 78%,
+        rgba(230,192,123,0.12));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
 .wishlist-detail-layout {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
