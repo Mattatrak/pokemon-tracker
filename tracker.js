@@ -822,6 +822,10 @@ async function refreshAllMarketPricesInternal() {
 // Les stats/graphiques n'utilisent jamais plus de 30 jours d'historique : on garde une marge de 35j
 // et on purge le reste à chaque rafraîchissement, pour éviter que card_price_history/value_history
 // grossissent indéfiniment.
+// Phase 3 : une purge serveur fiable existe désormais (Edge Function purge-price-history + pg_cron
+// quotidien, cf supabase/functions/purge-price-history et sql/migrations/2026-08-14_schedule_price_history_purge.sql).
+// Cet appel client reste un filet de sécurité tant que le cron n'est pas confirmé actif en prod —
+// à retirer une fois vérifié (sinon purge redondante, sans risque mais inutile).
 async function purgeOldPriceHistory() {
     const cutoff = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString();
 
