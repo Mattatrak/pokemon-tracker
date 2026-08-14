@@ -2222,6 +2222,37 @@ button:disabled {
     box-shadow: 0 2px 6px rgba(0,0,0,0.35);
 }
 
+/* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
+   (mutuellement exclusifs côté JS : une carte obtenue n'a plus de signal d'achat). */
+.price-signal-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(22,27,41,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 0.8rem;
+}
+
+.price-signal-badge.price-signal-low { color: var(--positive); }
+.price-signal-badge.price-signal-high { color: #ff6b6b; }
+
+.wishlist-detail-price-signal {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+}
+
+.wishlist-detail-price-signal.price-signal-low { color: var(--positive); }
+.wishlist-detail-price-signal.price-signal-high { color: #ff6b6b; }
+
 .qty-badge {
     position: absolute;
     top: 0.5rem;
@@ -3982,6 +4013,72 @@ tbody tr:hover {
     color: var(--slate);
 }
 
+/* Budget de complétion (Phase 2, P2-1) — ligne secondaire discrète sous la progression, jamais un
+   bloc analytique séparé : même niveau d'importance visuelle que progression-set-progress-text. */
+.progression-set-budget-text {
+    font-size: 0.85rem;
+    color: var(--slate);
+    opacity: 0.85;
+    margin-top: 0.15rem;
+}
+
+.progression-set-budget-text .budget-amount {
+    color: var(--parchment);
+    font-weight: 600;
+}
+
+/* Priorisation des sets (Phase 2, P2-3) — 2 cartes objectives au-dessus de la liste des séries,
+   jamais un classement unique. Réutilise les tokens visuels déjà en place (--panel/--border/--gold/
+   --parchment/--slate), pas de nouvelle palette. */
+.progression-goals-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.progression-goal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.progression-goal-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--gold);
+}
+
+.progression-goal-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    margin-bottom: 0.4rem;
+}
+
+.progression-goal-logo {
+    height: 20px;
+    max-width: 100px;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.progression-goal-name {
+    font-size: 0.95rem;
+    color: var(--parchment);
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.progression-goal-metric {
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
 .progression-filters {
     display: flex;
     flex-direction: column;
@@ -4053,6 +4150,27 @@ tbody tr:hover {
     opacity: 0.9;
     transform: translateY(-3px);
     border-color: var(--teal);
+}
+
+/* Carte manquante la plus chère du set (Phase 2, P2-2) : sort du lot des cartes manquantes fanées
+   (opacity 0.55 ci-dessus) sans devenir aussi visible qu'une carte possédée — reste identifiable
+   comme "à surveiller", pas "acquise". */
+.progression-card-item.missing.most-expensive-missing {
+    opacity: 0.85;
+    border-color: var(--gold);
+}
+
+.most-expensive-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(20, 17, 13, 0.85);
+    color: var(--gold);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--gold);
 }
 
 .progression-card-item img {

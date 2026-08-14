@@ -10,6 +10,8 @@ window.allWishlists = [];
 window.allWishlistItems = [];
 let expandedWishlistIds = new Set();
 window.wishlistPriceMap = {};
+// window.x (ticket V2 Vite) : lu depuis wishlist-detail.js aussi (fiche détail item, P2-4).
+window.wishlistPriceSignalMap = {};
 let wishlistSearchQuery = '';
 let wishlistSortMode = 'date-desc';
 let wishlistEditResolve = null;
@@ -49,11 +51,61 @@ async function loadWishlists() {
     markDashboardDirty();
 }
 
+// Signal de prix Wishlist (Phase 2, ticket P2-4, cf audit du 2026-08-14) : position du prix actuel
+// dans l'historique réellement disponible (méthode B — la seule robuste à l'espacement irrégulier des
+// observations, card_price_history n'étant alimentée que par des déclencheurs ad hoc, jamais un cron).
+// Seuils délibérément conservateurs, faute de volume réel documenté pour calibrer autrement : ≥3
+// observations ET ≥5 jours d'étalement avant d'afficher quoi que ce soit — sous ce seuil, silence,
+// jamais un badge "historique insuffisant" qui encombrerait chaque carte peu suivie. Aucune requête
+// supplémentaire : réutilise `rows`, déjà l'historique complet (pas juste le dernier prix) que
+// loadWishlistPrices() récupère et jetait jusqu'ici.
+function buildWishlistPriceSignals(rows) {
+    const grouped = {};
+    rows.forEach(row => {
+        if (!grouped[row.tcgdex_id]) grouped[row.tcgdex_id] = [];
+        grouped[row.tcgdex_id].push(row);
+    });
+
+    const signals = {};
+    Object.keys(grouped).forEach(id => {
+        // rows est déjà trié recorded_at desc (requête de loadWishlistPrices) : obs[0] = prix courant.
+        const obs = grouped[id];
+        const prices = obs.map(o => Number(o.market_value) || 0).filter(p => p > 0);
+        if (prices.length < 3) return;
+
+        const dates = obs.map(o => new Date(o.recorded_at).getTime()).filter(t => !isNaN(t));
+        if (dates.length === 0) return;
+        const spreadDays = (Math.max(...dates) - Math.min(...dates)) / 86400000;
+        if (spreadDays < 5) return;
+
+        const currentPrice = prices[0];
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        if (maxPrice === minPrice) return; // aucune variation observée, rien à signaler
+
+        const range = maxPrice - minPrice;
+        const nearLow = currentPrice <= minPrice + range * 0.1;
+        const nearHigh = currentPrice >= maxPrice - range * 0.1;
+        if (!nearLow && !nearHigh) return; // ni bas ni haut : pas de signal plutôt qu'un signal flou
+
+        const type = nearLow ? 'low' : 'high';
+        const preciseWindow = spreadDays >= 25; // assez proche de 30j pour l'annoncer explicitement
+        const wording = type === 'low'
+            ? (preciseWindow ? 'Prix bas par rapport aux 30 derniers jours' : 'Proche de son plus bas observé récemment')
+            : (preciseWindow ? 'Prix élevé par rapport aux 30 derniers jours' : 'Proche de son plus haut observé récemment');
+
+        signals[id] = { type, wording, count: prices.length, spreadDays: Math.round(spreadDays) };
+    });
+
+    return signals;
+}
+
 // Dernier prix marché connu par carte, via card_price_history (table partagée entre comptes, cf.
 // mémoire rls_migration_progress) — la wishlist ne stocke pas de prix, seulement tcgdex_id.
 async function loadWishlistPrices() {
     const uniqueIds = [...new Set(allWishlistItems.filter(i => i.tcgdex_id).map(i => i.tcgdex_id))];
     wishlistPriceMap = {};
+    wishlistPriceSignalMap = {};
     if (uniqueIds.length === 0) return;
 
     const { data, error } = await supabaseClient
@@ -72,6 +124,10 @@ async function loadWishlistPrices() {
             wishlistPriceMap[row.tcgdex_id] = Number(row.market_value) || 0;
         }
     });
+
+    // Même `data` que ci-dessus (déjà l'historique complet, pas juste le dernier prix) : aucune
+    // requête supplémentaire pour le signal de prix.
+    wishlistPriceSignalMap = buildWishlistPriceSignals(data);
 
     // Une carte présente uniquement dans une wishlist (jamais possédée/rafraîchie) n'a jamais eu
     // de point dans card_price_history : on va chercher son prix directement sur TCGdex, et on
@@ -298,6 +354,9 @@ function renderWishlistsUI() {
         const thumbsHtml = shownItems.map(item => {
             const owned = item.tcgdex_id && ownedTcgdexIds.has(item.tcgdex_id);
             const price = wishlistPriceMap[item.tcgdex_id] || 0;
+            // P2-4 : badge compact, jamais affiché en même temps que "Obtenue" (l'un ou l'autre occupe
+            // le coin haut-gauche, la carte est déjà obtenue ne concerne plus un signal d'achat).
+            const signal = !owned ? wishlistPriceSignalMap[item.tcgdex_id] : null;
 
             return `
                 <div class="wishlist-thumb-wrap">
@@ -307,6 +366,7 @@ function renderWishlistsUI() {
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
                         ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Obtenue</div>' : ''}
+                        ${signal ? `<div class="price-signal-badge price-signal-${signal.type}" title="${escapeHtml(signal.wording)}"><i class="ti ti-arrow-${signal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i></div>` : ''}
                         ${price > 0 ? `<div class="price-badge">${price.toFixed(2)}€</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>

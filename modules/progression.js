@@ -257,6 +257,67 @@ function renderProgressionKpis() {
 
 // Rendu pur du catalogue (aucun appel réseau) : appelé après chargement initial et à chaque
 // ouverture/fermeture de chapitre, pour rester instantané
+// Priorisation des sets (Phase 2, ticket P2-3, cf audit du 2026-08-14) : deux catégories objectives,
+// jamais un score composite. "Le moins cher à compléter" volontairement absent de cette V1 — demanderait
+// de charger le prix de chaque carte manquante de chaque set en cours (aujourd'hui uniquement chargé
+// à l'ouverture d'un set précis), trop coûteux pour un calcul à chaque affichage de la liste.
+function computeProgressionPriorityGoals(ownedIdsBySet) {
+    const inProgress = [];
+    allTcgdexSeries.forEach(series => {
+        (series.sets || []).forEach(set => {
+            const officialCount = set.cardCount?.official || 0;
+            const total = set.cardCount?.total || officialCount;
+            const owned = ownedIdsBySet[set.id]?.size || 0;
+            if (owned === 0 || total === 0) return;
+            const pct = Math.round((owned / total) * 100);
+            if (pct === 100) return;
+            inProgress.push({ set, pct, missing: total - owned });
+        });
+    });
+
+    if (inProgress.length === 0) return { almostDone: null, mostAccessible: null };
+
+    const almostDone = inProgress.reduce((best, e) => (!best || e.pct > best.pct) ? e : best, null);
+    const mostAccessible = inProgress.reduce((best, e) => (!best || e.missing < best.missing) ? e : best, null);
+
+    return { almostDone, mostAccessible };
+}
+
+function renderProgressionPriorityGoals(ownedIdsBySet) {
+    const container = document.getElementById('progression-priority-goals');
+    if (!container) return;
+
+    const { almostDone, mostAccessible } = computeProgressionPriorityGoals(ownedIdsBySet);
+    if (!almostDone && !mostAccessible) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const goalCardHtml = (label, entry) => {
+        if (!entry) return '';
+        const { set, pct, missing } = entry;
+        const safeName = (set.name || '').replace(/'/g, "\\'");
+        const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
+        return `
+            <div class="progression-goal-card" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
+                <div class="progression-goal-label">${label}</div>
+                ${logoUrl ? `<img src="${logoUrl}" class="progression-goal-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">` : ''}
+                <div class="progression-goal-name">${set.name}</div>
+                <div class="progression-goal-metric">${label === 'Presque terminé' ? `${pct}%` : `${missing} carte${missing > 1 ? 's' : ''} manquante${missing > 1 ? 's' : ''}`}</div>
+            </div>
+        `;
+    };
+
+    // Si le même set gagne les deux catégories, les deux cartes restent affichées : l'information
+    // ("pourquoi ce set ressort") diffère même si la cible est identique.
+    container.innerHTML = `
+        <div class="progression-goals-row">
+            ${goalCardHtml('Presque terminé', almostDone)}
+            ${goalCardHtml('Ton objectif le plus accessible', mostAccessible)}
+        </div>
+    `;
+}
+
 function renderProgressionSeriesList() {
     const container = document.getElementById('progression-series-list');
     if (!container) return;
@@ -270,6 +331,8 @@ function renderProgressionSeriesList() {
             ownedIdsBySet[setId].add(card.tcgdex_id);
         }
     });
+
+    renderProgressionPriorityGoals(ownedIdsBySet);
 
     // Ne garder que les générations où au moins une extension est entamée
     const seriesWithOwnedSets = allTcgdexSeries
@@ -591,6 +654,57 @@ function populateProgressionRarityFilter() {
         buildRarityFilterRowHtml(rarities, progressionRarityFilterValues, 'setProgressionRarityFilter');
 }
 
+// Budget de complétion (Phase 2, ticket P2-1/P2-2, cf audit du 2026-08-14) : prix TCGdex live déjà
+// présent sur les cartes manquantes (currentProgressionCards, pas de requête supplémentaire), jamais
+// card_price_history (quasi jamais peuplée pour une carte jamais possédée). Réutilise
+// getMarketValueForFinish (modules/utils.js) — même résolution de prix par finition que le reste de
+// l'app, pas une deuxième logique de prix. Un prix de 0 est traité comme "inconnu", jamais sommé
+// comme gratuit (cf audit, cas limites). mostExpensive calculé dans la même passe pour P2-2, pas
+// affiché ici.
+function computeSetCompletionBudget(missingCards, finishMode) {
+    let totalKnown = 0;
+    let countKnown = 0;
+    let countUnknown = 0;
+    let mostExpensive = null;
+
+    missingCards.forEach(card => {
+        const price = getMarketValueForFinish(card, finishMode);
+        if (price > 0) {
+            totalKnown += price;
+            countKnown++;
+            if (!mostExpensive || price > mostExpensive.price) {
+                mostExpensive = { card, price };
+            }
+        } else {
+            countUnknown++;
+        }
+    });
+
+    return { totalKnown, countKnown, countUnknown, mostExpensive };
+}
+
+function renderProgressionSetBudgetText(missingCount, budget) {
+    const el = document.getElementById('progression-set-budget-text');
+    if (!el) return;
+
+    if (missingCount === 0) {
+        el.textContent = '';
+        return;
+    }
+
+    const { totalKnown, countKnown, countUnknown } = budget;
+
+    if (countKnown === 0) {
+        el.textContent = 'Prix inconnu pour toutes les cartes manquantes';
+        return;
+    }
+
+    const amount = `<span class="budget-amount">≈ ${totalKnown.toFixed(2)} €</span>`;
+    el.innerHTML = countUnknown === 0
+        ? `${amount} pour compléter ce set (${countKnown} carte${countKnown > 1 ? 's' : ''})`
+        : `${amount} pour les ${countKnown} carte${countKnown > 1 ? 's' : ''} manquante${countKnown > 1 ? 's' : ''} dont le prix est connu — ${countUnknown} sans estimation`;
+}
+
 async function renderProgressionCardsGrid() {
     const grid = document.getElementById('progression-cards-grid');
     const searchTerm = document.getElementById('progression-search').value.toLowerCase();
@@ -610,6 +724,14 @@ async function renderProgressionCardsGrid() {
     const totalCount = baseCards.length;
     const pct = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
     document.getElementById('progression-set-progress-text').textContent = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
+
+    // Un seul calcul pour le budget (P2-1) et la carte manquante la plus chère (P2-2) — même passe,
+    // pas de logique dupliquée. Portée à toutes les cartes manquantes du set, indépendamment du
+    // filtre affiché (recherche/possédées/manquantes/rareté) : le budget représente le set entier.
+    const missingSetCards = baseCards.filter(c => !isOwnedInMode(c.id, progressionFinishMode));
+    const setBudget = computeSetCompletionBudget(missingSetCards, progressionFinishMode);
+    renderProgressionSetBudgetText(missingSetCards.length, setBudget);
+    const mostExpensiveMissingId = setBudget.mostExpensive?.card?.id || null;
 
     let cards = baseCards;
     if (searchTerm) {
@@ -659,13 +781,19 @@ async function renderProgressionCardsGrid() {
             imageUrl = `${card.image}/low.webp`; // Lien brut TCGdex en secours
         }
 
+        // P2-2 : mise en évidence de la carte manquante la plus chère du set (dérivée du même calcul
+        // que le budget P2-1, aucune donnée/requête supplémentaire) — jamais "la plus difficile",
+        // seulement "la plus chère", cf audit du 2026-08-14 sur les concepts à ne pas fusionner.
+        const isMostExpensiveMissing = !owned && mostExpensiveMissingId && card.id === mostExpensiveMissingId;
+
         return `
-            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
+            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''} ${isMostExpensiveMissing ? 'most-expensive-missing' : ''}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="handleTcgdexImgError(this)">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
+                ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${setBudget.mostExpensive.price.toFixed(2)} €</div>` : ''}
                 <button class="progression-add-badge" onclick="event.stopPropagation(); quickInstantAdd('${card.id}', this)">+</button>
                 <div class="progression-card-label">#${card.localId} ${card.name}</div>
             </div>

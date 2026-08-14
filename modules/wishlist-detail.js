@@ -210,6 +210,9 @@ function buildWishlistDetailHtml(item) {
     const list = allWishlists.find(l => l.id === item.wishlist_id);
     const owned = !!(item.tcgdex_id && allCollectionCards.some(c => c.tcgdex_id === item.tcgdex_id));
     const price = wishlistPriceMap[item.tcgdex_id] || 0;
+    // P2-4 : même signal que les vignettes de liste (wishlist.js), texte complet ici où la place ne
+    // manque pas — jamais affiché sur une carte déjà obtenue.
+    const priceSignal = !owned ? wishlistPriceSignalMap[item.tcgdex_id] : null;
     const addedDate = item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR') : '';
     const otherLists = allWishlists.filter(l => l.id !== item.wishlist_id);
     const busy = wishlistDetailBusy;
@@ -359,6 +362,7 @@ function buildWishlistDetailHtml(item) {
                     <div class="wishlist-detail-price-block">
                         <div class="modal-value-label">Prix marché</div>
                         <div class="wishlist-detail-price">${price > 0 ? price.toFixed(2).replace('.', ',') + '€' : 'Non disponible'}</div>
+                        ${priceSignal ? `<div class="wishlist-detail-price-signal price-signal-${priceSignal.type}"><i class="ti ti-arrow-${priceSignal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i> ${escapeHtml(priceSignal.wording)}</div>` : ''}
                     </div>
 
                     <div class="wishlist-detail-actions">
