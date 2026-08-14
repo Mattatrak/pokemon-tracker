@@ -747,25 +747,30 @@ function updateCollectionSummary(filtered, page) {
         maximumFractionDigits: 2
     }).format(displayedValue);
 
+    // summary-text-group isolé du reste : en mode Récap (cf styles.css, #tab-collection.collection-view-recap
+    // .summary-text-group), seule cette partie (pagination/tri, sans sens sur des agrégats) est masquée -
+    // les chips de filtres actifs restent visibles et fonctionnels (removeCollectionFilter inchangé).
     summary.innerHTML = `
-        <span class="summary-segment summary-count">
-            <span class="summary-value">${displayed}</span>
-            <span class="summary-label">carte${displayed > 1 ? 's' : ''} affichée${displayed > 1 ? 's' : ''}</span>
-        </span>
-        <span class="summary-separator">•</span>
-        <span class="summary-segment">
-            <span class="summary-label">sur</span>
-            <span class="summary-value">${total}</span>
-        </span>
-        <span class="summary-separator">•</span>
-        <span class="summary-segment">
-            <span class="summary-label">Valeur :</span>
-            <span class="summary-value">${formattedValue}</span>
-        </span>
-        <span class="summary-separator">•</span>
-        <span class="summary-segment">
-            <span class="summary-label">Tri :</span>
-            <span class="summary-value">${sortLabel}</span>
+        <span class="summary-text-group">
+            <span class="summary-segment summary-count">
+                <span class="summary-value">${displayed}</span>
+                <span class="summary-label">carte${displayed > 1 ? 's' : ''} affichée${displayed > 1 ? 's' : ''}</span>
+            </span>
+            <span class="summary-separator">•</span>
+            <span class="summary-segment">
+                <span class="summary-label">sur</span>
+                <span class="summary-value">${total}</span>
+            </span>
+            <span class="summary-separator">•</span>
+            <span class="summary-segment">
+                <span class="summary-label">Valeur :</span>
+                <span class="summary-value">${formattedValue}</span>
+            </span>
+            <span class="summary-separator">•</span>
+            <span class="summary-segment">
+                <span class="summary-label">Tri :</span>
+                <span class="summary-value">${sortLabel}</span>
+            </span>
         </span>
         ${renderCollectionFilterChips()}
     `;
@@ -820,27 +825,39 @@ function renderCollectionHeaderKpis(filtered) {
 function renderFilteredCollection() {
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
+    // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
+    const effectiveMode = getEffectiveCollectionViewMode();
 
-    updateCollectionSummary(filtered, page);
     renderCollectionHeaderKpis(filtered);
     updateResetFiltersButtonVisibility();
     updateCollectionAddFilterButtonState();
 
-    // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
-    const effectiveMode = getEffectiveCollectionViewMode();
+    // Toujours mis à jour (y compris en Récap) : les chips de filtres actifs qu'il contient doivent
+    // rester visibles/à jour quel que soit le mode. Seule la partie "60 cartes affichées · sur 724 ·
+    // Valeur... · Tri..." (pagination/tri, sans sens pour des agrégats) est masquée en CSS pour le Récap
+    // - cf #tab-collection.collection-view-recap .summary-text-group dans styles.css.
+    updateCollectionSummary(filtered, page);
+
     if (effectiveMode === 'table') {
         renderCollectionTable(page);
     } else if (effectiveMode === 'binder') {
         // Le classeur reçoit filtered en entier (pas page/collectionDisplayLimit) : sa pagination par
         // double-page (binder-view.js) est indépendante du "Charger plus" de Galerie/Tableau.
         renderBinderView(filtered);
+    } else if (effectiveMode === 'recap') {
+        // Récap (collection-recap.js) : agrégats calculés sur le même sous-ensemble filtré que les
+        // autres vues (filtered, jamais allCollectionCards directement) - respecte série/condition/
+        // finish/recherche actifs. Le tri n'a pas de sens pour des agrégats, filtered reste trié mais
+        // ce n'est pas exploité ici.
+        renderCollectionRecap(filtered);
     } else {
         renderCollectionGrid(page);
     }
 
-    // Le classeur gère sa propre pagination (précédent/suivant) : pas de ligne "Charger plus".
+    // Le classeur gère sa propre pagination (précédent/suivant), le Récap n'affiche pas de liste de
+    // cartes paginée : pas de ligne "Charger plus" dans les deux cas.
     const loadMoreRow = document.getElementById('load-more-row');
-    if (effectiveMode === 'binder') {
+    if (effectiveMode === 'binder' || effectiveMode === 'recap') {
         loadMoreRow.style.display = 'none';
     } else {
         const remaining = filtered.length - page.length;
@@ -966,18 +983,21 @@ function setCollectionView(mode) {
 
     collectionViewMode = mode;
     // Lue en CSS (styles.css, filet mobile qui force la Galerie visible quand le Tableau est
-    // indisponible <768px) pour ne pas s'appliquer par-dessus le Classeur : cf commentaire sur
-    // #tab-collection:not(.collection-view-binder) #collection-grid-wrapper.
+    // indisponible <768px) pour ne pas s'appliquer par-dessus le Classeur/Récap : cf commentaire sur
+    // #tab-collection:not(.collection-view-binder):not(.collection-view-recap) #collection-grid-wrapper.
     document.getElementById('tab-collection')?.classList.toggle('collection-view-binder', mode === 'binder');
+    document.getElementById('tab-collection')?.classList.toggle('collection-view-recap', mode === 'recap');
     document.getElementById('view-btn-grid').classList.toggle('active', mode === 'grid');
     document.getElementById('view-btn-table').classList.toggle('active', mode === 'table');
     document.getElementById('view-btn-binder').classList.toggle('active', mode === 'binder');
+    document.getElementById('view-btn-recap').classList.toggle('active', mode === 'recap');
     document.getElementById('collection-grid-wrapper').style.display = mode === 'grid' ? 'block' : 'none';
     document.getElementById('collection-table-wrapper').style.display = mode === 'table' ? 'block' : 'none';
     document.getElementById('collection-binder-wrapper').style.display = mode === 'binder' ? 'block' : 'none';
+    document.getElementById('collection-recap-wrapper').style.display = mode === 'recap' ? 'block' : 'none';
     // Le tri par sélecteur reste pertinent en Classeur (Tableau a ses propres en-têtes cliquables) :
-    // visible pour grid ET binder, masqué uniquement pour table.
-    document.getElementById('grid-sort').style.display = mode !== 'table' ? 'inline-block' : 'none';
+    // visible pour grid ET binder, masqué pour Tableau et Récap (pas de liste de cartes à trier ici).
+    document.getElementById('grid-sort').style.display = (mode !== 'table' && mode !== 'recap') ? 'inline-block' : 'none';
     filterAndDisplay();
 }
 

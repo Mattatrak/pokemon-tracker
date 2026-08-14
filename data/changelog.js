@@ -44,14 +44,16 @@ const CHANGELOG = [
     },
 
     {
-            version: '1.1.0',
-            date: '2026-08-12 02:00',
-            title: 'Patch correctif mobile',
-            changes: [
-                { type: 'new', text: 'Affichage des doublons échangeable dans la page collectionneur' },
-                { type: 'new', text: 'Vue classeur depuis la collection' },
-                { type: 'improved', text: 'Améliorations globale des performances du site.' },
-                        ]
+        version: '1.1.0',
+        date: '2026-08-12 02:00',
+        title: 'Patch correctif mobile',
+        changes: [
+            { type: 'new', text: 'Affichage des doublons échangeable dans la page collectionneur' },
+            { type: 'new', text: 'Vue classeur depuis la collection' },
+            { type: 'new', text: 'Vue recap depuis la collection' },
+            { type: 'new', text: 'Ajout du prix pour finir un set + vue sur Dashboard' },
+            { type: 'improved', text: 'Améliorations globale des performances du site.' },
+                    ]
         }
 ];
 

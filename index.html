@@ -432,6 +432,7 @@
                         <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
                         <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
                         <button id="view-btn-binder" class="view-toggle-btn" onclick="setCollectionView('binder')"><i class="ti ti-book-2" aria-hidden="true"></i> Classeur</button>
+                        <button id="view-btn-recap" class="view-toggle-btn" onclick="setCollectionView('recap')"><i class="ti ti-chart-donut" aria-hidden="true"></i> Récap</button>
                     </div>
                     <select id="grid-sort" class="grid-sort-select" aria-label="Trier la collection">
                         <option value="">Trier par...</option>
@@ -469,6 +470,19 @@
             </div>
 
             <div id="collection-binder-wrapper" style="display: none;"></div>
+
+            <!-- Récap collection (Phase 4). R7 : .recap-top-row regroupe Plus-value + État de la
+                 collection sur une même ligne desktop (composition uniquement - recap-section-value et
+                 recap-section-state gardent leurs ids, aucun renderer JS ne change). Pièces maîtresses
+                 et Doublons restent chacun sur leur propre ligne. -->
+            <div id="collection-recap-wrapper" class="collection-recap" style="display: none;">
+                <div class="recap-top-row">
+                    <section class="recap-section recap-section-value" id="recap-section-value"></section>
+                    <section class="recap-section recap-section-state" id="recap-section-state"></section>
+                </div>
+                <section class="recap-section" id="recap-section-top-cards"></section>
+                <section class="recap-section" id="recap-section-duplicates"></section>
+            </div>
 
             <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
                 <span id="bulk-selection-count">0 carte sélectionnée</span>
@@ -1092,6 +1106,7 @@
     <script type="module" src="modules/card-grid-renderer.js?v=20260814-1"></script>
     <script type="module" src="modules/collection.js?v=20260812-8"></script>
     <script type="module" src="modules/binder-view.js?v=20260814-1"></script>
+    <script type="module" src="modules/collection-recap.js?v=20260814-1"></script>
     <script type="module" src="modules/import-export.js?v=20260812-7"></script>
     <script type="module" src="modules/card-detail.js?v=20260805-1"></script>
     <script type="module" src="modules/ui.js?v=20260812-7"></script>

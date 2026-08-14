@@ -2004,6 +2004,14 @@ button:disabled {
     border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* Récap (R2/R3) : la ligne "60 cartes affichées · sur 724 · Valeur... · Tri..." décrit une liste paginée
+   (Galerie/Tableau/Classeur), sans sens sur des agrégats - masquée ici. Les chips de filtres actifs,
+   frères de .summary-text-group dans #collection-summary (cf updateCollectionSummary, collection.js),
+   ne sont pas concernés et restent visibles/fonctionnels. */
+#tab-collection.collection-view-recap .summary-text-group {
+    display: none;
+}
+
 .collection-summary {
     font-size: 0.875rem;
     color: var(--slate);
@@ -2071,6 +2079,425 @@ button:disabled {
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     column-gap: 1.625rem;
     row-gap: 1.75rem;
+}
+
+/* RECAP COLLECTION (Phase 4, squelette R2 - contenu métier branché en R3-R6) */
+.collection-recap {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.recap-section {
+    background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
+    border-radius: 16px;
+    min-height: 4rem;
+}
+
+.recap-section:empty {
+    display: none;
+}
+
+/* R7 - Composition desktop : Plus-value (colonne étroite, ~32%) + État de la collection (reste de la
+   largeur) sur une même ligne. Pur regroupement visuel - recap-section-value/recap-section-state
+   gardent leurs ids et leurs renderers JS indépendants, aucun calcul ne change. align-items: flex-start
+   (pas stretch) : Plus-value garde sa hauteur naturelle, pas d'égalisation artificielle avec État de la
+   collection qui est plus haute (deux doughnuts + légendes) - décision produit après premier retour. */
+.recap-top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.recap-top-row .recap-section-value {
+    flex: 0 0 32%;
+    min-width: 240px;
+}
+
+.recap-top-row .recap-section-state {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .recap-top-row {
+        flex-direction: column;
+        /* align-items:flex-start (desktop, cf plus haut) devient l'axe horizontal en colonne : sans ce
+           reset à stretch, État de la collection ne prenait que sa largeur de contenu au lieu de toute
+           la largeur disponible, laissant une zone vide à droite - corrigé ici (R4bis). */
+        align-items: stretch;
+    }
+
+    .recap-top-row .recap-section-value,
+    .recap-top-row .recap-section-state {
+        min-width: 0;
+    }
+}
+
+/* R3 - Plus-value globale : un seul bloc compact, pas une hero card (consigne produit). Padding partagé
+   par les 4 sections (R3-R6 utilisent toutes .recap-value-block) - rythme harmonisé en R7. */
+.recap-value-block {
+    padding: 1.1rem 1.25rem;
+}
+
+.recap-value-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.recap-value-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.recap-value-amount.positive { color: var(--positive); }
+.recap-value-amount.negative { color: #ff6b6b; }
+
+.recap-value-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
+.recap-value-sub {
+    margin: 0.6rem 0 0 0;
+    font-size: 0.75rem;
+    color: var(--slate);
+    opacity: 0.8;
+}
+
+.recap-value-empty {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--slate);
+}
+
+/* R4 - État de la collection : condition + finition comme deux facettes d'un même bloc (un seul titre,
+   une bordure discrète entre les deux), pas deux sections indépendantes façon Statistiques. R4bis :
+   doughnuts Chart.js abandonnés (99% NM illisible en camembert, Finition avait trop de petits segments)
+   au profit d'un portrait synthétique texte/barres - plus proche d'une fiche que d'un écran analytique. */
+.recap-state-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-top: 0.25rem;
+}
+
+.recap-state-facet {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.recap-state-facet:first-child {
+    padding-right: 1.25rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.recap-state-facet-title {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--slate);
+}
+
+/* Condition : "99% NM" en tête + une seule barre segmentée (proportions réelles) + légende compacte. */
+.recap-condition-headline {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.recap-condition-headline-pct {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+}
+
+.recap-condition-headline-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.recap-bar-segmented {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.recap-bar-segment {
+    height: 100%;
+}
+
+.recap-mini-legend {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+}
+
+.recap-mini-legend li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+
+.recap-mini-legend-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 0.45rem;
+}
+
+.recap-mini-legend-value {
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+/* Finition : barres horizontales fines, une ligne par finition réellement présente. */
+.recap-finish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.recap-finish-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.recap-finish-name {
+    flex: 0 0 auto;
+    max-width: 6.5em;
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recap-finish-track {
+    flex: 1;
+    min-width: 0;
+    height: 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.recap-finish-fill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.recap-finish-value {
+    flex: 0 0 auto;
+    min-width: 3.6em;
+    font-size: 0.72rem;
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    .recap-state-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .recap-state-facet:first-child {
+        padding-right: 0;
+        padding-bottom: 1.25rem;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+}
+
+/* R5 - Les pièces maîtresses : casse volontairement le ton analytique de R3/R4, l'image domine, pas de
+   tableau financier. R7 : flex centré (pas grid auto-fill/1fr) - la taille des cartes déjà validée
+   (140px, cf .recap-top-card) est conservée telle quelle, jamais étirée ; le groupe de 5 (ou moins) se
+   présente comme une petite vitrine centrée plutôt que collé à gauche avec un grand vide à droite.
+   Mobile : repasse en grille 2 colonnes (layout déjà validé), cartes qui prennent alors la largeur de
+   leur colonne plutôt que leur largeur fixe desktop. */
+.recap-top-cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .recap-top-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .recap-top-cards-grid .recap-top-card {
+        width: auto;
+    }
+}
+
+.recap-top-card {
+    position: relative;
+    width: 140px;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+}
+
+.recap-top-card-image {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: 5 / 7;
+    margin-bottom: 0.5rem;
+}
+
+.recap-top-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.recap-top-card-rank {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    z-index: 1;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--ink-navy);
+    background: var(--gold);
+    border-radius: 999px;
+    padding: 0.12rem 0.45rem;
+    line-height: 1.4;
+}
+
+.recap-top-card-qty {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    z-index: 1;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+    line-height: 1.4;
+}
+
+.recap-top-card-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-top-card-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+}
+
+/* R6 - Doublons : liste compacte (miniature + nom + quantité), volontairement différente de la grille
+   de vignettes R5 - pas un second "pièces maîtresses". 2 colonnes desktop, 1 colonne mobile. */
+.recap-dup-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .recap-dup-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.recap-dup-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.recap-dup-thumb {
+    flex-shrink: 0;
+    width: 36px;
+    height: 50px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.recap-dup-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.recap-dup-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recap-dup-name {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-dup-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-dup-qty {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
 }
 
 .collection-grid-empty {
@@ -6897,18 +7324,23 @@ tbody tr:hover {
         display: none !important;
     }
 
-    /* :not(.collection-view-binder) (Phase 4, Vue Classeur B4) : cette règle ne doit forcer la Galerie
-       visible QUE quand elle corrige un mode 'table' invalide sur mobile (cf commentaire ci-dessus).
-       Sans cette exclusion, elle écrasait aussi le classeur (mode 'binder', display:none posé par JS
-       sur #collection-grid-wrapper) et affichait les deux vues superposées - bug réel constaté par
-       l'utilisateur. La classe est posée par setCollectionView() (collection.js) sur #tab-collection,
-       jamais réinitialisée par un changement d'onglet (contrairement à document.body.className,
-       réécrit en bloc par renderTab). */
-    #tab-collection:not(.collection-view-binder) #collection-grid-wrapper {
+    /* :not(.collection-view-binder):not(.collection-view-recap) (Phase 4, Vue Classeur B4 + Récap R2) :
+       cette règle ne doit forcer la Galerie visible QUE quand elle corrige un mode 'table' invalide sur
+       mobile (cf commentaire ci-dessus). Sans ces exclusions, elle écraserait aussi le Classeur ou le
+       Récap (display:none posé par JS sur #collection-grid-wrapper) et afficherait les deux vues
+       superposées - bug réel déjà constaté par l'utilisateur avec le Classeur avant cette exclusion.
+       Les classes sont posées par setCollectionView() (collection.js) sur #tab-collection, jamais
+       réinitialisées par un changement d'onglet (contrairement à document.body.className, réécrit en
+       bloc par renderTab). */
+    #tab-collection:not(.collection-view-binder):not(.collection-view-recap) #collection-grid-wrapper {
         display: block !important;
     }
 
-    #grid-sort {
+    /* :not(.collection-view-recap) : ce !important garantissait le tri visible sur mobile pour
+       Galerie/Tableau(->Galerie)/Classeur, mais écrasait aussi le display:none posé par setCollectionView()
+       en mode Récap (où le tri n'a pas de sens, aucune liste de cartes) - corrigé en réutilisant la même
+       classe déjà posée sur #tab-collection que pour l'exclusion #collection-grid-wrapper ci-dessus. */
+    #tab-collection:not(.collection-view-recap) #grid-sort {
         display: inline-block !important;
     }
 
