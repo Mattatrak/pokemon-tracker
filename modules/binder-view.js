@@ -21,6 +21,10 @@
 // B6 : preloadAdjacentBinderPages() précharge les images de la double-page/page adjacente (précédente
 // + suivante uniquement, jamais plus loin), appelée à chaque renderBinderView(). new Image() = pas de
 // DOM monté, juste le cache HTTP du navigateur alimenté en avance.
+//
+// B8 (branche tech/phase-4-binder-animation, expérimentation isolée et réversible) : slide+fade WAAPI
+// sur goToBinderSpread(), cf animateBinderPageChange() plus bas. N'affecte aucun comportement de
+// B1-B7 - seule la transition visuelle entre deux rendus change.
 
 // window.x plutôt que let (ticket V2 Vite, type="module") : lu/écrit uniquement dans ce fichier pour
 // l'instant, mais suit la convention du projet par cohérence avec collectionDisplayLimit (collection.js).
@@ -138,8 +142,108 @@ function preloadAdjacentBinderPages(cards, spreadSize, totalSpreads) {
 }
 
 function goToBinderSpread(delta) {
-    binderSpreadIndex += delta;
-    renderBinderView(getFilteredSortedCollection());
+    animateBinderPageChange(delta, () => {
+        binderSpreadIndex += delta;
+        renderBinderView(getFilteredSortedCollection());
+    });
+}
+
+// ===== B8 : animation de changement de double-page/page (WAAPI, cf roadmap technique) =====
+// Expérimentation isolée (branche tech/phase-4-binder-animation) : slide+fade léger sur .binder-book
+// uniquement (les boutons/compteur restent fixes, rebuild instantané via renderFn). Deux animations
+// concurrentes (ancienne page qui sort, nouvelle qui entre depuis l'autre côté) plutôt que deux phases
+// séquentielles : la durée totale reste celle d'une seule des deux (elles tournent en parallèle), pas
+// la somme des deux.
+//
+// BINDER_SLIDE_DISTANCE : aucun token --motion-distance-* existant n'est calibré pour ce cas (ils
+// servent des micro-interactions hover de quelques px) - valeur minimale dédiée, volontairement petite.
+// Durée/easing en revanche réutilisent tels quels les tokens motion-tokens.css existants.
+const BINDER_SLIDE_DISTANCE = 22; // px
+const BINDER_ANIM_DURATION = 260; // ms, reprend --motion-duration-normal
+const BINDER_ANIM_EASING = 'cubic-bezier(0.2, 0, 0, 1)'; // reprend --motion-ease-standard
+
+let binderAnimating = false;
+// Token de génération : incrémenté à chaque animation démarrée ET à chaque teardown. Le .finally()
+// d'une animation ne remet binderAnimating à false que s'il porte encore le token courant - évite
+// qu'un .finally() tardif (ex: animation A dont le teardown a eu lieu pendant qu'elle tournait encore,
+// suivi d'un retour rapide en mode binder qui démarre l'animation B) ne vienne remettre le flag à false
+// pendant que B est en vol. Pas de scheduler/queue : juste un compteur comparé à la lecture.
+let binderAnimationToken = 0;
+
+// direction > 0 : nouvelle page vient de la droite (navigation "suivant"). direction < 0 : inverse.
+// renderFn : la mise à jour d'état + rerender existante (goToBinderSpread ci-dessus) - jamais réécrite.
+function animateBinderPageChange(direction, renderFn) {
+    // Navigation rapide (clics/swipes répétés) : on ignore plutôt que d'empiler ou d'interrompre une
+    // animation en cours - stratégie la plus simple et la plus robuste (jamais deux animations ou deux
+    // rerenders qui se chevauchent, jamais d'état binderSpreadIndex incohérent).
+    if (binderAnimating) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wrapper = document.getElementById('collection-binder-wrapper');
+    const oldBook = wrapper ? wrapper.querySelector('.binder-book') : null;
+
+    // Filet : sans support WAAPI, sans page déjà montée (état vide), ou reduced-motion -> comportement
+    // strictement identique à avant B8 (changement instantané), jamais bloquant.
+    if (prefersReducedMotion || !wrapper || !oldBook || typeof oldBook.animate !== 'function') {
+        renderFn();
+        return;
+    }
+
+    binderAnimating = true;
+    const myToken = ++binderAnimationToken;
+
+    // Clone positionné en fixed (coordonnées déjà en repère viewport via getBoundingClientRect, aucun
+    // besoin de rendre .binder-scene position:relative pour ça) et ajouté à document.body - survit au
+    // wrapper.innerHTML de renderBinderView() qui va suivre (lequel détruirait un enfant de .binder-scene).
+    // pointer-events:none : ne doit jamais intercepter un clic destiné à la nouvelle page en dessous.
+    // aria-hidden + inert : c'est un doublon visuel temporaire du contenu réel, jamais interactif -
+    // ne doit jamais être exposé aux technologies d'assistance ni recevoir le focus clavier.
+    const oldRect = oldBook.getBoundingClientRect();
+    const clone = oldBook.cloneNode(true);
+    clone.setAttribute('aria-hidden', 'true');
+    clone.inert = true;
+    Object.assign(clone.style, {
+        position: 'fixed',
+        left: `${oldRect.left}px`,
+        top: `${oldRect.top}px`,
+        width: `${oldRect.width}px`,
+        height: `${oldRect.height}px`,
+        margin: '0',
+        zIndex: '50',
+        pointerEvents: 'none'
+    });
+    document.body.appendChild(clone);
+
+    const exitOffset = direction > 0 ? -BINDER_SLIDE_DISTANCE : BINDER_SLIDE_DISTANCE;
+    const enterOffset = direction > 0 ? BINDER_SLIDE_DISTANCE : -BINDER_SLIDE_DISTANCE;
+    const timing = { duration: BINDER_ANIM_DURATION, easing: BINDER_ANIM_EASING, fill: 'none' };
+
+    const exitAnim = clone.animate(
+        [{ transform: 'translateX(0)', opacity: 1 }, { transform: `translateX(${exitOffset}px)`, opacity: 0 }],
+        timing
+    );
+
+    renderFn(); // rebuild synchrone (index déjà avancé par l'appelant) - la nouvelle page est en place
+                // dès cette ligne, ses handlers de clic sont donc déjà actifs pendant l'animation.
+
+    const newBook = wrapper.querySelector('.binder-book');
+    const enterAnim = (newBook && typeof newBook.animate === 'function')
+        ? newBook.animate(
+            [{ transform: `translateX(${enterOffset}px)`, opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }],
+            timing
+        )
+        : null;
+
+    // fill:'none' (par défaut) : chaque élément revient automatiquement à son état CSS normal une fois
+    // l'animation terminée - aucun style inline résiduel à retirer nous-mêmes. .finally() garantit le
+    // nettoyage (clone + flag) même si une des deux animations est annulée entretemps (ex: navigation
+    // hors de Collection pendant l'animation).
+    Promise.all([exitAnim.finished, enterAnim ? enterAnim.finished : Promise.resolve()])
+        .catch(() => {})
+        .finally(() => {
+            clone.remove(); // toujours retiré, même si le token a changé entretemps (son propre clone)
+            if (myToken === binderAnimationToken) binderAnimating = false; // cf commentaire du token plus haut
+        });
 }
 
 // ===== B3 : clavier =====
@@ -343,6 +447,15 @@ function teardownBinderLifecycle() {
     if (wrapper) wrapper.removeEventListener('click', handleBinderClickCapture, true);
 
     detachBinderPointerHandlers();
+
+    // B8 : filet défensif si on quitte le mode binder pendant qu'une animation de page est en vol.
+    // Reset immédiat du flag (repartir propre sans attendre le .finally() de l'animation en cours) +
+    // incrément du token pour invalider ce même .finally() tardif - sans ça, une animation A dont le
+    // teardown a eu lieu pendant qu'elle tournait encore, suivie d'un retour rapide qui démarre
+    // l'animation B, verrait le .finally() de A remettre binderAnimating à false pendant que B est
+    // encore en vol (course corrigée après retour utilisateur, cf conversation).
+    binderAnimating = false;
+    binderAnimationToken++;
 }
 
 window.resetBinderPage = resetBinderPage;
