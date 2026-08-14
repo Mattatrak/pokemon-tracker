@@ -5,12 +5,11 @@ name: Deploy PokéTracker (Vite build) to GitHub Pages
 # Pages. dist/ n'est jamais commité (voir .gitignore) - ce workflow est la seule source du site en
 # ligne une fois Settings > Pages basculé sur "GitHub Actions" (à faire manuellement, cf ticket V6).
 #
-# Déclenché uniquement sur push vers cette branche pour l'instant, le temps de valider la Phase 1 -
-# à mettre à jour (poke-trackerV2 / main) une fois cette branche mergée.
+# Déclenché sur push vers la branche de déploiement réelle (poke-trackerV2).
 
 on:
   push:
-    branches: [tech/phase-1-vite]
+    branches: [poke-trackerV2]
   workflow_dispatch: {}
 
 permissions:
