@@ -102,6 +102,10 @@
     align-items: stretch;
     gap: clamp(0.5rem, 1.8vw, 1.25rem);
     min-width: 0;
+    /* B9 : contexte 3D pour la rotation des pages (binder-view.js, animateBinderTurnExit/Enter).
+       Statique, sans effet visuel/perf tant qu'aucun enfant n'a de transform 3D actif - inerte sur
+       mobile (pas de binder-page-right, pas de rotation déclenchée, cf B9 desktop uniquement). */
+    perspective: 1800px;
 }
 
 /* Deux surfaces de page distinctes + reliure centrale, renforcées (retour visuel après premier test :
@@ -121,11 +125,15 @@
 .binder-page-left {
     box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05),
         inset -16px 0 24px -18px rgba(0, 0, 0, 0.78);
+    /* B9 : pivot côté reliure pour la rotation (droite = côté spine d'une page gauche). */
+    transform-origin: right center;
 }
 
 .binder-page-right {
     box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05),
         inset 16px 0 24px -18px rgba(0, 0, 0, 0.78);
+    /* B9 : pivot côté reliure pour la rotation (gauche = côté spine d'une page droite). */
+    transform-origin: left center;
 }
 
 .binder-spine {

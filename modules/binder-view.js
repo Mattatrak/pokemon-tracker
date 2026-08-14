@@ -22,9 +22,12 @@
 // + suivante uniquement, jamais plus loin), appelée à chaque renderBinderView(). new Image() = pas de
 // DOM monté, juste le cache HTTP du navigateur alimenté en avance.
 //
-// B8 (branche tech/phase-4-binder-animation, expérimentation isolée et réversible) : slide+fade WAAPI
-// sur goToBinderSpread(), cf animateBinderPageChange() plus bas. N'affecte aucun comportement de
-// B1-B7 - seule la transition visuelle entre deux rendus change.
+// B8 (mobile) : slide+fade WAAPI léger sur goToBinderSpread(), cf animateBinderPageChange() plus bas.
+// N'affecte aucun comportement de B1-B7 - seule la transition visuelle entre deux rendus change.
+//
+// B9 (desktop, branche tech/phase-4-binder-pageturn, dérivée de B8) : rotation ~90deg d'une seule page
+// à la fois (celle concernée par le sens de navigation), autour de la reliure. Une itération recto/verso
+// 180deg a été tentée puis abandonnée - cf commentaire détaillé au-dessus d'animateBinderPageChange.
 
 // window.x plutôt que let (ticket V2 Vite, type="module") : lu/écrit uniquement dans ce fichier pour
 // l'instant, mais suit la convention du projet par cohérence avec collectionDisplayLimit (collection.js).
@@ -148,18 +151,27 @@ function goToBinderSpread(delta) {
     });
 }
 
-// ===== B8 : animation de changement de double-page/page (WAAPI, cf roadmap technique) =====
-// Expérimentation isolée (branche tech/phase-4-binder-animation) : slide+fade léger sur .binder-book
-// uniquement (les boutons/compteur restent fixes, rebuild instantané via renderFn). Deux animations
-// concurrentes (ancienne page qui sort, nouvelle qui entre depuis l'autre côté) plutôt que deux phases
-// séquentielles : la durée totale reste celle d'une seule des deux (elles tournent en parallèle), pas
-// la somme des deux.
+// ===== Animation de changement de double-page/page (WAAPI, cf roadmap technique) =====
+// Mobile (B8) : slide+fade léger sur .binder-book en entier. Desktop (B9) : rotation ~90deg d'une
+// seule page à la fois - celle concernée par le sens de navigation (droite pour "suivant", gauche pour
+// "précédent"), comme dans un vrai livre. Expérimentation isolée (branche tech/phase-4-binder-pageturn),
+// n'affecte aucun comportement de B1-B7 - seule la transition visuelle entre deux rendus change.
+// (Une itération recto/verso 180deg a été tentée puis abandonnée : le classeur navigue par double-page
+// ENTIÈRE, pas page par page comme un vrai livre, ce qui créait un désaccord irréconciliable entre la
+// géométrie du flip - qui fait "atterrir" la page tournée sur la page opposée - et le contenu affiché
+// à cet endroit - qui ne pouvait représenter ni l'ancien contenu recouvert ni le nouveau de façon
+// cohérente. Le swing à 90deg, plus simple, ne prétend pas simuler un vrai livre page par page - juste
+// un mouvement directionnel clair.)
 //
 // BINDER_SLIDE_DISTANCE : aucun token --motion-distance-* existant n'est calibré pour ce cas (ils
 // servent des micro-interactions hover de quelques px) - valeur minimale dédiée, volontairement petite.
-// Durée/easing en revanche réutilisent tels quels les tokens motion-tokens.css existants.
-const BINDER_SLIDE_DISTANCE = 22; // px
-const BINDER_ANIM_DURATION = 260; // ms, reprend --motion-duration-normal
+// Durée/easing réutilisent tels quels les tokens motion-tokens.css existants pour le mobile ; le
+// desktop a sa propre durée (BINDER_TURN_DURATION), une rotation ayant besoin de plus de temps pour se
+// lire comme "la page tourne" (retour utilisateur sur un premier essai à 260ms, jugé trop rapide).
+const BINDER_SLIDE_DISTANCE = 22; // px - mobile uniquement (B8)
+const BINDER_ROTATE_ANGLE = 90; // deg - desktop uniquement (B9)
+const BINDER_ANIM_DURATION = 260; // ms, reprend --motion-duration-normal - mobile (B8) uniquement
+const BINDER_TURN_DURATION = 420; // ms - desktop uniquement (B9)
 const BINDER_ANIM_EASING = 'cubic-bezier(0.2, 0, 0, 1)'; // reprend --motion-ease-standard
 
 let binderAnimating = false;
@@ -170,7 +182,7 @@ let binderAnimating = false;
 // pendant que B est en vol. Pas de scheduler/queue : juste un compteur comparé à la lecture.
 let binderAnimationToken = 0;
 
-// direction > 0 : nouvelle page vient de la droite (navigation "suivant"). direction < 0 : inverse.
+// direction > 0 : navigation "suivant". direction < 0 : "précédent".
 // renderFn : la mise à jour d'état + rerender existante (goToBinderSpread ci-dessus) - jamais réécrite.
 function animateBinderPageChange(direction, renderFn) {
     // Navigation rapide (clics/swipes répétés) : on ignore plutôt que d'empiler ou d'interrompre une
@@ -183,7 +195,7 @@ function animateBinderPageChange(direction, renderFn) {
     const oldBook = wrapper ? wrapper.querySelector('.binder-book') : null;
 
     // Filet : sans support WAAPI, sans page déjà montée (état vide), ou reduced-motion -> comportement
-    // strictement identique à avant B8 (changement instantané), jamais bloquant.
+    // instantané, jamais bloquant.
     if (prefersReducedMotion || !wrapper || !oldBook || typeof oldBook.animate !== 'function') {
         renderFn();
         return;
@@ -214,36 +226,92 @@ function animateBinderPageChange(direction, renderFn) {
     });
     document.body.appendChild(clone);
 
-    const exitOffset = direction > 0 ? -BINDER_SLIDE_DISTANCE : BINDER_SLIDE_DISTANCE;
-    const enterOffset = direction > 0 ? BINDER_SLIDE_DISTANCE : -BINDER_SLIDE_DISTANCE;
-    const timing = { duration: BINDER_ANIM_DURATION, easing: BINDER_ANIM_EASING, fill: 'none' };
-
-    const exitAnim = clone.animate(
-        [{ transform: 'translateX(0)', opacity: 1 }, { transform: `translateX(${exitOffset}px)`, opacity: 0 }],
-        timing
-    );
+    // Mobile garde le slide+fade de B8 (une seule page, pas de reliure à faire tourner). Desktop passe
+    // sur la rotation (animateBinderTurnExit/Enter, plus bas) - durée dédiée plus longue.
+    const mobile = isCollectionMobileViewport();
+    const timing = {
+        duration: mobile ? BINDER_ANIM_DURATION : BINDER_TURN_DURATION,
+        easing: BINDER_ANIM_EASING,
+        fill: 'none'
+    };
+    const exitAnims = mobile ? animateBinderSlideExit(clone, direction, timing) : animateBinderTurnExit(clone, direction, timing);
 
     renderFn(); // rebuild synchrone (index déjà avancé par l'appelant) - la nouvelle page est en place
                 // dès cette ligne, ses handlers de clic sont donc déjà actifs pendant l'animation.
 
     const newBook = wrapper.querySelector('.binder-book');
-    const enterAnim = (newBook && typeof newBook.animate === 'function')
-        ? newBook.animate(
-            [{ transform: `translateX(${enterOffset}px)`, opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }],
-            timing
-        )
-        : null;
+    const enterAnims = (newBook && typeof newBook.animate === 'function')
+        ? (mobile ? animateBinderSlideEnter(newBook, direction, timing) : animateBinderTurnEnter(newBook, direction, timing))
+        : [];
 
     // fill:'none' (par défaut) : chaque élément revient automatiquement à son état CSS normal une fois
     // l'animation terminée - aucun style inline résiduel à retirer nous-mêmes. .finally() garantit le
-    // nettoyage (clone + flag) même si une des deux animations est annulée entretemps (ex: navigation
-    // hors de Collection pendant l'animation).
-    Promise.all([exitAnim.finished, enterAnim ? enterAnim.finished : Promise.resolve()])
+    // nettoyage (clone + flag) même si une des animations est annulée entretemps (ex: navigation hors
+    // de Collection pendant l'animation).
+    Promise.all([...exitAnims, ...enterAnims].map(a => a.finished))
         .catch(() => {})
         .finally(() => {
             clone.remove(); // toujours retiré, même si le token a changé entretemps (son propre clone)
             if (myToken === binderAnimationToken) binderAnimating = false; // cf commentaire du token plus haut
         });
+}
+
+// B8 (mobile) : slide+fade sur .binder-book en entier (une seule page 2x2, pas de reliure).
+function animateBinderSlideExit(book, direction, timing) {
+    const offset = direction > 0 ? -BINDER_SLIDE_DISTANCE : BINDER_SLIDE_DISTANCE;
+    return [book.animate(
+        [{ transform: 'translateX(0)', opacity: 1 }, { transform: `translateX(${offset}px)`, opacity: 0 }],
+        timing
+    )];
+}
+
+function animateBinderSlideEnter(book, direction, timing) {
+    const offset = direction > 0 ? BINDER_SLIDE_DISTANCE : -BINDER_SLIDE_DISTANCE;
+    return [book.animate(
+        [{ transform: `translateX(${offset}px)`, opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }],
+        timing
+    )];
+}
+
+// B9 (desktop) : une seule page tourne, comme dans un vrai livre - celle de droite pour "suivant"
+// (transform-origin posé côté reliure en CSS), celle de gauche pour "précédent". L'autre page (celle
+// qui ne tourne pas) reçoit seulement un fondu d'opacité, sans rotation, pour rester cohérente
+// visuellement pendant que la page active tourne. Jamais de face arrière rendue : une page vue par la
+// tranche à 90deg est dégénérée (largeur nulle), donc invisible à ce point sans rien à afficher - pas
+// de recto/verso comme un vrai flip 180deg (tenté puis abandonné, cf commentaire de section plus haut).
+function animateBinderTurnExit(book, direction, timing) {
+    const anims = [];
+    const left = book.querySelector('.binder-page-left');
+    const right = book.querySelector('.binder-page-right');
+    const turningPage = direction > 0 ? right : left;
+    const stillPage = direction > 0 ? left : right;
+    // Signe qui fait "se soulever vers l'avant/le lecteur" plutôt que partir en arrière dans l'écran
+    // (retour utilisateur, vérifié géométriquement : le bord libre d'une page pivotée côté reliure a
+    // besoin d'une rotation négative si son pivot est à gauche, positive s'il est à droite).
+    const turningAngle = direction > 0 ? -BINDER_ROTATE_ANGLE : BINDER_ROTATE_ANGLE;
+
+    if (turningPage) anims.push(turningPage.animate(
+        [{ transform: 'rotateY(0deg)', opacity: 1 }, { transform: `rotateY(${turningAngle}deg)`, opacity: 0 }],
+        timing
+    ));
+    if (stillPage) anims.push(stillPage.animate([{ opacity: 1 }, { opacity: 0 }], timing));
+    return anims;
+}
+
+function animateBinderTurnEnter(book, direction, timing) {
+    const anims = [];
+    const left = book.querySelector('.binder-page-left');
+    const right = book.querySelector('.binder-page-right');
+    const turningPage = direction > 0 ? right : left;
+    const stillPage = direction > 0 ? left : right;
+    const turningAngle = direction > 0 ? -BINDER_ROTATE_ANGLE : BINDER_ROTATE_ANGLE;
+
+    if (turningPage) anims.push(turningPage.animate(
+        [{ transform: `rotateY(${turningAngle}deg)`, opacity: 0 }, { transform: 'rotateY(0deg)', opacity: 1 }],
+        timing
+    ));
+    if (stillPage) anims.push(stillPage.animate([{ opacity: 0 }, { opacity: 1 }], timing));
+    return anims;
 }
 
 // ===== B3 : clavier =====
