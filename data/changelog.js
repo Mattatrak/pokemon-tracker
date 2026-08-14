@@ -49,12 +49,8 @@ const CHANGELOG = [
             title: 'Patch correctif mobile',
             changes: [
                 { type: 'new', text: 'Affichage des doublons échangeable dans la page collectionneur' },
-                { type: 'fix', text: 'Comportement du scroll lorsqu\'une fenêtre est ouverte.' },
-                { type: 'fix', text: 'Correctif alignement de la page wishlist pour mobile.' },
-                { type: 'fix', text: 'Correctifs divers sur la page d\'ajout pour mobile.' },
-                { type: 'fix', text: 'Correctifs sur le mécanisme de fermeture des fenêtre sur mobile.' },
-                { type: 'improved', text: 'Améliorations visuelles de la page collectionneurs pour mobile.' },
-                { type: 'improved', text: 'Améliorations visuelles de la page wishlist pour mobile.' },
+                { type: 'new', text: 'Vue classeur depuis la collection' },
+                { type: 'improved', text: 'Améliorations globale des performances du site.' },
                         ]
         }
 ];

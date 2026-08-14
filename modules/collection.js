@@ -1,7 +1,8 @@
 // Tri/filtre/rendu de l'onglet "Ma Collection" - Pokémon Tracker
 // Dépend de: allCollectionCards/changeQuantity/deleteCard (tracker.js), sortRaritiesByTier/getRarityIconHtml/
 // renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js),
-// renderGridCardHtml (card-grid-renderer.js)
+// renderGridCardHtml (card-grid-renderer.js), resetBinderPage/renderBinderView/setupBinderLifecycle/
+// teardownBinderLifecycle (binder-view.js)
 // Etat possédé : sortColumn, sortDirection, collectionFilters, collectionViewMode
 
 // window.x plutôt que let (ticket V2 Vite, type="module") : sortColumn/sortDirection sont lus/écrits
@@ -702,6 +703,7 @@ async function bulkDeleteSelected() {
 
 function filterAndDisplay() {
     collectionDisplayLimit = COLLECTION_PAGE_SIZE; // toute recherche/filtre/tri repart de la première page
+    resetBinderPage(); // idem pour le classeur (binder-view.js) : repart de la première double-page
     clearSelection(); // évite d'agir sur une sélection de cartes qu'on ne voit plus
     renderFilteredCollection();
 }
@@ -825,19 +827,29 @@ function renderFilteredCollection() {
     updateCollectionAddFilterButtonState();
 
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
-    if (getEffectiveCollectionViewMode() === 'table') {
+    const effectiveMode = getEffectiveCollectionViewMode();
+    if (effectiveMode === 'table') {
         renderCollectionTable(page);
+    } else if (effectiveMode === 'binder') {
+        // Le classeur reçoit filtered en entier (pas page/collectionDisplayLimit) : sa pagination par
+        // double-page (binder-view.js) est indépendante du "Charger plus" de Galerie/Tableau.
+        renderBinderView(filtered);
     } else {
         renderCollectionGrid(page);
     }
 
+    // Le classeur gère sa propre pagination (précédent/suivant) : pas de ligne "Charger plus".
     const loadMoreRow = document.getElementById('load-more-row');
-    const remaining = filtered.length - page.length;
-    if (remaining > 0) {
-        loadMoreRow.style.display = 'flex';
-        document.getElementById('load-more-btn').textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
-    } else {
+    if (effectiveMode === 'binder') {
         loadMoreRow.style.display = 'none';
+    } else {
+        const remaining = filtered.length - page.length;
+        if (remaining > 0) {
+            loadMoreRow.style.display = 'flex';
+            document.getElementById('load-more-btn').textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
+        } else {
+            loadMoreRow.style.display = 'none';
+        }
     }
 }
 
@@ -944,12 +956,28 @@ function getEffectiveCollectionViewMode() {
 }
 
 function setCollectionView(mode) {
+    // Lifecycle du clavier binder (B3) : attache/détache uniquement au changement effectif de mode,
+    // jamais à chaque appel (ex: re-clic sur le bouton déjà actif) - setup/teardown sont de toute façon
+    // idempotents côté binder-view.js, mais ce garde évite le travail inutile.
+    if (mode !== collectionViewMode) {
+        if (collectionViewMode === 'binder') teardownBinderLifecycle();
+        if (mode === 'binder') setupBinderLifecycle();
+    }
+
     collectionViewMode = mode;
+    // Lue en CSS (styles.css, filet mobile qui force la Galerie visible quand le Tableau est
+    // indisponible <768px) pour ne pas s'appliquer par-dessus le Classeur : cf commentaire sur
+    // #tab-collection:not(.collection-view-binder) #collection-grid-wrapper.
+    document.getElementById('tab-collection')?.classList.toggle('collection-view-binder', mode === 'binder');
     document.getElementById('view-btn-grid').classList.toggle('active', mode === 'grid');
     document.getElementById('view-btn-table').classList.toggle('active', mode === 'table');
+    document.getElementById('view-btn-binder').classList.toggle('active', mode === 'binder');
     document.getElementById('collection-grid-wrapper').style.display = mode === 'grid' ? 'block' : 'none';
     document.getElementById('collection-table-wrapper').style.display = mode === 'table' ? 'block' : 'none';
-    document.getElementById('grid-sort').style.display = mode === 'grid' ? 'inline-block' : 'none';
+    document.getElementById('collection-binder-wrapper').style.display = mode === 'binder' ? 'block' : 'none';
+    // Le tri par sélecteur reste pertinent en Classeur (Tableau a ses propres en-têtes cliquables) :
+    // visible pour grid ET binder, masqué uniquement pour table.
+    document.getElementById('grid-sort').style.display = mode !== 'table' ? 'inline-block' : 'none';
     filterAndDisplay();
 }
 

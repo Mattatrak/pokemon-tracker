@@ -6897,7 +6897,14 @@ tbody tr:hover {
         display: none !important;
     }
 
-    #collection-grid-wrapper {
+    /* :not(.collection-view-binder) (Phase 4, Vue Classeur B4) : cette règle ne doit forcer la Galerie
+       visible QUE quand elle corrige un mode 'table' invalide sur mobile (cf commentaire ci-dessus).
+       Sans cette exclusion, elle écrasait aussi le classeur (mode 'binder', display:none posé par JS
+       sur #collection-grid-wrapper) et affichait les deux vues superposées - bug réel constaté par
+       l'utilisateur. La classe est posée par setCollectionView() (collection.js) sur #tab-collection,
+       jamais réinitialisée par un changement d'onglet (contrairement à document.body.className,
+       réécrit en bloc par renderTab). */
+    #tab-collection:not(.collection-view-binder) #collection-grid-wrapper {
         display: block !important;
     }
 

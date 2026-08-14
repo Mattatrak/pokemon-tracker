@@ -583,10 +583,28 @@ function navigateToTab(tabId) {
 // visuel d'onglet a lieu dans ce cas, le rendu métier réel étant de toute façon rejoué après appReady = true
 // (voir l'appel dans modules/auth.js).
 window.addEventListener('hashchange', () => {
+    // Hook minimal Vue Classeur (B3, cf roadmap technique) : le DOM de tab-collection n'est jamais
+    // démonté (renderTab bascule juste .active, cf renderTab ci-dessus), donc le listener clavier du
+    // classeur resterait actif en arrière-plan si on ne le détache pas explicitement en quittant
+    // l'onglet. Vérifié avant renderTab (qui bascule .active vers la nouvelle cible).
+    const targetTabId = getTabIdFromHash();
+    if (collectionViewMode === 'binder' && targetTabId !== 'tab-collection' &&
+        document.getElementById('tab-collection')?.classList.contains('active')) {
+        teardownBinderLifecycle();
+    }
+
     closeWishlistItemDetail();
     closeMobileMorePanel();
     closeMobileAddPanel();
-    renderTab(getTabIdFromHash(), { activateContent: appReady === true });
+    renderTab(targetTabId, { activateContent: appReady === true });
+
+    // Symétrique : si on revient sur Collection alors que le classeur était le mode actif (jamais
+    // réinitialisé, juste son listener détaché ci-dessus au moment de quitter), on réattache — sinon
+    // les flèches resteraient silencieusement inactives après un aller-retour d'onglet. setupBinderLifecycle
+    // est idempotent (cf binder-view.js), aucun risque de double-attache.
+    if (targetTabId === 'tab-collection' && collectionViewMode === 'binder') {
+        setupBinderLifecycle();
+    }
 });
 
 // ===== ONGLETS =====

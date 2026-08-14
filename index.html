@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
     <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
     <link rel="stylesheet" href="components/navigation/navigation.css?v=20260805-1">
+    <link rel="stylesheet" href="css/binder.css?v=20260814-1">
 </head>
 <body>
     <div class="container">
@@ -430,6 +431,7 @@
                     <div class="view-toggle">
                         <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
                         <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
+                        <button id="view-btn-binder" class="view-toggle-btn" onclick="setCollectionView('binder')"><i class="ti ti-book-2" aria-hidden="true"></i> Classeur</button>
                     </div>
                     <select id="grid-sort" class="grid-sort-select" aria-label="Trier la collection">
                         <option value="">Trier par...</option>
@@ -465,6 +467,8 @@
             <div class="collection-display-case" id="collection-grid-wrapper">
                 <div class="collection-grid" id="collection-grid"></div>
             </div>
+
+            <div id="collection-binder-wrapper" style="display: none;"></div>
 
             <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
                 <span id="bulk-selection-count">0 carte sélectionnée</span>
@@ -1087,6 +1091,7 @@
     <script type="module" src="modules/stats.js?v=20260812-7"></script>
     <script type="module" src="modules/card-grid-renderer.js?v=20260814-1"></script>
     <script type="module" src="modules/collection.js?v=20260812-8"></script>
+    <script type="module" src="modules/binder-view.js?v=20260814-1"></script>
     <script type="module" src="modules/import-export.js?v=20260812-7"></script>
     <script type="module" src="modules/card-detail.js?v=20260805-1"></script>
     <script type="module" src="modules/ui.js?v=20260812-7"></script>
