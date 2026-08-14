@@ -660,11 +660,17 @@ body {
     align-items: start;
 }
 
+/* IMPORTANT (bug réel trouvé le 2026-08-14, cf audit visuel) : -webkit-backdrop-filter DOIT toujours
+   être déclaré AVANT backdrop-filter (standard), jamais l'inverse. Dans l'ordre inverse (standard
+   d'abord), le minifieur CSS de Vite (esbuild) supprime silencieusement la propriété standard au build
+   - le flou disparaît uniquement en production (jamais en dev, qui ne minifie pas), rendant les
+   panneaux "trop transparents". Tous les usages de backdrop-filter du fichier suivent cet ordre -
+   respecter cette convention pour toute nouvelle règle utilisant backdrop-filter. */
 .catalogue-grid-col {
     min-width: 0;
     background: rgba(18, 14, 12, 0.55);
-    backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: 22px;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
@@ -708,8 +714,8 @@ body {
     position: sticky;
     top: 1.5rem;
     background: rgba(18, 14, 12, 0.55);
-    backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: 22px;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
@@ -1363,8 +1369,8 @@ body {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     border-radius: 16px;
     padding: 24px 24px 26px;
@@ -2953,8 +2959,8 @@ tbody tr:hover {
 /* CARTE DE LISTE (coque toujours visible) */
 .wishlist-list-card {
     background: rgba(18, 14, 12, 0.4);
-    backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: 16px;
     margin-bottom: 1rem;
@@ -3201,8 +3207,8 @@ tbody tr:hover {
 
 .wishlist-thumb-card .price-badge {
     background: rgba(232, 169, 59, 0.94);
-    backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
@@ -3359,8 +3365,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.7);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     border-radius: 16px;
     padding: 0.4rem;
@@ -3630,8 +3636,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 1rem 1.25rem;
@@ -4303,8 +4309,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-left: 2px solid transparent;
     border-radius: 12px;
@@ -4902,8 +4908,8 @@ tbody tr:hover {
         radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
         rgba(19,19,19,0.6);
-    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
     -webkit-backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
+    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
     box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 20px rgba(232,169,59,0.1);
 }
 
@@ -4989,8 +4995,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
@@ -5024,8 +5030,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.4);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
@@ -5096,8 +5102,8 @@ tbody tr:hover {
         radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
         linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 35%),
         rgba(15,15,17,0.97);
-    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
     box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
@@ -5804,8 +5810,8 @@ tbody tr:hover {
         border: none;
         box-shadow: none;
         background: none;
-        backdrop-filter: none;
         -webkit-backdrop-filter: none;
+        backdrop-filter: none;
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -5943,8 +5949,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
@@ -8339,8 +8345,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
 
@@ -9137,8 +9143,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 1.4rem;
@@ -9812,8 +9818,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 1.5rem;
@@ -10181,8 +10187,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 1.75rem 1.5rem;
@@ -10257,8 +10263,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 1.75rem;
@@ -10406,8 +10412,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 40%),
         rgba(32,32,36,0.4);
-    backdrop-filter: blur(16px) saturate(1.3);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 1.5rem;
@@ -10483,8 +10489,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 40%),
         rgba(32,32,36,0.4);
-    backdrop-filter: blur(16px) saturate(1.3);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 0.9rem 1rem;
