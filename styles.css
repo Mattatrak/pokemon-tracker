@@ -8664,6 +8664,16 @@ body.page-progression .progression-followed-sets {
     margin-top: 0.5rem;
 }
 
+.dashboard-objective-extra {
+    color: #A9B3C9;
+    font-size: 0.78rem;
+    margin-top: 0.4rem;
+}
+
+.dashboard-objective-extra:empty {
+    display: none;
+}
+
 /* ----- Top hausses ----- */
 /* Le widget entier (pas juste son contenu) est masqué en JS quand aucune donnée n'existe */
 

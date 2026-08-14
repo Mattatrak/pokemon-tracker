@@ -551,6 +551,46 @@ async function handleProgressionSeriesLogoUpload(event, setId) {
     }
 }
 
+// Récupère la liste complète et détaillée (rareté, prix, image) des cartes d'un set TCGdex, par lots
+// de 5. Extrait d'openSetProgression pour être réutilisable par le Dashboard (P2-5, budget de
+// l'objectif) sans dupliquer la logique de fetch/fallback FR→EN.
+async function fetchSetCardsDetailed(setId, onProgress) {
+    let response = await fetch(`${API_BASE}/cards?set=${setId}`);
+    let data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+        const enResponse = await fetch(`${API_EN}/cards?set=${setId}`);
+        data = await enResponse.json();
+    }
+
+    const basicList = (Array.isArray(data) ? data : []).filter(c => getSetIdFromTcgdexId(c.id) === setId);
+
+    const detailed = [];
+    const batchSize = 5;
+    for (let i = 0; i < basicList.length; i += batchSize) {
+        const batch = basicList.slice(i, i + batchSize);
+        if (onProgress) onProgress(Math.min(i + batchSize, basicList.length), basicList.length);
+
+        const results = await Promise.all(batch.map(async (card) => {
+            try {
+                const detailRes = await fetch(`${API_BASE}/cards/${card.id}`);
+                const detail = await detailRes.json();
+                if (detail && !detail.status) return detail;
+                throw new Error('fr not found');
+            } catch {
+                try {
+                    const enDetailRes = await fetch(`${API_EN}/cards/${card.id}`);
+                    return await enDetailRes.json();
+                } catch {
+                    return card; // filet de sécurité minimal
+                }
+            }
+        }));
+        detailed.push(...results);
+    }
+
+    return detailed.sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));
+}
+
 async function openSetProgression(setId, setName, logoUrl) {
     currentProgressionSetId = setId;
     progressionFilter = 'all';
@@ -581,44 +621,8 @@ async function openSetProgression(setId, setName, logoUrl) {
     if (progressText) progressText.textContent = 'Chargement des cartes...';
 
     try {
-        let response = await fetch(`${API_BASE}/cards?set=${setId}`);
-        let data = await response.json();
-        if (!Array.isArray(data) || data.length === 0) {
-            const enResponse = await fetch(`${API_EN}/cards?set=${setId}`);
-            data = await enResponse.json();
-        }
-
-        const basicList = (Array.isArray(data) ? data : []).filter(c => getSetIdFromTcgdexId(c.id) === setId);
-
-        // Récupérer les détails complets (rareté, prix, image) par lots de 5
-        const detailed = [];
-        const batchSize = 5;
-        for (let i = 0; i < basicList.length; i += batchSize) {
-            const batch = basicList.slice(i, i + batchSize);
-            if (progressText) progressText.textContent = `Chargement des cartes... ${Math.min(i + batchSize, basicList.length)}/${basicList.length}`;
-
-            const results = await Promise.all(batch.map(async (card) => {
-                try {
-                    const detailRes = await fetch(`${API_BASE}/cards/${card.id}`);
-                    const detail = await detailRes.json();
-                    if (detail && !detail.status) return detail;
-                    throw new Error('fr not found');
-                } catch {
-                    try {
-                        const enDetailRes = await fetch(`${API_EN}/cards/${card.id}`);
-                        return await enDetailRes.json();
-                    } catch {
-                        return card; // filet de sécurité minimal
-                    }
-                }
-            }));
-            detailed.push(...results);
-        }
-
-        currentProgressionCards = detailed.sort((a, b) => {
-            const numA = parseInt(a.localId) || 0;
-            const numB = parseInt(b.localId) || 0;
-            return numA - numB;
+        currentProgressionCards = await fetchSetCardsDetailed(setId, (done, total) => {
+            if (progressText) progressText.textContent = `Chargement des cartes... ${done}/${total}`;
         });
 
         // Mis en cache une seule fois ici : évite de re-vérifier (et de vider la grille) à chaque
@@ -1163,6 +1167,8 @@ window.loadFollowedSets = loadFollowedSets;
 window.renderFollowedSetsSection = renderFollowedSetsSection;
 window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
 window.openSetProgression = openSetProgression;
+window.fetchSetCardsDetailed = fetchSetCardsDetailed;
+window.computeSetCompletionBudget = computeSetCompletionBudget;
 window.progressionRarityFilterValues = progressionRarityFilterValues;
 window.setProgressionRarityFilter = setProgressionRarityFilter;
 window.populateProgressionRarityFilter = populateProgressionRarityFilter;
