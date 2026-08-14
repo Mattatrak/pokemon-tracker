@@ -1,8 +1,8 @@
 // Profil public (Phase 3) - Pokémon Tracker
 // Dépend de: supabaseClient (tracker.js), escapeHtml/sortRaritiesByTier/buildRarityFilterRowHtml/
 // getRarityGroupKey/getRarityIconHtml/renderFinishBadge/getTypesIconsHtml/getCardmarketUrl (utils.js),
-// getGridNoImageHtml/getDuplicateCardsWithQuantity (collection.js) — réutilisés en lecture seule
-// (générateurs HTML purs / calcul pur). getDuplicateCardsWithQuantity applique la même définition
+// renderGridCardHtml (card-grid-renderer.js), getDuplicateCardsWithQuantity (collection.js) —
+// réutilisés en lecture seule (générateurs HTML purs / calcul pur). getDuplicateCardsWithQuantity applique la même définition
 // métier du doublon que le filtre "Doublons" de la Collection propriétaire (aucune donnée SQL
 // supplémentaire, aucune nouvelle notion "à l'échange" persistée, cf audit du 2026-08-12) pour la
 // section "Doublons à l'échange" et le match associé. cardmarket_id exposé par
@@ -506,44 +506,23 @@ function getFilteredSortedPublicCollection() {
     return sorted;
 }
 
-// Section "Doublons à l'échange" (V1 simplifiée, cf audit du 2026-08-12). Même trame visuelle que
-// renderPublicCollectionGrid (.collection-card, .price-badge, badges série/rareté) : aucune nouvelle
-// fiche détail, clic -> showPublicCardDetail existant (card.id reste un id valide de viewedPublicCards,
+// Section "Doublons à l'échange" (V1 simplifiée, cf audit du 2026-08-12) : aucune nouvelle fiche
+// détail, clic -> showPublicCardDetail existant (card.id reste un id valide de viewedPublicCards,
 // getDuplicateCardsWithQuantity ne fait que sélectionner une carte représentative par groupe). Le badge
 // affiche duplicateQuantity (surplus au-delà de l'exemplaire principal), jamais quantity brute — cf audit
-// "3 exemplaires = 2 doublons potentiels, pas 3".
+// "3 exemplaires = 2 doublons potentiels, pas 3". Rendu partagé avec renderPublicCollectionGrid, cf
+// card-grid-renderer.js (Phase 3).
 function renderPublicDuplicateCardsHtml() {
-    return viewedPublicDuplicateCards.map(card => {
-        const lineTotal = Number(card.market_value || 0) * Number(card.quantity || 1);
-        const conditionClass = (card.condition || '').toLowerCase();
-
-        return `
-            <div class="collection-card" onclick="showPublicCardDetail(${card.id})">
-                ${card.image
-                    ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : getGridNoImageHtml()
-                }
-                <div class="qty-badge" title="Doublons disponibles">↔ ${card.duplicateQuantity}</div>
-                <div class="price-badge">${lineTotal.toFixed(2)}€</div>
-                <div class="set-rarity-badge-row">
-                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
-                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
-                </div>
-                <div class="collection-card-overlay">
-                    <div class="collection-card-name">${escapeHtml(card.name)}</div>
-                    <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)} · #${card.number}</div>
-                    <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
-                    ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
-                </div>
-            </div>
-        `;
-    }).join('');
+    return viewedPublicDuplicateCards.map(card => renderGridCardHtml(card, {
+        detailFn: 'showPublicCardDetail',
+        badgeMode: 'duplicate'
+    })).join('');
 }
 
-// Réutilise les classes CSS de la grille personnelle (.collection-card, .qty-badge, .price-badge,
-// .collection-card-overlay, ...) — purement visuelles, aucun couplage JS à allCollectionCards. Pas
-// d'icône d'obtention (acquisition_type absent de get_cards_public, volontairement non exposé), pas de
-// placeholder d'upload au clic (aucune écriture possible ici) : simple icône statique en cas d'erreur image.
+// Rendu partagé avec la grille personnelle (renderCollectionGrid, collection.js), cf
+// card-grid-renderer.js (Phase 3). Pas d'icône d'obtention ici (acquisition_type absent de
+// get_cards_public, volontairement non exposé) ni de placeholder d'upload au clic (aucune écriture
+// possible sur un profil public) : options par défaut de renderGridCardHtml, pas besoin de les passer.
 function renderPublicCollectionGrid() {
     const grid = document.getElementById('public-collection-grid');
     if (!grid) return;
@@ -555,32 +534,9 @@ function renderPublicCollectionGrid() {
         return;
     }
 
-    grid.innerHTML = filtered.map(card => {
-        const qty = Number(card.quantity || 1);
-        const lineTotal = Number(card.market_value || 0) * qty;
-        const conditionClass = (card.condition || '').toLowerCase();
-
-        return `
-            <div class="collection-card" onclick="showPublicCardDetail(${card.id})">
-                ${card.image
-                    ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : getGridNoImageHtml()
-                }
-                ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
-                <div class="price-badge">${lineTotal.toFixed(2)}€</div>
-                <div class="set-rarity-badge-row">
-                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
-                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
-                </div>
-                <div class="collection-card-overlay">
-                    <div class="collection-card-name">${escapeHtml(card.name)}</div>
-                    <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)} · #${card.number}</div>
-                    <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
-                    ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
-                </div>
-            </div>
-        `;
-    }).join('');
+    grid.innerHTML = filtered.map(card => renderGridCardHtml(card, {
+        detailFn: 'showPublicCardDetail'
+    })).join('');
 }
 
 // Fiche détail carte publique : overlay/DOM dédiés (#public-card-detail-*, index.html), jamais

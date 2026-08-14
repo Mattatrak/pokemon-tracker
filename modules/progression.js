@@ -2,7 +2,7 @@
 // Dépend de: supabaseClient/API_BASE/API_EN/allCollectionCards/performCardAdd/refreshCollection/recordValueSnapshot (tracker.js),
 // sanitizeForPath/getSetIdFromTcgdexId/sortRaritiesByTier/buildRarityFilterRowHtml/getFoilIconHtml/buildFinishOptionsHtml/
 // getRarityIconHtml/initDatePicker (utils.js), getStoredImageFilenames/uploadImageToStorage/uploadSeriesLogoManually (storage.js),
-// showCardDetail/closeCardDetail/getGridNoImageHtml (card-detail.js/collection.js), showMessage (utils.js)
+// showCardDetail/closeCardDetail (card-detail.js), getGridNoImageHtml (card-grid-renderer.js), showMessage (utils.js)
 // Le HTML de renderProgressionCardsGrid appelle showAddCardModal/quickInstantAdd en onclick : ces deux sous-features
 // sont couplées via le DOM, d'où leur regroupement dans un seul module.
 // Etat possédé : customQuickAddImage, QUICKADD_DEFAULTS_KEY, allTcgdexSeries, currentProgressionSetId,

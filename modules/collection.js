@@ -1,6 +1,7 @@
 // Tri/filtre/rendu de l'onglet "Ma Collection" - Pokémon Tracker
 // Dépend de: allCollectionCards/changeQuantity/deleteCard (tracker.js), sortRaritiesByTier/getRarityIconHtml/
-// renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js)
+// renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js),
+// renderGridCardHtml (card-grid-renderer.js)
 // Etat possédé : sortColumn, sortDirection, collectionFilters, collectionViewMode
 
 // window.x plutôt que let (ticket V2 Vite, type="module") : sortColumn/sortDirection sont lus/écrits
@@ -908,10 +909,6 @@ function replayEntrance(el) {
     el.classList.add('motion-enter');
 }
 
-function getGridNoImageHtml() {
-    return '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
-}
-
 function renderCollectionGrid(filtered) {
     const grid = document.getElementById('collection-grid');
     if (!grid) return;
@@ -922,35 +919,11 @@ function renderCollectionGrid(filtered) {
         return;
     }
 
-    grid.innerHTML = filtered.map(card => {
-        const qty = Number(card.quantity || 1);
-        const lineTotal = Number(card.market_value || 0) * qty;
-        const conditionClass = (card.condition || '').toLowerCase();
-        const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
-        const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
-
-        return `
-            <div class="collection-card" onclick="showCardDetail(${card.id})">
-                ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" loading="lazy" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'full')">`
-                    : getCollectionUploadPlaceholder(card.id, 'full')
-                }
-                ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
-                <div class="price-badge">${lineTotal.toFixed(2)}€</div>
-                <div class="set-rarity-badge-row">
-                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${card.series}" onerror="this.remove()">` : ''}
-                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${card.rarity}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
-                </div>
-                <div class="collection-card-overlay">
-                    <div class="collection-card-name">${card.name}</div>
-                    <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${card.series} · #${card.number}</div>
-                    <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
-                    ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
-                    <span class="acquisition-icon" title="${acquisitionTitle}">${acquisitionIcon}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    grid.innerHTML = filtered.map(card => renderGridCardHtml(card, {
+        detailFn: 'showCardDetail',
+        imageFallback: 'upload',
+        showAcquisitionIcon: true
+    })).join('');
 
     replayEntrance(grid);
 }
@@ -1087,7 +1060,6 @@ window.renderCollectionHeaderKpis = renderCollectionHeaderKpis;
 window.renderFilteredCollection = renderFilteredCollection;
 window.renderCollectionTable = renderCollectionTable;
 window.replayEntrance = replayEntrance;
-window.getGridNoImageHtml = getGridNoImageHtml;
 window.renderCollectionGrid = renderCollectionGrid;
 window.isCollectionMobileViewport = isCollectionMobileViewport;
 window.getEffectiveCollectionViewMode = getEffectiveCollectionViewMode;

@@ -469,8 +469,11 @@ async function changeQuantity(id, delta, btn) {
 // confirmAndProcessJsonRestore, downloadCsvTemplate, findTcgdexMatch, handleCsvImport, processCsvImportRows
 // chargées depuis modules/import-export.js
 
-// filterAndDisplay, renderCollectionTable, getGridNoImageHtml, renderCollectionGrid
+// filterAndDisplay, renderCollectionTable, renderCollectionGrid
 // chargées depuis modules/collection.js
+
+// getGridNoImageHtml, renderGridCardHtml
+// chargées depuis modules/card-grid-renderer.js
 
 // showCardDetail, renderCardPriceChart, showCardEditForm, toggleEditPurchasePriceField, saveCardEdits,
 // closeCardDetail, handleModalSeriesSymbolUpload, handleModalSeriesLogoUpload, getCollectionUploadPlaceholder,
