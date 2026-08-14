@@ -1,4 +1,5 @@
-// Rendu de carte partagé (Phase 3, cf roadmap technique) - Pokémon Tracker
+// Rendu de carte partagé (Phase 3) + mécanique du morph View Transitions grille->détail (Phase 4),
+// cf roadmap technique - Pokémon Tracker
 // Dépend de: escapeHtml/renderFinishBadge/getRarityIconHtml (utils.js), getCollectionUploadPlaceholder (card-detail.js)
 //
 // Extraction pure du HTML de "carte en grille" (image + badges + overlay), jusqu'ici dupliqué
@@ -19,6 +20,41 @@ function getGridNoImageHtml() {
     return '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 }
 
+// Mécanique générique du morph View Transitions grille -> fiche détail (Phase 4, cf roadmap
+// technique), partagée par showCardDetail (card-detail.js) et showPublicCardDetail
+// (public-profile.js) : seule la mécanique est ici, chaque contexte garde sa propre fonction de rendu
+// (renderFn) et son propre modal. .modal-overlay.active .modal-image cible génériquement l'image de
+// la fiche quel que soit l'overlay concerné (#card-detail-overlay ou #public-card-detail-overlay,
+// jamais les deux actifs en même temps).
+//
+// Retombe directement sur renderFn() sans transition si : API non supportée (Firefox à ce jour, cf
+// mémoire firefox-wishlist-gpu-flicker), pas d'event (réouverture après édition, clic hors grille type
+// renderProfileMatchThumb), ou pas d'image source (carte sans image / placeholder affiché) — dans tous
+// les cas, aucun comportement ne dépend de la transition, seulement du rendu qu'elle enrobe.
+function runCardDetailMorphTransition(event, renderFn) {
+    const sourceImg = event?.currentTarget?.querySelector('img');
+    if (typeof document.startViewTransition !== 'function' || !sourceImg) {
+        renderFn();
+        return;
+    }
+
+    sourceImg.style.viewTransitionName = 'card-detail-morph';
+    document.body.classList.add('vt-driving');
+
+    const transition = document.startViewTransition(() => {
+        renderFn();
+        const modalImg = document.querySelector('.modal-overlay.active .modal-image');
+        if (modalImg) modalImg.style.viewTransitionName = 'card-detail-morph';
+    });
+
+    transition.finished.finally(() => {
+        sourceImg.style.viewTransitionName = '';
+        document.body.classList.remove('vt-driving');
+        const modalImg = document.querySelector('.modal-overlay.active .modal-image');
+        if (modalImg) modalImg.style.viewTransitionName = '';
+    });
+}
+
 // Badge en haut à droite de la carte : soit la quantité possédée (masqué si 1 seul exemplaire), soit
 // le nombre de doublons échangeables (toujours affiché, jamais les deux en même temps - un seul appelant
 // utilise chaque mode).
@@ -30,6 +66,10 @@ function renderGridCardBadge(card, badgeMode) {
     return qty > 1 ? `<div class="qty-badge">×${qty}</div>` : '';
 }
 
+// L'event de clic est toujours passé en 2e argument à detailFn (ex: showCardDetail(id, event)) : sert
+// à showCardDetail pour retrouver l'image source du morph View Transitions (Phase 4, card-detail.js) —
+// showPublicCardDetail(cardId) l'ignore simplement, aucune fonction n'est obligée de l'utiliser.
+//
 // options :
 //   detailFn          - nom de la fonction globale appelée au clic ('showCardDetail' | 'showPublicCardDetail')
 //   badgeMode         - 'quantity' (défaut, ×N si qty>1) | 'duplicate' (↔N, toujours affiché)
@@ -57,7 +97,7 @@ function renderGridCardHtml(card, options) {
     }
 
     return `
-        <div class="collection-card" onclick="${detailFn}(${card.id})">
+        <div class="collection-card" onclick="${detailFn}(${card.id}, event)">
             ${card.image
                 ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=${fallbackCall}">`
                 : fallbackHtml
@@ -81,3 +121,4 @@ function renderGridCardHtml(card, options) {
 
 window.getGridNoImageHtml = getGridNoImageHtml;
 window.renderGridCardHtml = renderGridCardHtml;
+window.runCardDetailMorphTransition = runCardDetailMorphTransition;

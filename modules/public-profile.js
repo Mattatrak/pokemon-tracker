@@ -1,7 +1,7 @@
 // Profil public (Phase 3) - Pokémon Tracker
 // Dépend de: supabaseClient (tracker.js), escapeHtml/sortRaritiesByTier/buildRarityFilterRowHtml/
 // getRarityGroupKey/getRarityIconHtml/renderFinishBadge/getTypesIconsHtml/getCardmarketUrl (utils.js),
-// renderGridCardHtml (card-grid-renderer.js), getDuplicateCardsWithQuantity (collection.js) —
+// renderGridCardHtml/runCardDetailMorphTransition (card-grid-renderer.js), getDuplicateCardsWithQuantity (collection.js) —
 // réutilisés en lecture seule (générateurs HTML purs / calcul pur). getDuplicateCardsWithQuantity applique la même définition
 // métier du doublon que le filtre "Doublons" de la Collection propriétaire (aucune donnée SQL
 // supplémentaire, aucune nouvelle notion "à l'échange" persistée, cf audit du 2026-08-12) pour la
@@ -539,11 +539,18 @@ function renderPublicCollectionGrid() {
     })).join('');
 }
 
+// Point d'entrée public (Phase 4, View Transitions) : délègue la mécanique du morph à
+// runCardDetailMorphTransition (card-grid-renderer.js, partagée avec showCardDetail/card-detail.js),
+// ce fichier ne garde que son propre rendu (renderPublicCardDetail).
+function showPublicCardDetail(cardId, event) {
+    runCardDetailMorphTransition(event, () => renderPublicCardDetail(cardId));
+}
+
 // Fiche détail carte publique : overlay/DOM dédiés (#public-card-detail-*, index.html), jamais
 // #card-detail-overlay (fiche propriétaire) pour ne jamais mélanger les deux flux. Aucun bouton
 // Modifier/Retirer, aucune quantité modifiable, aucun prix d'achat ni date d'acquisition (colonnes
 // absentes de get_cards_public par construction) : uniquement ce que la fonction publique expose déjà.
-function showPublicCardDetail(cardId) {
+function renderPublicCardDetail(cardId) {
     const card = viewedPublicCards.find(c => c.id === cardId);
     if (!card) return;
 

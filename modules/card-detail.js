@@ -1,10 +1,18 @@
 // Modale détail/édition de carte - Pokémon Tracker
 // Dépend de: allCollectionCards/supabaseClient/API_BASE/API_EN/adjustMonthlyStatsAmount/refreshCollection/recordValueSnapshot (tracker.js),
 // getRarityIconHtml/renderFinishBadge/getSetIdFromTcgdexId/getFinishLabel/buildFinishOptionsHtml/initDatePicker (utils.js),
-// uploadImageToStorage/uploadSeriesSymbolManually/uploadSeriesLogoManually (storage.js), showMessage (utils.js)
+// uploadImageToStorage/uploadSeriesSymbolManually/uploadSeriesLogoManually (storage.js), showMessage (utils.js),
+// runCardDetailMorphTransition (card-grid-renderer.js)
 // Etat possédé : cardPriceChartInstance
 
-function showCardDetail(cardId) {
+// Point d'entrée public (Phase 4, View Transitions, cf roadmap technique) : délègue la mécanique du
+// morph à runCardDetailMorphTransition (card-grid-renderer.js, partagée avec showPublicCardDetail),
+// ce fichier ne garde que son propre rendu (renderCardDetail).
+function showCardDetail(cardId, event) {
+    runCardDetailMorphTransition(event, () => renderCardDetail(cardId));
+}
+
+function renderCardDetail(cardId) {
     const card = allCollectionCards.find(c => c.id === cardId);
     if (!card) return;
 

@@ -4254,6 +4254,26 @@ tbody tr:hover {
         visibility 0s linear 0s;
 }
 
+/* View Transitions (Phase 4, cf roadmap technique) : morph ciblé grille -> fiche détail carte, sur
+   l'image uniquement (card-detail.js#showCardDetail). Pendant qu'une transition pilotée par JS est en
+   cours (classe posée/retirée par showCardDetail), on neutralise la transition CSS ci-dessus : sinon
+   elle se superpose au cross-fade natif du root de la View Transition (les deux animent opacity en
+   parallèle, désynchronisées -> flash/double-fondu). Le fondu du fond reste géré par le cross-fade
+   natif pendant ce court instant, pas de perte visuelle.
+   Support natif Chrome/Edge uniquement à ce jour : sur Firefox, document.startViewTransition n'existe
+   pas, cette classe n'est jamais posée, la modale garde sa transition CSS habituelle sans rien à faire. */
+.vt-driving .modal-overlay {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
+}
+
 /* #wishlist-picker-overlay peut s'ouvrir par-dessus un autre .modal-overlay déjà actif (fiche détail
    carte publique tierce, modules/public-profile.js#openWishlistPickerForPublicCard) : à z-index égal
    (1000), l'ordre de peinture suit l'ordre DOM, donc le picker (plus haut dans index.html que la fiche
