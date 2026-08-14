@@ -928,41 +928,59 @@
             </div>
         </div>
 
-        <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : rempli
-             dynamiquement, jamais via allCollectionCards/allWishlists/allWishlistItems.
-             Bouton de retour statique (hors du conteneur dynamique) : ni tab-user-profile ni
-             tab-collectors n'ont d'entrée dans DesktopNavbar.js containerMap (pas de hero à ces pages),
-             donc updateDesktopNavigation() ne rend rien pour eux sur desktop - sans ce lien, aucun moyen
-             de revenir à l'app depuis un profil public consulté en desktop. -->
+        <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : contenu
+             dynamique inchangé (#user-profile-content), jamais via allCollectionCards/allWishlists/
+             allWishlistItems. Hero statique ajouté (audit visuel léger) : même traitement que
+             .collectors-hero ci-dessous - ces deux pages partageaient jusqu'ici le même gabarit
+             "utilitaire" sans photo, gardées cohérentes entre elles en les faisant évoluer ensemble.
+             Texte générique volontairement (pas le pseudo du profil visité : le nom réel reste affiché
+             juste en dessous dans #user-profile-content, pas de duplication). Image à fournir
+             (images/collectors.png, réutilisée pour les deux pages - fallback dégradé uni tant qu'elle
+             n'existe pas, cf .collectors-hero). collectors-hero-nav-container distinct de celui de
+             tab-collectors : chaque page a sa propre entrée dans DesktopNavbar.js containerMap. Le
+             bouton "Retour à PokéTracker" retiré : redondant désormais avec le lien Accueil de la nav
+             intégrée au hero (desktop) et la barre de navigation mobile (toujours présente, "Accueil"). -->
         <div id="tab-user-profile" class="tab-content">
+            <div class="collectors-hero">
+                <div id="user-profile-hero-nav-container"></div>
+                <div class="collectors-hero-content">
+                    <div class="collectors-hero-eyebrow">Communauté</div>
+                    <h1 class="collectors-hero-title">Profil collectionneur</h1>
+                    <p class="collectors-hero-subtitle">Découvrez sa collection, sa wishlist et vos opportunités d'échange.</p>
+                </div>
+            </div>
             <div class="user-profile-panel">
-                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
                 <div id="user-profile-content"></div>
             </div>
         </div>
 
         <!-- ONGLET RECHERCHE DE COLLECTIONNEURS (route #/collectors, modules/collectors.js) : shell
-             statique, uniquement #collectors-search-results rempli dynamiquement. Même bouton de retour
-             que tab-user-profile, même raison (cf commentaire ci-dessus). -->
+             statique, uniquement #collectors-search-results rempli dynamiquement. Hero ajouté (audit
+             visuel léger, même raison/traitement que tab-user-profile ci-dessus). -->
         <div id="tab-collectors" class="tab-content">
+            <div class="collectors-hero">
+                <div id="collectors-hero-nav-container"></div>
+                <div class="collectors-hero-content">
+                    <div class="collectors-hero-eyebrow">Communauté</div>
+                    <h1 class="collectors-hero-title">Collectionneurs</h1>
+                    <p class="collectors-hero-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
+                    <div class="collectors-hero-search input-with-icon">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="collectors-search-input" placeholder="Rechercher un pseudo ou @username" oninput="onCollectorsSearchInput()">
+                    </div>
+                </div>
+            </div>
             <div class="collectors-panel">
-                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
-                <div class="collectors-header">
-                    <h1 class="collectors-title">Collectionneurs</h1>
-                    <p class="collectors-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
-                </div>
-                <div class="input-with-icon">
-                    <i class="ti ti-search" aria-hidden="true"></i>
-                    <input type="text" id="collectors-search-input" placeholder="Rechercher un pseudo ou @username" oninput="onCollectorsSearchInput()">
-                </div>
                 <div class="collectors-search-results" id="collectors-search-results"></div>
             </div>
         </div>
 
         <!-- ONGLET ADMINISTRATION (route #/admin, modules/admin.js) : accès contrôlé côté serveur par
              is_admin() sur chaque RPC (get_missing_image_cards / admin_set_card_image), ce shell ne fait
-             qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Même bouton de
-             retour statique que tab-collectors/tab-user-profile (même raison, cf commentaire plus haut). -->
+             qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Page interne,
+             volontairement laissée sans hero (contrairement à tab-collectors/tab-user-profile depuis
+             l'audit visuel léger) : garde le bouton de retour statique, tab-admin n'a pas d'entrée dans
+             DesktopNavbar.js containerMap. -->
         <div id="tab-admin" class="tab-content">
             <div class="collectors-panel" id="admin-panel">
                 <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>

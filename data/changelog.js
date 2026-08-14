@@ -53,6 +53,7 @@ const CHANGELOG = [
             { type: 'new', text: 'Vue recap depuis la collection' },
             { type: 'new', text: 'Ajout du prix pour finir un set + vue sur Dashboard' },
             { type: 'improved', text: 'Améliorations globale des performances du site.' },
+            { type: 'improved', text: 'Améliorations du système de doublons/échanges.' },
                     ]
         }
 ];

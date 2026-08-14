@@ -59,7 +59,13 @@ function updateDesktopNavigation(tabId) {
         'tab-collection': 'collection-hero-nav-container',
         'tab-stats': 'stats-hero-nav-container',
         'tab-wishlist': 'wishlist-hero-nav-container',
-        'tab-add': 'catalogue-hero-nav-container'
+        'tab-add': 'catalogue-hero-nav-container',
+        // Ajoutés avec le hero de tab-collectors/tab-user-profile (audit visuel léger) : avant cela,
+        // ces deux tabs retombaient sur 'desktop-nav-container' qui n'existe nulle part dans le DOM
+        // (aucune nav ne s'y rendait sur desktop, seul le bouton de retour statique permettait de
+        // revenir - retiré depuis que la nav intégrée au hero le fait).
+        'tab-collectors': 'collectors-hero-nav-container',
+        'tab-user-profile': 'user-profile-hero-nav-container'
     };
     const containerId = containerMap[tabId] || 'desktop-nav-container';
     const navContainer = document.getElementById(containerId);
