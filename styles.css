@@ -3771,8 +3771,8 @@ tbody tr:hover {
    (photo + dégradé + nav intégrée via *-hero-nav-container, cf DesktopNavbar.js containerMap) -
    partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué, les deux pages
    utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles. background-color
-   sert de repli tant que images/collectors.png n'existe pas (fourni séparément) : un background-image
-   404 ne casse rien, juste pas de photo tant que le fichier n'est pas livré. */
+   sert de repli si jamais images/collectors.png venait à manquer : un background-image 404 ne
+   casse rien, juste pas de photo. */
 .collectors-hero {
     position: relative;
     display: flex;
@@ -7420,7 +7420,7 @@ tbody tr:hover {
     left: 50%;
     bottom: 1.5rem;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: 1100;
     width: min(420px, calc(100vw - 2rem));
     pointer-events: none;
 }
@@ -8995,6 +8995,7 @@ body.page-progression .progression-followed-sets {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     box-shadow: 0 16px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     z-index: -1;
 }
