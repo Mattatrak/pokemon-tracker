@@ -7,16 +7,22 @@
 
 // Origine de la fiche actuellement ouverte (VT1, cf roadmap technique animations premium), pour la
 // fermeture symétrique fiche -> grille dans closeCardDetail() plus bas. Volontairement minimal :
-// seulement l'id de carte + l'id du conteneur d'où le clic est parti (Galerie/Classeur/Récap, cf
+// seulement l'id de carte + l'id du conteneur d'où le clic est parti (cf
 // CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR) - jamais une référence DOM gardée pendant toute l'ouverture,
 // la carte source peut disparaître/être recréée entre-temps (filtre, tri, changement de mode) : on la
 // retrouve dans le DOM réel au moment de la fermeture, pas avant. containerId évite qu'une carte
-// visible dans un AUTRE mode Collection (caché pendant que la fiche est ouverte) soit prise à tort
-// pour la bonne source - une même carte peut exister dans plusieurs zones DOM à la fois.
+// visible dans un AUTRE mode/onglet (caché pendant que la fiche est ouverte) soit prise à tort pour
+// la bonne source - une même carte peut exister dans plusieurs zones DOM à la fois.
 let cardDetailOrigin = null;
 
+// VT3 (cf roadmap technique animations premium) : liste explicite étendue à Progression/Dashboard
+// (wrappers stables et évidents, cf audit VT3) plutôt qu'un attribut/registry générique - seulement 3
+// entrées de plus, pas de justification à construire une abstraction pour si peu. Tableau Collection
+// et Statistiques restent volontairement hors de cette liste (VT5, cf roadmap - showCardDetail y est
+// encore appelé sans event, aucun changement ici).
 const CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR =
-    '#collection-grid-wrapper, #collection-binder-wrapper, #collection-recap-wrapper';
+    '#collection-grid-wrapper, #collection-binder-wrapper, #collection-recap-wrapper, ' +
+    '#progression-cards-grid, #dashboard-acquisitions-body, #dashboard-activity-body';
 
 // Point d'entrée public (Phase 4, View Transitions, cf roadmap technique) : délègue la mécanique du
 // morph à runCardDetailMorphTransition (card-grid-renderer.js, partagée avec showPublicCardDetail),

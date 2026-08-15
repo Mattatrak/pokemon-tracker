@@ -30,12 +30,29 @@ function wishlistDetailTodayIso() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function openWishlistItemDetail(itemId) {
+// Origine de la fiche Wishlist actuellement ouverte (VT3, cf roadmap technique animations premium),
+// même principe minimal que cardDetailOrigin (modules/card-detail.js) : seulement l'id d'item +
+// l'id du conteneur d'où le clic est parti, jamais une référence DOM gardée pendant l'ouverture - la
+// carte source est retrouvée dans le DOM réel au moment de la fermeture, pas avant. Un seul wrapper
+// possible ici (pas de mode Galerie/Classeur/Récap côté Wishlist), donc pas de liste à étendre.
+let wishlistDetailOrigin = null;
+const WISHLIST_DETAIL_ORIGIN_CONTAINER_SELECTOR = '#wishlists-container';
+
+// VT3 (cf roadmap technique animations premium) : morph carte -> détail réutilise l'infrastructure
+// VT1 (runCardDetailMorphTransition, modules/card-grid-renderer.js) telle quelle, avec un résolveur
+// d'image dédié (#wishlist-detail-overlay .wishlist-detail-image, pas .modal-image comme la fiche
+// carte standard) - la Wishlist garde son overlay et sa logique métier propres, seule la mécanique de
+// transition est partagée. Nom de transition partagé ('card-detail-morph', inchangé dans le helper) :
+// sans risque, les overlays fiche carte / fiche Wishlist ne sont jamais actifs en même temps.
+function openWishlistItemDetail(itemId, event) {
     const item = allWishlistItems.find(i => i.id === itemId);
     if (!item) {
         showMessage('Cette carte n\'est plus dans ta wishlist', 'error');
         return;
     }
+
+    const originContainer = event?.currentTarget?.closest(WISHLIST_DETAIL_ORIGIN_CONTAINER_SELECTOR);
+    wishlistDetailOrigin = originContainer ? { itemId, containerId: originContainer.id } : null;
 
     wishlistDetailCurrentItemId = itemId;
     wishlistDetailMoveOpen = false;
@@ -45,20 +62,84 @@ function openWishlistItemDetail(itemId) {
     wishlistDetailAcquisitionPrice = '';
     wishlistDetailAcquisitionDate = wishlistDetailTodayIso();
 
-    renderWishlistItemDetail(item);
-    document.getElementById('wishlist-detail-overlay').classList.add('active');
-    lockBodyScrollForWishlistDetail();
+    runCardDetailMorphTransition(
+        event,
+        () => {
+            renderWishlistItemDetail(item);
+            document.getElementById('wishlist-detail-overlay').classList.add('active');
+            lockBodyScrollForWishlistDetail();
+        },
+        () => document.querySelector('#wishlist-detail-overlay.active .wishlist-detail-image')
+    );
 }
 
+// Retrouve la vignette source réellement VISIBLE (pas seulement présente dans le DOM - une liste
+// Wishlist repliée, cf toggleWishlistSection, garde son contenu en mémoire DOM sans être visible).
+// Même principe que findVisibleCardDetailSource (modules/card-detail.js) : offsetParent suffit, pas
+// besoin de getComputedStyle.
+function findVisibleWishlistDetailSource(containerId, itemId) {
+    const container = document.getElementById(containerId);
+    if (!container || container.offsetParent === null) return null;
+    const el = container.querySelector(`[data-wishlist-item-id="${itemId}"]`);
+    if (!el || el.offsetParent === null) return null;
+    return el;
+}
+
+// VT3 (cf roadmap technique animations premium) : fermeture symétrique à l'ouverture quand la
+// vignette source est encore visible dans la liste - même principe que closeCardDetail
+// (modules/card-detail.js). Si la source a disparu (liste repliée, item retiré/déplacé, recherche
+// filtrée) : fermeture instantanée normale, jamais de morph forcé vers une destination inexistante.
 function closeWishlistItemDetail() {
     const overlay = document.getElementById('wishlist-detail-overlay');
-    if (overlay) overlay.classList.remove('active');
-    unlockBodyScrollForWishlistDetail();
-    destroyWishlistDetailAcquisitionDatePicker();
-    wishlistDetailCurrentItemId = null;
-    wishlistDetailMoveOpen = false;
-    wishlistDetailBusy = false;
-    wishlistDetailAcquisitionOpen = false;
+    if (!overlay || !overlay.classList.contains('active')) {
+        wishlistDetailOrigin = null;
+        return;
+    }
+
+    const finishClose = () => {
+        unlockBodyScrollForWishlistDetail();
+        destroyWishlistDetailAcquisitionDatePicker();
+        wishlistDetailCurrentItemId = null;
+        wishlistDetailMoveOpen = false;
+        wishlistDetailBusy = false;
+        wishlistDetailAcquisitionOpen = false;
+    };
+
+    const origin = wishlistDetailOrigin;
+    wishlistDetailOrigin = null;
+
+    const sourceEl = origin ? findVisibleWishlistDetailSource(origin.containerId, origin.itemId) : null;
+    const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
+    const modalImg = overlay.querySelector('.wishlist-detail-image');
+
+    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function') {
+        overlay.classList.remove('active');
+        finishClose();
+        return;
+    }
+
+    modalImg.style.viewTransitionName = 'card-detail-morph';
+
+    const cleanup = () => {
+        modalImg.style.viewTransitionName = '';
+        sourceImg.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('card-detail', () => {
+        overlay.classList.remove('active');
+        finishClose();
+        modalImg.style.viewTransitionName = '';
+        sourceImg.style.viewTransitionName = 'card-detail-morph';
+    });
+
+    if (!transition) {
+        // reduced-motion : runViewTransition a déjà fermé l'overlay en synchrone, rien d'autre à
+        // faire que de retirer les noms posés avant de le savoir.
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
 }
 
 // Redessine la fiche sur l'item courant sans la fermer/rouvrir : utilisé pour refléter un changement

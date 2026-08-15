@@ -358,7 +358,7 @@ function renderDashboardActivity() {
     el.innerHTML = items.slice(0, 4).map(item => {
         if (item.type === 'add') {
             return `
-                <div class="dashboard-activity-row" ${item.id != null ? `onclick="showCardDetail(${item.id})"` : ''}>
+                <div class="dashboard-activity-row" ${item.id != null ? `data-card-id="${item.id}" onclick="showCardDetail(${item.id}, event)"` : ''}>
                     <div class="dashboard-activity-text">
                         <div class="dashboard-activity-name">${escapeHtml(item.name)}</div>
                         <div class="dashboard-activity-sub">${escapeHtml(item.series || '')} · Ajoutée</div>
@@ -566,7 +566,7 @@ function renderDashboardAcquisitions() {
     }
 
     el.innerHTML = `<div class="dashboard-acquisitions-scroll">${cards.map(c => `
-        <div class="dashboard-acquisition-card" onclick="showCardDetail(${c.id})">
+        <div class="dashboard-acquisition-card" data-card-id="${c.id}" onclick="showCardDetail(${c.id}, event)">
             <div class="dashboard-acquisition-card-img-wrap">
                 ${c.image
                     ? `<img src="${c.image}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'">`

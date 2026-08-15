@@ -20,12 +20,24 @@ function getGridNoImageHtml() {
     return '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 }
 
+// Résolveur par défaut de l'image de la fiche cible : couvre card-detail-overlay ET
+// public-card-detail-overlay (jamais les deux actifs en même temps), inchangé depuis Phase 4.
+function defaultResolveModalImg() {
+    return document.querySelector('.modal-overlay.active .modal-image');
+}
+
 // Mécanique générique du morph View Transitions grille -> fiche détail (Phase 4, cf roadmap
-// technique), partagée par showCardDetail (card-detail.js) et showPublicCardDetail
-// (public-profile.js) : seule la mécanique est ici, chaque contexte garde sa propre fonction de rendu
-// (renderFn) et son propre modal. .modal-overlay.active .modal-image cible génériquement l'image de
-// la fiche quel que soit l'overlay concerné (#card-detail-overlay ou #public-card-detail-overlay,
-// jamais les deux actifs en même temps).
+// technique), partagée par showCardDetail (card-detail.js), showPublicCardDetail
+// (public-profile.js) et openWishlistItemDetail (wishlist-detail.js, VT3) : seule la mécanique est
+// ici, chaque contexte garde sa propre fonction de rendu (renderFn) et son propre modal.
+//
+// resolveModalImg (VT3, cf roadmap technique animations premium) : résout l'image de la fiche APRÈS
+// renderFn() (le DOM de la fiche vient d'être inséré, à l'intérieur du même updateFn) - paramètre
+// optionnel, par défaut defaultResolveModalImg ci-dessus, donc les appelants existants
+// (Collection/Classeur/Récap/profil public) n'ont rien à changer. Seule la Wishlist, dont l'overlay
+// et la classe d'image diffèrent (#wishlist-detail-overlay .wishlist-detail-image), passe un
+// résolveur dédié - le nom partagé ('card-detail-morph') reste, lui, commun : les overlays sont
+// mutuellement exclusifs (jamais deux ouverts à la fois), aucun risque de collision réelle.
 //
 // Retombe directement sur renderFn() sans transition si : API non supportée (Firefox à ce jour, cf
 // mémoire firefox-wishlist-gpu-flicker), pas d'event (réouverture après édition, clic hors grille type
@@ -36,7 +48,7 @@ function getGridNoImageHtml() {
 // (modules/view-transitions.js) au lieu d'appeler document.startViewTransition() directement -
 // support/reduced-motion/concurrence gérés une seule fois pour tout le projet, ce fichier ne garde
 // que ce qui lui est propre (quel élément nommer, quand nettoyer).
-function runCardDetailMorphTransition(event, renderFn) {
+function runCardDetailMorphTransition(event, renderFn, resolveModalImg = defaultResolveModalImg) {
     const sourceImg = event?.currentTarget?.querySelector('img');
     if (typeof document.startViewTransition !== 'function' || !sourceImg) {
         renderFn();
@@ -47,7 +59,7 @@ function runCardDetailMorphTransition(event, renderFn) {
 
     const cleanup = () => {
         sourceImg.style.viewTransitionName = '';
-        const modalImg = document.querySelector('.modal-overlay.active .modal-image');
+        const modalImg = resolveModalImg();
         if (modalImg) modalImg.style.viewTransitionName = '';
     };
 
@@ -58,7 +70,7 @@ function runCardDetailMorphTransition(event, renderFn) {
         // fait skipper toute la transition sans animation (cause du bug d'ouverture sans morph visible).
         sourceImg.style.viewTransitionName = '';
         renderFn();
-        const modalImg = document.querySelector('.modal-overlay.active .modal-image');
+        const modalImg = resolveModalImg();
         if (modalImg) modalImg.style.viewTransitionName = 'card-detail-morph';
     });
 

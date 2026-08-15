@@ -360,7 +360,7 @@ function renderWishlistsUI() {
 
             return `
                 <div class="wishlist-thumb-wrap">
-                    <div class="collection-card wishlist-thumb-card" onclick="openWishlistItemDetail(${item.id})" title="${escapeHtml(item.name)}">
+                    <div class="collection-card wishlist-thumb-card" data-wishlist-item-id="${item.id}" onclick="openWishlistItemDetail(${item.id}, event)" title="${escapeHtml(item.name)}">
                         ${item.image
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'

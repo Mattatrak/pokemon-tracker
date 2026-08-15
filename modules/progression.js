@@ -791,7 +791,7 @@ async function renderProgressionCardsGrid() {
         const isMostExpensiveMissing = !owned && mostExpensiveMissingId && card.id === mostExpensiveMissingId;
 
         return `
-            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''} ${isMostExpensiveMissing ? 'most-expensive-missing' : ''}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
+            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''} ${isMostExpensiveMissing ? 'most-expensive-missing' : ''}" ${owned && ownedCardRow ? `data-card-id="${ownedCardRow.id}" onclick="showCardDetail(${ownedCardRow.id}, event)"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="handleTcgdexImgError(this)">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
