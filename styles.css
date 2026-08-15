@@ -4865,6 +4865,22 @@ html:active-view-transition-type(card-detail)::view-transition-new(root) {
     animation: none;
 }
 
+/* Collecteur -> profil public (VT4, cf roadmap technique animations premium) : contrairement à
+   card-detail/navigation, on autorise ici un très court cross-fade du reste de la page (comportement
+   par défaut du navigateur, juste retimé sur nos tokens) pendant que l'avatar se déplace/s'agrandit
+   indépendamment en tant que shared element - jamais de slide/scale/blur/zoom global, seulement
+   l'opacity par défaut du root. Scopé au seul type profile-open, ne touche pas card-detail/navigation. */
+html:active-view-transition-type(profile-open)::view-transition-old(root),
+html:active-view-transition-type(profile-open)::view-transition-new(root) {
+    animation-duration: var(--motion-duration-fast);
+    animation-timing-function: var(--motion-ease-standard);
+}
+
+html:active-view-transition-type(profile-open)::view-transition-group(collector-profile-avatar) {
+    animation-duration: var(--motion-duration-normal);
+    animation-timing-function: var(--motion-ease-standard);
+}
+
 @media (prefers-reduced-motion: reduce) {
     ::view-transition-group(*),
     ::view-transition-old(*),

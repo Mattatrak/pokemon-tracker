@@ -118,6 +118,67 @@ function renderPublicProfileNotFound(container) {
     `;
 }
 
+// VT4 (cf roadmap technique animations premium) : contexte préparé par un clic normal sur une carte
+// Collecteur (modules/collectors.js#handleCollectorProfileClick), pour permettre à loadPublicProfile()
+// de rendre un shell d'identité immédiatement, avant tout aller-retour réseau, et à tracker.js de
+// choisir la transition 'profile-open' plutôt que 'navigation' (VT2) pour CETTE navigation précise.
+// Associé explicitement à la route cible exacte (targetHash) : un clic sur A puis une navigation qui
+// finit ailleurs (B, ou un retour en arrière) ne doit jamais laisser les données de A s'appliquer par
+// erreur. Consommé une seule fois par loadPublicProfile() (jamais réutilisé), quel que soit le
+// résultat (succès, erreur, profil introuvable) - tracker.js ne fait que le consulter (peek), jamais
+// le vider lui-même.
+let pendingCollectorProfileContext = null;
+
+// Appelée uniquement par modules/collectors.js, sur un clic normal (même onglet, bouton gauche, sans
+// modificateur) : aucune donnée ici ne vient d'un nouvel appel réseau, uniquement ce que la liste
+// Collecteurs affiche déjà (avatar_url/pseudo/username/created_at).
+function prepareCollectorProfileTransition(targetHash, profile) {
+    pendingCollectorProfileContext = { targetHash, profile };
+}
+
+// Lecture seule (ne consomme pas) : utilisée par tracker.js pour décider du type de View Transition
+// avant même d'appeler renderTab(), et par loadPublicProfile() pour savoir si un shell est pertinent.
+// window.location.hash est déjà la valeur cible au moment où hashchange se déclenche - pas besoin de
+// reconstruire/re-encoder quoi que ce soit ici.
+function getPendingCollectorProfileContext(targetHash) {
+    return (pendingCollectorProfileContext && pendingCollectorProfileContext.targetHash === targetHash)
+        ? pendingCollectorProfileContext
+        : null;
+}
+
+// Bloc identité (avatar + pseudo + username + ancienneté) : extrait de renderPublicProfileShell pour
+// être réutilisé tel quel par le shell d'entrée (VT4, renderPublicProfileEntryShell ci-dessous) - même
+// markup/classes exactement, donc aucun saut visuel de design quand les vraies données remplacent le
+// shell (seules les sections qui suivent ce bloc changent).
+function renderPublicProfileIdentityHeader(profile) {
+    // Même raison qu'ailleurs (profile.js) : avatar_url est un champ contrôlable par l'utilisateur
+    // consulté, jamais faire confiance à sa valeur brute dans un attribut HTML.
+    const avatarHtml = profile.avatar_url
+        ? `<img src="${escapeHtml(profile.avatar_url)}" alt="" class="user-profile-avatar">`
+        : `<span class="user-profile-avatar user-profile-avatar-fallback"><i class="ti ti-user" aria-hidden="true"></i></span>`;
+
+    return `
+        <div class="user-profile-header">
+            ${avatarHtml}
+            <div class="user-profile-identity">
+                <div class="user-profile-pseudo">${escapeHtml(profile.pseudo || profile.username)}</div>
+                <div class="user-profile-username">@${escapeHtml(profile.username)}</div>
+                ${profile.created_at ? `<div class="user-profile-member-since">${formatPublicMemberSince(profile.created_at)}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Shell immédiat (VT4) : identité déjà connue (avatar/pseudo/username/ancienneté), rien d'autre -
+// aucune statistique/donnée inventée (cartes, wishlist, doublons...), qui reste au chargement normal
+// ci-dessous. Rendu de façon strictement synchrone, avant le premier await de loadPublicProfile().
+function renderPublicProfileEntryShell(container, profile) {
+    container.innerHTML = `
+        ${renderPublicProfileIdentityHeader(profile)}
+        <p class="dashboard-empty-text" style="padding:2rem 0; text-align:center;">Chargement...</p>
+    `;
+}
+
 async function loadPublicProfile(username) {
     const container = document.getElementById('user-profile-content');
     if (!container) return;
@@ -136,11 +197,20 @@ async function loadPublicProfile(username) {
     hasReciprocalTrade = false;
 
     if (!username) {
+        pendingCollectorProfileContext = null; // jamais laissé traîner si la route finit sans username valide
         renderPublicProfileNotFound(container);
         return;
     }
 
-    container.innerHTML = '<p class="dashboard-empty-text" style="padding:3rem 0; text-align:center;">Chargement...</p>';
+    // VT4 : contexte Collecteur consommé ici, une seule fois, qu'il soit utilisé ou non ci-dessous.
+    const shellCtx = getPendingCollectorProfileContext(window.location.hash);
+    pendingCollectorProfileContext = null;
+
+    if (shellCtx) {
+        renderPublicProfileEntryShell(container, shellCtx.profile);
+    } else {
+        container.innerHTML = '<p class="dashboard-empty-text" style="padding:3rem 0; text-align:center;">Chargement...</p>';
+    }
 
     const { data: profile, error } = await supabaseClient
         .from('profiles_public')
@@ -250,21 +320,8 @@ async function loadPublicWishlistPrices() {
 }
 
 function renderPublicProfileShell(container, profile) {
-    // Même raison qu'ailleurs (profile.js) : avatar_url est un champ contrôlable par l'utilisateur
-    // consulté, jamais faire confiance à sa valeur brute dans un attribut HTML.
-    const avatarHtml = profile.avatar_url
-        ? `<img src="${escapeHtml(profile.avatar_url)}" alt="" class="user-profile-avatar">`
-        : `<span class="user-profile-avatar user-profile-avatar-fallback"><i class="ti ti-user" aria-hidden="true"></i></span>`;
-
     container.innerHTML = `
-        <div class="user-profile-header">
-            ${avatarHtml}
-            <div class="user-profile-identity">
-                <div class="user-profile-pseudo">${escapeHtml(profile.pseudo || profile.username)}</div>
-                <div class="user-profile-username">@${escapeHtml(profile.username)}</div>
-                ${profile.created_at ? `<div class="user-profile-member-since">${formatPublicMemberSince(profile.created_at)}</div>` : ''}
-            </div>
-        </div>
+        ${renderPublicProfileIdentityHeader(profile)}
 
         <div class="user-profile-stats">
             ${profile.collection_visible ? `
@@ -848,6 +905,10 @@ window.getUsernameFromHash = getUsernameFromHash;
 window.escapePublicUsernameIlike = escapePublicUsernameIlike;
 window.formatPublicMemberSince = formatPublicMemberSince;
 window.renderPublicProfileNotFound = renderPublicProfileNotFound;
+window.prepareCollectorProfileTransition = prepareCollectorProfileTransition;
+window.getPendingCollectorProfileContext = getPendingCollectorProfileContext;
+window.renderPublicProfileIdentityHeader = renderPublicProfileIdentityHeader;
+window.renderPublicProfileEntryShell = renderPublicProfileEntryShell;
 window.loadPublicProfile = loadPublicProfile;
 window.loadPublicWishlistData = loadPublicWishlistData;
 window.loadPublicWishlistPrices = loadPublicWishlistPrices;

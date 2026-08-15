@@ -129,13 +129,45 @@ function renderCollectorSignalBadges(signal) {
     return badges.length > 0 ? `<div class="collectors-result-signals">${badges.join('')}</div>` : '';
 }
 
+// VT4 (cf roadmap technique animations premium) : clic normal (même onglet, bouton gauche, sans
+// modificateur) sur une carte Collecteur -> prépare un shell + avatar partagé pour le profil public
+// ciblé, consommés par modules/public-profile.js#loadPublicProfile et tracker.js (choix de la
+// transition 'profile-open'). Un clic modifié (Ctrl/Cmd/Maj/Alt/bouton non-gauche, ex. nouvel onglet)
+// ne doit rien préparer et laisser le lien natif faire son travail normal - jamais de preventDefault.
+// Données lues directement sur l'ancre (data-collector-*) plutôt que reconstruites : uniquement ce
+// que la liste Collecteurs affiche déjà, aucun nouvel appel réseau.
+function handleCollectorProfileClick(event, anchorEl) {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        return;
+    }
+    if (typeof prepareCollectorProfileTransition !== 'function') return;
+
+    prepareCollectorProfileTransition(anchorEl.getAttribute('href'), {
+        id: anchorEl.dataset.collectorId,
+        avatar_url: anchorEl.dataset.collectorAvatarUrl || null,
+        pseudo: anchorEl.dataset.collectorPseudo,
+        username: anchorEl.dataset.collectorUsername,
+        created_at: anchorEl.dataset.collectorCreatedAt || null
+    });
+}
+
 // Chaque résultat est un <a href="#/user/..."> natif : entièrement cliquable, s'appuie sur le routeur
-// hashchange existant, aucun onclick/handler JS supplémentaire nécessaire. Ligne complète (vue #/collectors).
-// signalsMap (Phase 5, P5-3) : optionnel, défaut vide - la variante Dashboard (renderDashboardCollectorsResults)
-// n'affiche jamais de badges, seule la page #/collectors complète les demande (withTradeSignals, plus bas).
+// hashchange existant. Ligne complète (vue #/collectors) - seule cette variante prépare la transition
+// VT4 (data-collector-id sert aussi à retrouver l'avatar source réellement visible au moment où la
+// transition démarre, cf tracker.js#runProfileOpenTransition) ; la variante compacte Dashboard
+// (renderDashboardCollectorsResults, ci-dessous) n'est volontairement pas concernée, cf audit VT4 -
+// même rendu visuel mais fonction de template distincte, hors scope de ce ticket.
+// signalsMap (Phase 5, P5-3) : optionnel, défaut vide - la variante Dashboard n'affiche jamais de
+// badges, seule la page #/collectors complète les demande (withTradeSignals, plus bas).
 function renderCollectorsResults(container, profiles, signalsMap = new Map()) {
     container.innerHTML = profiles.map(p => `
-        <a href="#/user/${encodeURIComponent(p.username)}" class="collectors-result-row">
+        <a href="#/user/${encodeURIComponent(p.username)}" class="collectors-result-row"
+            data-collector-id="${p.id}"
+            data-collector-avatar-url="${p.avatar_url ? escapeHtml(p.avatar_url) : ''}"
+            data-collector-pseudo="${escapeHtml(p.pseudo || p.username)}"
+            data-collector-username="${escapeHtml(p.username)}"
+            data-collector-created-at="${p.created_at || ''}"
+            onclick="handleCollectorProfileClick(event, this)">
             ${profileAvatarHtml(p, 44)}
             <div class="collectors-result-identity">
                 <div class="collectors-result-pseudo">${escapeHtml(p.pseudo || p.username)}</div>
@@ -390,6 +422,7 @@ window.fetchCollectorTradeSignals = fetchCollectorTradeSignals;
 window.sortCollectorsByOpportunity = sortCollectorsByOpportunity;
 window.renderCollectorSignalBadges = renderCollectorSignalBadges;
 window.renderCollectorsNoPublicProfiles = renderCollectorsNoPublicProfiles;
+window.handleCollectorProfileClick = handleCollectorProfileClick;
 window.renderCollectorsResults = renderCollectorsResults;
 window.renderDashboardCollectorsResults = renderDashboardCollectorsResults;
 window.createCollectorsSearchController = createCollectorsSearchController;

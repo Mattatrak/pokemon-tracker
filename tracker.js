@@ -672,6 +672,58 @@ function runNavIndicatorTransition(doRenderTab) {
     transition.finished.finally(cleanup);
 }
 
+// VT4 (cf roadmap technique animations premium) : variante de runNavIndicatorTransition pour la
+// navigation Collecteur -> profil public, avec l'avatar comme unique shared element - jamais
+// l'indicateur de nav en plus (une seule View Transition par changement de route, cf audit VT4 : si
+// pendingCtx existe, ce type remplace entièrement 'navigation' pour cette navigation précise, il ne
+// s'ajoute pas à elle). doRenderTab() (renderTab, y compris son appel à updateDesktopNavigation/
+// updateMobileBottomNav) reste appelé normalement à l'intérieur : la navbar se met bien à jour, elle
+// ne bénéficie juste pas ici de son propre morph d'indicateur.
+function runProfileOpenTransition(pendingCtx, doRenderTab) {
+    const sourceRow = document.querySelector(`#collectors-search-results [data-collector-id="${pendingCtx.profile.id}"]`);
+    const sourceAvatar = sourceRow ? sourceRow.querySelector('img.profile-avatar') : null;
+
+    if (!sourceAvatar || sourceAvatar.offsetParent === null) {
+        // Pas d'avatar réel visible (fallback initiales, ou ligne scrollée hors DOM/masquée entre le
+        // clic et ce hashchange) : navigation normale, sans transition - le shell (identité déjà
+        // connue) reste rendu par loadPublicProfile() indépendamment de cette animation.
+        doRenderTab();
+        return;
+    }
+
+    sourceAvatar.style.viewTransitionName = 'collector-profile-avatar';
+
+    let newAvatar = null;
+    const cleanup = () => {
+        sourceAvatar.style.viewTransitionName = '';
+        if (newAvatar) newAvatar.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('profile-open', () => {
+        // Même règle d'unicité que VT1/VT2 : retirer le nom de la source avant de l'assigner à la
+        // cible, jamais les deux en même temps dans le snapshot "new".
+        sourceAvatar.style.viewTransitionName = '';
+        doRenderTab();
+
+        // Le shell (loadPublicProfile, modules/public-profile.js) rend son avatar de façon strictement
+        // synchrone avant son premier await lorsque ce même pendingCtx existe encore à ce moment - il
+        // est donc déjà dans le DOM ici, juste après doRenderTab().
+        newAvatar = document.querySelector('#user-profile-content img.user-profile-avatar');
+        if (newAvatar) {
+            newAvatar.style.viewTransitionName = 'collector-profile-avatar';
+        } else if (document.activeViewTransition) {
+            document.activeViewTransition.skipTransition();
+        }
+    });
+
+    if (!transition) {
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
+}
+
 // Seule source de rendu déclenchée par un changement d'URL : clic sur un vrai lien de nav (<a href="#/xxx">),
 // bouton précédent/suivant du navigateur, ou modification manuelle de l'URL. Peut se déclencher avant que
 // les données soient chargées (ex: clic pendant le chargement initial) : activateContent est conditionné à
@@ -696,7 +748,21 @@ window.addEventListener('hashchange', () => {
     closeMobileMorePanel();
     closeMobileAddPanel();
 
-    runNavIndicatorTransition(() => renderTab(targetTabId, { activateContent: appReady === true }));
+    const doRenderTab = () => renderTab(targetTabId, { activateContent: appReady === true });
+
+    // VT4 : priorité à 'profile-open' (avatar partagé) si un clic Collecteur a préparé cette
+    // navigation exacte - jamais les deux transitions ('navigation' puis 'profile-open') pour un même
+    // changement de route. Simple lecture (peek), ne consomme rien : seul loadPublicProfile()
+    // (modules/public-profile.js) consomme réellement pendingCollectorProfileContext.
+    const pendingProfileCtx = typeof getPendingCollectorProfileContext === 'function'
+        ? getPendingCollectorProfileContext(window.location.hash)
+        : null;
+
+    if (pendingProfileCtx) {
+        runProfileOpenTransition(pendingProfileCtx, doRenderTab);
+    } else {
+        runNavIndicatorTransition(doRenderTab);
+    }
 
     // Symétrique : si on revient sur Collection alors que le classeur était le mode actif (jamais
     // réinitialisé, juste son listener détaché ci-dessus au moment de quitter), on réattache — sinon

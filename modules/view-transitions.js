@@ -6,12 +6,11 @@
 // (assignation avant l'appel, cleanup dans .finished de la transition retournée) - l'orchestrateur
 // ne connaît rien du métier.
 //
-// Types préparés pour la suite du chantier (VT2-VT5), un seul réellement utilisé pour l'instant
-// (card-detail, cf runCardDetailMorphTransition dans card-grid-renderer.js) :
-//   - navigation         : changement d'onglet (VT2, pas encore utilisé)
-//   - card-detail        : ouverture/fermeture de la fiche carte (VT1)
-//   - collection-reorder : réorganisation Collection au filtre/tri (VT4, pas encore utilisé)
-//   - profile-open       : Collecteur -> profil public (VT5, pas encore utilisé)
+// Types de la roadmap technique animations premium :
+//   - navigation         : changement d'onglet (VT2, indicateur nav partagé)
+//   - card-detail        : ouverture/fermeture de la fiche carte (VT1, généralisé en VT3)
+//   - collection-reorder : réorganisation Collection au filtre/tri (pas encore utilisé)
+//   - profile-open       : Collecteur -> profil public, avatar partagé (VT4)
 const VIEW_TRANSITION_TYPES = ['navigation', 'card-detail', 'collection-reorder', 'profile-open'];
 
 // Concurrence (cf audit VT) : document.activeViewTransition expose la transition en cours, si
