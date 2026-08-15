@@ -31,6 +31,11 @@ function getGridNoImageHtml() {
 // mémoire firefox-wishlist-gpu-flicker), pas d'event (réouverture après édition, clic hors grille type
 // renderProfileMatchThumb), ou pas d'image source (carte sans image / placeholder affiché) — dans tous
 // les cas, aucun comportement ne dépend de la transition, seulement du rendu qu'elle enrobe.
+//
+// VT1 (cf roadmap technique animations premium) : consomme désormais runViewTransition
+// (modules/view-transitions.js) au lieu d'appeler document.startViewTransition() directement -
+// support/reduced-motion/concurrence gérés une seule fois pour tout le projet, ce fichier ne garde
+// que ce qui lui est propre (quel élément nommer, quand nettoyer).
 function runCardDetailMorphTransition(event, renderFn) {
     const sourceImg = event?.currentTarget?.querySelector('img');
     if (typeof document.startViewTransition !== 'function' || !sourceImg) {
@@ -39,20 +44,33 @@ function runCardDetailMorphTransition(event, renderFn) {
     }
 
     sourceImg.style.viewTransitionName = 'card-detail-morph';
-    document.body.classList.add('vt-driving');
 
-    const transition = document.startViewTransition(() => {
+    const cleanup = () => {
+        sourceImg.style.viewTransitionName = '';
+        const modalImg = document.querySelector('.modal-overlay.active .modal-image');
+        if (modalImg) modalImg.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('card-detail', () => {
+        // La grille reste rendue derrière l'overlay (recouverte, pas masquée) : sans ce retrait, le
+        // nom resterait porté par sourceImg ET modalImg en même temps dans l'état "new" capturé par
+        // le navigateur - deux éléments réellement visibles avec le même view-transition-name, ce qui
+        // fait skipper toute la transition sans animation (cause du bug d'ouverture sans morph visible).
+        sourceImg.style.viewTransitionName = '';
         renderFn();
         const modalImg = document.querySelector('.modal-overlay.active .modal-image');
         if (modalImg) modalImg.style.viewTransitionName = 'card-detail-morph';
     });
 
-    transition.finished.finally(() => {
-        sourceImg.style.viewTransitionName = '';
-        document.body.classList.remove('vt-driving');
-        const modalImg = document.querySelector('.modal-overlay.active .modal-image');
-        if (modalImg) modalImg.style.viewTransitionName = '';
-    });
+    if (!transition) {
+        // reduced-motion / API indisponible : runViewTransition a déjà exécuté renderFn()
+        // directement en synchrone, aucune transition réelle n'a eu lieu - on retire juste le nom
+        // posé au-dessus avant de le savoir, rien d'autre à faire.
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
 }
 
 // Badge en haut à droite de la carte : soit la quantité possédée (masqué si 1 seul exemplaire), soit
@@ -69,6 +87,9 @@ function renderGridCardBadge(card, badgeMode) {
 // L'event de clic est toujours passé en 2e argument à detailFn (ex: showCardDetail(id, event)) : sert
 // à showCardDetail pour retrouver l'image source du morph View Transitions (Phase 4, card-detail.js) —
 // showPublicCardDetail(cardId) l'ignore simplement, aucune fonction n'est obligée de l'utiliser.
+// data-card-id (VT1, cf roadmap technique animations premium) : rend la racine adressable par id
+// réel, pour que closeCardDetail() (card-detail.js) puisse retrouver la carte source à la fermeture
+// (fermeture symétrique fiche -> grille) sans dépendre d'une référence DOM gardée pendant l'ouverture.
 //
 // options :
 //   detailFn          - nom de la fonction globale appelée au clic ('showCardDetail' | 'showPublicCardDetail')
@@ -97,7 +118,7 @@ function renderGridCardHtml(card, options) {
     }
 
     return `
-        <div class="collection-card" onclick="${detailFn}(${card.id}, event)">
+        <div class="collection-card" data-card-id="${card.id}" onclick="${detailFn}(${card.id}, event)">
             ${card.image
                 ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=${fallbackCall}">`
                 : fallbackHtml

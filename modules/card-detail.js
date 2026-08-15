@@ -5,10 +5,33 @@
 // runCardDetailMorphTransition (card-grid-renderer.js)
 // Etat possédé : cardPriceChartInstance
 
+// Origine de la fiche actuellement ouverte (VT1, cf roadmap technique animations premium), pour la
+// fermeture symétrique fiche -> grille dans closeCardDetail() plus bas. Volontairement minimal :
+// seulement l'id de carte + l'id du conteneur d'où le clic est parti (Galerie/Classeur/Récap, cf
+// CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR) - jamais une référence DOM gardée pendant toute l'ouverture,
+// la carte source peut disparaître/être recréée entre-temps (filtre, tri, changement de mode) : on la
+// retrouve dans le DOM réel au moment de la fermeture, pas avant. containerId évite qu'une carte
+// visible dans un AUTRE mode Collection (caché pendant que la fiche est ouverte) soit prise à tort
+// pour la bonne source - une même carte peut exister dans plusieurs zones DOM à la fois.
+let cardDetailOrigin = null;
+
+const CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR =
+    '#collection-grid-wrapper, #collection-binder-wrapper, #collection-recap-wrapper';
+
 // Point d'entrée public (Phase 4, View Transitions, cf roadmap technique) : délègue la mécanique du
 // morph à runCardDetailMorphTransition (card-grid-renderer.js, partagée avec showPublicCardDetail),
 // ce fichier ne garde que son propre rendu (renderCardDetail).
 function showCardDetail(cardId, event) {
+    if (event?.currentTarget) {
+        const originContainer = event.currentTarget.closest(CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR);
+        cardDetailOrigin = originContainer ? { cardId, containerId: originContainer.id } : null;
+    } else if (!cardDetailOrigin || cardDetailOrigin.cardId !== cardId) {
+        // Réouverture interne sans event (édition/upload, cf showCardEditForm/saveCardEdits plus
+        // bas) pour une carte différente de l'origine déjà mémorisée, ou sans origine connue : pas
+        // de source fiable à retenir. Si c'est la MÊME carte, on garde l'origine de l'ouverture
+        // initiale - la fiche n'a jamais vraiment fermé entre les deux.
+        cardDetailOrigin = null;
+    }
     runCardDetailMorphTransition(event, () => renderCardDetail(cardId));
 }
 
@@ -519,8 +542,66 @@ async function saveCardEdits(cardId, btn) {
     showCardDetail(cardId);
 }
 
+// Retrouve la carte source réellement VISIBLE (pas seulement présente dans le DOM) dans le
+// conteneur d'origine mémorisé à l'ouverture (VT1). Un mode Collection caché (ex. Galerie masquée
+// pendant que le Tableau est affiché, ou Classeur revenu sur une autre page) garde son contenu en
+// mémoire DOM sans être visible - offsetParent est null pour tout élément display:none (lui-même ou
+// un ancêtre), suffisant ici sans recourir à getComputedStyle.
+function findVisibleCardDetailSource(containerId, cardId) {
+    const container = document.getElementById(containerId);
+    if (!container || container.offsetParent === null) return null;
+    const el = container.querySelector(`[data-card-id="${cardId}"]`);
+    if (!el || el.offsetParent === null) return null;
+    return el;
+}
+
+// VT1 (cf roadmap technique animations premium) : fermeture symétrique à l'ouverture quand la carte
+// source est encore visible dans sa vue d'origine - l'image de la fiche morphe vers son emplacement
+// de départ au lieu de disparaître instantanément. Si la source a disparu (filtre changé, mode
+// Collection changé, page Classeur tournée, carte plus dans le DOM/cachée) : fermeture instantanée
+// normale, on ne force jamais de morph vers une destination inexistante ou non pertinente (pas de
+// scroll automatique, pas de changement de filtre/page pour "retrouver" la carte).
 function closeCardDetail() {
-    document.getElementById('card-detail-overlay').classList.remove('active');
+    const overlay = document.getElementById('card-detail-overlay');
+    if (!overlay.classList.contains('active')) return;
+
+    const origin = cardDetailOrigin;
+    cardDetailOrigin = null;
+
+    const sourceEl = origin ? findVisibleCardDetailSource(origin.containerId, origin.cardId) : null;
+    const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
+    const modalImg = overlay.querySelector('.modal-image');
+
+    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function') {
+        overlay.classList.remove('active');
+        return;
+    }
+
+    modalImg.style.viewTransitionName = 'card-detail-morph';
+
+    const cleanup = () => {
+        modalImg.style.viewTransitionName = '';
+        sourceImg.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('card-detail', () => {
+        // Symétrique à l'ouverture (cf card-grid-renderer.js) : retirer explicitement le nom de
+        // modalImg avant de l'assigner à sourceImg, plutôt que de compter sur le fait que masquer
+        // l'overlay le rend implicitement invisible avant la capture "new" - ce comportement n'est
+        // pas garanti, autant ne jamais laisser deux éléments porter le même nom même brièvement.
+        overlay.classList.remove('active');
+        modalImg.style.viewTransitionName = '';
+        sourceImg.style.viewTransitionName = 'card-detail-morph';
+    });
+
+    if (!transition) {
+        // reduced-motion : runViewTransition a déjà fermé l'overlay en synchrone, rien d'autre à
+        // faire que de retirer les noms posés avant de le savoir.
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
 }
 
 async function handleModalSeriesSymbolUpload(event, setId, cardId) {

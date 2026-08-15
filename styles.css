@@ -4841,16 +4841,28 @@ tbody tr:hover {
         visibility 0s linear 0s;
 }
 
-/* View Transitions (Phase 4, cf roadmap technique) : morph ciblé grille -> fiche détail carte, sur
-   l'image uniquement (card-detail.js#showCardDetail). Pendant qu'une transition pilotée par JS est en
-   cours (classe posée/retirée par showCardDetail), on neutralise la transition CSS ci-dessus : sinon
-   elle se superpose au cross-fade natif du root de la View Transition (les deux animent opacity en
-   parallèle, désynchronisées -> flash/double-fondu). Le fondu du fond reste géré par le cross-fade
-   natif pendant ce court instant, pas de perte visuelle.
+/* View Transitions (VT1, cf roadmap technique animations premium) : morph ciblé grille <-> fiche
+   détail carte (ouverture ET fermeture symétrique), sur l'image uniquement (runCardDetailMorphTransition
+   et closeCardDetail, respectivement card-grid-renderer.js/card-detail.js), piloté via
+   runViewTransition('card-detail', ...) (modules/view-transitions.js). Pendant la transition, on
+   neutralise la transition CSS de la modale ci-dessus : sinon elle se superpose au cross-fade natif
+   du root de la View Transition (les deux animent opacity en parallèle, désynchronisées ->
+   flash/double-fondu). Ciblé via :active-view-transition-type() plutôt qu'une classe JS posée/retirée
+   à la main - actif uniquement pendant une transition de type card-detail, jamais pour un futur type
+   (navigation, VT2, pourra vouloir garder ce cross-fade).
    Support natif Chrome/Edge uniquement à ce jour : sur Firefox, document.startViewTransition n'existe
-   pas, cette classe n'est jamais posée, la modale garde sa transition CSS habituelle sans rien à faire. */
-.vt-driving .modal-overlay {
+   pas, ce sélecteur ne matche donc jamais, la modale garde sa transition CSS habituelle. */
+html:active-view-transition-type(card-detail) .modal-overlay {
     transition: none;
+}
+
+/* Neutralise le cross-fade par défaut du root (::view-transition-old/new(root), joué par le
+   navigateur sur TOUTE transition sauf override) pour ce type uniquement : le morph de l'image doit
+   rester le seul mouvement visible, pas un fondu de toute la page derrière. Scopé au type card-detail
+   pour ne pas affecter un futur type qui, lui, pourrait vouloir garder ce cross-fade (navigation, VT2). */
+html:active-view-transition-type(card-detail)::view-transition-old(root),
+html:active-view-transition-type(card-detail)::view-transition-new(root) {
+    animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

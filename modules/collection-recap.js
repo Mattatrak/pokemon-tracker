@@ -251,7 +251,7 @@ function renderRecapTopCardItem(card, rank) {
     const unitValue = Number(card.market_value || 0);
 
     return `
-        <div class="recap-top-card" onclick="showCardDetail(${card.id}, event)">
+        <div class="recap-top-card" data-card-id="${card.id}" onclick="showCardDetail(${card.id}, event)">
             <span class="recap-top-card-rank">#${rank}</span>
             ${qty > 1 ? `<span class="recap-top-card-qty">×${qty}</span>` : ''}
             <div class="recap-top-card-image">
@@ -325,7 +325,7 @@ function computeRecapDuplicateGroups(cards) {
 // cf utils.js:376 - pas de logique de libellé finish dupliquée ici).
 function renderRecapDuplicateItem(group) {
     return `
-        <div class="recap-dup-item" onclick="showCardDetail(${group.id}, event)">
+        <div class="recap-dup-item" data-card-id="${group.id}" onclick="showCardDetail(${group.id}, event)">
             <div class="recap-dup-thumb">
                 ${group.image
                     ? `<img src="${group.image}" alt="${escapeHtml(group.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
