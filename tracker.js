@@ -86,19 +86,40 @@ function markStatsDirty() {
 
 // ===== COLLECTION (Supabase Database) =====
 
-async function refreshCollection() {
-    const { data, error } = await supabaseClient
-        .from('cards')
-        .select('*')
-        .order('created_at', { ascending: false });
+// PostgREST plafonne toute réponse à 1000 lignes par défaut (db_max_rows) : une collection plus
+// grande était donc silencieusement tronquée par le select('*') unique d'avant. Pagination par lots
+// de 1000 via .range(), agrégés localement, tant qu'un lot revient plein (= il peut en rester après).
+// order('id') en second critère : nécessaire pour un curseur stable quand plusieurs cartes partagent
+// exactement le même created_at (tri sur created_at seul serait alors ambigu entre deux lots).
+const COLLECTION_FETCH_PAGE_SIZE = 1000;
 
-    if (error) {
-        showMessage('Erreur lors du chargement de la collection', 'error');
-        console.error(error);
-        return;
+async function refreshCollection() {
+    const fetchedCards = [];
+    let from = 0;
+
+    while (true) {
+        const { data, error } = await supabaseClient
+            .from('cards')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, from + COLLECTION_FETCH_PAGE_SIZE - 1);
+
+        if (error) {
+            // Un lot intermédiaire échoue : on garde l'ancien allCollectionCards plutôt que de publier
+            // une collection partielle (mieux vaut des données obsolètes qu'une collection tronquée).
+            showMessage('Erreur lors du chargement de la collection', 'error');
+            console.error(error);
+            return;
+        }
+
+        fetchedCards.push(...data);
+
+        if (data.length < COLLECTION_FETCH_PAGE_SIZE) break;
+        from += COLLECTION_FETCH_PAGE_SIZE;
     }
 
-    allCollectionCards = data || [];
+    allCollectionCards = fetchedCards;
     await fillMissingSeriesLogos();
     updateStats();
     pruneStaleCollectionFilters();
