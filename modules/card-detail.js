@@ -192,7 +192,13 @@ function renderCardDetail(cardId) {
     document.getElementById('card-detail-overlay').classList.add('active');
 
     if (card.tcgdex_id) {
-        renderCardPriceChart(card.tcgdex_id);
+        // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations premium) :
+        // renderCardPriceChart() est déjà async (attend Supabase avant de dessiner), donc rarement en
+        // concurrence avec l'animation en pratique, mais sur connexion rapide/réponse déjà en cache
+        // navigateur, l'initialisation Chart.js pouvait tomber pile pendant les toutes premières
+        // frames du morph - requestAnimationFrame garantit qu'elle ne démarre jamais avant que le
+        // navigateur ait eu l'occasion de peindre au moins une frame.
+        requestAnimationFrame(() => renderCardPriceChart(card.tcgdex_id));
     }
 }
 

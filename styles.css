@@ -5223,6 +5223,47 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     pointer-events: none;
 }
 
+/* Allège le coût GPU du panneau derrière le morph carte -> fiche (VT1/VT3, card-grid-renderer.js) sur
+   mobile : le flou apparaît à pleine intensité dès la première frame de la transition (transition CSS
+   neutralisée pour laisser la View Transition piloter, cf :active-view-transition-type(card-detail)
+   plus haut) et reste recalculé à chaque frame pendant tout le déplacement de l'image partagée
+   (~260ms) - blur(24-28px) + saturate + contrast est l'une des opérations les plus coûteuses pour un
+   GPU mobile, cause identifiée de lag constaté en usage réel. Radius réduit et saturate/contrast
+   retirés uniquement sous ce seuil - effet verre desktop inchangé. */
+@media (max-width: 768px) {
+    #card-detail-card,
+    #public-card-detail-card {
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+    }
+
+    #wishlist-detail-card {
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+    }
+
+    /* Retire complètement le flou (au lieu de le réduire) pendant la durée réelle de l'animation :
+       même à 14/12px, backdrop-filter reste recalculé à chaque frame tant que la View Transition est
+       active, le vrai coût vient de la recomposition en continu, pas seulement du rayon. Le flou
+       "s'installe" juste après la fin du morph (~260ms) - repli sur le fond dégradé opaque
+       (rgba(19,19,19,0.6)/(0.97)) seul le temps du mouvement, imperceptible à cette durée. */
+    html:active-view-transition-type(card-detail) #card-detail-card,
+    html:active-view-transition-type(card-detail) #public-card-detail-card,
+    html:active-view-transition-type(card-detail) #wishlist-detail-card {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    /* Durée raccourcie du morph lui-même sur mobile (jamais fixée avant, donc valeur par défaut du
+       navigateur ~250ms utilisée jusqu'ici) : une animation plus courte laisse moins de temps pour
+       qu'un à-coup soit perceptible, même si le frame rate sous-jacent reste imparfait sur mobile -
+       complète la neutralisation du flou ci-dessus, ne la remplace pas. Desktop non touché
+       (--motion-duration-normal, 260ms, inchangé). */
+    html:active-view-transition-type(card-detail)::view-transition-group(card-detail-morph) {
+        animation-duration: 180ms;
+    }
+}
+
 .wishlist-detail-layout {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
