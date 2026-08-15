@@ -17,8 +17,15 @@ function generateDesktopNavigation(activeTabId) {
         { id: 'tab-wishlist', label: 'Souhaits', icon: 'ti-star' }
     ];
 
+    // nav-active-dot (VT2, cf roadmap technique animations premium) : vrai nœud DOM plutôt qu'un
+    // ::after CSS, uniquement dans l'item actif - nécessaire pour lui assigner dynamiquement
+    // view-transition-name (tracker.js#runNavIndicatorTransition) et le faire glisser vers le nouvel
+    // onglet au lieu de disparaître/réapparaître.
     const navCenter = pages
-        .map(p => `<a href="#${TAB_ROUTES[p.id]}" class="dashboard-integrated-nav-link ${p.id === activeTabId ? 'active' : ''}">${p.label}</a>`)
+        .map(p => {
+            const isActive = p.id === activeTabId;
+            return `<a href="#${TAB_ROUTES[p.id]}" class="dashboard-integrated-nav-link ${isActive ? 'active' : ''}">${p.label}${isActive ? '<span class="nav-active-dot" aria-hidden="true"></span>' : ''}</a>`;
+        })
         .join('');
 
     return `

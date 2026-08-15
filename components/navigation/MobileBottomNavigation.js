@@ -27,11 +27,17 @@ const MOBILE_NAV_PAGES_RIGHT = [
 // entrée dans la barre : Progression a été remplacée par Plus, Statistiques n'a jamais eu d'entrée).
 const MOBILE_NAV_MORE_ACTIVE_TABS = ['tab-progression', 'tab-stats', 'tab-collectors', 'tab-user-profile', 'tab-admin', 'tab-changelog'];
 
+// nav-active-dot (VT2, cf roadmap technique animations premium) : vrai nœud DOM plutôt qu'un ::after
+// CSS, uniquement dans l'item actif - nécessaire pour lui assigner dynamiquement view-transition-name
+// (tracker.js#runNavIndicatorTransition) et le faire glisser vers le nouvel onglet au lieu de
+// disparaître/réapparaître. Toujours en dernier enfant, comme l'était le ::after qu'il remplace.
 function renderMobileNavItem(p, activeTabId) {
+    const isActive = p.id === activeTabId;
     return `
-        <a href="#${TAB_ROUTES[p.id]}" class="mobile-bottom-nav-item ${p.id === activeTabId ? 'active' : ''}">
+        <a href="#${TAB_ROUTES[p.id]}" class="mobile-bottom-nav-item ${isActive ? 'active' : ''}">
             <span class="mobile-bottom-nav-icon"><i class="ti ${p.icon}" aria-hidden="true"></i></span>
             <span>${p.label}</span>
+            ${isActive ? '<span class="nav-active-dot" aria-hidden="true"></span>' : ''}
         </a>
     `;
 }
@@ -43,6 +49,7 @@ function renderMobileMoreTrigger(activeTabId) {
             onclick="toggleMobileMorePanel(event)" aria-haspopup="true" aria-expanded="false">
             <span class="mobile-bottom-nav-icon"><i class="ti ti-dots" aria-hidden="true"></i></span>
             <span>Plus</span>
+            ${isActive ? '<span class="nav-active-dot" aria-hidden="true"></span>' : ''}
         </button>
     `;
 }

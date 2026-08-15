@@ -85,8 +85,10 @@
     padding-bottom: 0.5rem;
 }
 
-.dashboard-integrated-nav-link.active::after {
-    content: '';
+/* VT2 (cf roadmap technique animations premium) : vrai nœud DOM (nav-active-dot, rendu uniquement
+   dans l'item actif par DesktopNavbar.js) plutôt qu'un ::after CSS - remplace l'ancien ::after à
+   l'identique visuellement (mêmes valeurs), nécessaire pour lui assigner view-transition-name. */
+.dashboard-integrated-nav-link.active .nav-active-dot {
     position: absolute;
     bottom: -2px;
     left: 50%;
@@ -322,8 +324,11 @@
     color: var(--gold);
 }
 
-.mobile-bottom-nav-item.active::after {
-    content: '';
+/* VT2 (cf roadmap technique animations premium) : vrai nœud DOM (nav-active-dot, rendu uniquement
+   dans l'item actif par MobileBottomNavigation.js) plutôt qu'un ::after CSS. Centrage horizontal
+   identique à l'ancien ::after : aucun left/transform explicite, le positionnement statique hérite
+   du centrage flex (.mobile-bottom-nav-item, align-items:center) avant le passage en absolute. */
+.mobile-bottom-nav-item.active .nav-active-dot {
     position: absolute;
     bottom: -6px;
     width: 5px;
@@ -331,6 +336,20 @@
     border-radius: 50%;
     background: var(--gold);
     box-shadow: 0 0 8px 2px rgba(232, 169, 59, 0.8);
+}
+
+/* Neutralise le cross-fade par défaut du root pour ce type uniquement : seul nav-active-dot doit
+   bouger, jamais toute la navbar/page/hero (VT2, contrairement à un futur usage du cross-fade root
+   pour d'autres types éventuels). Durée/easing explicites sur le groupe nommé lui-même plutôt que de
+   compter sur les valeurs par défaut du navigateur - tokens motion existants réutilisés tels quels. */
+html:active-view-transition-type(navigation)::view-transition-old(root),
+html:active-view-transition-type(navigation)::view-transition-new(root) {
+    animation: none;
+}
+
+html:active-view-transition-type(navigation)::view-transition-group(nav-active-indicator) {
+    animation-duration: var(--motion-duration-normal);
+    animation-timing-function: var(--motion-ease-standard);
 }
 
 /* ===================== BREAKPOINT SWITCH ===================== */

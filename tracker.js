@@ -597,12 +597,90 @@ function navigateToTab(tabId) {
     }
 }
 
+// VT2 (cf roadmap technique animations premium) : petit indicateur actif (.nav-active-dot, desktop
+// ET mobile) qui glisse physiquement vers le nouvel onglet au lieu de disparaître/réapparaître.
+// offsetParent !== null : seule visibilité réelle qui compte (desktop/mobile ne sont jamais visibles
+// tous les deux à la fois, cf navigation.css, mais on vérifie plutôt que de supposer) - pas de
+// media query JS dupliquée, la vérité vient du rendu réel.
+function findVisibleNavActiveDot() {
+    const dots = document.querySelectorAll('.nav-active-dot');
+    for (const dot of dots) {
+        if (dot.offsetParent !== null) return dot;
+    }
+    return null;
+}
+
+// Identité du bouton de nav qui porte un indicateur : href du lien pour un item standard, id pour le
+// déclencheur "Plus" mobile (bouton, pas un lien). Sert uniquement à détecter si l'ancien et le
+// nouvel indicateur actif désignent en réalité le MÊME bouton physique (ex: passer de Progression à
+// Statistiques sur mobile allume "Plus" dans les deux cas, cf MOBILE_NAV_MORE_ACTIVE_TABS) - dans ce
+// cas, pas de morph sur soi-même.
+function getNavItemKey(dotEl) {
+    const item = dotEl.closest('a, button');
+    return item ? (item.getAttribute('href') || item.id || null) : null;
+}
+
+// Enveloppe doRenderTab dans une View Transition de type 'navigation' pour faire morpher
+// nav-active-dot uniquement - jamais de cross-fade de page/hero (neutralisé en CSS, navigation.css).
+// runViewTransition (modules/view-transitions.js) gère support/reduced-motion/concurrence ; ce qui
+// suit ne s'occupe que du nommage du seul élément à animer (jamais deux à la fois dans un même
+// snapshot, cf leçon VT1 sur l'unicité de view-transition-name).
+function runNavIndicatorTransition(doRenderTab) {
+    const oldDot = findVisibleNavActiveDot();
+    if (!oldDot) {
+        // Pas d'indicateur actif visible actuellement (route secondaire sans entrée dédiée sur
+        // desktop, ex. admin/changelog/profil public) : rien à morpher, changement normal.
+        doRenderTab();
+        return;
+    }
+    const oldKey = getNavItemKey(oldDot);
+    oldDot.style.viewTransitionName = 'nav-active-indicator';
+
+    let newDot = null;
+
+    const cleanup = () => {
+        oldDot.style.viewTransitionName = '';
+        if (newDot) newDot.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('navigation', () => {
+        // La grille de nav reste rendue à l'écran pendant le rebuild (jamais masquée) : sans ce
+        // retrait, sourceDot et le nouvel indicateur porteraient le même nom en même temps dans le
+        // snapshot "new" (même piège que le morph carte en VT1).
+        oldDot.style.viewTransitionName = '';
+        doRenderTab();
+
+        newDot = findVisibleNavActiveDot();
+        if (newDot && getNavItemKey(newDot) !== oldKey) {
+            newDot.style.viewTransitionName = 'nav-active-indicator';
+        } else {
+            // Même bouton physique déjà actif avant/après (ex. Plus sur mobile), ou aucun nouvel
+            // indicateur visible (route secondaire) : aucun morph artificiel sur soi-même - on saute
+            // la transition en cours plutôt que de jouer une animation sans rien à montrer.
+            newDot = null;
+            if (document.activeViewTransition) document.activeViewTransition.skipTransition();
+        }
+    });
+
+    if (!transition) {
+        // reduced-motion / API indisponible : doRenderTab() a déjà tourné en synchrone ci-dessus,
+        // rien d'autre à faire que nettoyer les noms posés avant de le savoir.
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
+}
+
 // Seule source de rendu déclenchée par un changement d'URL : clic sur un vrai lien de nav (<a href="#/xxx">),
 // bouton précédent/suivant du navigateur, ou modification manuelle de l'URL. Peut se déclencher avant que
 // les données soient chargées (ex: clic pendant le chargement initial) : activateContent est conditionné à
 // appReady pour ne jamais lancer activateTabContent sur des données pas encore prêtes — seul le changement
 // visuel d'onglet a lieu dans ce cas, le rendu métier réel étant de toute façon rejoué après appReady = true
-// (voir l'appel dans modules/auth.js).
+// (voir l'appel dans modules/auth.js). Le tout premier rendu (tracker.js, avant ce listener) et le rendu
+// post-appReady (modules/auth.js) appellent renderTab() directement, jamais via ce listener : aucune
+// transition 'navigation' n'a donc jamais lieu au chargement initial (pas de position OLD pertinente, cf
+// roadmap animations premium VT2).
 window.addEventListener('hashchange', () => {
     // Hook minimal Vue Classeur (B3, cf roadmap technique) : le DOM de tab-collection n'est jamais
     // démonté (renderTab bascule juste .active, cf renderTab ci-dessus), donc le listener clavier du
@@ -617,7 +695,8 @@ window.addEventListener('hashchange', () => {
     closeWishlistItemDetail();
     closeMobileMorePanel();
     closeMobileAddPanel();
-    renderTab(targetTabId, { activateContent: appReady === true });
+
+    runNavIndicatorTransition(() => renderTab(targetTabId, { activateContent: appReady === true }));
 
     // Symétrique : si on revient sur Collection alors que le classeur était le mode actif (jamais
     // réinitialisé, juste son listener détaché ci-dessus au moment de quitter), on réattache — sinon
