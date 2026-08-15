@@ -36,7 +36,7 @@ function filterCollectionByIllustrator(illustrator) {
 
     closeCardDetail();
     collectionFilters.illustrator = trimmed;
-    filterAndDisplay();
+    filterAndDisplayReorder();
     navigateToTab('tab-collection');
 }
 
@@ -137,7 +137,7 @@ function removeCollectionFilter(key, value) {
         default:
             return;
     }
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 // ===== "AJOUTER UN FILTRE" — POPOVER 2 ETAPES (Ticket 3, seul moyen manuel d'ajouter un filtre depuis
@@ -390,7 +390,7 @@ function applyCollectionFilter(filterKey, value) {
             return;
     }
     closeCollectionFilterPicker();
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 // Clic extérieur = fermeture propre, jamais de modification de collectionFilters (cf. closeCollectionFilterPicker).
@@ -417,7 +417,7 @@ function sortCollection(column) {
         sortDirection = 'asc';
     }
     updateSortArrows();
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 function updateSortArrows() {
@@ -567,7 +567,7 @@ function resetCollectionFilters() {
     collectionFilters.duplicatesOnly = false;
     collectionFilters.illustrator = null;
 
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 function getFilteredSortedCollection() {
@@ -706,6 +706,96 @@ function filterAndDisplay() {
     resetBinderPage(); // idem pour le classeur (binder-view.js) : repart de la première double-page
     clearSelection(); // évite d'agir sur une sélection de cartes qu'on ne voit plus
     renderFilteredCollection();
+}
+
+// VT5 (cf roadmap technique animations premium) : au-delà duquel on n'anime plus la réorganisation du
+// Tableau (perf + lisibilité - cf audit VT5). COLLECTION_PAGE_SIZE (60) est la page max réellement
+// affichable, mais animer jusqu'à 60 lignes capturerait bien plus que ce qui est réellement visible
+// sans défilement sur la plupart des écrans ; 24 reste dans la fourchette demandée (20-30), largement
+// au-dessus du nombre de lignes visibles sans scroll, sans être si bas qu'un tri sur une trentaine de
+// cartes filtrées perdrait tout son intérêt.
+const COLLECTION_REORDER_MAX_ROWS = 24;
+
+// VT5 : variante de filterAndDisplay() pour les actions utilisateur qui changent réellement le
+// contenu du Tableau déjà affiché (filtre ajouté/retiré, tri, recherche après debounce) - jamais pour
+// un changement de mode (setCollectionView), un refresh de données (refreshCollection, add/delete/
+// édition d'une carte) ou le premier affichage : ces cas continuent d'appeler filterAndDisplay()
+// directement, sans transition. C'est l'unique point de distinction retenu (cf audit VT5, section 4) -
+// pas de flag global, juste deux points d'entrée différents vers le même rendu final.
+//
+// Ne réimplémente jamais getFilteredSortedCollection() : les ids OLD viennent du DOM réel du Tableau
+// (data-card-id déjà posé sur chaque <tr>, cf renderCollectionTable), les ids NEW du même appel/state
+// que le rendu réel s'apprête à utiliser - jamais une resimulation séparée de la logique de filtre/tri.
+function filterAndDisplayReorder() {
+    // getEffectiveCollectionViewMode() n'est 'table' qu'au-dessus de 768px (jamais sur mobile, cf
+    // cette fonction plus haut) : aucun cas mobile séparé à gérer ici, il ne se produit simplement
+    // jamais. Le second check exclut le cas où Collection n'est même pas l'onglet actif (ex: filtre
+    // par illustrateur déclenché depuis la fiche carte d'un autre onglet, cf filterCollectionByIllustrator) -
+    // le Tableau existerait dans le DOM (jamais démonté) mais ne serait pas réellement visible.
+    if (getEffectiveCollectionViewMode() !== 'table' ||
+        !document.getElementById('tab-collection')?.classList.contains('active')) {
+        filterAndDisplay();
+        return;
+    }
+
+    const oldIds = [...document.querySelectorAll('#cards-list tr[data-card-id]')].map(tr => tr.dataset.cardId);
+
+    // Même page que celle que filterAndDisplay()/renderFilteredCollection() vont réellement afficher
+    // (collectionDisplayLimit repart toujours à COLLECTION_PAGE_SIZE pour ces actions).
+    const newIds = getFilteredSortedCollection().slice(0, COLLECTION_PAGE_SIZE).map(c => String(c.id));
+
+    if (oldIds.length === 0 || oldIds.join(',') === newIds.join(',')) {
+        // Tableau vide avant, ou séquence strictement identique (cf section 15 de la demande) : rien
+        // à réorganiser.
+        filterAndDisplay();
+        return;
+    }
+
+    const newIdSet = new Set(newIds);
+    const intersection = oldIds.filter(id => newIdSet.has(id));
+
+    if (intersection.length < 2 || intersection.length > COLLECTION_REORDER_MAX_ROWS) {
+        // Trop peu de lignes communes pour justifier une capture, ou trop de lignes à la fois
+        // (seuil ci-dessus) : rendu normal, sans transition.
+        filterAndDisplay();
+        return;
+    }
+
+    const intersectionSet = new Set(intersection);
+    const tbody = document.getElementById('cards-list');
+
+    const nameIntersectionRows = () => {
+        tbody.querySelectorAll('tr[data-card-id]').forEach(tr => {
+            if (intersectionSet.has(tr.dataset.cardId)) {
+                tr.style.viewTransitionName = `collection-row-${tr.dataset.cardId}`;
+            }
+        });
+    };
+    const clearRowNames = () => {
+        tbody.querySelectorAll('tr[data-card-id]').forEach(tr => {
+            if (tr.style.viewTransitionName) tr.style.viewTransitionName = '';
+        });
+    };
+
+    nameIntersectionRows(); // OLD : un nom explicite par ligne commune, jamais sur celles qui disparaissent
+
+    const transition = runViewTransition('collection-reorder', () => {
+        // Retrait avant re-render : sinon les anciens <tr> (remplacés par innerHTML juste après)
+        // resteraient nommés en même temps que les nouveaux - même piège d'unicité que VT1/VT2/VT4.
+        clearRowNames();
+        filterAndDisplay();
+        nameIntersectionRows(); // NEW : mêmes noms, sur les nouvelles lignes retrouvées via data-card-id
+    });
+
+    if (!transition) {
+        // reduced-motion / API indisponible : filterAndDisplay() a déjà tourné en synchrone ci-dessus,
+        // les nouvelles lignes ont pu recevoir un nom avant qu'on sache qu'il n'y aurait pas de
+        // transition réelle - on le retire immédiatement.
+        clearRowNames();
+        return;
+    }
+
+    transition.finished.finally(clearRowNames);
 }
 
 function loadMoreCollectionCards() {
@@ -895,7 +985,7 @@ function renderCollectionTable(filtered) {
         const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
         const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
         return `
-        <tr>
+        <tr data-card-id="${card.id}">
             <td class="select-col"><input type="checkbox" class="row-select-checkbox" data-id="${card.id}" ${selectedCardIds.has(card.id) ? 'checked' : ''} onchange="toggleCardSelection(${card.id})"></td>
             <td>${card.image
                 ? `<img src="${card.image}" alt="${card.name}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id})">`
@@ -1101,6 +1191,7 @@ window.updateBulkActionsBar = updateBulkActionsBar;
 window.bulkUpdateCondition = bulkUpdateCondition;
 window.bulkDeleteSelected = bulkDeleteSelected;
 window.filterAndDisplay = filterAndDisplay;
+window.filterAndDisplayReorder = filterAndDisplayReorder;
 window.loadMoreCollectionCards = loadMoreCollectionCards;
 window.getSortLabel = getSortLabel;
 window.updateCollectionSummary = updateCollectionSummary;

@@ -4876,6 +4876,24 @@ html:active-view-transition-type(profile-open)::view-transition-new(root) {
     animation-timing-function: var(--motion-ease-standard);
 }
 
+/* Réorganisation du Tableau Collection (VT5, cf roadmap technique animations premium) : comme
+   card-detail, aucun fade global - seules les lignes explicitement nommées (collection-row-<id>,
+   modules/collection.js#filterAndDisplayReorder) doivent bouger, jamais la navbar/les KPI/le hero/les
+   filtres/le reste de la page. Durée/easing par défaut du groupe : interpolation position+taille
+   uniquement (comportement natif de ::view-transition-group), pas de rotation/scale volontaire. */
+html:active-view-transition-type(collection-reorder)::view-transition-old(root),
+html:active-view-transition-type(collection-reorder)::view-transition-new(root) {
+    animation: none;
+}
+
+/* ::view-transition-group(*) : les noms sont dynamiques (un par carte, collection-row-<id>), donc pas
+   moyen de les cibler un par un en CSS statique - * est sans risque ici car scopé au seul type
+   collection-reorder, où aucun autre nom que collection-row-<id> n'est jamais assigné. */
+html:active-view-transition-type(collection-reorder)::view-transition-group(*) {
+    animation-duration: var(--motion-duration-normal);
+    animation-timing-function: var(--motion-ease-standard);
+}
+
 html:active-view-transition-type(profile-open)::view-transition-group(collector-profile-avatar) {
     animation-duration: var(--motion-duration-normal);
     animation-timing-function: var(--motion-ease-standard);

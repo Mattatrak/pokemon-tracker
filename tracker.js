@@ -1099,7 +1099,10 @@ function initEventListeners() {
     let collectionSearchDebounceTimer = null;
     document.getElementById('search-collection').addEventListener('input', () => {
         clearTimeout(collectionSearchDebounceTimer);
-        collectionSearchDebounceTimer = setTimeout(filterAndDisplay, 150);
+        // VT5 (cf roadmap technique animations premium) : filterAndDisplayReorder() plutôt que
+        // filterAndDisplay() - une seule réorganisation après le debounce existant (inchangé, 150ms),
+        // jamais une par frappe.
+        collectionSearchDebounceTimer = setTimeout(filterAndDisplayReorder, 150);
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
