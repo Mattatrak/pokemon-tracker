@@ -1144,7 +1144,11 @@ function initEventListeners() {
             sortDirection = dir;
         }
         updateSortArrows();
-        filterAndDisplay();
+        // VT5b (cf roadmap technique animations premium) : c'est le vrai contrôle de tri Galerie/Classeur
+        // (le Tableau a ses propres en-têtes cliquables, sortCollection() dans collection.js) - trouvé
+        // manquant lors du test manuel VT5b, filterAndDisplay() ne déclenchait jamais la réorganisation
+        // animée de la Galerie via ce sélecteur.
+        filterAndDisplayReorder();
     });
     document.getElementById('card-search').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchCards();

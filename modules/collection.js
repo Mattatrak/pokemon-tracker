@@ -716,47 +716,28 @@ function filterAndDisplay() {
 // cartes filtrées perdrait tout son intérêt.
 const COLLECTION_REORDER_MAX_ROWS = 24;
 
-// VT5 : variante de filterAndDisplay() pour les actions utilisateur qui changent réellement le
-// contenu du Tableau déjà affiché (filtre ajouté/retiré, tri, recherche après debounce) - jamais pour
-// un changement de mode (setCollectionView), un refresh de données (refreshCollection, add/delete/
-// édition d'une carte) ou le premier affichage : ces cas continuent d'appeler filterAndDisplay()
-// directement, sans transition. C'est l'unique point de distinction retenu (cf audit VT5, section 4) -
-// pas de flag global, juste deux points d'entrée différents vers le même rendu final.
-//
-// Ne réimplémente jamais getFilteredSortedCollection() : les ids OLD viennent du DOM réel du Tableau
-// (data-card-id déjà posé sur chaque <tr>, cf renderCollectionTable), les ids NEW du même appel/state
-// que le rendu réel s'apprête à utiliser - jamais une resimulation séparée de la logique de filtre/tri.
-function filterAndDisplayReorder() {
-    // getEffectiveCollectionViewMode() n'est 'table' qu'au-dessus de 768px (jamais sur mobile, cf
-    // cette fonction plus haut) : aucun cas mobile séparé à gérer ici, il ne se produit simplement
-    // jamais. Le second check exclut le cas où Collection n'est même pas l'onglet actif (ex: filtre
-    // par illustrateur déclenché depuis la fiche carte d'un autre onglet, cf filterCollectionByIllustrator) -
-    // le Tableau existerait dans le DOM (jamais démonté) mais ne serait pas réellement visible.
-    if (getEffectiveCollectionViewMode() !== 'table' ||
-        !document.getElementById('tab-collection')?.classList.contains('active')) {
-        filterAndDisplay();
-        return;
-    }
+// VT5b (cf roadmap technique animations premium) : plafond de cartes Galerie animées simultanément -
+// volontairement plus bas que COLLECTION_REORDER_MAX_ROWS (24, Tableau). La grille desktop
+// (.collection-grid, minmax(190px,1fr)) tient ~5-6 colonnes sur une largeur de contenu courante ; avec
+// des cartes en aspect-ratio 5/7 (~190-250px de large, donc ~270-350px de haut), une hauteur de
+// viewport utile d'environ 700-800px après hero/filtres affiche grossièrement 2-3 rangées pleines,
+// soit ~12-18 cartes. 16 couvre cet "écran de cartes" sans capturer toute la page.
+const COLLECTION_GALLERY_REORDER_MAX_CARDS = 16;
 
-    const oldIds = [...document.querySelectorAll('#cards-list tr[data-card-id]')].map(tr => tr.dataset.cardId);
+// Carte "dans ou proche du viewport" (VT5b) : vérification ponctuelle via getBoundingClientRect() au
+// moment de l'action, jamais un observer/listener persistant (cf demande explicite). Marge de 200px
+// pour inclure les cartes juste sous le pli, dont le mouvement reste naturel sans qu'elles soient
+// pixel-parfaitement visibles à l'instant T.
+function isCollectionCardNearViewport(el, margin = 200) {
+    const rect = el.getBoundingClientRect();
+    return rect.bottom > -margin && rect.top < window.innerHeight + margin;
+}
 
-    // Même page que celle que filterAndDisplay()/renderFilteredCollection() vont réellement afficher
-    // (collectionDisplayLimit repart toujours à COLLECTION_PAGE_SIZE pour ces actions).
-    const newIds = getFilteredSortedCollection().slice(0, COLLECTION_PAGE_SIZE).map(c => String(c.id));
-
-    if (oldIds.length === 0 || oldIds.join(',') === newIds.join(',')) {
-        // Tableau vide avant, ou séquence strictement identique (cf section 15 de la demande) : rien
-        // à réorganiser.
-        filterAndDisplay();
-        return;
-    }
-
-    const newIdSet = new Set(newIds);
-    const intersection = oldIds.filter(id => newIdSet.has(id));
-
+// VT5 (Tableau) : logique strictement inchangée depuis sa validation manuelle, simplement extraite
+// pour être appelée depuis filterAndDisplayReorder() au même titre que la variante Galerie (VT5b)
+// ci-dessous. Ne pas modifier seuil/noms/comportement ici.
+function runCollectionTableReorder(intersection) {
     if (intersection.length < 2 || intersection.length > COLLECTION_REORDER_MAX_ROWS) {
-        // Trop peu de lignes communes pour justifier une capture, ou trop de lignes à la fois
-        // (seuil ci-dessus) : rendu normal, sans transition.
         filterAndDisplay();
         return;
     }
@@ -777,25 +758,129 @@ function filterAndDisplayReorder() {
         });
     };
 
-    nameIntersectionRows(); // OLD : un nom explicite par ligne commune, jamais sur celles qui disparaissent
+    nameIntersectionRows();
 
     const transition = runViewTransition('collection-reorder', () => {
-        // Retrait avant re-render : sinon les anciens <tr> (remplacés par innerHTML juste après)
-        // resteraient nommés en même temps que les nouveaux - même piège d'unicité que VT1/VT2/VT4.
         clearRowNames();
         filterAndDisplay();
-        nameIntersectionRows(); // NEW : mêmes noms, sur les nouvelles lignes retrouvées via data-card-id
+        nameIntersectionRows();
     });
 
     if (!transition) {
-        // reduced-motion / API indisponible : filterAndDisplay() a déjà tourné en synchrone ci-dessus,
-        // les nouvelles lignes ont pu recevoir un nom avant qu'on sache qu'il n'y aurait pas de
-        // transition réelle - on le retire immédiatement.
         clearRowNames();
         return;
     }
 
     transition.finished.finally(clearRowNames);
+}
+
+// VT5b (expérimental, cf roadmap technique animations premium) : même principe que le Tableau (VT5),
+// mais restreint aux cartes qui sont À LA FOIS dans l'intersection OLD/NEW ET actuellement visibles
+// (ou proches du viewport) - jamais les 60 cartes de la page. oldEls déjà en ordre DOM (haut en bas,
+// gauche à droite) : filtrer puis tronquer à COLLECTION_GALLERY_REORDER_MAX_CARDS suffit à obtenir un
+// sous-ensemble déterministe, pas besoin d'un tri supplémentaire.
+//
+// Élément animé : la racine .collection-card entière (pas seulement l'image) - c'est une boîte propre
+// (aspect-ratio fixe, overflow:hidden, border-radius, un seul <img> + badges/overlay internes) dont le
+// contenu est capturé comme un unique snapshot aplati ; animer seulement l'image aurait laissé les
+// badges/overlay apparaître/disparaître indépendamment de l'image en mouvement, un résultat moins
+// convaincant que "la carte physique se déplace".
+function runCollectionGalleryReorder(intersection, oldEls) {
+    const intersectionSet = new Set(intersection);
+    const candidates = oldEls
+        .filter(el => intersectionSet.has(el.dataset.cardId) && isCollectionCardNearViewport(el))
+        .slice(0, COLLECTION_GALLERY_REORDER_MAX_CARDS)
+        .map(el => el.dataset.cardId);
+
+    if (candidates.length < 2) {
+        filterAndDisplay();
+        return;
+    }
+
+    const candidateSet = new Set(candidates);
+    const grid = document.getElementById('collection-grid');
+
+    const nameCandidateCards = () => {
+        grid.querySelectorAll('.collection-card[data-card-id]').forEach(card => {
+            if (candidateSet.has(card.dataset.cardId)) {
+                card.style.viewTransitionName = `collection-gallery-card-${card.dataset.cardId}`;
+            }
+        });
+    };
+    const clearCardNames = () => {
+        grid.querySelectorAll('.collection-card[data-card-id]').forEach(card => {
+            if (card.style.viewTransitionName) card.style.viewTransitionName = '';
+        });
+    };
+
+    nameCandidateCards(); // OLD
+
+    const transition = runViewTransition('collection-reorder', () => {
+        // Retrait avant re-render - même piège d'unicité que VT1/VT2/VT5.
+        clearCardNames();
+        filterAndDisplay();
+        // Une candidate disparue du nouveau rendu (filtrée entre-temps, cas rare) ne matche
+        // simplement aucun élément ici : pas d'erreur, juste pas de nom posé pour elle.
+        nameCandidateCards(); // NEW
+    });
+
+    if (!transition) {
+        clearCardNames();
+        return;
+    }
+
+    transition.finished.finally(clearCardNames);
+}
+
+// VT5/VT5b (cf roadmap technique animations premium) : variante de filterAndDisplay() pour les
+// actions utilisateur qui changent réellement le contenu du Tableau ou de la Galerie déjà affichés
+// (filtre ajouté/retiré, tri, recherche après debounce) - jamais pour un changement de mode
+// (setCollectionView), un refresh de données (refreshCollection, add/delete/édition d'une carte) ou
+// le premier affichage : ces cas continuent d'appeler filterAndDisplay() directement, sans transition.
+// C'est l'unique point de distinction retenu (cf audit VT5, section 4) - pas de flag global, juste
+// deux points d'entrée différents vers le même rendu final.
+//
+// Ne réimplémente jamais getFilteredSortedCollection() : les ids OLD viennent du DOM réel de la vue
+// affichée (data-card-id déjà posé sur chaque <tr>/.collection-card), les ids NEW du même appel/state
+// que le rendu réel s'apprête à utiliser - jamais une resimulation séparée de la logique de filtre/tri.
+//
+// Galerie exclue sur mobile (VT5b, cf audit section 27) : grille à ~2 colonnes seulement en dessous de
+// 768px (isCollectionMobileViewport), où une réorganisation peut déplacer une carte sur une très
+// grande distance verticale (peu de colonnes = peu de voisins proches) - risque de mouvement chaotique
+// plutôt que la sensation recherchée. Le Tableau, lui, n'est de toute façon jamais le mode effectif
+// sous ce seuil (getEffectiveCollectionViewMode), donc rien à exclure spécifiquement pour lui.
+function filterAndDisplayReorder() {
+    const effectiveMode = getEffectiveCollectionViewMode();
+    const isReorderableMode = effectiveMode === 'table' || (effectiveMode === 'grid' && !isCollectionMobileViewport());
+
+    if (!isReorderableMode || !document.getElementById('tab-collection')?.classList.contains('active')) {
+        filterAndDisplay();
+        return;
+    }
+
+    const oldSelector = effectiveMode === 'table' ? '#cards-list tr[data-card-id]' : '#collection-grid .collection-card[data-card-id]';
+    const oldEls = [...document.querySelectorAll(oldSelector)];
+    const oldIds = oldEls.map(el => el.dataset.cardId);
+
+    // Même page que celle que filterAndDisplay()/renderFilteredCollection() vont réellement afficher
+    // (collectionDisplayLimit repart toujours à COLLECTION_PAGE_SIZE pour ces actions).
+    const newIds = getFilteredSortedCollection().slice(0, COLLECTION_PAGE_SIZE).map(c => String(c.id));
+
+    if (oldIds.length === 0 || oldIds.join(',') === newIds.join(',')) {
+        // Vue vide avant, ou séquence strictement identique (cf section 15/16 de la demande VT5) :
+        // rien à réorganiser.
+        filterAndDisplay();
+        return;
+    }
+
+    const newIdSet = new Set(newIds);
+    const intersection = oldIds.filter(id => newIdSet.has(id));
+
+    if (effectiveMode === 'table') {
+        runCollectionTableReorder(intersection);
+    } else {
+        runCollectionGalleryReorder(intersection, oldEls);
+    }
 }
 
 function loadMoreCollectionCards() {

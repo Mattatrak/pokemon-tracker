@@ -45,9 +45,13 @@ function runViewTransition(type, updateFn) {
         transition = document.startViewTransition(updateFn);
     }
 
-    // Évite une rejection non gérée si la transition est skippée ou si updateFn lève (finished
-    // rejette dans ces cas) - le cleanup des view-transition-name reste toujours à la charge de
-    // l'appelant, via le .finished qu'il chaîne lui-même sur la transition retournée.
+    // Évite une rejection non gérée si la transition est skippée ou si updateFn lève. finished ET
+    // ready peuvent tous les deux rejeter dans ce cas (InvalidStateError "Transition was aborted") -
+    // trouvé en test manuel VT5b (rejections remontées jusqu'à Sentry à chaque skip via
+    // document.activeViewTransition?.skipTransition(), utilisé par toutes les transitions VT1-VT5).
+    // Le cleanup des view-transition-name reste toujours à la charge de l'appelant, via le .finished
+    // qu'il chaîne lui-même sur la transition retournée.
+    transition.ready.catch(() => {});
     transition.finished.catch(() => {});
 
     return transition;
