@@ -4865,15 +4865,15 @@ html:active-view-transition-type(card-detail)::view-transition-new(root) {
     animation: none;
 }
 
-/* Collecteur -> profil public (VT4, cf roadmap technique animations premium) : contrairement à
-   card-detail/navigation, on autorise ici un très court cross-fade du reste de la page (comportement
-   par défaut du navigateur, juste retimé sur nos tokens) pendant que l'avatar se déplace/s'agrandit
-   indépendamment en tant que shared element - jamais de slide/scale/blur/zoom global, seulement
-   l'opacity par défaut du root. Scopé au seul type profile-open, ne touche pas card-detail/navigation. */
+/* Collecteur -> profil public (VT4, cf roadmap technique animations premium) : neutralise le root
+   comme card-detail/navigation/collection-reorder - seul l'avatar partagé doit bouger. Le cross-fade
+   du root initialement prévu ici capturait deux snapshots plein-écran (avant + après) en plus de
+   l'avatar, un coût qui grandit avec la complexité visuelle de la page Collecteurs (nombre de lignes,
+   images) - cause identifiée d'animation saccadée constatée en usage réel, retirée au profit d'un
+   mouvement d'avatar seul, plus léger et plus net. */
 html:active-view-transition-type(profile-open)::view-transition-old(root),
 html:active-view-transition-type(profile-open)::view-transition-new(root) {
-    animation-duration: var(--motion-duration-fast);
-    animation-timing-function: var(--motion-ease-standard);
+    animation: none;
 }
 
 /* Réorganisation du Tableau Collection (VT5, cf roadmap technique animations premium) : comme

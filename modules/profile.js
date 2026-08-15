@@ -83,7 +83,7 @@ function profileAvatarHtml(profile, sizePx = 36) {
         // avatar_url est un champ écrit librement par l'utilisateur (upsert direct possible en
         // contournant l'UI) : toujours échapper avant interpolation dans l'attribut src, sous peine
         // de XSS stocké visible par d'autres utilisateurs (profil public, recherche collectionneurs).
-        return `<img src="${escapeHtml(p.avatar_url)}" alt="" class="profile-avatar" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.outerHTML='<span class=&quot;profile-avatar profile-avatar-fallback&quot; style=&quot;width:${sizePx}px;height:${sizePx}px;font-size:${Math.round(sizePx * 0.55)}px;&quot;>${PROFILE_FALLBACK_EMOJI}</span>'">`;
+        return `<img src="${escapeHtml(p.avatar_url)}" alt="" class="profile-avatar" loading="lazy" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.outerHTML='<span class=&quot;profile-avatar profile-avatar-fallback&quot; style=&quot;width:${sizePx}px;height:${sizePx}px;font-size:${Math.round(sizePx * 0.55)}px;&quot;>${PROFILE_FALLBACK_EMOJI}</span>'">`;
     }
     return `<span class="profile-avatar profile-avatar-fallback" style="width:${sizePx}px;height:${sizePx}px;font-size:${Math.round(sizePx * 0.55)}px;">${PROFILE_FALLBACK_EMOJI}</span>`;
 }

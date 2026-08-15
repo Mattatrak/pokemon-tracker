@@ -34,6 +34,14 @@ let viewedPublicCards = [];
 let publicCollectionSort = 'value-desc';
 let publicCollectionRarityFilterValues = new Set();
 
+// Pagination de la grille collection publique (même principe que COLLECTION_PAGE_SIZE, collection.js) :
+// trouvée manquante ici lors d'un diagnostic de lenteur réel (724 cartes/~3000 <img> injectées d'un
+// coup pour un profil de 1780 cartes - la vraie cause du ralentissement constaté sur ces pages, pas
+// les View Transitions). publicCollectionDisplayLimit repart à PUBLIC_COLLECTION_PAGE_SIZE à chaque
+// nouveau profil chargé et à chaque filtre/tri/recherche changé (filterPublicCollectionAndDisplay).
+const PUBLIC_COLLECTION_PAGE_SIZE = 60;
+let publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
+
 // Wishlist publique tierce (lecture seule). Sources : get_wishlists_public/get_wishlist_items_public
 // (Phase 2). viewedPublicWishlistPriceMap vient de card_price_history en lecture directe : ce n'est
 // PAS une table privée (pas de colonne user_id, cache de prix marché partagé entre tous les comptes,
@@ -187,6 +195,7 @@ async function loadPublicProfile(username) {
     viewedPublicCards = [];
     publicCollectionSort = 'value-desc';
     publicCollectionRarityFilterValues = new Set();
+    publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
     viewedPublicWishlists = [];
     viewedPublicWishlistItems = [];
     viewedPublicWishlistPriceMap = {};
@@ -381,10 +390,10 @@ function renderPublicProfileShell(container, profile) {
                 <div class="catalogue-toolbar">
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="renderPublicCollectionGrid()">
+                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="filterPublicCollectionAndDisplay()">
                     </div>
                     <div class="catalogue-toolbar-actions">
-                        <select id="public-collection-series-filter" onchange="renderPublicCollectionGrid()">
+                        <select id="public-collection-series-filter" onchange="filterPublicCollectionAndDisplay()">
                             <option value="">Toutes les séries</option>
                         </select>
                         <select class="catalogue-sort-select" onchange="setPublicCollectionSort(this.value)">
@@ -398,6 +407,9 @@ function renderPublicProfileShell(container, profile) {
                 <div class="rarity-filter-row" id="public-collection-rarity-row"></div>
                 <div class="collection-display-case">
                     <div class="collection-grid" id="public-collection-grid"></div>
+                </div>
+                <div class="load-more-row" id="public-collection-load-more-row" style="display: none;">
+                    <button class="filter-toggle-btn" id="public-collection-load-more-btn" onclick="loadMorePublicCollectionCards()"></button>
                 </div>
             </div>
         ` : ''}
@@ -505,11 +517,24 @@ function setPublicCollectionRarityFilter(value) {
         publicCollectionRarityFilterValues.add(value);
     }
     renderPublicCollectionRarityRow();
-    renderPublicCollectionGrid();
+    filterPublicCollectionAndDisplay();
 }
 
 function setPublicCollectionSort(value) {
     publicCollectionSort = value;
+    filterPublicCollectionAndDisplay();
+}
+
+// Repart toujours à la première page (comme filterAndDisplay(), collection.js) : recherche/série/tri/
+// rareté changés doivent réafficher depuis publicCollectionDisplayLimit initial, jamais garder la
+// pagination d'un filtre précédent.
+function filterPublicCollectionAndDisplay() {
+    publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
+    renderPublicCollectionGrid();
+}
+
+function loadMorePublicCollectionCards() {
+    publicCollectionDisplayLimit += PUBLIC_COLLECTION_PAGE_SIZE;
     renderPublicCollectionGrid();
 }
 
@@ -571,15 +596,32 @@ function renderPublicCollectionGrid() {
     if (!grid) return;
 
     const filtered = getFilteredSortedPublicCollection();
+    const page = filtered.slice(0, publicCollectionDisplayLimit);
 
     if (filtered.length === 0) {
         grid.innerHTML = '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
+        updatePublicCollectionLoadMoreRow(0, 0);
         return;
     }
 
-    grid.innerHTML = filtered.map(card => renderGridCardHtml(card, {
+    grid.innerHTML = page.map(card => renderGridCardHtml(card, {
         detailFn: 'showPublicCardDetail'
     })).join('');
+    updatePublicCollectionLoadMoreRow(filtered.length, page.length);
+}
+
+function updatePublicCollectionLoadMoreRow(totalCount, shownCount) {
+    const row = document.getElementById('public-collection-load-more-row');
+    const btn = document.getElementById('public-collection-load-more-btn');
+    if (!row || !btn) return;
+
+    const remaining = totalCount - shownCount;
+    if (remaining > 0) {
+        row.style.display = 'flex';
+        btn.textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
+    } else {
+        row.style.display = 'none';
+    }
 }
 
 // Point d'entrée public (Phase 4, View Transitions) : délègue la mécanique du morph à
@@ -919,6 +961,8 @@ window.populatePublicCollectionSeriesFilter = populatePublicCollectionSeriesFilt
 window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
 window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
 window.setPublicCollectionSort = setPublicCollectionSort;
+window.filterPublicCollectionAndDisplay = filterPublicCollectionAndDisplay;
+window.loadMorePublicCollectionCards = loadMorePublicCollectionCards;
 window.getFilteredSortedPublicCollection = getFilteredSortedPublicCollection;
 window.renderPublicDuplicateCardsHtml = renderPublicDuplicateCardsHtml;
 window.renderPublicCollectionGrid = renderPublicCollectionGrid;
