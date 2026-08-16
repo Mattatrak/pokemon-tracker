@@ -11,7 +11,8 @@ const DESKTOP_NAV_PAGES = [
     { id: 'tab-collection', label: 'Ma Collection', icon: 'ti-layout-grid' },
     { id: 'tab-progression', label: 'Progression', icon: 'ti-trophy' },
     { id: 'tab-stats', label: 'Statistiques', icon: 'ti-chart-bar' },
-    { id: 'tab-wishlist', label: 'Souhaits', icon: 'ti-star' }
+    { id: 'tab-wishlist', label: 'Souhaits', icon: 'ti-star' },
+    { id: 'tab-add', label: 'Ajouter', icon: 'ti-plus' }
 ];
 
 // Retourne le contenu interne de #desktop-nav-container (pas le wrapper .dashboard-integrated-nav
