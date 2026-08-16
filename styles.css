@@ -2594,15 +2594,15 @@ button:disabled {
        une vraie collection dense - la premiere version, box-shadow noir seul, ne se voyait pas dans
        les gouttieres de 26-28px). Il faut de la lumiere, pas de l'ombre, pour se detacher d'un fond
        sombre. */
-    border: 1px solid rgba(232,169,59,0.32);
+    border: 1px solid rgba(232,169,59,0.18);
     /* Ombre de calage (noire, garde pour l'assise/le contact au sol) + liseur lumineux qui, lui, est
        visible dans les gouttieres entre cartes quelle que soit la densite de la grille. box-shadow
        (non-inset) n'est pas rogne par l'overflow:hidden ci-dessus (contrairement aux enfants) : seul
        le contenu de la carte est clippe, pas son ombre portee. */
     box-shadow:
         0 8px 18px -6px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(232,169,59,0.1),
-        0 0 22px rgba(232,169,59,0.22);
+        0 0 0 1px rgba(232,169,59,0.05),
+        0 0 16px rgba(232,169,59,0.12);
     transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
 }
 
