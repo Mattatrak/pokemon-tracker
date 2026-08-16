@@ -335,6 +335,7 @@ function renderWishlistsUI() {
 
     if (allWishlists.length === 0) {
         container.innerHTML = '<p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l\'instant</p>';
+        playWishlistContainerFadeIn(container);
         return;
     }
 
@@ -428,6 +429,20 @@ function renderWishlistsUI() {
     }).join('');
 
     refreshWishlistThumbPlaceholders();
+    playWishlistContainerFadeIn(container);
+}
+
+// Adoucit le pop du tout premier chargement (fetch reseau + reconstruction complete du innerHTML,
+// cf WISHLIST_RELOAD_STALE_MS plus haut - les visites suivantes reutilisent le DOM existant et ne
+// repassent jamais ici) : reutilise tab-content-fade-in (styles.css), meme duree/easing que le reste
+// du site. Reset explicite de l'animation avant de la relancer (animation:none + reflow forcee via
+// offsetWidth) car reappliquer la meme valeur de propriete animation ne relance pas une animation deja
+// terminee - necessaire ici puisque #wishlists-container est le meme noeud DOM a chaque appel, jamais
+// recree contrairement au contenu qu'il contient.
+function playWishlistContainerFadeIn(container) {
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'tab-content-fade-in 300ms ease-in-out';
 }
 
 // Complète visuellement la dernière ligne de chaque grille de miniatures avec des emplacements
