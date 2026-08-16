@@ -538,12 +538,6 @@ function updateWishlistKpis() {
     }
 }
 
-function openWishlistItemCardmarket(itemId) {
-    const item = allWishlistItems.find(i => i.id === itemId);
-    if (!item) return;
-    window.open(getCardmarketUrl(item.cardmarket_id, item.name), '_blank', 'noopener');
-}
-
 // ===== MODALE EDITION LISTE (nom + icone + couleur) =====
 
 function showWishlistEditModal(title, defaults) {
@@ -869,7 +863,6 @@ window.WISHLIST_THUMB_CARD_GAP = WISHLIST_THUMB_CARD_GAP;
 window.refreshWishlistThumbPlaceholders = refreshWishlistThumbPlaceholders;
 window.wishlistPlaceholderResizeTimer = wishlistPlaceholderResizeTimer;
 window.updateWishlistKpis = updateWishlistKpis;
-window.openWishlistItemCardmarket = openWishlistItemCardmarket;
 window.showWishlistEditModal = showWishlistEditModal;
 window.selectWishlistEditIcon = selectWishlistEditIcon;
 window.selectWishlistEditColor = selectWishlistEditColor;
