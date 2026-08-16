@@ -2603,8 +2603,11 @@ button:disabled {
        visible dans les gouttieres entre cartes quelle que soit la densite de la grille. box-shadow
        (non-inset) n'est pas rogne par l'overflow:hidden ci-dessus (contrairement aux enfants) : seul
        le contenu de la carte est clippe, pas son ombre portee. */
+    /* Ombre plus directionnelle/marquee (offset vertical plus grand, flou plus large) pour un effet
+       "flotte au-dessus du fond" plus net qu'un simple contact shadow uniforme. */
     box-shadow:
-        0 8px 18px -6px rgba(0,0,0,0.6),
+        0 14px 28px -8px rgba(0,0,0,0.75),
+        0 6px 14px rgba(0,0,0,0.5),
         0 0 0 1px rgba(232,169,59,0.05),
         0 0 16px rgba(232,169,59,0.12);
     transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
@@ -2612,7 +2615,13 @@ button:disabled {
 
 .collection-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42), 0 4px 12px rgba(0, 0, 0, 0.28);
+    /* Garde le liseur dore (etait perdu ici avant - le hover retombait sur une ombre noire seule) +
+       accentue encore l'ombre directionnelle pour la carte survolee. */
+    box-shadow:
+        0 20px 36px -8px rgba(0,0,0,0.8),
+        0 8px 18px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(232,169,59,0.1),
+        0 0 22px rgba(232,169,59,0.18);
     border-color: rgba(232,169,59,0.4);
 }
 
