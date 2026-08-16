@@ -30,9 +30,13 @@
     <link rel="stylesheet" href="css/binder.css?v=20260814-1">
 </head>
 <body>
+    <!-- Navbar desktop globale et persistante (NAV1, cf audit navbar du 2026-08-16) : un seul DOM,
+         hors de .container/des heroes/des tab-content, jamais recréé au changement d'onglet - seul
+         updateDesktopNavigation (components/navigation/DesktopNavbar.js) y touche ensuite. Masquée en
+         CSS sous 768px (navigation.css) au profit de MobileBottomNavigation.js. -->
+    <div id="desktop-nav-container" class="dashboard-integrated-nav"></div>
     <div class="container">
         <div class="progression-atlas-hero">
-            <div id="progression-hero-nav-container"></div>
             <div class="progression-atlas-hero-content">
                 <div class="progression-atlas-hero-text">
                     <div class="progression-atlas-hero-eyebrow">Atlas des séries</div>
@@ -67,7 +71,6 @@
         </div>
 
         <div class="collection-atlas-hero">
-            <div id="collection-hero-nav-container"></div>
             <div class="collection-atlas-hero-content">
                 <div class="collection-atlas-hero-text">
                     <div class="collection-atlas-hero-eyebrow">Ma collection</div>
@@ -108,7 +111,6 @@
         </div>
 
         <div class="stats-hero">
-            <div id="stats-hero-nav-container"></div>
             <div class="stats-hero-content">
                 <div class="stats-hero-text">
                     <div class="stats-hero-eyebrow">Vos statistiques</div>
@@ -144,7 +146,6 @@
         </div>
 
         <div class="wishlist-hero">
-            <div id="wishlist-hero-nav-container"></div>
             <div class="wishlist-hero-content">
                 <div class="wishlist-hero-text">
                     <div class="wishlist-hero-eyebrow">Souhaits</div>
@@ -203,7 +204,6 @@
         <!-- ONGLET AJOUTER -->
         <div id="tab-add" class="tab-content">
             <div class="catalogue-hero">
-                <div id="catalogue-hero-nav-container"></div>
                 <div class="catalogue-hero-stage">
                     <div class="catalogue-hero-decor" aria-hidden="true"></div>
 
@@ -936,13 +936,12 @@
              Texte générique volontairement (pas le pseudo du profil visité : le nom réel reste affiché
              juste en dessous dans #user-profile-content, pas de duplication). Image à fournir
              (images/collectors.png, réutilisée pour les deux pages - fallback dégradé uni tant qu'elle
-             n'existe pas, cf .collectors-hero). collectors-hero-nav-container distinct de celui de
-             tab-collectors : chaque page a sa propre entrée dans DesktopNavbar.js containerMap. Le
+             n'existe pas, cf .collectors-hero). Navbar desktop globale (NAV1) : plus de container dédié
+             par page, cette page affiche désormais la même nav persistante que toutes les autres. Le
              bouton "Retour à PokéTracker" retiré : redondant désormais avec le lien Accueil de la nav
              intégrée au hero (desktop) et la barre de navigation mobile (toujours présente, "Accueil"). -->
         <div id="tab-user-profile" class="tab-content">
             <div class="collectors-hero">
-                <div id="user-profile-hero-nav-container"></div>
                 <div class="collectors-hero-content">
                     <div class="collectors-hero-eyebrow">Communauté</div>
                     <h1 class="collectors-hero-title">Profil collectionneur</h1>
@@ -959,7 +958,6 @@
              visuel léger, même raison/traitement que tab-user-profile ci-dessus). -->
         <div id="tab-collectors" class="tab-content">
             <div class="collectors-hero">
-                <div id="collectors-hero-nav-container"></div>
                 <div class="collectors-hero-content">
                     <div class="collectors-hero-eyebrow">Communauté</div>
                     <h1 class="collectors-hero-title">Collectionneurs</h1>
@@ -979,8 +977,9 @@
              is_admin() sur chaque RPC (get_missing_image_cards / admin_set_card_image), ce shell ne fait
              qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Page interne,
              volontairement laissée sans hero (contrairement à tab-collectors/tab-user-profile depuis
-             l'audit visuel léger) : garde le bouton de retour statique, tab-admin n'a pas d'entrée dans
-             DesktopNavbar.js containerMap. -->
+             l'audit visuel léger) : garde le bouton de retour statique. Affiche désormais la navbar
+             desktop globale (NAV1) comme toute autre page, sans item principal actif (tab-admin n'est
+             pas dans DESKTOP_NAV_PAGES, cf components/navigation/DesktopNavbar.js). -->
         <div id="tab-admin" class="tab-content">
             <div class="collectors-panel" id="admin-panel">
                 <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>

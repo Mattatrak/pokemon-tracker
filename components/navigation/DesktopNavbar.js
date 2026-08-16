@@ -1,27 +1,30 @@
 // DesktopNavbar - Pokémon Tracker
-// Navigation horizontale desktop (>768px). Rendue dans 3 emplacements possibles selon l'onglet actif :
-// #desktop-nav-container (header), #progression-hero-nav-container (onglet Progression),
-// #collection-hero-nav-container (onglet Collection), #stats-hero-nav-container (onglet Statistiques),
-// #wishlist-hero-nav-container (onglet Souhaits), #catalogue-hero-nav-container (onglet Ajouter),
-// et directement dans le hero du Dashboard
-// (modules/dashboard.js). Masquée en CSS sous 768px
-// (navigation.css) au profit de MobileBottomNavigation.js.
+// Navigation horizontale desktop (>768px). Un seul DOM persistant, rendu une seule fois dans
+// #desktop-nav-container (premier enfant de <body>, cf index.html) - hors de .container, des heroes et
+// des .tab-content, jamais recréé par un rerender de page/onglet (NAV1, cf audit navbar du 2026-08-16 :
+// l'ancienne architecture à 8 containers/onglet, dont un cas spécial Dashboard, est retirée).
+// Masquée en CSS sous 768px (navigation.css) au profit de MobileBottomNavigation.js.
 // Dépend de : TAB_ROUTES (tracker.js), handleLogout (modules/auth.js)
 
-function generateDesktopNavigation(activeTabId) {
-    const pages = [
-        { id: 'tab-dashboard', label: 'Accueil', icon: 'ti-layout-dashboard' },
-        { id: 'tab-collection', label: 'Ma Collection', icon: 'ti-layout-grid' },
-        { id: 'tab-progression', label: 'Progression', icon: 'ti-trophy' },
-        { id: 'tab-stats', label: 'Statistiques', icon: 'ti-chart-bar' },
-        { id: 'tab-wishlist', label: 'Souhaits', icon: 'ti-star' }
-    ];
+const DESKTOP_NAV_PAGES = [
+    { id: 'tab-dashboard', label: 'Accueil', icon: 'ti-layout-dashboard' },
+    { id: 'tab-collection', label: 'Ma Collection', icon: 'ti-layout-grid' },
+    { id: 'tab-progression', label: 'Progression', icon: 'ti-trophy' },
+    { id: 'tab-stats', label: 'Statistiques', icon: 'ti-chart-bar' },
+    { id: 'tab-wishlist', label: 'Souhaits', icon: 'ti-star' }
+];
 
+// Retourne le contenu interne de #desktop-nav-container (pas le wrapper .dashboard-integrated-nav
+// lui-même : c'est le container global qui porte cette classe en dur dans index.html, pour ne jamais la
+// perdre entre deux rebuilds). Onglets secondaires (Collecteurs/Profil public/Admin/Changelog) :
+// activeTabId ne matche aucune page de DESKTOP_NAV_PAGES, donc aucun lien actif / aucun nav-active-dot -
+// comportement volontairement inchangé (cf tracker.js#runNavIndicatorTransition, déjà prévu pour ce cas).
+function generateDesktopNavigation(activeTabId) {
     // nav-active-dot (VT2, cf roadmap technique animations premium) : vrai nœud DOM plutôt qu'un
     // ::after CSS, uniquement dans l'item actif - nécessaire pour lui assigner dynamiquement
     // view-transition-name (tracker.js#runNavIndicatorTransition) et le faire glisser vers le nouvel
     // onglet au lieu de disparaître/réapparaître.
-    const navCenter = pages
+    const navCenter = DESKTOP_NAV_PAGES
         .map(p => {
             const isActive = p.id === activeTabId;
             return `<a href="#${TAB_ROUTES[p.id]}" class="dashboard-integrated-nav-link ${isActive ? 'active' : ''}">${p.label}${isActive ? '<span class="nav-active-dot" aria-hidden="true"></span>' : ''}</a>`;
@@ -29,56 +32,68 @@ function generateDesktopNavigation(activeTabId) {
         .join('');
 
     return `
-        <div class="dashboard-integrated-nav">
-            <div class="dashboard-integrated-nav-left">
-                <div class="dashboard-integrated-nav-logo">
-                    <img src="images/poke-tracker.png" alt="PokéTracker" class="dashboard-integrated-nav-logo-img">
-                    <span>PokéTracker</span>
-                </div>
-            </div>
-            <div class="dashboard-integrated-nav-center">
-                ${navCenter}
-            </div>
-            <div class="dashboard-integrated-nav-right">
-                <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action" title="Rechercher"><i class="ti ti-search" aria-hidden="true"></i></a>
-                <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter"><i class="ti ti-plus" aria-hidden="true"></i></a>
-                <div class="profile-menu-wrap">
-                    <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--profile" title="Mon profil" onclick="toggleProfileMenu(event)">
-                        ${typeof currentUserProfile !== 'undefined' && currentUserProfile ? profileAvatarHtml(currentUserProfile, 32) : '<i class="ti ti-user" aria-hidden="true"></i>'}
-                    </button>
-                    <div class="profile-menu" id="profile-menu">
-                        <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
-                        <button class="profile-menu-item" onclick="closeProfileMenu(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
-                        <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-changelog');"><i class="ti ti-sparkles" aria-hidden="true"></i> Nouveautés</button>
-                        ${typeof currentUserIsAdmin !== 'undefined' && currentUserIsAdmin ? `<button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-admin');"><i class="ti ti-shield-lock" aria-hidden="true"></i> Administration</button>` : ''}
-                        <button class="profile-menu-item profile-menu-item-danger" onclick="handleLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
-                    </div>
+        <div class="dashboard-integrated-nav-left">
+            <a href="#${TAB_ROUTES['tab-dashboard']}" class="dashboard-integrated-nav-logo">
+                <img src="images/poke-tracker.png" alt="PokéTracker" class="dashboard-integrated-nav-logo-img">
+                <span>PokéTracker</span>
+            </a>
+        </div>
+        <div class="dashboard-integrated-nav-center">
+            ${navCenter}
+        </div>
+        <div class="dashboard-integrated-nav-right">
+            <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action" title="Rechercher"><i class="ti ti-search" aria-hidden="true"></i></a>
+            <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter"><i class="ti ti-plus" aria-hidden="true"></i></a>
+            <div class="profile-menu-wrap">
+                <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--profile" title="Mon profil" onclick="toggleProfileMenu(event)">
+                    ${typeof currentUserProfile !== 'undefined' && currentUserProfile ? profileAvatarHtml(currentUserProfile, 32) : '<i class="ti ti-user" aria-hidden="true"></i>'}
+                </button>
+                <div class="profile-menu" id="profile-menu">
+                    <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
+                    <button class="profile-menu-item" onclick="closeProfileMenu(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
+                    <button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-changelog');"><i class="ti ti-sparkles" aria-hidden="true"></i> Nouveautés</button>
+                    ${typeof currentUserIsAdmin !== 'undefined' && currentUserIsAdmin ? `<button class="profile-menu-item" onclick="closeProfileMenu(); navigateToTab('tab-admin');"><i class="ti ti-shield-lock" aria-hidden="true"></i> Administration</button>` : ''}
+                    <button class="profile-menu-item profile-menu-item-danger" onclick="handleLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
                 </div>
             </div>
         </div>
     `;
 }
 
-function updateDesktopNavigation(tabId) {
-    if (tabId === 'tab-dashboard') return;
-    const containerMap = {
-        'tab-progression': 'progression-hero-nav-container',
-        'tab-collection': 'collection-hero-nav-container',
-        'tab-stats': 'stats-hero-nav-container',
-        'tab-wishlist': 'wishlist-hero-nav-container',
-        'tab-add': 'catalogue-hero-nav-container',
-        // Ajoutés avec le hero de tab-collectors/tab-user-profile (audit visuel léger) : avant cela,
-        // ces deux tabs retombaient sur 'desktop-nav-container' qui n'existe nulle part dans le DOM
-        // (aucune nav ne s'y rendait sur desktop, seul le bouton de retour statique permettait de
-        // revenir - retiré depuis que la nav intégrée au hero le fait).
-        'tab-collectors': 'collectors-hero-nav-container',
-        'tab-user-profile': 'user-profile-hero-nav-container'
-    };
-    const containerId = containerMap[tabId] || 'desktop-nav-container';
-    const navContainer = document.getElementById(containerId);
-    if (navContainer) {
-        navContainer.innerHTML = generateDesktopNavigation(tabId);
+// tabId : onglet à refléter comme actif (ou aucun, cf commentaire generateDesktopNavigation ci-dessus).
+// { rebuild: true } : régénère tout le contenu (avatar/pseudo/statut admin), utilisé uniquement quand ces
+// informations viennent de changer (modules/auth.js après chargement du profil, modules/profile.js après
+// édition) - jamais à chaque navigation. Sans ce flag, seul l'état actif (.active + nav-active-dot) est
+// mis à jour sur le DOM existant : pas de rebuild complet juste pour passer d'un onglet à l'autre.
+function updateDesktopNavigation(tabId, { rebuild = false } = {}) {
+    const container = document.getElementById('desktop-nav-container');
+    if (!container) return;
+
+    if (rebuild || !container.dataset.navReady) {
+        container.innerHTML = generateDesktopNavigation(tabId);
+        container.dataset.navReady = 'true';
+        return;
     }
+
+    DESKTOP_NAV_PAGES.forEach(p => {
+        // Scopé à .dashboard-integrated-nav-center : le logo pointe aussi vers #/dashboard (NAV1, logo
+        // cliquable), donc une recherche sur tout le container matcherait le logo en premier pour
+        // tab-dashboard (même href, mais logo placé avant le nav-center dans le DOM) plutôt que le vrai
+        // lien "Accueil" - cause du bug VT2 spécifique aux navigations vers/depuis Dashboard.
+        const link = container.querySelector(`.dashboard-integrated-nav-center a[href="#${TAB_ROUTES[p.id]}"]`);
+        if (!link) return;
+        const isActive = p.id === tabId;
+        link.classList.toggle('active', isActive);
+        let dot = link.querySelector('.nav-active-dot');
+        if (isActive && !dot) {
+            dot = document.createElement('span');
+            dot.className = 'nav-active-dot';
+            dot.setAttribute('aria-hidden', 'true');
+            link.appendChild(dot);
+        } else if (!isActive && dot) {
+            dot.remove();
+        }
+    });
 }
 
 // ===== Exports window (ticket V2 Vite, type="module") =====

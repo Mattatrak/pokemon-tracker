@@ -219,8 +219,6 @@ function renderDashboardHero() {
             <span class="dashboard-hero-stars"></span>
         </div>
 
-        ${generateDesktopNavigation('tab-dashboard')}
-
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
             <div class="dashboard-hero-label">Valeur totale de la collection</div>

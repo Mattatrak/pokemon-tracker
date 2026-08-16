@@ -308,7 +308,11 @@ async function saveProfile(btn) {
     closeProfileModal();
 
     const activeTab = document.querySelector('.tab-content.active');
-    if (activeTab && typeof updateDesktopNavigation === 'function') updateDesktopNavigation(activeTab.id);
+    // rebuild:true : avatar/pseudo viennent de changer, la navbar globale (NAV1) doit les refléter -
+    // sinon updateDesktopNavigation ne touche qu'à l'état actif, jamais à ces informations.
+    if (activeTab && typeof updateDesktopNavigation === 'function') updateDesktopNavigation(activeTab.id, { rebuild: true });
+    // Ne concerne plus que le contenu métier du hero (salutation, etc.) : la navbar n'y est plus injectée
+    // depuis NAV1, mise à jour désormais gérée uniquement par la ligne ci-dessus.
     if (document.getElementById('dashboard-hero') && typeof renderDashboardHero === 'function') renderDashboardHero();
 }
 
@@ -316,10 +320,9 @@ function closeProfileModal() {
     document.getElementById('profile-modal-overlay').classList.remove('active');
 }
 
-// getElementById('profile-menu') ne suffit pas : chaque page (Dashboard/Collection/Stats/...) a sa
-// propre nav avec le même id, toutes présentes dans le DOM en même temps (seul le tab-content actif
-// est visible) - getElementById renvoie toujours la première (celle du Dashboard), pas forcément
-// celle actuellement visible/cliquée. On retrouve donc le menu via le bouton cliqué.
+// Un seul #profile-menu existe dans le DOM depuis la navbar globale (NAV1) ; on continue malgré tout à
+// le retrouver via le bouton cliqué (closest) plutôt que getElementById, plus direct et robuste par
+// nature - pas de raison de réintroduire une dépendance à un id unique pour ce qui marchait déjà sans.
 let openProfileMenuEl = null;
 
 function toggleProfileMenu(event) {

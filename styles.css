@@ -712,7 +712,9 @@ body {
 
 .catalogue-sheet-sticky {
     position: sticky;
-    top: 1.5rem;
+    /* Navbar desktop globale sticky (NAV1) : 64px de haut, toujours au-dessus - sans cette marge,
+       le panneau se coince sous elle au lieu de s'arrêter juste en dessous. */
+    top: calc(64px + 1.5rem);
     background: rgba(18, 14, 12, 0.55);
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
@@ -1149,7 +1151,6 @@ body {
 
 .catalogue-hero {
     position: relative;
-    padding-top: 5.5rem;
     margin-bottom: 2rem;
     background-image:
         linear-gradient(90deg, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.58) 40%, rgba(10,12,20,0.38) 62%, rgba(10,12,20,0.64) 100%),
@@ -3542,10 +3543,10 @@ tbody tr:hover {
     width: 100%;
 }
 
-/* Lien de retour statique pour tab-user-profile ET tab-collectors (cf commentaire index.html) : ces
-   2 pages n'ont pas de hero, donc pas d'entrée dans DesktopNavbar.js containerMap - sans ce lien, aucune
-   navigation visible sur desktop pour en sortir. Bouton simple, pas de position absolute (contrairement
-   à .dashboard-integrated-nav, pensée pour un hero en arrière-plan que ces 2 pages n'ont pas). */
+/* Lien de retour statique (tab-admin/tab-changelog, cf commentaires index.html) : la navbar desktop
+   globale (NAV1) s'affiche désormais sur ces pages comme sur toutes les autres, ce lien reste par
+   redondance/habitude plutôt que par nécessité stricte. Bouton simple, pas de position absolute
+   (contrairement à .dashboard-integrated-nav, pensée pour un fond sombre plein-largeur). */
 .public-page-back-link {
     display: inline-flex;
     align-items: center;
@@ -3768,11 +3769,11 @@ tbody tr:hover {
 }
 
 /* Hero Collecteurs / Profil public (audit visuel léger) : même traitement que .wishlist-hero
-   (photo + dégradé + nav intégrée via *-hero-nav-container, cf DesktopNavbar.js containerMap) -
-   partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué, les deux pages
-   utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles. background-color
-   sert de repli si jamais images/collectors.png venait à manquer : un background-image 404 ne
-   casse rien, juste pas de photo. */
+   (photo + dégradé) - partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué,
+   les deux pages utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles.
+   Navbar desktop globale (NAV1) : plus de container nav dédié dans ce hero, la nav persistante vit
+   hors de .container (index.html). background-color sert de repli si jamais images/collectors.png
+   venait à manquer : un background-image 404 ne casse rien, juste pas de photo. */
 .collectors-hero {
     position: relative;
     display: flex;
@@ -8794,7 +8795,7 @@ body.page-progression .progression-followed-sets {
     column-gap: 2rem;
     row-gap: 0.5rem;
     min-height: 600px;
-    padding: 104px 40px 40px 40px;
+    padding: 40px;
     border-radius: 24px;
     overflow: hidden;
     background-image:

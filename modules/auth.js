@@ -44,6 +44,11 @@ async function init() {
     await renderDashboard();
     appReady = true; // autorise markDashboardDirty() à re-rendre immédiatement à partir de maintenant
     renderTab(getTabIdFromHash()); // ré-applique l'onglet du hash une fois les données chargées (wishlists/stats/progression dépendent de allCollectionCards)
+    // rebuild:true : premier moment où currentUserProfile/currentUserIsAdmin sont connus avec certitude
+    // (loadUserProfile a été attendu au tout début de init()) - la navbar globale (NAV1) construite plus
+    // tôt (tracker.js#initDesktopNavigation, avant que le profil charge) affichait encore l'icône par
+    // défaut/pas d'entrée Administration jusqu'ici.
+    updateDesktopNavigation(getTabIdFromHash(), { rebuild: true });
     initDatePicker('#card-date-added');
     updateMobileBottomNav('tab-dashboard');
     // typeof-guardé comme currentUserIsAdmin plus haut : si modules/changelog.js n'a pas pu charger
