@@ -2524,12 +2524,13 @@ button:disabled {
     background: var(--ink-navy);
     border: 1px solid var(--border);
     box-shadow: 0 4px 14px rgba(0,0,0,0.5);
-    transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+    transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
 }
 
 .collection-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42), 0 4px 12px rgba(0, 0, 0, 0.28);
+    border-color: rgba(232,169,59,0.4);
 }
 
 .collection-card:hover .price-badge {
@@ -2557,6 +2558,11 @@ button:disabled {
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 220ms ease-out;
+}
+
+.collection-card:hover img {
+    transform: scale(1.05);
 }
 
 .collection-card-noimg {
@@ -2588,6 +2594,11 @@ button:disabled {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color 150ms ease;
+}
+
+.collection-card:hover .collection-card-name {
+    color: var(--gold);
 }
 
 .collection-card-set {
@@ -2774,6 +2785,12 @@ button:disabled {
     }
     .collection-card::after {
         transition: none;
+    }
+    .collection-card img {
+        transition: none;
+    }
+    .collection-card:hover img {
+        transform: none;
     }
 }
 
