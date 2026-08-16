@@ -168,11 +168,13 @@ body {
 
 .tab-content.active {
     display: block;
-    /* Pas d'animation d'entrée ici : le Hero/navbar (hors .tab-content, hormis Dashboard) bascule
-       instantanément via document.body.className. Un fondu sur .tab-content seul créait un décalage de
-       rythme avec ce bascule instantané (flash/pulse dans la zone haute). Contenu et Hero changent donc
-       tous deux au même rythme (instantané). Les animations internes des composants/cartes ne sont pas
-       concernées par ce choix. */
+    /* Pas d'animation d'entrée ici : les heroes hors .tab-content (Progression/Collection/Stats/
+       Wishlist/Collectors, hormis Dashboard qui garde le sien à l'intérieur) basculent instantanément
+       via document.body.className. Un fondu sur .tab-content seul créait un décalage de rythme avec ce
+       bascule instantané (flash/pulse dans la zone haute). Contenu et Hero changent donc tous deux au
+       même rythme (instantané). La navbar desktop globale (NAV1) est hors de ce mécanisme : sticky et
+       persistante, elle ne bascule plus jamais avec le contenu. Les animations internes des composants/
+       cartes ne sont pas concernées par ce choix. */
 }
 
 /* L'animation d'entrée laisse un transform: translateY(0) collé en permanence sur l'ancêtre
@@ -1271,7 +1273,6 @@ body {
 
 @media (max-width: 640px) {
     .catalogue-hero {
-        padding-top: 2.25rem;
         border-radius: 20px 20px 0 0;
     }
 
@@ -9187,12 +9188,10 @@ body.page-progression .progression-followed-sets {
     }
 }
 
-/* Nav flottante masquée sous 768px (barre mobile à la place) : plus besoin de la marge
-   du haut prévue pour elle, sinon le contenu du Hero se retrouve comprimé. */
 @media (max-width: 768px) and (min-width: 641px) {
     .dashboard-hero {
         min-height: 340px;
-        padding: 24px 32px;
+        padding: 32px;
     }
 }
 
