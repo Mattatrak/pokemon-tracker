@@ -86,7 +86,7 @@ body {
     background-image:
         radial-gradient(120% 90% at 50% 0%, rgba(232,169,59,0.14) 0%, transparent 75%),
         radial-gradient(120% 90% at 15% 100%, rgba(232,169,59,0.1) 0%, transparent 70%),
-        radial-gradient(130% 100% at 90% 100%, rgba(80,60,150,0.13) 0%, transparent 70%);
+        radial-gradient(100% 140% at 95% 55%, rgba(80,60,150,0.14) 0%, transparent 65%);
     background-attachment: fixed;
     color: var(--text-primary);
 }
