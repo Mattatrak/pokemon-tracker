@@ -4907,8 +4907,14 @@ tbody tr:hover {
    à la main - actif uniquement pendant une transition de type card-detail, jamais pour un futur type
    (navigation, VT2, pourra vouloir garder ce cross-fade).
    Support natif Chrome/Edge uniquement à ce jour : sur Firefox, document.startViewTransition n'existe
-   pas, ce sélecteur ne matche donc jamais, la modale garde sa transition CSS habituelle. */
-html:active-view-transition-type(card-detail) .modal-overlay {
+   pas, ce sélecteur ne matche donc jamais, la modale garde sa transition CSS habituelle.
+   .modal-card ajouté (manquait ici) : c'est LUI, pas seulement .modal-overlay, qui porte son propre
+   fondu opacity:0->1 (cf .modal-card plus bas) - sans cette ligne, la carte continuait à démarrer
+   transparente et à se fondre en parallèle du morph, exactement le "flash/double-fondu" que ce
+   commentaire dit vouloir éviter, mais que l'ancienne regle ne couvrait qu'a moitié (signale par
+   l'utilisateur : "un modal tres transparent apparait avant d'afficher le vrai fond"). */
+html:active-view-transition-type(card-detail) .modal-overlay,
+html:active-view-transition-type(card-detail) .modal-card {
     transition: none;
 }
 
