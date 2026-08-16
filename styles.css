@@ -10845,3 +10845,28 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         animation: none;
     }
 }
+
+/* .collection-card porte en permanence (pas seulement au survol) un box-shadow a 4 couches -
+   sur une grille de plusieurs centaines de cartes (collections denses reelles, cf retour
+   utilisateur avec 724 cartes), c'est un cout de rasterisation qui se paie a CHAQUE peinture de la
+   grille : ouverture de page (fondu), scroll, et surtout la capture d'ecran "avant" que la View
+   Transition doit prendre de toute la grille au moment d'ouvrir une fiche detail (cf le
+   scintillement au changement de page ET la lenteur a l'ouverture d'une carte, tous deux signales
+   sur mobile apres l'ajout de cet effet cette session). Reduit a une seule couche de contact +
+   liseret dore sous 768px - le mix-blend-mode du sheen (.collection-card::after) est egalement
+   retire : il ne se declenche qu'au survol (:hover), inexistant au toucher, mais force quand meme
+   un contexte d'isolation par carte des sa presence dans le DOM. Desktop inchange. */
+@media (max-width: 768px) {
+    .collection-card {
+        box-shadow: 0 8px 16px -6px rgba(0,0,0,0.6);
+        transition: transform 180ms ease-out, border-color 180ms ease-out;
+    }
+
+    .collection-card:hover {
+        box-shadow: 0 8px 16px -6px rgba(0,0,0,0.6);
+    }
+
+    .collection-card::after {
+        display: none;
+    }
+}
