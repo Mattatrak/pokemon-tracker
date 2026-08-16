@@ -225,10 +225,6 @@ function renderDashboardHero() {
             <div class="dashboard-hero-value">${totalValue.toFixed(2)}€</div>
             ${variationHtml}
             ${lastRefreshHtml}
-            <div class="dashboard-hero-actions">
-                <button class="dashboard-btn-primary" onclick="navigateToTab('tab-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Voir ma collection</button>
-                <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Voir les statistiques</button>
-            </div>
         </div>
 
         <div class="dashboard-hero-showcase">
