@@ -173,14 +173,21 @@ body {
 
 .tab-content.active {
     display: block;
-    /* Fondu d'entrée (inspiré de duffus.fr, cf docs/inspiration-duffus-animations.md#3) : opacity
-       seule, jamais de transform - un transform animé (même translateY(0) au repos une fois fini, en
-       fill-mode both) crée un containing block pour tout descendant en position:sticky, ce qui le
-       casserait (cf .catalogue-sheet-sticky dans #tab-add). Les heroes hors .tab-content (Progression/
-       Collection/Stats/Wishlist, ci-dessous body.page-X .X-hero) reçoivent le même fondu synchronisé,
-       pour ne pas recréer le décalage de rythme (hero instantané vs contenu animé) qui avait fait
-       abandonner cette idée une première fois. */
-    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
+    /* Fondu d'entrée (inspiré de duffus.fr, cf docs/inspiration-duffus-animations.md#3). Durée/easing
+       (300ms, ease-in-out) repris tels quels des deux appels Element.prototype.animate() interceptés
+       sur duffus.fr (opacity [1,0] puis [0,1], 300ms ease-in-out chacun) - chez eux c'est un vrai
+       crossfade (ancienne ET nouvelle page superposées, fondues simultanément), pas reproduit ici :
+       notre changement d'onglet passe par une View Transition (VT2, runNavIndicatorTransition,
+       tracker.js) qui suppose une mutation DOM synchrone - un crossfade demanderait de la rendre
+       asynchrone, avec un risque réel sur le morph du point de nav actif déjà en place. Approximation
+       volontairement plus simple : fondu d'entrée seul, opacity uniquement, jamais de transform (un
+       transform animé, même figé à translateY(0) une fois fini en fill-mode both, crée un containing
+       block pour tout descendant en position:sticky et le casserait - cf .catalogue-sheet-sticky dans
+       #tab-add). Les heroes hors .tab-content (Progression/Collection/Stats/Wishlist, ci-dessous
+       body.page-X .X-hero) reçoivent le même fondu synchronisé, pour ne pas recréer le décalage de
+       rythme (hero instantané vs contenu animé) qui avait fait abandonner cette idée une première
+       fois. */
+    animation: tab-content-fade-in 300ms ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -8039,7 +8046,7 @@ body.page-progression .progression-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8108,7 +8115,7 @@ body.page-collection .collection-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8262,7 +8269,7 @@ body.page-statistics .stats-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8347,7 +8354,7 @@ body.page-wishlist .wishlist-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
