@@ -340,13 +340,12 @@ function renderProgressionSeriesList() {
 
     // Compte neuf (ou aucune carte avec tcgdex_id) : sans ce garde, container.innerHTML devient une
     // chaîne vide et l'onglet Progression paraît cassé, alors que les KPI juste au-dessus affichent
-    // déjà "Aucun set commencé". Réutilise les classes .followed-sets-empty existantes (section Sets
-    // suivis, même page) plutôt que d'introduire un nouveau style.
+    // déjà "Aucun set commencé".
     if (seriesWithOwnedSets.length === 0) {
         container.innerHTML = `
-            <div class="followed-sets-empty">
-                <p class="followed-sets-empty-title">Aucune série commencée</p>
-                <p class="followed-sets-empty-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
+            <div class="progression-empty-state">
+                <p class="progression-empty-state-title">Aucune série commencée</p>
+                <p class="progression-empty-state-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
                 <button class="dashboard-add-btn" style="margin-top:0.75rem;" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
             </div>
         `;
@@ -422,100 +421,6 @@ function renderProgressionSeriesList() {
             </div>
         `;
     }).join('');
-}
-
-// ===== MES SETS SUIVIS =====
-// Lecture seule pour ce sprint : la table followed_sets se peuple via Supabase pour l'instant,
-// le contrôle d'ajout/retrait (pin) arrivera dans un sprint dédié.
-
-let followedSets = [];
-
-async function loadFollowedSets() {
-    const container = document.getElementById('progression-followed-sets');
-    if (!container) return;
-
-    try {
-        const { data, error } = await supabaseClient.from('followed_sets').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        followedSets = data || [];
-    } catch (error) {
-        followedSets = [];
-        console.error('Erreur lors du chargement des sets suivis:', error);
-    }
-
-    renderFollowedSetsSection();
-}
-
-function renderFollowedSetsSection() {
-    const container = document.getElementById('progression-followed-sets');
-    if (!container) return;
-
-    const headerHtml = `
-        <div class="followed-sets-heading">
-            <span class="followed-sets-icon"><i class="ti ti-bookmark" aria-hidden="true"></i></span>
-            <div>
-                <div class="followed-sets-title">Sets suivis</div>
-                <div class="followed-sets-subtitle">Retrouvez ici vos projets de collection en cours.</div>
-            </div>
-        </div>
-    `;
-
-    if (followedSets.length === 0) {
-        container.innerHTML = `
-            ${headerHtml}
-            <div class="followed-sets-empty">
-                <p class="followed-sets-empty-title">Aucun set suivi pour le moment</p>
-                <p class="followed-sets-empty-text">Les sets que vous épinglerez apparaîtront ici pour un accès rapide.</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Recompose logo/nom/progression à partir des données déjà chargées (aucun nouvel appel API)
-    const ownedIdsBySet = {};
-    allCollectionCards.forEach(card => {
-        if (card.tcgdex_id) {
-            const setId = getSetIdFromTcgdexId(card.tcgdex_id);
-            if (!ownedIdsBySet[setId]) ownedIdsBySet[setId] = new Set();
-            ownedIdsBySet[setId].add(card.tcgdex_id);
-        }
-    });
-
-    const allSets = [];
-    allTcgdexSeries.forEach(series => (series.sets || []).forEach(set => allSets.push(set)));
-
-    const cardsHtml = followedSets.map(follow => {
-        const set = allSets.find(s => s.id === follow.set_id);
-        if (!set) return '';
-
-        const officialCount = set.cardCount?.official || 0;
-        const total = set.cardCount?.total || officialCount;
-        const owned = ownedIdsBySet[set.id]?.size || 0;
-        const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
-        const safeName = (set.name || '').replace(/'/g, "\\'");
-
-        const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
-
-        const logoHtml = logoUrl
-            ? `<img src="${logoUrl}" class="followed-set-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">`
-            : `<div class="followed-set-logo-placeholder"><i class="ti ti-cards" aria-hidden="true"></i></div>`;
-
-        return `
-            <div class="followed-set-card" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
-                ${logoHtml}
-                <div class="followed-set-info">
-                    <div class="followed-set-name">${set.name}</div>
-                    <div class="followed-set-progress-bar"><div class="followed-set-progress-fill" style="width:${pct}%"></div></div>
-                    <div class="followed-set-count">${owned}/${officialCount} · ${pct}%</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    container.innerHTML = `
-        ${headerHtml}
-        <div class="followed-sets-grid">${cardsHtml}</div>
-    `;
 }
 
 async function handleProgressionSeriesLogoUpload(event, setId) {
@@ -1144,9 +1049,6 @@ window.loadSeriesProgress = loadSeriesProgress;
 window.computeProgressionKpiData = computeProgressionKpiData;
 window.renderProgressionKpis = renderProgressionKpis;
 window.renderProgressionSeriesList = renderProgressionSeriesList;
-window.followedSets = followedSets;
-window.loadFollowedSets = loadFollowedSets;
-window.renderFollowedSetsSection = renderFollowedSetsSection;
 window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
 window.openSetProgression = openSetProgression;
 window.fetchSetCardsDetailed = fetchSetCardsDetailed;

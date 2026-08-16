@@ -790,9 +790,8 @@ function activateTabContent(tabId) {
     if (tabId === 'tab-progression') {
         if (currentProgressionSetId && document.getElementById('progression-set-view').style.display === 'block') {
             renderProgressionCardsGrid();
-            loadFollowedSets();
         } else {
-            loadSeriesProgress().then(loadFollowedSets);
+            loadSeriesProgress();
         }
     }
 

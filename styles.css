@@ -8405,75 +8405,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     }
 }
 
-/* ===== MES SETS SUIVIS ===== */
-
-.progression-followed-sets {
-    display: none;
-    position: relative;
-    margin-top: -0.375rem;
-    margin-bottom: 1.5rem;
-    padding: 1.5rem 1.5rem 1.25rem;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.35);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    backdrop-filter: blur(20px) saturate(1.4);
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-}
-
-body.page-progression .progression-followed-sets {
-    display: block;
-}
-
-/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
-.progression-followed-sets::before {
-    content: '';
-    position: absolute;
-    left: 1.5rem;
-    right: 1.5rem;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
-    pointer-events: none;
-}
-
-.followed-sets-heading {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    margin-bottom: 1rem;
-}
-
-.followed-sets-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(232,169,59,0.08);
-    color: var(--gold);
-    font-size: 0.95rem;
-}
-
-.followed-sets-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.05rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--parchment);
-}
-
-.followed-sets-subtitle {
-    font-size: 0.78rem;
-    color: var(--slate);
-    margin-top: 0.1rem;
-}
-
-.followed-sets-empty {
+/* Etat vide générique de la page Progression (aucune série commencée) - ex-classes .followed-sets-*
+   (section "Mes sets suivis", jamais utilisée en pratique, retirée le 2026-08-16), renommées
+   génériquement puisque réutilisées ici hors de ce contexte. */
+.progression-empty-state {
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px;
@@ -8481,110 +8416,17 @@ body.page-progression .progression-followed-sets {
     text-align: center;
 }
 
-.followed-sets-empty-title {
+.progression-empty-state-title {
     color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
 }
 
-.followed-sets-empty-text {
+.progression-empty-state-text {
     color: var(--slate);
     font-size: 0.76rem;
     line-height: 1.4;
-}
-
-.followed-sets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1rem;
-}
-
-.followed-set-card {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.followed-set-card:hover {
-    background: rgba(255,255,255,0.03);
-}
-
-.followed-set-logo {
-    height: 32px;
-    width: 50px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.followed-set-logo-placeholder {
-    height: 32px;
-    width: 50px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--panel-light);
-    border-radius: 4px;
-    color: var(--slate);
-}
-
-.followed-set-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.followed-set-name {
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    font-weight: 600;
-    margin-bottom: 0.35rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.followed-set-progress-bar {
-    height: 5px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 0.3rem;
-}
-
-.followed-set-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold), #f4c766);
-    border-radius: 3px;
-}
-
-.followed-set-count {
-    font-size: 0.78rem;
-    color: var(--slate);
-}
-
-@media (max-width: 640px) {
-    .progression-followed-sets {
-        padding: 1.1rem 1.1rem 1rem;
-    }
-
-    .followed-sets-title {
-        font-size: 0.95rem;
-    }
-
-    .followed-sets-subtitle {
-        font-size: 0.72rem;
-    }
-
-    .followed-sets-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 1199px) and (min-width: 641px) {
