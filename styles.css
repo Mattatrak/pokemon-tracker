@@ -2155,6 +2155,15 @@ button:disabled {
     padding: 1rem 1.5rem 1.5rem 1.5rem;
     margin-bottom: 2rem;
     box-shadow: inset 0 0 60px rgba(0,0,0,0.25);
+    /* Lueur externe (filter: drop-shadow, pas box-shadow - non rogne par overflow:hidden ci-dessus,
+       contrairement a un box-shadow classique sur le meme element). Une collection bien remplie
+       laisse quasiment plus de fond visible entre les cartes : le glow interne (background-image
+       ci-dessus) devient alors invisible, cache par les vignettes. Cette lueur reste visible quelle
+       que soit la densite de la grille, puisqu'elle deborde hors du panneau plutot que de compter
+       sur des espaces vides a l'interieur. */
+    filter:
+        drop-shadow(0 0 55px rgba(232,169,59,0.14))
+        drop-shadow(0 0 90px rgba(80,60,150,0.1));
 }
 
 .collection-display-case::before {
