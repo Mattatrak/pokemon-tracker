@@ -597,91 +597,24 @@ function navigateToTab(tabId) {
     }
 }
 
-// VT2 (cf roadmap technique animations premium) : petit indicateur actif (.nav-active-dot, desktop
-// ET mobile) qui glisse physiquement vers le nouvel onglet au lieu de disparaître/réapparaître.
-// offsetParent !== null : seule visibilité réelle qui compte (desktop/mobile ne sont jamais visibles
-// tous les deux à la fois, cf navigation.css, mais on vérifie plutôt que de supposer) - pas de
-// media query JS dupliquée, la vérité vient du rendu réel.
-function findVisibleNavActiveDot() {
-    const dots = document.querySelectorAll('.nav-active-dot');
-    for (const dot of dots) {
-        if (dot.offsetParent !== null) return dot;
-    }
-    return null;
-}
-
-// Identité du bouton de nav qui porte un indicateur : href du lien pour un item standard, id pour le
-// déclencheur "Plus" mobile (bouton, pas un lien). Sert uniquement à détecter si l'ancien et le
-// nouvel indicateur actif désignent en réalité le MÊME bouton physique (ex: passer de Progression à
-// Statistiques sur mobile allume "Plus" dans les deux cas, cf MOBILE_NAV_MORE_ACTIVE_TABS) - dans ce
-// cas, pas de morph sur soi-même.
-function getNavItemKey(dotEl) {
-    const item = dotEl.closest('a, button');
-    return item ? (item.getAttribute('href') || item.id || null) : null;
-}
-
-// Enveloppe doRenderTab dans une View Transition de type 'navigation' pour faire morpher
-// nav-active-dot uniquement - jamais de cross-fade de page/hero (neutralisé en CSS, navigation.css).
-// runViewTransition (modules/view-transitions.js) gère support/reduced-motion/concurrence ; ce qui
-// suit ne s'occupe que du nommage du seul élément à animer (jamais deux à la fois dans un même
-// snapshot, cf leçon VT1 sur l'unicité de view-transition-name).
+// VT2 (cf roadmap technique animations premium) DESACTIVEE (2026-08-17, mobile puis desktop) :
+// faisait morpher .nav-active-dot vers le nouvel onglet via une View Transition. Meme avec le
+// cross-fade du root deja neutralise en CSS (navigation.css), la View Transition force le
+// navigateur a rasteriser un instantane plein document de la NOUVELLE page juste apres le rendu
+// synchrone - si cet instantane est capture avant que les effets couteux de la nouvelle page
+// (backdrop-filter des .kpi-plaque, gradients du hero, grain) aient fini de se composer,
+// l'instantane rate (flou informe, aucun texte lisible) reste fige a l'ecran pendant toute la
+// duree de la transition (~250-500ms). Confirme via extraction frame-par-frame d'un enregistrement
+// ecran fourni par l'utilisateur (Progression -> Collection : ~6 frames a 12fps = ~500ms d'un
+// fondu marron-violet sans aucun element d'UI, couleurs identiques aux atmospheres de fond de
+// body). D'abord desactivee sous 768px seul pour raison de cout de rasterisation (scintillement
+// signale "sur toutes les pages") ; le bug s'est avere pire qu'un cout de perf - un rendu casse
+// tenu immobile une demi-seconde - et touchait aussi desktop. Le gain visuel (le point glissant
+// entre deux icones adjacentes) ne justifiait le risque nulle part. .nav-active-dot reste dans le
+// DOM/CSS (indicateur visuel statique de l'onglet actif, toujours utile), seul le morph anime est
+// retire : renderTab() est appele directement, sans wrapper.
 function runNavIndicatorTransition(doRenderTab) {
-    // Sous 768px (cf mobile-perf, styles.css) : toute View Transition, meme avec le cross-fade du
-    // root desactive en CSS, force le navigateur a rasteriser un instantane plein document (old ET
-    // new) pour construire ::view-transition-old/new(root) - un cout paye a CHAQUE changement
-    // d'onglet, quelle que soit la page (signale par l'utilisateur comme un scintillement present
-    // "sur toutes les pages", y compris Accueil/Ajouter qui n'ont aucun hero anime : le seul point
-    // commun entre toutes les navigations est justement cette transition-ci). Le gain visuel du
-    // point qui glisse entre deux icones adjacentes d'une barre compacte est minime en comparaison -
-    // skip direct sur mobile, comportement de renderTab() normal (sans morph). Desktop inchange.
-    if (window.matchMedia('(max-width: 768px)').matches) {
-        doRenderTab();
-        return;
-    }
-    const oldDot = findVisibleNavActiveDot();
-    if (!oldDot) {
-        // Pas d'indicateur actif visible actuellement (route secondaire sans entrée dédiée sur
-        // desktop, ex. admin/changelog/profil public) : rien à morpher, changement normal.
-        doRenderTab();
-        return;
-    }
-    const oldKey = getNavItemKey(oldDot);
-    oldDot.style.viewTransitionName = 'nav-active-indicator';
-
-    let newDot = null;
-
-    const cleanup = () => {
-        oldDot.style.viewTransitionName = '';
-        if (newDot) newDot.style.viewTransitionName = '';
-    };
-
-    const transition = runViewTransition('navigation', () => {
-        // La grille de nav reste rendue à l'écran pendant le rebuild (jamais masquée) : sans ce
-        // retrait, sourceDot et le nouvel indicateur porteraient le même nom en même temps dans le
-        // snapshot "new" (même piège que le morph carte en VT1).
-        oldDot.style.viewTransitionName = '';
-        doRenderTab();
-
-        newDot = findVisibleNavActiveDot();
-        if (newDot && getNavItemKey(newDot) !== oldKey) {
-            newDot.style.viewTransitionName = 'nav-active-indicator';
-        } else {
-            // Même bouton physique déjà actif avant/après (ex. Plus sur mobile), ou aucun nouvel
-            // indicateur visible (route secondaire) : aucun morph artificiel sur soi-même - on saute
-            // la transition en cours plutôt que de jouer une animation sans rien à montrer.
-            newDot = null;
-            if (document.activeViewTransition) document.activeViewTransition.skipTransition();
-        }
-    });
-
-    if (!transition) {
-        // reduced-motion / API indisponible : doRenderTab() a déjà tourné en synchrone ci-dessus,
-        // rien d'autre à faire que nettoyer les noms posés avant de le savoir.
-        cleanup();
-        return;
-    }
-
-    transition.finished.finally(cleanup);
+    doRenderTab();
 }
 
 // VT4 (cf roadmap technique animations premium) : variante de runNavIndicatorTransition pour la
