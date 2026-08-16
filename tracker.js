@@ -626,6 +626,18 @@ function getNavItemKey(dotEl) {
 // suit ne s'occupe que du nommage du seul élément à animer (jamais deux à la fois dans un même
 // snapshot, cf leçon VT1 sur l'unicité de view-transition-name).
 function runNavIndicatorTransition(doRenderTab) {
+    // Sous 768px (cf mobile-perf, styles.css) : toute View Transition, meme avec le cross-fade du
+    // root desactive en CSS, force le navigateur a rasteriser un instantane plein document (old ET
+    // new) pour construire ::view-transition-old/new(root) - un cout paye a CHAQUE changement
+    // d'onglet, quelle que soit la page (signale par l'utilisateur comme un scintillement present
+    // "sur toutes les pages", y compris Accueil/Ajouter qui n'ont aucun hero anime : le seul point
+    // commun entre toutes les navigations est justement cette transition-ci). Le gain visuel du
+    // point qui glisse entre deux icones adjacentes d'une barre compacte est minime en comparaison -
+    // skip direct sur mobile, comportement de renderTab() normal (sans morph). Desktop inchange.
+    if (window.matchMedia('(max-width: 768px)').matches) {
+        doRenderTab();
+        return;
+    }
     const oldDot = findVisibleNavActiveDot();
     if (!oldDot) {
         // Pas d'indicateur actif visible actuellement (route secondaire sans entrée dédiée sur
