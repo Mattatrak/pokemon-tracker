@@ -23,7 +23,9 @@ function getAvatarUrlPrefix() {
 }
 const USERNAME_FORMAT = /^[A-Za-z0-9_-]{3,20}$/;
 
-let currentUserProfile = null;
+// window.x plutôt que let (ticket V2 Vite, type="module") : currentUserProfile lu depuis
+// DesktopNavbar.js/dashboard.js/public-profile.js aussi. cachedAvatarOptions reste 100% locale.
+window.currentUserProfile = null;
 let cachedAvatarOptions = null; // liste des fichiers du bucket, chargée à la demande
 
 async function loadUserProfile() {
@@ -81,7 +83,7 @@ function profileAvatarHtml(profile, sizePx = 36) {
         // avatar_url est un champ écrit librement par l'utilisateur (upsert direct possible en
         // contournant l'UI) : toujours échapper avant interpolation dans l'attribut src, sous peine
         // de XSS stocké visible par d'autres utilisateurs (profil public, recherche collectionneurs).
-        return `<img src="${escapeHtml(p.avatar_url)}" alt="" class="profile-avatar" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.outerHTML='<span class=&quot;profile-avatar profile-avatar-fallback&quot; style=&quot;width:${sizePx}px;height:${sizePx}px;font-size:${Math.round(sizePx * 0.55)}px;&quot;>${PROFILE_FALLBACK_EMOJI}</span>'">`;
+        return `<img src="${escapeHtml(p.avatar_url)}" alt="" class="profile-avatar" loading="lazy" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.outerHTML='<span class=&quot;profile-avatar profile-avatar-fallback&quot; style=&quot;width:${sizePx}px;height:${sizePx}px;font-size:${Math.round(sizePx * 0.55)}px;&quot;>${PROFILE_FALLBACK_EMOJI}</span>'">`;
     }
     return `<span class="profile-avatar profile-avatar-fallback" style="width:${sizePx}px;height:${sizePx}px;font-size:${Math.round(sizePx * 0.55)}px;">${PROFILE_FALLBACK_EMOJI}</span>`;
 }
@@ -306,7 +308,11 @@ async function saveProfile(btn) {
     closeProfileModal();
 
     const activeTab = document.querySelector('.tab-content.active');
-    if (activeTab && typeof updateDesktopNavigation === 'function') updateDesktopNavigation(activeTab.id);
+    // rebuild:true : avatar/pseudo viennent de changer, la navbar globale (NAV1) doit les refléter -
+    // sinon updateDesktopNavigation ne touche qu'à l'état actif, jamais à ces informations.
+    if (activeTab && typeof updateDesktopNavigation === 'function') updateDesktopNavigation(activeTab.id, { rebuild: true });
+    // Ne concerne plus que le contenu métier du hero (salutation, etc.) : la navbar n'y est plus injectée
+    // depuis NAV1, mise à jour désormais gérée uniquement par la ligne ci-dessus.
     if (document.getElementById('dashboard-hero') && typeof renderDashboardHero === 'function') renderDashboardHero();
 }
 
@@ -314,10 +320,9 @@ function closeProfileModal() {
     document.getElementById('profile-modal-overlay').classList.remove('active');
 }
 
-// getElementById('profile-menu') ne suffit pas : chaque page (Dashboard/Collection/Stats/...) a sa
-// propre nav avec le même id, toutes présentes dans le DOM en même temps (seul le tab-content actif
-// est visible) - getElementById renvoie toujours la première (celle du Dashboard), pas forcément
-// celle actuellement visible/cliquée. On retrouve donc le menu via le bouton cliqué.
+// Un seul #profile-menu existe dans le DOM depuis la navbar globale (NAV1) ; on continue malgré tout à
+// le retrouver via le bouton cliqué (closest) plutôt que getElementById, plus direct et robuste par
+// nature - pas de raison de réintroduire une dépendance à un id unique pour ce qui marchait déjà sans.
 let openProfileMenuEl = null;
 
 function toggleProfileMenu(event) {
@@ -342,3 +347,30 @@ document.addEventListener('click', (event) => {
         closeProfileMenu();
     }
 });
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.AVATAR_BUCKET = AVATAR_BUCKET;
+window.PROFILE_FALLBACK_EMOJI = PROFILE_FALLBACK_EMOJI;
+window.getAvatarUrlPrefix = getAvatarUrlPrefix;
+window.USERNAME_FORMAT = USERNAME_FORMAT;
+window.cachedAvatarOptions = cachedAvatarOptions;
+window.loadUserProfile = loadUserProfile;
+window.formatMemberSince = formatMemberSince;
+window.fetchAvatarOptions = fetchAvatarOptions;
+window.profileAvatarHtml = profileAvatarHtml;
+window.openProfileModal = openProfileModal;
+window.selectProfileAvatar = selectProfileAvatar;
+window.checkProfileDirty = checkProfileDirty;
+window.onProfileUsernameInput = onProfileUsernameInput;
+window.saveProfile = saveProfile;
+window.closeProfileModal = closeProfileModal;
+window.openProfileMenuEl = openProfileMenuEl;
+window.toggleProfileMenu = toggleProfileMenu;
+window.closeProfileMenu = closeProfileMenu;

@@ -1,6 +1,6 @@
 // Onglet Dashboard - Pokémon Tracker
-// Dépend de: allCollectionCards/supabaseClient/allWishlistItems/allTcgdexSeries/dashboardNeedsRefresh (tracker.js/wishlist.js/progression.js),
-// escapeHtml/getSetIdFromTcgdexId (utils.js), showCardDetail (card-detail.js), openSetProgression (progression.js),
+// Dépend de: allCollectionCards/supabaseClient/allWishlistItems/allTcgdexSeries/dashboardNeedsRefresh/wishlistPriceSignalMap (tracker.js/wishlist.js/progression.js),
+// escapeHtml/getSetIdFromTcgdexId (utils.js), showCardDetail (card-detail.js), openSetProgression/fetchSetCardsDetailed/computeSetCompletionBudget (progression.js),
 // activateTabContent (tracker.js), Chart
 // Exécute fn et attrape toute erreur pour qu'une section en échec n'empêche pas le reste du Dashboard
 // de s'afficher (le conteneur reçoit un message d'erreur discret à la place)
@@ -132,26 +132,16 @@ function dashboardShowNextFavorite(count) {
     const today = new Date().toISOString().slice(0, 10);
     const nextIndex = (dashboardGetFeaturedFavoriteIndex(count) + 1) % count;
     localStorage.setItem(DASHBOARD_FEATURED_FAVORITE_KEY, JSON.stringify({ date: today, index: nextIndex }));
-    renderDashboardHero();
+    renderDashboardHeroShowcase();
 }
 
-function renderDashboardHero() {
-    const el = document.getElementById('dashboard-hero');
-    const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
-
-    // Info de mise à jour des prix
-    const lastRefresh = localStorage.getItem('lastPriceRefresh');
-    const lastRefreshHtml = lastRefresh
-        ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
-        : '';
-
-    // Variation sur 7 jours : placeholder rempli après coup par dashboardUpdateHeroVariation (prix
-    // marché uniquement, cf. computeMarketFluctuation dans stats.js — ne bouge pas avec les
-    // ajouts/suppressions de cartes)
-    const variationHtml = '<div class="dashboard-hero-variation" id="dashboard-hero-variation"></div>';
-
-    // Carte mise à l'honneur : un favori possédé (rotation quotidienne, cf. dashboardGetFeaturedFavoriteIndex),
-    // sinon la plus chère de la collection, sinon la première, sinon état vide
+// Carte mise à l'honneur : un favori possédé (rotation quotidienne, cf. dashboardGetFeaturedFavoriteIndex),
+// sinon la plus chère de la collection, sinon la première, sinon état vide. Factorisé hors de
+// renderDashboardHero pour être appelable seul (renderDashboardHeroShowcase, cf. dashboardShowNextFavorite)
+// sans reconstruire tout le hero - qui blanchissait au passage le badge de variation 7j le temps du
+// re-fetch réseau (dashboardUpdateHeroVariation), un "flash" visible à chaque clic sur "carte suivante"
+// alors que seule la carte affichée change, jamais la valeur totale/variation.
+function getDashboardFeaturedCardHtml() {
     let featured = null;
     let favoriteCount = 0;
     if (allCollectionCards.length > 0) {
@@ -212,6 +202,44 @@ function renderDashboardHero() {
         `;
     }
 
+    return { mediaHtml, metaHtml };
+}
+
+// Reconstruit uniquement .dashboard-hero-showcase (carte + méta) - jamais la valeur totale, la
+// variation 7j ou les KPI, qui ne dépendent pas de la carte mise à l'honneur.
+function renderDashboardHeroShowcase() {
+    const showcase = document.getElementById('dashboard-hero-showcase');
+    if (!showcase) return;
+    const { mediaHtml, metaHtml } = getDashboardFeaturedCardHtml();
+    showcase.innerHTML = `
+        <div class="dashboard-hero-card-stage">
+            <div class="dashboard-hero-card-media">
+                ${mediaHtml}
+            </div>
+        </div>
+        <div class="dashboard-hero-card-meta">
+            ${metaHtml}
+        </div>
+    `;
+}
+
+function renderDashboardHero() {
+    const el = document.getElementById('dashboard-hero');
+    const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+
+    // Info de mise à jour des prix
+    const lastRefresh = localStorage.getItem('lastPriceRefresh');
+    const lastRefreshHtml = lastRefresh
+        ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
+        : '';
+
+    // Variation sur 7 jours : placeholder rempli après coup par dashboardUpdateHeroVariation (prix
+    // marché uniquement, cf. computeMarketFluctuation dans stats.js — ne bouge pas avec les
+    // ajouts/suppressions de cartes)
+    const variationHtml = '<div class="dashboard-hero-variation" id="dashboard-hero-variation"></div>';
+
+    const { mediaHtml, metaHtml } = getDashboardFeaturedCardHtml();
+
     el.innerHTML = `
         <div class="dashboard-hero-background" aria-hidden="true">
             <span class="dashboard-hero-nebula"></span>
@@ -219,21 +247,15 @@ function renderDashboardHero() {
             <span class="dashboard-hero-stars"></span>
         </div>
 
-        ${generateDesktopNavigation('tab-dashboard')}
-
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
             <div class="dashboard-hero-label">Valeur totale de la collection</div>
             <div class="dashboard-hero-value">${totalValue.toFixed(2)}€</div>
             ${variationHtml}
             ${lastRefreshHtml}
-            <div class="dashboard-hero-actions">
-                <button class="dashboard-btn-primary" onclick="navigateToTab('tab-collection')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Voir ma collection</button>
-                <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-stats')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Voir les statistiques</button>
-            </div>
         </div>
 
-        <div class="dashboard-hero-showcase">
+        <div class="dashboard-hero-showcase" id="dashboard-hero-showcase">
             <div class="dashboard-hero-card-stage">
                 <div class="dashboard-hero-card-media">
                     ${mediaHtml}
@@ -358,7 +380,7 @@ function renderDashboardActivity() {
     el.innerHTML = items.slice(0, 4).map(item => {
         if (item.type === 'add') {
             return `
-                <div class="dashboard-activity-row" ${item.id != null ? `onclick="showCardDetail(${item.id})"` : ''}>
+                <div class="dashboard-activity-row" ${item.id != null ? `data-card-id="${item.id}" onclick="showCardDetail(${item.id}, event)"` : ''}>
                     <div class="dashboard-activity-text">
                         <div class="dashboard-activity-name">${escapeHtml(item.name)}</div>
                         <div class="dashboard-activity-sub">${escapeHtml(item.series || '')} · Ajoutée</div>
@@ -419,9 +441,16 @@ function dashboardFindBestObjective() {
     return best;
 }
 
+// Token de course (P2-5) : incrémenté à chaque appel, permet à dashboardEnrichObjectiveBudget de
+// vérifier avant d'écrire dans le DOM que l'objectif affiché n'a pas changé entretemps (le widget
+// peut être reconstruit par un nouveau renderDashboard pendant que le fetch du budget est en vol).
+let dashboardObjectiveToken = 0;
+
 function renderDashboardObjective() {
     const el = document.getElementById('dashboard-objective-body');
     const best = dashboardFindBestObjective();
+    dashboardObjectiveToken++;
+    const myToken = dashboardObjectiveToken;
 
     if (!best) {
         el.innerHTML = `
@@ -437,6 +466,14 @@ function renderDashboardObjective() {
     const pctDisplay = Math.round(best.pct * 100);
     const safeName = (best.setName || '').replace(/'/g, "\\'");
 
+    // Compteur wishlist "prix bas" (P2-5) : réutilise wishlistPriceSignalMap (P2-4), déjà en mémoire,
+    // zéro requête supplémentaire. Silence si aucune carte concernée, comme le reste de P2-4.
+    const lowPriceCount = (typeof allWishlistItems !== 'undefined' ? allWishlistItems : [])
+        .filter(item => item.tcgdex_id && wishlistPriceSignalMap[item.tcgdex_id]?.type === 'low').length;
+    const lowPriceLine = lowPriceCount > 0
+        ? `<div class="dashboard-objective-extra"><i class="ti ti-tag" aria-hidden="true"></i> ${lowPriceCount} carte${lowPriceCount > 1 ? 's' : ''} en wishlist à prix bas en ce moment</div>`
+        : '';
+
     el.innerHTML = `
         <div class="dashboard-objective-row">
             ${best.logoUrl ? `<img src="${best.logoUrl}" alt="" class="dashboard-objective-logo" onerror="this.remove()">` : ''}
@@ -444,8 +481,76 @@ function renderDashboardObjective() {
         </div>
         <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pctDisplay}%"></div></div>
         <div class="dashboard-objective-count">${best.owned} / ${best.total} cartes · ${pctDisplay}%</div>
+        <div class="dashboard-objective-extra" id="dashboard-objective-budget"></div>
+        ${lowPriceLine}
         <button class="dashboard-btn-primary dashboard-btn-full" onclick="dashboardGoToProgressionSet('${best.setId}', '${safeName}', '${best.logoUrl}')">Continuer la série</button>
     `;
+
+    dashboardEnrichObjectiveBudget(best, myToken);
+}
+
+// Cache localStorage du budget de complétion de l'objectif (P2-5) : évite de refetch les prix des
+// cartes manquantes à chaque visite du Dashboard le même jour (TCGdex ne met à jour ses prix qu'1x/jour,
+// cf mémoire tcgdex_update_cadence — un fetch plus fréquent n'apporterait rien).
+function dashboardObjectiveBudgetCacheKey(setId) {
+    return `dashboardObjectiveBudget_${setId}`;
+}
+
+function dashboardReadObjectiveBudgetCache(setId) {
+    try {
+        const cached = JSON.parse(localStorage.getItem(dashboardObjectiveBudgetCacheKey(setId)) || 'null');
+        if (!cached || cached.date !== new Date().toDateString()) return null;
+        return cached.budget;
+    } catch {
+        return null;
+    }
+}
+
+function dashboardWriteObjectiveBudgetCache(setId, budget) {
+    try {
+        localStorage.setItem(dashboardObjectiveBudgetCacheKey(setId), JSON.stringify({ date: new Date().toDateString(), budget }));
+    } catch {
+        // localStorage indisponible/plein : tant pis, pas de cache cette fois
+    }
+}
+
+// Complète la ligne budget du widget Objectif après coup (P2-5, réutilise computeSetCompletionBudget
+// de P2-1/progression.js). "Possédée" = même définition par défaut que l'onglet Progression en mode
+// normal (une carte sans finish enregistré compte comme normal). myToken évite d'écrire une réponse
+// tardive si l'utilisateur a changé d'objectif ou de série entretemps (widget déjà reconstruit).
+async function dashboardEnrichObjectiveBudget(best, myToken) {
+    let budget = dashboardReadObjectiveBudgetCache(best.setId);
+
+    if (!budget) {
+        try {
+            const setCards = await fetchSetCardsDetailed(best.setId);
+            if (myToken !== dashboardObjectiveToken) return;
+
+            const ownedIds = new Set(
+                allCollectionCards
+                    .filter(c => c.tcgdex_id && (c.finish || 'normal') === 'normal')
+                    .map(c => c.tcgdex_id)
+            );
+            const missingCards = setCards.filter(c => !ownedIds.has(c.id));
+            const full = computeSetCompletionBudget(missingCards, 'normal');
+            budget = { totalKnown: full.totalKnown, countKnown: full.countKnown, countUnknown: full.countUnknown };
+            dashboardWriteObjectiveBudgetCache(best.setId, budget);
+        } catch (error) {
+            console.error('Erreur budget objectif Dashboard:', error);
+            return;
+        }
+    }
+
+    if (myToken !== dashboardObjectiveToken) return;
+    const budgetEl = document.getElementById('dashboard-objective-budget');
+    if (!budgetEl) return;
+
+    if (budget.countKnown === 0) {
+        budgetEl.innerHTML = '';
+        return;
+    }
+
+    budgetEl.innerHTML = `<i class="ti ti-wallet" aria-hidden="true"></i> ≈ ${budget.totalKnown.toFixed(2)} € pour compléter cette série${budget.countUnknown > 0 ? ` (${budget.countUnknown} sans prix connu)` : ''}`;
 }
 
 // ===== TOP HAUSSES =====
@@ -483,7 +588,7 @@ function renderDashboardAcquisitions() {
     }
 
     el.innerHTML = `<div class="dashboard-acquisitions-scroll">${cards.map(c => `
-        <div class="dashboard-acquisition-card" onclick="showCardDetail(${c.id})">
+        <div class="dashboard-acquisition-card" data-card-id="${c.id}" onclick="showCardDetail(${c.id}, event)">
             <div class="dashboard-acquisition-card-img-wrap">
                 ${c.image
                     ? `<img src="${c.image}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'">`
@@ -650,3 +755,38 @@ async function dashboardUpdateWishlistTrends(items) {
         el.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-arrow-up' : 'ti-arrow-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€`;
     });
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.dashboardRenderSafe = dashboardRenderSafe;
+window.renderDashboard = renderDashboard;
+window.dashboardBuildSkeleton = dashboardBuildSkeleton;
+window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
+window.renderDashboardHeader = renderDashboardHeader;
+window.dashboardGetLastMovers = dashboardGetLastMovers;
+window.DASHBOARD_FEATURED_FAVORITE_KEY = DASHBOARD_FEATURED_FAVORITE_KEY;
+window.dashboardGetFeaturedFavoriteIndex = dashboardGetFeaturedFavoriteIndex;
+window.dashboardShowNextFavorite = dashboardShowNextFavorite;
+window.getDashboardFeaturedCardHtml = getDashboardFeaturedCardHtml;
+window.renderDashboardHeroShowcase = renderDashboardHeroShowcase;
+window.renderDashboardHero = renderDashboardHero;
+window.dashboardUpdateHeroVariation = dashboardUpdateHeroVariation;
+window.renderDashboardKpis = renderDashboardKpis;
+window.dashboardKpiHtml = dashboardKpiHtml;
+window.dashboardRelativeTime = dashboardRelativeTime;
+window.renderDashboardActivity = renderDashboardActivity;
+window.dashboardFindBestObjective = dashboardFindBestObjective;
+window.renderDashboardObjective = renderDashboardObjective;
+window.renderDashboardTopMovers = renderDashboardTopMovers;
+window.renderDashboardAcquisitions = renderDashboardAcquisitions;
+window.renderDashboardTodo = renderDashboardTodo;
+window.dashboardWishlistEmptyHtml = dashboardWishlistEmptyHtml;
+window.renderDashboardWishlist = renderDashboardWishlist;
+window.renderDashboardCollectorsSearch = renderDashboardCollectorsSearch;
+window.dashboardUpdateWishlistTrends = dashboardUpdateWishlistTrends;

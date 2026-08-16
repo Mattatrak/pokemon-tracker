@@ -20,18 +20,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=20260812-5">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.min.css">
+    <link rel="stylesheet" href="styles.css?v=20260816-39">
     <link rel="stylesheet" href="css/layout-tokens.css?v=20260811-4">
     <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
     <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
-    <link rel="stylesheet" href="components/navigation/navigation.css?v=20260805-1">
+    <link rel="stylesheet" href="components/navigation/navigation.css?v=20260817-1">
+    <link rel="stylesheet" href="css/binder.css?v=20260814-1">
 </head>
 <body>
+    <!-- Navbar desktop globale et persistante (NAV1, cf audit navbar du 2026-08-16) : un seul DOM,
+         hors de .container/des heroes/des tab-content, jamais recréé au changement d'onglet - seul
+         updateDesktopNavigation (components/navigation/DesktopNavbar.js) y touche ensuite. Masquée en
+         CSS sous 768px (navigation.css) au profit de MobileBottomNavigation.js. -->
+    <div id="desktop-nav-container" class="dashboard-integrated-nav"></div>
     <div class="container">
         <div class="progression-atlas-hero">
-            <div id="progression-hero-nav-container"></div>
             <div class="progression-atlas-hero-content">
                 <div class="progression-atlas-hero-text">
                     <div class="progression-atlas-hero-eyebrow">Atlas des séries</div>
@@ -66,7 +71,6 @@
         </div>
 
         <div class="collection-atlas-hero">
-            <div id="collection-hero-nav-container"></div>
             <div class="collection-atlas-hero-content">
                 <div class="collection-atlas-hero-text">
                     <div class="collection-atlas-hero-eyebrow">Ma collection</div>
@@ -107,7 +111,6 @@
         </div>
 
         <div class="stats-hero">
-            <div id="stats-hero-nav-container"></div>
             <div class="stats-hero-content">
                 <div class="stats-hero-text">
                     <div class="stats-hero-eyebrow">Vos statistiques</div>
@@ -143,7 +146,6 @@
         </div>
 
         <div class="wishlist-hero">
-            <div id="wishlist-hero-nav-container"></div>
             <div class="wishlist-hero-content">
                 <div class="wishlist-hero-text">
                     <div class="wishlist-hero-eyebrow">Souhaits</div>
@@ -188,8 +190,6 @@
             </div>
         </div>
 
-        <div id="progression-followed-sets" class="progression-followed-sets"></div>
-
         <div id="message-container" class="global-message-container"></div>
 
         <!-- ONGLET DASHBOARD -->
@@ -202,7 +202,6 @@
         <!-- ONGLET AJOUTER -->
         <div id="tab-add" class="tab-content">
             <div class="catalogue-hero">
-                <div id="catalogue-hero-nav-container"></div>
                 <div class="catalogue-hero-stage">
                     <div class="catalogue-hero-decor" aria-hidden="true"></div>
 
@@ -430,6 +429,8 @@
                     <div class="view-toggle">
                         <button id="view-btn-grid" class="view-toggle-btn active" onclick="setCollectionView('grid')"><i class="ti ti-layout-grid" aria-hidden="true"></i> Galerie</button>
                         <button id="view-btn-table" class="view-toggle-btn" onclick="setCollectionView('table')"><i class="ti ti-table" aria-hidden="true"></i> Tableau</button>
+                        <button id="view-btn-binder" class="view-toggle-btn" onclick="setCollectionView('binder')"><i class="ti ti-book-2" aria-hidden="true"></i> Classeur</button>
+                        <button id="view-btn-recap" class="view-toggle-btn" onclick="setCollectionView('recap')"><i class="ti ti-chart-donut" aria-hidden="true"></i> Récap</button>
                     </div>
                     <select id="grid-sort" class="grid-sort-select" aria-label="Trier la collection">
                         <option value="">Trier par...</option>
@@ -464,6 +465,21 @@
 
             <div class="collection-display-case" id="collection-grid-wrapper">
                 <div class="collection-grid" id="collection-grid"></div>
+            </div>
+
+            <div id="collection-binder-wrapper" style="display: none;"></div>
+
+            <!-- Récap collection (Phase 4). R7 : .recap-top-row regroupe Plus-value + État de la
+                 collection sur une même ligne desktop (composition uniquement - recap-section-value et
+                 recap-section-state gardent leurs ids, aucun renderer JS ne change). Pièces maîtresses
+                 et Doublons restent chacun sur leur propre ligne. -->
+            <div id="collection-recap-wrapper" class="collection-recap" style="display: none;">
+                <div class="recap-top-row">
+                    <section class="recap-section recap-section-value" id="recap-section-value"></section>
+                    <section class="recap-section recap-section-state" id="recap-section-state"></section>
+                </div>
+                <section class="recap-section" id="recap-section-top-cards"></section>
+                <section class="recap-section" id="recap-section-duplicates"></section>
             </div>
 
             <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
@@ -516,6 +532,7 @@
         <!-- ONGLET PROGRESSION -->
         <div id="tab-progression" class="tab-content">
             <div id="progression-series-view">
+                <div id="progression-priority-goals"></div>
                 <div id="progression-series-list">
                     <p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des séries...</p>
                 </div>
@@ -528,6 +545,7 @@
                     <div>
                         <h2 id="progression-set-title"></h2>
                         <div id="progression-set-progress-text" class="progression-set-progress-text"></div>
+                        <div id="progression-set-budget-text" class="progression-set-budget-text"></div>
                     </div>
                 </div>
 
@@ -908,41 +926,58 @@
             </div>
         </div>
 
-        <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : rempli
-             dynamiquement, jamais via allCollectionCards/allWishlists/allWishlistItems.
-             Bouton de retour statique (hors du conteneur dynamique) : ni tab-user-profile ni
-             tab-collectors n'ont d'entrée dans DesktopNavbar.js containerMap (pas de hero à ces pages),
-             donc updateDesktopNavigation() ne rend rien pour eux sur desktop - sans ce lien, aucun moyen
-             de revenir à l'app depuis un profil public consulté en desktop. -->
+        <!-- ONGLET PROFIL PUBLIC (route #/user/<username>, modules/public-profile.js) : contenu
+             dynamique inchangé (#user-profile-content), jamais via allCollectionCards/allWishlists/
+             allWishlistItems. Hero statique ajouté (audit visuel léger) : même traitement que
+             .collectors-hero ci-dessous - ces deux pages partageaient jusqu'ici le même gabarit
+             "utilitaire" sans photo, gardées cohérentes entre elles en les faisant évoluer ensemble.
+             Texte générique volontairement (pas le pseudo du profil visité : le nom réel reste affiché
+             juste en dessous dans #user-profile-content, pas de duplication). Image à fournir
+             (images/collectors.png, réutilisée pour les deux pages - fallback dégradé uni tant qu'elle
+             n'existe pas, cf .collectors-hero). Navbar desktop globale (NAV1) : plus de container dédié
+             par page, cette page affiche désormais la même nav persistante que toutes les autres. Le
+             bouton "Retour à PokéTracker" retiré : redondant désormais avec le lien Accueil de la nav
+             intégrée au hero (desktop) et la barre de navigation mobile (toujours présente, "Accueil"). -->
         <div id="tab-user-profile" class="tab-content">
+            <div class="collectors-hero">
+                <div class="collectors-hero-content">
+                    <div class="collectors-hero-eyebrow">Communauté</div>
+                    <h1 class="collectors-hero-title">Profil collectionneur</h1>
+                    <p class="collectors-hero-subtitle">Découvrez sa collection, sa wishlist et vos opportunités d'échange.</p>
+                </div>
+            </div>
             <div class="user-profile-panel">
-                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
                 <div id="user-profile-content"></div>
             </div>
         </div>
 
         <!-- ONGLET RECHERCHE DE COLLECTIONNEURS (route #/collectors, modules/collectors.js) : shell
-             statique, uniquement #collectors-search-results rempli dynamiquement. Même bouton de retour
-             que tab-user-profile, même raison (cf commentaire ci-dessus). -->
+             statique, uniquement #collectors-search-results rempli dynamiquement. Hero ajouté (audit
+             visuel léger, même raison/traitement que tab-user-profile ci-dessus). -->
         <div id="tab-collectors" class="tab-content">
+            <div class="collectors-hero">
+                <div class="collectors-hero-content">
+                    <div class="collectors-hero-eyebrow">Communauté</div>
+                    <h1 class="collectors-hero-title">Collectionneurs</h1>
+                    <p class="collectors-hero-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
+                    <div class="collectors-hero-search input-with-icon">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="text" id="collectors-search-input" placeholder="Rechercher un pseudo ou @username" oninput="onCollectorsSearchInput()">
+                    </div>
+                </div>
+            </div>
             <div class="collectors-panel">
-                <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
-                <div class="collectors-header">
-                    <h1 class="collectors-title">Collectionneurs</h1>
-                    <p class="collectors-subtitle">Retrouvez vos amis et découvrez leurs collections.</p>
-                </div>
-                <div class="input-with-icon">
-                    <i class="ti ti-search" aria-hidden="true"></i>
-                    <input type="text" id="collectors-search-input" placeholder="Rechercher un pseudo ou @username" oninput="onCollectorsSearchInput()">
-                </div>
                 <div class="collectors-search-results" id="collectors-search-results"></div>
             </div>
         </div>
 
         <!-- ONGLET ADMINISTRATION (route #/admin, modules/admin.js) : accès contrôlé côté serveur par
              is_admin() sur chaque RPC (get_missing_image_cards / admin_set_card_image), ce shell ne fait
-             qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Même bouton de
-             retour statique que tab-collectors/tab-user-profile (même raison, cf commentaire plus haut). -->
+             qu'afficher un message si currentUserIsAdmin est faux - cf renderAdminGate(). Page interne,
+             volontairement laissée sans hero (contrairement à tab-collectors/tab-user-profile depuis
+             l'audit visuel léger) : garde le bouton de retour statique. Affiche désormais la navbar
+             desktop globale (NAV1) comme toute autre page, sans item principal actif (tab-admin n'est
+             pas dans DESKTOP_NAV_PAGES, cf components/navigation/DesktopNavbar.js). -->
         <div id="tab-admin" class="tab-content">
             <div class="collectors-panel" id="admin-panel">
                 <button type="button" class="public-page-back-link" onclick="navigateToTab('tab-dashboard')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour à PokéTracker</button>
@@ -1068,38 +1103,47 @@
     <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
-    <script src="data/changelog.js?v=20260812-5"></script>
-    <script src="modules/utils.js?v=20260805-1"></script>
-    <script src="components/navigation/DesktopNavbar.js?v=20260811-1"></script>
-    <script src="components/navigation/MobileBottomNavigation.js?v=20260811-1"></script>
-    <script src="modules/storage.js?v=20260805-1"></script>
-    <script src="modules/favorites.js?v=20260805-1"></script>
-    <script src="modules/cards.js?v=20260812-5"></script>
-    <script src="modules/stats.js?v=20260812-5"></script>
-    <script src="modules/collection.js?v=20260811-2"></script>
-    <script src="modules/import-export.js?v=20260812-5"></script>
-    <script src="modules/card-detail.js?v=20260805-1"></script>
-    <script src="modules/ui.js?v=20260812-5"></script>
-    <script src="modules/wishlist.js?v=20260812-5"></script>
-    <script src="modules/wishlist-detail.js?v=20260805-1"></script>
-    <script src="modules/stats-render.js?v=20260805-1"></script>
-    <script src="modules/progression.js?v=20260812-5"></script>
-    <script src="modules/dashboard.js?v=20260805-1"></script>
-    <script src="modules/profile.js?v=20260812-5"></script>
-    <script src="modules/collector-match.js?v=20260809-1"></script>
-    <script src="modules/public-profile.js?v=20260805-1"></script>
-    <script src="modules/collectors.js?v=20260805-1"></script>
-    <script src="modules/admin.js?v=20260812-5"></script>
-    <script src="modules/changelog.js?v=20260812-5"></script>
-    <script src="tracker.js?v=20260811-2"></script>
-    <script src="modules/auth.js?v=20260811-1"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.6.0/papaparse.min.js"></script>
+    <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" crossorigin="anonymous"></script>
+    <script type="module" src="modules/error-tracking.js?v=20260813-2"></script>
+    <script type="module" src="data/changelog.js?v=20260812-7"></script>
+    <script type="module" src="modules/utils.js?v=20260805-1"></script>
+    <script type="module" src="components/navigation/DesktopNavbar.js?v=20260816-2"></script>
+    <script type="module" src="components/navigation/MobileBottomNavigation.js?v=20260811-1"></script>
+    <script type="module" src="modules/storage.js?v=20260805-1"></script>
+    <script type="module" src="modules/favorites.js?v=20260805-1"></script>
+    <script type="module" src="modules/cards.js?v=20260812-7"></script>
+    <script type="module" src="modules/stats.js?v=20260812-7"></script>
+    <script type="module" src="modules/view-transitions.js?v=20260815-1"></script>
+    <script type="module" src="modules/card-grid-renderer.js?v=20260814-1"></script>
+    <script type="module" src="modules/collection.js?v=20260812-8"></script>
+    <script type="module" src="modules/binder-view.js?v=20260814-1"></script>
+    <script type="module" src="modules/collection-recap.js?v=20260814-1"></script>
+    <script type="module" src="modules/import-export.js?v=20260812-7"></script>
+    <script type="module" src="modules/card-detail.js?v=20260805-1"></script>
+    <script type="module" src="modules/ui.js?v=20260812-7"></script>
+    <script type="module" src="modules/wishlist.js?v=20260817-3"></script>
+    <script type="module" src="modules/wishlist-detail.js?v=20260805-1"></script>
+    <script type="module" src="modules/stats-render.js?v=20260805-1"></script>
+    <script type="module" src="modules/progression.js?v=20260816-2"></script>
+    <script type="module" src="modules/dashboard.js?v=20260816-2"></script>
+    <script type="module" src="modules/profile.js?v=20260812-7"></script>
+    <script type="module" src="modules/collector-match.js?v=20260809-1"></script>
+    <script type="module" src="modules/public-profile.js?v=20260812-2"></script>
+    <script type="module" src="modules/collectors.js?v=20260805-1"></script>
+    <script type="module" src="modules/admin.js?v=20260812-8"></script>
+    <script type="module" src="modules/changelog.js?v=20260812-7"></script>
+    <script type="module" src="tracker.js?v=20260817-3"></script>
+    <script type="module" src="modules/auth.js?v=20260811-1"></script>
+    <script type="module">
+        // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre
+        // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
+        // (`vite preview`) ou en production. Comportement de production inchangé.
+        if (import.meta.env.PROD && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
             });

@@ -26,12 +26,17 @@ const API_EN = 'https://api.tcgdex.net/v2/en';
 // customQuickAddImage, QUICKADD_DEFAULTS_KEY, getQuickAddDefaults, saveQuickAddDefaultsToStorage, openQuickAddSettingsModal,
 // toggleQaSettingsPriceField, closeQuickAddSettingsModal, saveQuickAddSettings chargées depuis modules/progression.js
 
-let allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
+// window.x plutôt que let (ticket V2 Vite, type="module") : ces variables sont lues et/ou écrites
+// depuis de nombreux autres fichiers (collection.js, dashboard.js, stats.js, stats-render.js,
+// progression.js, wishlist.js, cards.js, card-detail.js, import-export.js, auth.js...). Une déclaration
+// locale isolerait tracker.js de leurs écritures/lectures — cf audit du 2026-08-14. Toute ligne de ce
+// fichier qui fait ensuite "nom = valeur"/"nom++" continue de cibler ces mêmes propriétés window.
+window.allCollectionCards = [];   // Cache local de la collection chargée depuis Supabase
 
 // ===== DASHBOARD (obsolescence) =====
 // renderDashboard chargée depuis modules/dashboard.js. Marqué obsolète par refreshCollection()
 // (ajout/suppression/quantité/prix) et loadWishlists() (souhaits) : pas de recalcul inutile ailleurs.
-let dashboardNeedsRefresh = true;
+window.dashboardNeedsRefresh = true;
 
 // Passe à true à la toute fin de init() (auth.js). Tant que c'est false, markDashboardDirty() ne
 // déclenche aucun rendu immédiat : pendant le chargement initial, refreshCollection()/loadWishlists()/
@@ -39,7 +44,7 @@ let dashboardNeedsRefresh = true;
 // défaut dans le HTML — sans ce garde-fou, le hero se re-rendait 2-3 fois pendant init() avec des
 // données encore incomplètes (favoris pas chargés, etc.), d'où un flash visible du mauvais thème/carte
 // avant l'affichage final correct.
-let appReady = false;
+window.appReady = false;
 
 function markDashboardDirty() {
     dashboardNeedsRefresh = true;
@@ -53,14 +58,14 @@ function markDashboardDirty() {
 // Marqué obsolète uniquement par de vraies écritures (refreshCollection() ; ajout/suppression d'un
 // souhait dans modules/wishlist.js ; premier remplissage réel d'allTcgdexSeries dans
 // modules/progression.js) — jamais par une simple relecture/revisite d'un autre onglet.
-let statsNeedsRefresh = true;
+window.statsNeedsRefresh = true;
 // Incrémenté à chaque markStatsDirty(). Permet à renderStatsCharts() (modules/stats-render.js) de
 // détecter qu'une mutation a eu lieu PENDANT son propre rendu, et de rester dirty dans ce cas plutôt
 // que de se marquer propre avec des données déjà périmées à l'instant où il finit.
-let statsRenderVersion = 0;
+window.statsRenderVersion = 0;
 // Verrou anti-réentrance : statsNeedsRefresh reste vrai pendant toute la durée d'un rendu en cours,
 // donc lui seul ne suffit pas à empêcher un second appel concurrent de démarrer un second rendu.
-let statsRenderInProgress = false;
+window.statsRenderInProgress = false;
 
 function markStatsDirty() {
     statsNeedsRefresh = true;
@@ -81,19 +86,40 @@ function markStatsDirty() {
 
 // ===== COLLECTION (Supabase Database) =====
 
-async function refreshCollection() {
-    const { data, error } = await supabaseClient
-        .from('cards')
-        .select('*')
-        .order('created_at', { ascending: false });
+// PostgREST plafonne toute réponse à 1000 lignes par défaut (db_max_rows) : une collection plus
+// grande était donc silencieusement tronquée par le select('*') unique d'avant. Pagination par lots
+// de 1000 via .range(), agrégés localement, tant qu'un lot revient plein (= il peut en rester après).
+// order('id') en second critère : nécessaire pour un curseur stable quand plusieurs cartes partagent
+// exactement le même created_at (tri sur created_at seul serait alors ambigu entre deux lots).
+const COLLECTION_FETCH_PAGE_SIZE = 1000;
 
-    if (error) {
-        showMessage('Erreur lors du chargement de la collection', 'error');
-        console.error(error);
-        return;
+async function refreshCollection() {
+    const fetchedCards = [];
+    let from = 0;
+
+    while (true) {
+        const { data, error } = await supabaseClient
+            .from('cards')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, from + COLLECTION_FETCH_PAGE_SIZE - 1);
+
+        if (error) {
+            // Un lot intermédiaire échoue : on garde l'ancien allCollectionCards plutôt que de publier
+            // une collection partielle (mieux vaut des données obsolètes qu'une collection tronquée).
+            showMessage('Erreur lors du chargement de la collection', 'error');
+            console.error(error);
+            return;
+        }
+
+        fetchedCards.push(...data);
+
+        if (data.length < COLLECTION_FETCH_PAGE_SIZE) break;
+        from += COLLECTION_FETCH_PAGE_SIZE;
     }
 
-    allCollectionCards = data || [];
+    allCollectionCards = fetchedCards;
     await fillMissingSeriesLogos();
     updateStats();
     pruneStaleCollectionFilters();
@@ -464,8 +490,11 @@ async function changeQuantity(id, delta, btn) {
 // confirmAndProcessJsonRestore, downloadCsvTemplate, findTcgdexMatch, handleCsvImport, processCsvImportRows
 // chargées depuis modules/import-export.js
 
-// filterAndDisplay, renderCollectionTable, getGridNoImageHtml, renderCollectionGrid
+// filterAndDisplay, renderCollectionTable, renderCollectionGrid
 // chargées depuis modules/collection.js
+
+// getGridNoImageHtml, renderGridCardHtml
+// chargées depuis modules/card-grid-renderer.js
 
 // showCardDetail, renderCardPriceChart, showCardEditForm, toggleEditPurchasePriceField, saveCardEdits,
 // closeCardDetail, handleModalSeriesSymbolUpload, handleModalSeriesLogoUpload, getCollectionUploadPlaceholder,
@@ -568,17 +597,198 @@ function navigateToTab(tabId) {
     }
 }
 
+// VT2 (cf roadmap technique animations premium) : petit indicateur actif (.nav-active-dot, desktop
+// ET mobile) qui glisse physiquement vers le nouvel onglet au lieu de disparaître/réapparaître.
+// offsetParent !== null : seule visibilité réelle qui compte (desktop/mobile ne sont jamais visibles
+// tous les deux à la fois, cf navigation.css, mais on vérifie plutôt que de supposer) - pas de
+// media query JS dupliquée, la vérité vient du rendu réel.
+function findVisibleNavActiveDot() {
+    const dots = document.querySelectorAll('.nav-active-dot');
+    for (const dot of dots) {
+        if (dot.offsetParent !== null) return dot;
+    }
+    return null;
+}
+
+// Identité du bouton de nav qui porte un indicateur : href du lien pour un item standard, id pour le
+// déclencheur "Plus" mobile (bouton, pas un lien). Sert uniquement à détecter si l'ancien et le
+// nouvel indicateur actif désignent en réalité le MÊME bouton physique (ex: passer de Progression à
+// Statistiques sur mobile allume "Plus" dans les deux cas, cf MOBILE_NAV_MORE_ACTIVE_TABS) - dans ce
+// cas, pas de morph sur soi-même.
+function getNavItemKey(dotEl) {
+    const item = dotEl.closest('a, button');
+    return item ? (item.getAttribute('href') || item.id || null) : null;
+}
+
+// Reimplementation en FLIP (First-Last-Invert-Play, pur transform CSS) apres l'abandon de la View
+// Transition d'origine (2026-08-17) : celle-ci capturait un instantane plein document de la NOUVELLE
+// page juste apres le rendu synchrone, et si cet instantane etait pris avant que les effets couteux
+// de la page (backdrop-filter des .kpi-plaque, gradients du hero) aient fini de se composer,
+// l'instantane rate (flou informe, aucun texte lisible) restait fige a l'ecran ~250-500ms - confirme
+// via extraction frame-par-frame d'un enregistrement fourni par l'utilisateur. Le FLIP ci-dessous
+// n'implique aucun instantane de page : il anime uniquement le petit noeud .nav-active-dot lui-meme
+// via une transform CSS classique, jamais document.startViewTransition() - le bug ne peut donc pas
+// se reproduire, quel que soit l'etat de composition du reste de la page.
+//   First : rect de l'ancien indicateur (avant que doRenderTab() ne le detruise/recree).
+//   Last  : rect du nouvel indicateur, une fois rendu a sa position finale (transform CSS deja
+//           applique par navigation.css - getBoundingClientRect() renvoie la position visuelle
+//           finale, transform inclus).
+//   Invert: delta First-Last applique en transform inline SUPPLEMENTAIRE (compose avec la transform
+//           de base lue via getComputedStyle, jamais ecrasee - navigation.css centre deja le trait
+//           desktop via translateX(-50%)) - le nouvel indicateur semble alors toujours a l'ancienne
+//           position, sans mouvement visible.
+//   Play  : reflow force (offsetHeight) puis retour a la transform de base seule, anime par une
+//           transition CSS - le navigateur interpole du delta vers 0, effet de glissement identique
+//           a l'ancien VT2, sans jamais toucher au reste du DOM/de la page.
+function runNavIndicatorTransition(doRenderTab) {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const oldDot = findVisibleNavActiveDot();
+    if (!oldDot || reduceMotion) {
+        // Pas d'indicateur actif visible actuellement (route secondaire sans entrée dédiée sur
+        // desktop, ex. admin/changelog/profil public), ou reduced-motion : rien à animer.
+        doRenderTab();
+        return;
+    }
+    const oldKey = getNavItemKey(oldDot);
+    const oldRect = oldDot.getBoundingClientRect();
+
+    doRenderTab();
+
+    const newDot = findVisibleNavActiveDot();
+    if (!newDot || getNavItemKey(newDot) === oldKey) {
+        // Même bouton physique déjà actif avant/après (ex. Plus sur mobile), ou aucun nouvel
+        // indicateur visible (route secondaire) : aucun morph artificiel sur soi-même.
+        return;
+    }
+
+    const newRect = newDot.getBoundingClientRect();
+    const dx = oldRect.left - newRect.left;
+    const dy = oldRect.top - newRect.top;
+    if (!dx && !dy) return;
+
+    const baseTransform = getComputedStyle(newDot).transform;
+    const base = baseTransform && baseTransform !== 'none' ? baseTransform : '';
+
+    newDot.style.transition = 'none';
+    newDot.style.transform = `translate(${dx}px, ${dy}px) ${base}`;
+    // Force le navigateur a peindre l'etat "invert" ci-dessus avant de programmer la transition et
+    // l'etat final juste en dessous - sans ce reflow, les deux changements de style se fondraient en
+    // un seul, sans aucune animation visible (piège classique du FLIP).
+    void newDot.offsetHeight;
+    newDot.style.transition = `transform var(--motion-duration-normal) var(--motion-ease-standard)`;
+    newDot.style.transform = base;
+
+    // Filet de securite (meme pattern que showMessage, modules/utils.js) : si transitionend ne se
+    // declenche pas (transition interrompue par une navigation suivante, cas limite navigateur), le
+    // nettoyage tombe quand meme apres la duree de l'animation plutot que de laisser une transform
+    // inline perimee indefiniment sur le noeud.
+    const cleanup = () => {
+        newDot.style.transition = '';
+        newDot.style.transform = '';
+    };
+    newDot.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(cleanup, 400);
+}
+
+// VT4 (cf roadmap technique animations premium) : variante de runNavIndicatorTransition pour la
+// navigation Collecteur -> profil public, avec l'avatar comme unique shared element - jamais
+// l'indicateur de nav en plus (une seule View Transition par changement de route, cf audit VT4 : si
+// pendingCtx existe, ce type remplace entièrement 'navigation' pour cette navigation précise, il ne
+// s'ajoute pas à elle). doRenderTab() (renderTab, y compris son appel à updateDesktopNavigation/
+// updateMobileBottomNav) reste appelé normalement à l'intérieur : la navbar se met bien à jour, elle
+// ne bénéficie juste pas ici de son propre morph d'indicateur.
+function runProfileOpenTransition(pendingCtx, doRenderTab) {
+    const sourceRow = document.querySelector(`#collectors-search-results [data-collector-id="${pendingCtx.profile.id}"]`);
+    const sourceAvatar = sourceRow ? sourceRow.querySelector('img.profile-avatar') : null;
+
+    if (!sourceAvatar || sourceAvatar.offsetParent === null) {
+        // Pas d'avatar réel visible (fallback initiales, ou ligne scrollée hors DOM/masquée entre le
+        // clic et ce hashchange) : navigation normale, sans transition - le shell (identité déjà
+        // connue) reste rendu par loadPublicProfile() indépendamment de cette animation.
+        doRenderTab();
+        return;
+    }
+
+    sourceAvatar.style.viewTransitionName = 'collector-profile-avatar';
+
+    let newAvatar = null;
+    const cleanup = () => {
+        sourceAvatar.style.viewTransitionName = '';
+        if (newAvatar) newAvatar.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('profile-open', () => {
+        // Même règle d'unicité que VT1/VT2 : retirer le nom de la source avant de l'assigner à la
+        // cible, jamais les deux en même temps dans le snapshot "new".
+        sourceAvatar.style.viewTransitionName = '';
+        doRenderTab();
+
+        // Le shell (loadPublicProfile, modules/public-profile.js) rend son avatar de façon strictement
+        // synchrone avant son premier await lorsque ce même pendingCtx existe encore à ce moment - il
+        // est donc déjà dans le DOM ici, juste après doRenderTab().
+        newAvatar = document.querySelector('#user-profile-content img.user-profile-avatar');
+        if (newAvatar) {
+            newAvatar.style.viewTransitionName = 'collector-profile-avatar';
+        } else if (document.activeViewTransition) {
+            document.activeViewTransition.skipTransition();
+        }
+    });
+
+    if (!transition) {
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
+}
+
 // Seule source de rendu déclenchée par un changement d'URL : clic sur un vrai lien de nav (<a href="#/xxx">),
 // bouton précédent/suivant du navigateur, ou modification manuelle de l'URL. Peut se déclencher avant que
 // les données soient chargées (ex: clic pendant le chargement initial) : activateContent est conditionné à
 // appReady pour ne jamais lancer activateTabContent sur des données pas encore prêtes — seul le changement
 // visuel d'onglet a lieu dans ce cas, le rendu métier réel étant de toute façon rejoué après appReady = true
-// (voir l'appel dans modules/auth.js).
+// (voir l'appel dans modules/auth.js). Le tout premier rendu (tracker.js, avant ce listener) et le rendu
+// post-appReady (modules/auth.js) appellent renderTab() directement, jamais via ce listener : aucune
+// transition 'navigation' n'a donc jamais lieu au chargement initial (pas de position OLD pertinente, cf
+// roadmap animations premium VT2).
 window.addEventListener('hashchange', () => {
+    // Hook minimal Vue Classeur (B3, cf roadmap technique) : le DOM de tab-collection n'est jamais
+    // démonté (renderTab bascule juste .active, cf renderTab ci-dessus), donc le listener clavier du
+    // classeur resterait actif en arrière-plan si on ne le détache pas explicitement en quittant
+    // l'onglet. Vérifié avant renderTab (qui bascule .active vers la nouvelle cible).
+    const targetTabId = getTabIdFromHash();
+    if (collectionViewMode === 'binder' && targetTabId !== 'tab-collection' &&
+        document.getElementById('tab-collection')?.classList.contains('active')) {
+        teardownBinderLifecycle();
+    }
+
     closeWishlistItemDetail();
     closeMobileMorePanel();
     closeMobileAddPanel();
-    renderTab(getTabIdFromHash(), { activateContent: appReady === true });
+
+    const doRenderTab = () => renderTab(targetTabId, { activateContent: appReady === true });
+
+    // VT4 : priorité à 'profile-open' (avatar partagé) si un clic Collecteur a préparé cette
+    // navigation exacte - jamais les deux transitions ('navigation' puis 'profile-open') pour un même
+    // changement de route. Simple lecture (peek), ne consomme rien : seul loadPublicProfile()
+    // (modules/public-profile.js) consomme réellement pendingCollectorProfileContext.
+    const pendingProfileCtx = typeof getPendingCollectorProfileContext === 'function'
+        ? getPendingCollectorProfileContext(window.location.hash)
+        : null;
+
+    if (pendingProfileCtx) {
+        runProfileOpenTransition(pendingProfileCtx, doRenderTab);
+    } else {
+        runNavIndicatorTransition(doRenderTab);
+    }
+
+    // Symétrique : si on revient sur Collection alors que le classeur était le mode actif (jamais
+    // réinitialisé, juste son listener détaché ci-dessus au moment de quitter), on réattache — sinon
+    // les flèches resteraient silencieusement inactives après un aller-retour d'onglet. setupBinderLifecycle
+    // est idempotent (cf binder-view.js), aucun risque de double-attache.
+    if (targetTabId === 'tab-collection' && collectionViewMode === 'binder') {
+        setupBinderLifecycle();
+    }
 });
 
 // ===== ONGLETS =====
@@ -598,13 +808,18 @@ function activateTabContent(tabId) {
     if (tabId === 'tab-progression') {
         if (currentProgressionSetId && document.getElementById('progression-set-view').style.display === 'block') {
             renderProgressionCardsGrid();
-            loadFollowedSets();
         } else {
-            loadSeriesProgress().then(loadFollowedSets);
+            loadSeriesProgress();
         }
     }
 
-    if (tabId === 'tab-wishlist') {
+    // WISHLIST_RELOAD_STALE_MS (15s) : evite de reconstruire toute la grille (loadWishlists() ->
+    // renderWishlistsUI() -> innerHTML complet) a chaque simple visite de l'onglet quand les donnees
+    // viennent deja d'etre chargees - cause du scintillement de la grille signale par l'utilisateur
+    // en arrivant sur Souhaits (nouveaux noeuds DOM pour des cartes visuellement identiques). Les
+    // rafraichissements apres une vraie mutation (wishlist.js) restent toujours a jour : ils appellent
+    // loadWishlists() directement, jamais via ce garde-fou.
+    if (tabId === 'tab-wishlist' && (typeof wishlistLastLoadedAt === 'undefined' || Date.now() - wishlistLastLoadedAt >= WISHLIST_RELOAD_STALE_MS)) {
         loadWishlists();
     }
 
@@ -817,6 +1032,10 @@ async function refreshAllMarketPricesInternal() {
 // Les stats/graphiques n'utilisent jamais plus de 30 jours d'historique : on garde une marge de 35j
 // et on purge le reste à chaque rafraîchissement, pour éviter que card_price_history/value_history
 // grossissent indéfiniment.
+// Phase 3 : une purge serveur fiable existe désormais (Edge Function purge-price-history + pg_cron
+// quotidien, cf supabase/functions/purge-price-history et sql/migrations/2026-08-14_schedule_price_history_purge.sql).
+// Cet appel client reste un filet de sécurité tant que le cron n'est pas confirmé actif en prod —
+// à retirer une fois vérifié (sinon purge redondante, sans risque mais inutile).
 async function purgeOldPriceHistory() {
     const cutoff = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -903,7 +1122,10 @@ function initEventListeners() {
     let collectionSearchDebounceTimer = null;
     document.getElementById('search-collection').addEventListener('input', () => {
         clearTimeout(collectionSearchDebounceTimer);
-        collectionSearchDebounceTimer = setTimeout(filterAndDisplay, 150);
+        // VT5 (cf roadmap technique animations premium) : filterAndDisplayReorder() plutôt que
+        // filterAndDisplay() - une seule réorganisation après le debounce existant (inchangé, 150ms),
+        // jamais une par frappe.
+        collectionSearchDebounceTimer = setTimeout(filterAndDisplayReorder, 150);
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -945,7 +1167,11 @@ function initEventListeners() {
             sortDirection = dir;
         }
         updateSortArrows();
-        filterAndDisplay();
+        // VT5b (cf roadmap technique animations premium) : c'est le vrai contrôle de tri Galerie/Classeur
+        // (le Tableau a ses propres en-têtes cliquables, sortCollection() dans collection.js) - trouvé
+        // manquant lors du test manuel VT5b, filterAndDisplay() ne déclenchait jamais la réorganisation
+        // animée de la Galerie via ce sélecteur.
+        filterAndDisplayReorder();
     });
     document.getElementById('card-search').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchCards();
@@ -980,3 +1206,81 @@ function initDesktopNavigation() {
 }
 
 document.addEventListener('DOMContentLoaded', initDesktopNavigation);
+
+// ===== VERROU DE SCROLL PENDANT UNE MODALE =====
+// Générique : ne connaît aucun modal en particulier, ne dépend d'aucune fonction d'ouverture/fermeture.
+// Chaque modal bascule déjà .active sur son .modal-overlay (pattern déjà systématique dans ce projet) -
+// un MutationObserver par overlay suffit à savoir si au moins un modal est ouvert, sans toucher aux ~14
+// fonctions d'ouverture/fermeture existantes ni aux futures. Remplace lockMobileAddPanelScroll/
+// unlockMobileAddPanelScroll (modules/cards.js), qui ne couvrait que la modale "Ajouter" mobile - retirées
+// pour ne pas avoir deux mécanismes qui se disputent le même overflow.
+//
+// documentElement (html), pas body : body n'a jamais eu de règle overflow (cf styles.css, seul html a
+// overflow-x:hidden en permanence) - c'est html qui est l'élément qui scroll réellement sur ce site.
+// Verrouiller body.style.overflow n'avait donc aucun effet (vérifié en usage réel). overflow-x reste
+// déjà hidden en CSS (permanent, non touché ici) ; seul overflow-y est ajouté temporairement pendant
+// qu'un modal est ouvert, jamais overflow-x sur les deux (html et body) en même temps - c'est
+// spécifiquement ce que le commentaire de html évite pour ne pas casser position:sticky.
+let modalScrollLockPreviousOverflowY = '';
+let modalScrollLocked = false;
+
+function syncModalScrollLock() {
+    const anyModalActive = document.querySelector('.modal-overlay.active') !== null;
+    if (anyModalActive && !modalScrollLocked) {
+        modalScrollLockPreviousOverflowY = document.documentElement.style.overflowY;
+        document.documentElement.style.overflowY = 'hidden';
+        modalScrollLocked = true;
+    } else if (!anyModalActive && modalScrollLocked) {
+        document.documentElement.style.overflowY = modalScrollLockPreviousOverflowY;
+        modalScrollLocked = false;
+    }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    new MutationObserver(syncModalScrollLock).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+});
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+window.REMEMBER_ME_KEY = REMEMBER_ME_KEY;
+window.rememberAwareStorage = rememberAwareStorage;
+window.supabaseClient = supabaseClient;
+window.API_BASE = API_BASE;
+window.API_EN = API_EN;
+window.markDashboardDirty = markDashboardDirty;
+window.markStatsDirty = markStatsDirty;
+window.refreshCollection = refreshCollection;
+window.fillMissingSeriesLogos = fillMissingSeriesLogos;
+window.adjustMonthlyStatsAmount = adjustMonthlyStatsAmount;
+window.recordMonthlyStats = recordMonthlyStats;
+window.hostImageInBackground = hostImageInBackground;
+window.hostSeriesAssetsInBackground = hostSeriesAssetsInBackground;
+window.performCardAdd = performCardAdd;
+window.deleteCard = deleteCard;
+window.quantityChangeInProgress = quantityChangeInProgress;
+window.changeQuantity = changeQuantity;
+window.TAB_PAGE_MAP = TAB_PAGE_MAP;
+window.TAB_ROUTES = TAB_ROUTES;
+window.ROUTE_TO_TAB = ROUTE_TO_TAB;
+window.renderTab = renderTab;
+window.getTabIdFromHash = getTabIdFromHash;
+window.navigateToTab = navigateToTab;
+window.activateTabContent = activateTabContent;
+window.marketPriceRefreshInProgress = marketPriceRefreshInProgress;
+window.refreshAllMarketPrices = refreshAllMarketPrices;
+window.refreshAllMarketPricesInternal = refreshAllMarketPricesInternal;
+window.purgeOldPriceHistory = purgeOldPriceHistory;
+window.renderPriceMovers = renderPriceMovers;
+window.initEventListeners = initEventListeners;
+window.initDesktopNavigation = initDesktopNavigation;
+window.modalScrollLockPreviousOverflowY = modalScrollLockPreviousOverflowY;
+window.modalScrollLocked = modalScrollLocked;
+window.syncModalScrollLock = syncModalScrollLock;

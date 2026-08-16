@@ -223,13 +223,18 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="modules/utils.js?v=20260805-1"></script>
-    <script src="modules/profile.js?v=20260805-1"></script>
-    <script src="tracker.js?v=20260805-1"></script>
-    <script src="modules/auth-login.js?v=20260805-1"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+    <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" crossorigin="anonymous"></script>
+    <script type="module" src="modules/error-tracking.js?v=20260813-2"></script>
+    <script type="module" src="modules/utils.js?v=20260805-1"></script>
+    <script type="module" src="modules/profile.js?v=20260805-1"></script>
+    <script type="module" src="tracker.js?v=20260805-1"></script>
+    <script type="module" src="modules/auth-login.js?v=20260805-1"></script>
+    <script type="module">
+        // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre
+        // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
+        // (`vite preview`) ou en production. Comportement de production inchangé.
+        if (import.meta.env.PROD && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
             });

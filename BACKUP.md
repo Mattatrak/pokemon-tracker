@@ -6,6 +6,26 @@ Deux workflows GitHub Actions indépendants, quotidiens :
 
 Décalés d'une heure pour ne pas cumuler la charge sur l'API Supabase, mais totalement indépendants l'un de l'autre (aucun ne dépend du succès de l'autre).
 
+## Politique actuelle de sauvegarde
+
+**Database**
+- Exécution automatique quotidienne, **02:00 UTC**
+- Rétention GitHub Artifact : **30 jours**
+- Lancement manuel possible (`workflow_dispatch`)
+
+**Storage**
+- Exécution automatique quotidienne, **03:00 UTC**
+- Rétention GitHub Artifact : **30 jours**
+- Lancement manuel possible (`workflow_dispatch`)
+
+Les deux pipelines sont **volontairement décalés d'une heure** pour ne pas cumuler la charge sur l'API Supabase au même moment — ils restent indépendants l'un de l'autre (le succès/échec de l'un n'affecte pas l'autre).
+
+**GitHub Artifacts est pour l'instant une rétention court terme** (30 jours glissants, pas de stockage long terme) — une copie hors GitHub (S3, R2, Drive, etc.) pourra être ajoutée plus tard si besoin, dans un ticket séparé.
+
+Un backup manuel (`workflow_dispatch`, sur les deux workflows) peut être lancé à tout moment avant une migration ou une release importante, en plus du cron quotidien.
+
+**Volontairement pas encore en place** : rotation hebdomadaire/mensuelle, destination externe (S3/R2/Backblaze/Drive), chiffrement additionnel, notifications, suppression personnalisée des anciens backups. Un backup par jour + 30 jours glissants suffit pour l'instant.
+
 ---
 
 # Base de données

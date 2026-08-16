@@ -75,12 +75,58 @@ html {
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: radial-gradient(ellipse at 50% 0%, rgba(232, 169, 59, 0.1) 0%, var(--bg) 60%);
+    /* Repartie sur toute la hauteur de la fenetre visible, pas juste en haut : l'ancien halo seul
+       (radial-gradient ancre a 50% 0%, s'eteignant a 60% de sa propre etendue) laissait tout le bas
+       de l'ecran plat, quelle que soit la position de scroll (background-attachment:fixed = relatif
+       a la fenetre, pas au document - donc CE constat vaut a n'importe quelle hauteur de la page, pas
+       seulement le tout-debut). Trois glows ancres haut-centre / bas-gauche / bas-droite pour que le
+       bas de l'ecran ait toujours un peu de lumiere lui aussi. Maquette de validation :
+       https://claude.ai/code/artifact/19526b48-f95c-479c-a715-6335e110836d */
+    background-color: var(--bg);
+    background-image:
+        radial-gradient(120% 90% at 50% 0%, rgba(232,169,59,0.14) 0%, transparent 75%),
+        radial-gradient(120% 90% at 15% 100%, rgba(232,169,59,0.1) 0%, transparent 70%),
+        radial-gradient(100% 140% at 95% 55%, rgba(80,60,150,0.14) 0%, transparent 65%);
     background-attachment: fixed;
     color: var(--text-primary);
 }
 
+/* Grain (bruit CSS feTurbulence, aucun fichier image) sur tout le fond de page - inspire de
+   duffus.fr, maquette validee le 2026-08-16 (docs/inspiration-duffus-animations.md#5). Opacite plus
+   discrete que sur les heroes (0.035 vs 0.06, cf styles.css ~1185) : ici pose derriere du texte
+   long, pas juste une photo. position:fixed + z-index:0 : reste sous tout le contenu (.container
+   etc, en flux normal donc naturellement au-dessus), ne bouge pas au scroll. */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    background-repeat: repeat;
+}
+
+/* background-attachment:fixed + body::before en position:fixed (juste au-dessus) empechent tous
+   deux le navigateur de composer le fond sur son propre calque GPU - sur mobile, ca force un
+   repaint du fond a chaque frame de scroll, cause du ralentissement general constate par
+   l'utilisateur apres l'ajout des atmospheres/grain cette session. Meme compromis deja fait pour
+   le blur des fiches detail (backdrop-filter reduit sous 768px, cf plus bas) : on troque un effet
+   visuel subtil contre un scroll fluide, uniquement sous ce seuil - desktop inchange. */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+    }
+    body::before {
+        display: none;
+    }
+
+}
+
 .container {
+    position: relative;
+    z-index: 1;
     max-width: var(--layout-scene-max-width);
     margin: 0 auto;
     padding: 2rem clamp(1rem, 4vw, 3rem);
@@ -106,17 +152,6 @@ body {
     .container {
         max-width: var(--layout-scene-max-width-2xl);
     }
-}
-
-.login-gate {
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at 50% 0%, rgba(232, 169, 59, 0.1) 0%, var(--bg) 60%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1.5rem;
 }
 
 .login-card {
@@ -166,53 +201,38 @@ body {
     display: none;
 }
 
+@keyframes tab-content-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .tab-content.active {
     display: block;
-    /* Pas d'animation d'entrée ici : le Hero/navbar (hors .tab-content, hormis Dashboard) bascule
-       instantanément via document.body.className. Un fondu sur .tab-content seul créait un décalage de
-       rythme avec ce bascule instantané (flash/pulse dans la zone haute). Contenu et Hero changent donc
-       tous deux au même rythme (instantané). Les animations internes des composants/cartes ne sont pas
-       concernées par ce choix. */
+    /* Fondu d'entrée (inspiré de duffus.fr, cf docs/inspiration-duffus-animations.md#3). Durée/easing
+       (300ms, ease-in-out) repris tels quels des deux appels Element.prototype.animate() interceptés
+       sur duffus.fr (opacity [1,0] puis [0,1], 300ms ease-in-out chacun) - chez eux c'est un vrai
+       crossfade (ancienne ET nouvelle page superposées, fondues simultanément), pas reproduit ici :
+       notre changement d'onglet passe par une View Transition (VT2, runNavIndicatorTransition,
+       tracker.js) qui suppose une mutation DOM synchrone - un crossfade demanderait de la rendre
+       asynchrone, avec un risque réel sur le morph du point de nav actif déjà en place. Approximation
+       volontairement plus simple : fondu d'entrée seul, opacity uniquement, jamais de transform (un
+       transform animé, même figé à translateY(0) une fois fini en fill-mode both, crée un containing
+       block pour tout descendant en position:sticky et le casserait - cf .catalogue-sheet-sticky dans
+       #tab-add). Les heroes hors .tab-content (Progression/Collection/Stats/Wishlist, ci-dessous
+       body.page-X .X-hero) reçoivent le même fondu synchronisé, pour ne pas recréer le décalage de
+       rythme (hero instantané vs contenu animé) qui avait fait abandonner cette idée une première
+       fois. */
+    animation: tab-content-fade-in 300ms ease-in-out;
 }
 
-/* L'animation d'entrée laisse un transform: translateY(0) collé en permanence sur l'ancêtre
-   (fill-mode both) une fois finie, ce qui casse position:sticky pour tous les descendants
-   (cf .catalogue-sheet-sticky). On la désactive pour cet onglet, où le sticky est requis. */
-#tab-add.tab-content.active {
-    animation: none;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--slate);
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-.stat-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.4rem;
-    letter-spacing: 0.02em;
-    color: var(--parchment);
-}
-
-/* FORMULAIRES */
-.form-section {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    margin-bottom: 2rem;
-}
-
-.form-section h2 {
-    margin-bottom: 1.5rem;
-    font-size: 1.3rem;
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+@media (prefers-reduced-motion: reduce) {
+    .tab-content.active,
+    body.page-progression .progression-atlas-hero,
+    body.page-collection .collection-atlas-hero,
+    body.page-statistics .stats-hero,
+    body.page-wishlist .wishlist-hero {
+        animation: none;
+    }
 }
 
 .input-with-icon {
@@ -660,11 +680,17 @@ body {
     align-items: start;
 }
 
+/* IMPORTANT (bug réel trouvé le 2026-08-14, cf audit visuel) : -webkit-backdrop-filter DOIT toujours
+   être déclaré AVANT backdrop-filter (standard), jamais l'inverse. Dans l'ordre inverse (standard
+   d'abord), le minifieur CSS de Vite (esbuild) supprime silencieusement la propriété standard au build
+   - le flou disparaît uniquement en production (jamais en dev, qui ne minifie pas), rendant les
+   panneaux "trop transparents". Tous les usages de backdrop-filter du fichier suivent cet ordre -
+   respecter cette convention pour toute nouvelle règle utilisant backdrop-filter. */
 .catalogue-grid-col {
     min-width: 0;
     background: rgba(18, 14, 12, 0.55);
-    backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: 22px;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
@@ -706,10 +732,12 @@ body {
 
 .catalogue-sheet-sticky {
     position: sticky;
-    top: 1.5rem;
+    /* Navbar desktop globale sticky (NAV1) : 64px de haut, toujours au-dessus - sans cette marge,
+       le panneau se coince sous elle au lieu de s'arrêter juste en dessous. */
+    top: calc(64px + 1.5rem);
     background: rgba(18, 14, 12, 0.55);
-    backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: 22px;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
@@ -1143,12 +1171,12 @@ body {
 
 .catalogue-hero {
     position: relative;
-    padding-top: 5.5rem;
     margin-bottom: 2rem;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(90deg, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.58) 40%, rgba(10,12,20,0.38) 62%, rgba(10,12,20,0.64) 100%),
         url('images/catalogue.png');
-    background-size: 100% auto;
+    background-size: cover, 100% auto, 100% auto;
     background-position: center center;
     background-repeat: no-repeat;
     background-color: var(--panel);
@@ -1167,6 +1195,30 @@ body {
     pointer-events: none;
 }
 
+/* Grain (bruit CSS via feTurbulence, aucun fichier image) commun aux 6 heroes - inspire de
+   duffus.fr, maquette validee le 2026-08-16 (docs/inspiration-duffus-animations.md#5). Combine avec
+   la vignette ajoutee au background-image de chaque hero (radial-gradient assombrissant les bords) :
+   les deux ensemble donnent plus de profondeur/texture aux photos de fond, jusque-la plates.
+   z-index:0 : sous le contenu (.X-hero-content etc., toujours z-index:1), au-dessus du fond photo
+   (peint par le background-image du hero lui-meme, toujours derriere tout pseudo-element/enfant). */
+.progression-atlas-hero::before,
+.collection-atlas-hero::before,
+.stats-hero::before,
+.wishlist-hero::before,
+.dashboard-hero::before,
+.catalogue-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    background-repeat: repeat;
+}
+
 .catalogue-hero-stage {
     position: relative;
     z-index: 1;
@@ -1174,7 +1226,7 @@ body {
     grid-template-columns: minmax(0, 1fr) 400px;
     align-items: end;
     gap: 2rem;
-    min-height: 500px;
+    min-height: 320px;
     padding: 1.5rem 2.5rem 1rem;
 }
 
@@ -1264,7 +1316,6 @@ body {
 
 @media (max-width: 640px) {
     .catalogue-hero {
-        padding-top: 2.25rem;
         border-radius: 20px 20px 0 0;
     }
 
@@ -1303,71 +1354,32 @@ body {
     margin-bottom: 1rem;
 }
 
-.stat-card-icon {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    background: var(--panel-light);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.1rem 1.25rem;
-}
-
-.stat-card-icon[onclick] {
-    cursor: pointer;
-    transition:
-        transform var(--motion-duration-fast) var(--motion-ease-standard),
-        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .stat-card-icon[onclick]:hover {
-        transform: translateY(calc(var(--motion-distance-xs) * -1));
-    }
-}
-
-.stat-card-icon[onclick]:active {
-    transform: scale(var(--motion-scale-pressed));
-}
-
-.stat-card-cartes {
-    background: radial-gradient(circle at 0% 0%, rgba(199, 125, 255, 0.09), transparent 70%), rgba(32, 32, 36, 0.55);
-    border: 1px solid rgba(199, 125, 255, 0.25);
-    box-shadow: 0 8px 20px -12px rgba(0,0,0,0.5);
-}
-
-.stat-card-value {
-    position: relative;
-    overflow: hidden;
-    background: radial-gradient(circle at 0% 0%, rgba(232, 169, 59, 0.09), transparent 70%), rgba(32, 32, 36, 0.55);
-    border: 1px solid rgba(232, 169, 59, 0.25);
-    box-shadow: 0 8px 20px -12px rgba(0,0,0,0.5);
-}
-
-.stat-card-achat {
-    background: radial-gradient(circle at 0% 0%, rgba(63, 167, 161, 0.1), transparent 70%), rgba(32, 32, 36, 0.55);
-    border: 1px solid rgba(63, 167, 161, 0.25);
-    box-shadow: 0 8px 20px -12px rgba(0,0,0,0.5);
-}
-
 /* KPI SIGNATURE — refonte fidèle au mockup PT-001 (Sprint KPI V2), exclusive à la page
    Collection. Classes .kpi-plaque-* dédiées, aucune classe partagée avec Wishlist/Progression
    (.stat-card-icon/-cartes/-value/-achat) n'est touchée : ces pages restent inchangées. */
+/* background quasi-opaque (0.55, avant 0.12) : ce panneau compte sur backdrop-filter pour se
+   distinguer du hero-photo derriere lui, mais un backdrop-filter ne se recalcule pas instantanement
+   des le premier paint (meme cause exacte que #card-detail-card plus haut, cf son commentaire) -
+   pendant l'instant ou le flou n'est pas encore compose (arrivee sur la page, fondu tab-content-fade-in
+   en cours), un fond a 0.12 laissait la photo du hero transparaitre nette derriere, signale par
+   l'utilisateur comme "les KPI n'apparaissent pas tout de suite avec le bon fond". A 0.55, le flou
+   reste l'effet dominant une fois compose (rendu final quasi identique) mais l'etat transitoire avant
+   compose devient illisible-mais-pas-faux plutot que franchement transparent. */
 .kpi-plaque {
     position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+        rgba(26,26,30,0.55);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     border-radius: 16px;
-    padding: 24px 24px 26px;
+    padding: 16px 18px 18px;
     box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
     transition:
         transform var(--motion-duration-fast) var(--motion-ease-standard),
@@ -1396,8 +1408,8 @@ body {
 .kpi-plaque::after {
     content: '';
     position: absolute;
-    left: 24px;
-    right: 24px;
+    left: 18px;
+    right: 18px;
     bottom: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
@@ -1420,8 +1432,8 @@ body {
 }
 
 .kpi-plaque-icon {
-    width: 46px;
-    height: 46px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1430,7 +1442,7 @@ body {
     border: 1px solid rgba(232, 169, 59, 0.35);
     background: rgba(232, 169, 59, 0.08);
     color: var(--gold);
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     position: relative;
     z-index: 1;
 }
@@ -1454,7 +1466,7 @@ body {
 }
 
 .kpi-plaque-value {
-    font-size: 1.7rem;
+    font-size: 1.45rem;
     font-weight: 400;
     letter-spacing: 0;
     color: var(--text-primary);
@@ -1501,25 +1513,6 @@ body {
 .hero-fluctuation.positive { color: #7ED9A7; }
 .hero-fluctuation.negative { color: #ff6b6b; }
 .hero-fluctuation.neutral { color: var(--slate); }
-
-.stat-icon-img {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.stat-icon-text .stat-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.6rem;
-    color: var(--text-primary);
-    letter-spacing: 0.02em;
-}
-
-.stat-icon-text .stat-label {
-    font-size: 0.85rem;
-    color: var(--slate);
-}
 
 .duplicate-alert-badge {
     display: inline-flex;
@@ -1661,13 +1654,6 @@ body {
 
 .preview-meta-item-full {
     grid-column: 1 / -1;
-}
-
-.preview-meta-item-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
 }
 
 .preview-meta-item-align-end {
@@ -2004,6 +1990,14 @@ button:disabled {
     border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* Récap (R2/R3) : la ligne "60 cartes affichées · sur 724 · Valeur... · Tri..." décrit une liste paginée
+   (Galerie/Tableau/Classeur), sans sens sur des agrégats - masquée ici. Les chips de filtres actifs,
+   frères de .summary-text-group dans #collection-summary (cf updateCollectionSummary, collection.js),
+   ne sont pas concernés et restent visibles/fonctionnels. */
+#tab-collection.collection-view-recap .summary-text-group {
+    display: none;
+}
+
 .collection-summary {
     font-size: 0.875rem;
     color: var(--slate);
@@ -2057,13 +2051,13 @@ button:disabled {
     font-weight: 500;
 }
 
-/* VITRINE DE COLLECTION (vue galerie) */
+/* Ex-"vitrine de collection" (vue galerie) : le cadre/panneau opaque qui entourait toute la grille a
+   ete retire a la demande de l'utilisateur - les cartes flottent directement sur le fond de page
+   (grain + atmospheres de body, styles.css ~76), comme dans la maquette qui avait motive ce chantier.
+   Classe gardee (au lieu de la retirer du HTML) pour ne pas toucher aux appels JS qui la referencent
+   (modules/collection.js) ; ne porte plus qu'un espacement, aucun habillage visuel. */
 .collection-display-case {
-    background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-radius: 16px;
-    padding: 1rem 1.5rem 1.5rem 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: inset 0 0 60px rgba(0,0,0,0.4);
 }
 
 .collection-grid {
@@ -2071,6 +2065,426 @@ button:disabled {
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     column-gap: 1.625rem;
     row-gap: 1.75rem;
+}
+
+/* RECAP COLLECTION (Phase 4, squelette R2 - contenu métier branché en R3-R6) */
+.collection-recap {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.recap-section {
+    background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    min-height: 4rem;
+}
+
+.recap-section:empty {
+    display: none;
+}
+
+/* R7 - Composition desktop : Plus-value (colonne étroite, ~32%) + État de la collection (reste de la
+   largeur) sur une même ligne. Pur regroupement visuel - recap-section-value/recap-section-state
+   gardent leurs ids et leurs renderers JS indépendants, aucun calcul ne change. align-items: flex-start
+   (pas stretch) : Plus-value garde sa hauteur naturelle, pas d'égalisation artificielle avec État de la
+   collection qui est plus haute (deux doughnuts + légendes) - décision produit après premier retour. */
+.recap-top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.recap-top-row .recap-section-value {
+    flex: 0 0 32%;
+    min-width: 240px;
+}
+
+.recap-top-row .recap-section-state {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .recap-top-row {
+        flex-direction: column;
+        /* align-items:flex-start (desktop, cf plus haut) devient l'axe horizontal en colonne : sans ce
+           reset à stretch, État de la collection ne prenait que sa largeur de contenu au lieu de toute
+           la largeur disponible, laissant une zone vide à droite - corrigé ici (R4bis). */
+        align-items: stretch;
+    }
+
+    .recap-top-row .recap-section-value,
+    .recap-top-row .recap-section-state {
+        min-width: 0;
+    }
+}
+
+/* R3 - Plus-value globale : un seul bloc compact, pas une hero card (consigne produit). Padding partagé
+   par les 4 sections (R3-R6 utilisent toutes .recap-value-block) - rythme harmonisé en R7. */
+.recap-value-block {
+    padding: 1.1rem 1.25rem;
+}
+
+.recap-value-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.recap-value-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.recap-value-amount.positive { color: var(--positive); }
+.recap-value-amount.negative { color: #ff6b6b; }
+
+.recap-value-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--slate);
+}
+
+.recap-value-sub {
+    margin: 0.6rem 0 0 0;
+    font-size: 0.75rem;
+    color: var(--slate);
+    opacity: 0.8;
+}
+
+.recap-value-empty {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--slate);
+}
+
+/* R4 - État de la collection : condition + finition comme deux facettes d'un même bloc (un seul titre,
+   une bordure discrète entre les deux), pas deux sections indépendantes façon Statistiques. R4bis :
+   doughnuts Chart.js abandonnés (99% NM illisible en camembert, Finition avait trop de petits segments)
+   au profit d'un portrait synthétique texte/barres - plus proche d'une fiche que d'un écran analytique. */
+.recap-state-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-top: 0.25rem;
+}
+
+.recap-state-facet {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.recap-state-facet:first-child {
+    padding-right: 1.25rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.recap-state-facet-title {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--slate);
+}
+
+/* Condition : "99% NM" en tête + une seule barre segmentée (proportions réelles) + légende compacte. */
+.recap-condition-headline {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.recap-condition-headline-pct {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+}
+
+.recap-condition-headline-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.recap-bar-segmented {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.recap-bar-segment {
+    height: 100%;
+}
+
+.recap-mini-legend {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+}
+
+.recap-mini-legend li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+
+.recap-mini-legend-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 0.45rem;
+}
+
+.recap-mini-legend-value {
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+/* Finition : barres horizontales fines, une ligne par finition réellement présente. */
+.recap-finish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.recap-finish-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.recap-finish-name {
+    flex: 0 0 auto;
+    max-width: 6.5em;
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recap-finish-track {
+    flex: 1;
+    min-width: 0;
+    height: 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.recap-finish-fill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.recap-finish-value {
+    flex: 0 0 auto;
+    min-width: 3.6em;
+    font-size: 0.72rem;
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    .recap-state-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .recap-state-facet:first-child {
+        padding-right: 0;
+        padding-bottom: 1.25rem;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+}
+
+/* R5 - Les pièces maîtresses : casse volontairement le ton analytique de R3/R4, l'image domine, pas de
+   tableau financier. R7 : flex centré (pas grid auto-fill/1fr) - la taille des cartes déjà validée
+   (140px, cf .recap-top-card) est conservée telle quelle, jamais étirée ; le groupe de 5 (ou moins) se
+   présente comme une petite vitrine centrée plutôt que collé à gauche avec un grand vide à droite.
+   Mobile : repasse en grille 2 colonnes (layout déjà validé), cartes qui prennent alors la largeur de
+   leur colonne plutôt que leur largeur fixe desktop. */
+.recap-top-cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .recap-top-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .recap-top-cards-grid .recap-top-card {
+        width: auto;
+    }
+}
+
+.recap-top-card {
+    position: relative;
+    width: 140px;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+}
+
+.recap-top-card-image {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: 5 / 7;
+    margin-bottom: 0.5rem;
+}
+
+.recap-top-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.recap-top-card-rank {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    z-index: 1;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--ink-navy);
+    background: var(--gold);
+    border-radius: 999px;
+    padding: 0.12rem 0.45rem;
+    line-height: 1.4;
+}
+
+.recap-top-card-qty {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    z-index: 1;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+    line-height: 1.4;
+}
+
+.recap-top-card-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-top-card-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+}
+
+/* R6 - Doublons : liste compacte (miniature + nom + quantité), volontairement différente de la grille
+   de vignettes R5 - pas un second "pièces maîtresses". 2 colonnes desktop, 1 colonne mobile. */
+.recap-dup-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .recap-dup-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.recap-dup-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.recap-dup-thumb {
+    flex-shrink: 0;
+    width: 36px;
+    height: 50px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.recap-dup-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.recap-dup-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recap-dup-name {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-dup-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recap-dup-qty {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
 }
 
 .collection-grid-empty {
@@ -2086,14 +2500,36 @@ button:disabled {
     overflow: hidden;
     aspect-ratio: 5 / 7;
     background: var(--ink-navy);
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
-    transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+    /* Bordure tintee or plutot que neutre : sur un fond quasi noir (--bg #131313), une bordure/ombre
+       NOIRE n'a aucun contraste, donc reste invisible quelle que soit sa force (verifie en direct sur
+       une vraie collection dense - la premiere version, box-shadow noir seul, ne se voyait pas dans
+       les gouttieres de 26-28px). Il faut de la lumiere, pas de l'ombre, pour se detacher d'un fond
+       sombre. */
+    border: 1px solid rgba(232,169,59,0.18);
+    /* Ombre de calage (noire, garde pour l'assise/le contact au sol) + liseur lumineux qui, lui, est
+       visible dans les gouttieres entre cartes quelle que soit la densite de la grille. box-shadow
+       (non-inset) n'est pas rogne par l'overflow:hidden ci-dessus (contrairement aux enfants) : seul
+       le contenu de la carte est clippe, pas son ombre portee. */
+    /* Ombre plus directionnelle/marquee (offset vertical plus grand, flou plus large) pour un effet
+       "flotte au-dessus du fond" plus net qu'un simple contact shadow uniforme. */
+    box-shadow:
+        0 14px 28px -8px rgba(0,0,0,0.75),
+        0 6px 14px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(232,169,59,0.05),
+        0 0 16px rgba(232,169,59,0.12);
+    transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
 }
 
 .collection-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42), 0 4px 12px rgba(0, 0, 0, 0.28);
+    /* Garde le liseur dore (etait perdu ici avant - le hover retombait sur une ombre noire seule) +
+       accentue encore l'ombre directionnelle pour la carte survolee. */
+    box-shadow:
+        0 20px 36px -8px rgba(0,0,0,0.8),
+        0 8px 18px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(232,169,59,0.1),
+        0 0 22px rgba(232,169,59,0.18);
+    border-color: rgba(232,169,59,0.4);
 }
 
 .collection-card:hover .price-badge {
@@ -2121,6 +2557,11 @@ button:disabled {
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 220ms ease-out;
+}
+
+.collection-card:hover img {
+    transform: scale(1.05);
 }
 
 .collection-card-noimg {
@@ -2152,6 +2593,11 @@ button:disabled {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color 150ms ease;
+}
+
+.collection-card:hover .collection-card-name {
+    color: var(--gold);
 }
 
 .collection-card-set {
@@ -2221,6 +2667,37 @@ button:disabled {
     border-radius: 20px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.35);
 }
+
+/* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
+   (mutuellement exclusifs côté JS : une carte obtenue n'a plus de signal d'achat). */
+.price-signal-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(22,27,41,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 0.8rem;
+}
+
+.price-signal-badge.price-signal-low { color: var(--positive); }
+.price-signal-badge.price-signal-high { color: #ff6b6b; }
+
+.wishlist-detail-price-signal {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+}
+
+.wishlist-detail-price-signal.price-signal-low { color: var(--positive); }
+.wishlist-detail-price-signal.price-signal-high { color: #ff6b6b; }
 
 .qty-badge {
     position: absolute;
@@ -2307,6 +2784,12 @@ button:disabled {
     }
     .collection-card::after {
         transition: none;
+    }
+    .collection-card img {
+        transition: none;
+    }
+    .collection-card:hover img {
+        transform: none;
     }
 }
 
@@ -2494,8 +2977,8 @@ tbody tr:hover {
 /* CARTE DE LISTE (coque toujours visible) */
 .wishlist-list-card {
     background: rgba(18, 14, 12, 0.4);
-    backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: 16px;
     margin-bottom: 1rem;
@@ -2742,8 +3225,8 @@ tbody tr:hover {
 
 .wishlist-thumb-card .price-badge {
     background: rgba(232, 169, 59, 0.94);
-    backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
@@ -2848,6 +3331,7 @@ tbody tr:hover {
 
 .wishlist-picker-new input {
     flex: 1;
+    min-width: 0;
 }
 
 .wishlist-picker-add-btn {
@@ -2899,8 +3383,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.7);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     border-radius: 16px;
     padding: 0.4rem;
@@ -3076,10 +3560,10 @@ tbody tr:hover {
     width: 100%;
 }
 
-/* Lien de retour statique pour tab-user-profile ET tab-collectors (cf commentaire index.html) : ces
-   2 pages n'ont pas de hero, donc pas d'entrée dans DesktopNavbar.js containerMap - sans ce lien, aucune
-   navigation visible sur desktop pour en sortir. Bouton simple, pas de position absolute (contrairement
-   à .dashboard-integrated-nav, pensée pour un hero en arrière-plan que ces 2 pages n'ont pas). */
+/* Lien de retour statique (tab-admin/tab-changelog, cf commentaires index.html) : la navbar desktop
+   globale (NAV1) s'affiche désormais sur ces pages comme sur toutes les autres, ce lien reste par
+   redondance/habitude plutôt que par nécessité stricte. Bouton simple, pas de position absolute
+   (contrairement à .dashboard-integrated-nav, pensée pour un fond sombre plein-largeur). */
 .public-page-back-link {
     display: inline-flex;
     align-items: center;
@@ -3170,8 +3654,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 1rem 1.25rem;
@@ -3225,8 +3709,10 @@ tbody tr:hover {
     gap: 0.4rem;
 }
 
-/* Bloc "Correspondances avec toi" (Ticket 2) : reprend .user-profile-section (bordure/radius) mais
-   hors du flex .user-profile-sections, donc margin-bottom explicite ici plutôt que le gap du parent. */
+/* Bloc "Opportunités d'échange" (Phase 5, P5-4 - anciennement "Correspondances avec toi") : reprend
+   .user-profile-section (bordure/radius) mais hors du flex .user-profile-sections, donc margin-bottom
+   explicite ici plutôt que le gap du parent. Toujours dépliée (plus de résumé replié + détail au clic -
+   ce bloc EST le détail), donc header statique (pas de cursor/hover interactif). */
 .user-profile-match-section {
     margin-bottom: 1.25rem;
     padding: 0;
@@ -3236,40 +3722,43 @@ tbody tr:hover {
 .user-profile-match-header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.5rem 0.75rem;
     padding: 1rem 1.25rem;
-    cursor: pointer;
-    transition: background var(--motion-duration-fast) var(--motion-ease-standard);
-}
-
-.user-profile-match-header:hover {
-    background: rgba(255,255,255,0.03);
 }
 
 .user-profile-match-header .user-profile-section-title {
     margin-bottom: 0;
 }
 
-.user-profile-match-summary {
-    padding: 0 1.25rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+/* Badge sobre : chiffres/texte explicites ailleurs dans la section, jamais un pourcentage ici,
+   aucune animation (consigne P5-4). */
+.trade-reciprocal-badge {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink-navy);
+    background: var(--gold);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
 }
 
-.user-profile-match-summary p {
-    color: var(--slate);
-    font-size: 0.88rem;
-}
-
-.user-profile-match-detail {
+/* 2 colonnes desktop si les deux directions existent (une direction seule occupe naturellement toute
+   la largeur via 1fr), 1 colonne mobile - jamais de scroll horizontal. */
+.trade-opportunity-groups {
     padding: 0 1.25rem 1.25rem;
     border-top: 1px solid var(--border);
     padding-top: 1rem;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .trade-opportunity-groups {
+        grid-template-columns: 1fr;
+    }
 }
 
 .user-profile-match-group-title {
@@ -3277,6 +3766,10 @@ tbody tr:hover {
     font-size: 0.85rem;
     color: var(--text-primary);
     margin-bottom: 0.6rem;
+}
+
+.user-profile-match-group-full {
+    grid-column: 1 / -1;
 }
 
 .user-profile-notfound {
@@ -3292,9 +3785,98 @@ tbody tr:hover {
     display: block;
 }
 
+/* Hero Collecteurs / Profil public (audit visuel léger) : même traitement que .wishlist-hero
+   (photo + dégradé) - partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué,
+   les deux pages utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles.
+   Navbar desktop globale (NAV1) : plus de container nav dédié dans ce hero, la nav persistante vit
+   hors de .container (index.html). background-color sert de repli si jamais images/collectors.png
+   venait à manquer : un background-image 404 ne casse rien, juste pas de photo. */
+.collectors-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 320px;
+    padding: 2rem 2.5rem;
+    border-radius: 24px;
+    overflow: hidden;
+    background-image:
+        linear-gradient(rgba(10,10,16,0.45), rgba(10,10,16,0.45)),
+        url('images/collectors.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: var(--panel);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.14),
+        inset 0 2px 16px rgba(0,0,0,0.25),
+        0 30px 70px -20px rgba(0,0,0,0.55),
+        0 10px 30px rgba(0,0,0,0.35);
+    margin-bottom: 2rem;
+}
+
+.collectors-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+}
+
+.collectors-hero-eyebrow {
+    color: #B7C0D6;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+}
+
+.collectors-hero-title {
+    color: #ffffff;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.6rem;
+}
+
+.collectors-hero-subtitle {
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+.collectors-hero-search {
+    max-width: 420px;
+    margin-top: 1.4rem;
+}
+
+.collectors-hero-search input {
+    width: 100%;
+}
+
+@media (max-width: 1199px) and (min-width: 641px) {
+    .collectors-hero {
+        min-height: 260px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .collectors-hero {
+        min-height: 0;
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .collectors-hero-subtitle {
+        font-size: 0.85rem;
+    }
+}
+
 /* PHASE 3 — Recherche de collectionneurs (#/collectors, modules/collectors.js). Réutilise
-   .input-with-icon (déjà stylé ailleurs dans l'app) pour le champ, uniquement du neuf pour le
-   titre/sous-titre et la liste de résultats cliquables. */
+   .input-with-icon (déjà stylé ailleurs dans l'app) pour le champ, uniquement du neuf pour la liste
+   de résultats cliquables. .collectors-header/-title/-subtitle restent utilisées par tab-admin et
+   tab-changelog (pages internes volontairement laissées sans hero, cf index.html) - ne pas les
+   supprimer pour tab-collectors seul. */
 .collectors-panel {
     max-width: 560px;
     margin: 0 auto;
@@ -3411,6 +3993,61 @@ tbody tr:hover {
     flex-shrink: 0;
 }
 
+/* Signaux d'échange (Phase 5, P5-3) : chiffres explicites, pas de score - reste discret par rapport à
+   l'identité (flex:1) mais reste lisible. */
+.collectors-result-signals {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    max-width: 40%;
+}
+
+.collectors-signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--slate);
+    border: 1px solid var(--border);
+}
+
+.collectors-signal-for-me {
+    color: var(--gold);
+    border-color: rgba(227, 188, 132, 0.35);
+}
+
+.collectors-signal-for-them {
+    color: var(--positive);
+    border-color: rgba(126, 217, 167, 0.35);
+}
+
+.collectors-signal-reciprocal {
+    color: var(--ink-navy);
+    background: var(--gold);
+    border-color: var(--gold);
+}
+
+@media (max-width: 640px) {
+    .collectors-result-row {
+        flex-wrap: wrap;
+    }
+
+    .collectors-result-signals {
+        max-width: 100%;
+        width: 100%;
+        justify-content: flex-start;
+        order: 3;
+        padding-left: calc(44px + 0.9rem); /* aligné sous l'identité, largeur de l'avatar + gap de la ligne */
+    }
+}
+
 /* Bloc "Trouver un collectionneur" du Dashboard (modules/dashboard.js) : mêmes classes de résultat
    que la vue #/collectors, juste plus compactes/secondaires — cohérent avec les autres widgets. */
 .dashboard-collectors-results {
@@ -3459,94 +4096,6 @@ tbody tr:hover {
 
 .wishlist-edit-color-swatch.selected {
     box-shadow: 0 0 0 2px var(--panel-light), 0 0 0 4px var(--gold);
-}
-
-/* KPI STATISTIQUES */
-.stats-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.stats-kpi-card {
-    background: linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-radius: 10px;
-    padding: 1rem;
-    box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.kpi-card-gold {
-    background: radial-gradient(circle at 0% 0%, rgba(232, 169, 59, 0.25), transparent 130%), linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-left: 3px solid var(--gold);
-    box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2), -5px 0 15px -2px rgba(232, 169, 59, 0.6);
-}
-
-.kpi-card-teal {
-    background: radial-gradient(circle at 0% 0%, rgba(63, 167, 161, 0.25), transparent 130%), linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-left: 3px solid var(--teal);
-    box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2), -5px 0 15px -2px rgba(63, 167, 161, 0.6);
-}
-
-.kpi-card-blue {
-    background: radial-gradient(circle at 0% 0%, rgba(107, 203, 255, 0.25), transparent 130%), linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-left: 3px solid #6bcbff;
-    box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2), -5px 0 15px -2px rgba(107, 203, 255, 0.6);
-}
-
-.kpi-card-purple {
-    background: radial-gradient(circle at 0% 0%, rgba(199, 125, 255, 0.25), transparent 130%), linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-left: 3px solid #c77dff;
-    box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2), -5px 0 15px -2px rgba(199, 125, 255, 0.6);
-}
-
-.kpi-card-orange {
-    background: radial-gradient(circle at 0% 0%, rgba(255, 159, 107, 0.25), transparent 130%), linear-gradient(160deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-left: 3px solid #ff9f6b;
-    box-shadow: 0 4px 10px rgba(22, 27, 41, 0.2), -5px 0 15px -2px rgba(255, 159, 107, 0.6);
-}
-
-.stats-kpi-badge {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.stats-kpi-badge i {
-    font-size: 1.1rem;
-}
-
-.stats-kpi-text {
-    min-width: 0;
-}
-
-.stats-kpi-label {
-    font-size: 0.75rem;
-    color: var(--slate);
-    margin-bottom: 0.15rem;
-}
-
-.stats-kpi-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.3rem;
-    color: var(--parchment);
-    letter-spacing: 0.02em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.stats-kpi-sub {
-    font-size: 0.75rem;
-    color: var(--teal);
-    margin-top: 0.15rem;
 }
 
 /* SELECTEUR DE PERIODE */
@@ -3661,202 +4210,121 @@ tbody tr:hover {
     color: #ff6b6b;
 }
 
-/* STATISTIQUES */
-.stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-}
-
-.stats-chart-box {
-    background: var(--panel-light);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.5rem;
-}
-
-.stats-chart-box h3 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.2rem;
-    letter-spacing: 0.02em;
-    margin-bottom: 1rem;
-    color: var(--gold);
-    text-align: center;
-}
-
-/* PROGRESSION PAR SERIE — chapitres de l'Atlas */
+/* PROGRESSION PAR SERIE — chapitres de l'Atlas.
+   En-tête "eyebrow" (libellé + trait), inspiré de /guides sur duffus.fr - remplace l'ancien bloc
+   repliable en verre fumé. Toutes les séries possédées restent dépliées en permanence (plus de
+   is-open/is-closed), cf maquette validée le 2026-08-16 (docs/inspiration-duffus-animations.md#4). */
 .progression-series-block {
-    position: relative;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-left: 2px solid transparent;
-    border-radius: 12px;
-    margin-bottom: 1.75rem;
-    overflow: hidden;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-    transition: border-color 0.2s ease, opacity 0.2s ease;
+    margin-bottom: 2.25rem;
 }
 
-/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
-.progression-series-block::before {
-    content: '';
-    position: absolute;
-    left: 1.25rem;
-    right: 1.25rem;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
-    pointer-events: none;
-    z-index: 1;
-}
-
-.progression-series-block.is-open {
-    border-left-color: rgba(224,201,155,0.6);
-}
-
-.progression-series-block.is-closed .progression-series-header:hover {
-    background: rgba(255,255,255,0.03);
-}
-
-.progression-series-header {
+.progression-series-eyebrow {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    cursor: pointer;
-    transition: background 0.2s ease;
+    gap: 0.75rem;
+    padding: 0 1.25rem;
+    margin-bottom: 1rem;
 }
 
-.progression-series-block.is-open .progression-series-header {
-    background: rgba(255,255,255,0.05);
+.progression-series-eyebrow-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(227,188,132,0.85);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.progression-series-block.is-closed .progression-series-header {
-    border-bottom-color: transparent;
-}
-
-.progression-series-logo {
-    height: 32px;
-    width: auto;
-    max-width: 140px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.progression-series-info {
+.progression-series-eyebrow-line {
     flex: 1;
-    min-width: 0;
+    height: 1px;
+    background: rgba(227,188,132,0.18);
 }
 
-.progression-series-name {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.3rem;
-    color: var(--parchment);
-    letter-spacing: 0.02em;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-}
-
-.progression-series-meta {
+.progression-series-eyebrow-pct {
     font-size: 0.8rem;
     color: var(--slate);
-    opacity: 0.85;
-    margin-bottom: 0.45rem;
-}
-
-.progression-series-progress-bar {
-    height: 6px;
-    max-width: 320px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progression-series-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, rgba(193,161,102,0.8), rgba(232,215,181,0.85));
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
-.progression-series-pct {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.15rem;
-    color: var(--gold);
-    letter-spacing: 0.02em;
     flex-shrink: 0;
-    min-width: 3.2rem;
-    text-align: right;
+    white-space: nowrap;
 }
 
-.progression-series-toggle {
-    color: var(--slate);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-}
-
-.progression-series-toggle i {
-    display: inline-block;
-    transition: transform 0.2s ease;
-    transform: rotate(-90deg);
-}
-
-.progression-series-block.is-open .progression-series-toggle i {
-    transform: rotate(0deg);
+/* Grille de cartes (inspirée de duffus.fr/guides, maquette validée le 2026-08-16, cf
+   docs/inspiration-duffus-animations.md#5) : une carte par set plutôt qu'une ligne, badge % en
+   coin, logo dans un contenant rond neutre (object-fit: contain, pas de crop - les logos TCGdex
+   sont rectangulaires avec texte, contrairement aux icônes rondes de Dofus qui ont inspiré ce
+   pattern). */
+.progression-sets-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.85rem;
+    padding: 1rem 1.25rem 1.25rem;
 }
 
 .progression-set-row {
+    position: relative;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 1rem 0.85rem 0.85rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.progression-set-row:last-child {
-    border-bottom: none;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
 
 .progression-set-row:hover {
-    background: rgba(255,255,255,0.035);
-    border-bottom-color: rgba(232,169,59,0.15);
+    background: rgba(227,188,132,0.06);
+    border-color: rgba(227,188,132,0.3);
+    transform: translateY(-2px);
 }
 
 .progression-set-row:hover .progression-set-name {
     color: #ffffff;
 }
 
-.progression-set-row:hover .progression-chevron {
-    color: var(--gold);
+.progression-set-row:hover .progression-set-logo {
+    transform: scale(1.08);
+}
+
+.progression-set-logo-wrap {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 0.65rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--panel), var(--ink-navy));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .progression-set-logo {
-    height: 32px;
-    width: 50px;
+    max-width: 78%;
+    max-height: 78%;
+    width: auto;
+    height: auto;
     object-fit: contain;
-    flex-shrink: 0;
-    opacity: 0.92;
+    opacity: 0.95;
+    transition: transform 0.16s ease;
+}
+
+.progression-set-logo-wrap .progression-set-logo-upload {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border-radius: 50%;
 }
 
 .progression-set-logo-upload {
-    height: 32px;
-    width: 50px;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--panel-light);
     border: 1px dashed rgba(255,255,255,0.2);
-    border-radius: 4px;
     font-size: 0.9rem;
     cursor: pointer;
     transition: border-color 0.2s;
@@ -3867,15 +4335,16 @@ tbody tr:hover {
 }
 
 .progression-set-info {
-    flex: 1;
+    width: 100%;
     min-width: 0;
 }
 
 .progression-set-name {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: var(--parchment);
     font-weight: 600;
-    margin-bottom: 0.4rem;
+    text-align: center;
+    margin-bottom: 0.3rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -3883,53 +4352,59 @@ tbody tr:hover {
 }
 
 .progression-progress-bar {
-    height: 6px;
+    height: 4px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 3px;
+    border-radius: 2px;
     overflow: hidden;
 }
 
 .progression-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, rgba(199,164,116,0.92), rgba(227,188,132,0.92));
-    border-radius: 3px;
+    border-radius: 2px;
     transition: width 0.3s ease;
 }
 
 .progression-set-count {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: var(--slate);
-    white-space: nowrap;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
+    text-align: center;
+    margin-bottom: 0.4rem;
 }
 
 .progression-secret-badge {
-    font-size: 0.62rem;
+    display: inline-block;
+    margin-top: 0.3rem;
+    font-size: 0.6rem;
     color: #a888c9;
     background: rgba(40,32,50,0.6);
     border: 1px solid rgba(199,125,255,0.15);
-    padding: 0.08rem 0.45rem;
+    padding: 0.08rem 0.4rem;
     border-radius: 20px;
     font-weight: 600;
 }
 
-.progression-chevron {
-    color: var(--slate);
-    font-size: 1.2rem;
-    flex-shrink: 0;
-    transition: color 0.15s ease;
+.progression-set-pct-badge {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--ink-navy);
+    background: var(--gold);
+    padding: 0.12rem 0.4rem;
+    border-radius: 20px;
+    line-height: 1.3;
 }
 
-/* Etats sobres d'une extension : terminée / presque terminée / très peu commencée */
-.progression-set-pct {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--gold);
+.progression-set-pct-badge.is-zero {
+    background: rgba(255,255,255,0.08);
+    color: var(--slate);
+}
+
+.progression-set-pct-badge.is-complete {
+    background: #7ED9A7;
 }
 
 .progression-set-row.is-complete {
@@ -3942,11 +4417,7 @@ tbody tr:hover {
     gap: 0.3rem;
     color: #7ED9A7;
     font-weight: 600;
-    font-size: 0.85rem;
-}
-
-.progression-set-row.is-almost .progression-set-pct {
-    color: var(--gold);
+    font-size: 0.8rem;
 }
 
 .progression-set-row.is-low .progression-set-name {
@@ -3978,6 +4449,72 @@ tbody tr:hover {
 
 .progression-set-progress-text {
     font-size: 0.9rem;
+    color: var(--slate);
+}
+
+/* Budget de complétion (Phase 2, P2-1) — ligne secondaire discrète sous la progression, jamais un
+   bloc analytique séparé : même niveau d'importance visuelle que progression-set-progress-text. */
+.progression-set-budget-text {
+    font-size: 0.85rem;
+    color: var(--slate);
+    opacity: 0.85;
+    margin-top: 0.15rem;
+}
+
+.progression-set-budget-text .budget-amount {
+    color: var(--parchment);
+    font-weight: 600;
+}
+
+/* Priorisation des sets (Phase 2, P2-3) — 2 cartes objectives au-dessus de la liste des séries,
+   jamais un classement unique. Réutilise les tokens visuels déjà en place (--panel/--border/--gold/
+   --parchment/--slate), pas de nouvelle palette. */
+.progression-goals-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.progression-goal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.progression-goal-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--gold);
+}
+
+.progression-goal-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    margin-bottom: 0.4rem;
+}
+
+.progression-goal-logo {
+    height: 20px;
+    max-width: 100px;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.progression-goal-name {
+    font-size: 0.95rem;
+    color: var(--parchment);
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.progression-goal-metric {
+    font-size: 0.85rem;
     color: var(--slate);
 }
 
@@ -4054,6 +4591,27 @@ tbody tr:hover {
     border-color: var(--teal);
 }
 
+/* Carte manquante la plus chère du set (Phase 2, P2-2) : sort du lot des cartes manquantes fanées
+   (opacity 0.55 ci-dessus) sans devenir aussi visible qu'une carte possédée — reste identifiable
+   comme "à surveiller", pas "acquise". */
+.progression-card-item.missing.most-expensive-missing {
+    opacity: 0.85;
+    border-color: var(--gold);
+}
+
+.most-expensive-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(20, 17, 13, 0.85);
+    color: var(--gold);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--gold);
+}
+
 .progression-card-item img {
     width: 100%;
     aspect-ratio: 5 / 7;
@@ -4104,10 +4662,6 @@ tbody tr:hover {
     white-space: nowrap;
 }
 
-.stats-chart-wide {
-    grid-column: 1 / -1;
-}
-
 /* MODALE DETAIL CARTE */
 .modal-overlay {
     display: flex;
@@ -4133,6 +4687,78 @@ tbody tr:hover {
     transition:
         opacity var(--motion-duration-normal) var(--motion-ease-standard),
         visibility 0s linear 0s;
+}
+
+/* View Transitions (VT1, cf roadmap technique animations premium) : morph ciblé grille <-> fiche
+   détail carte (ouverture ET fermeture symétrique), sur l'image uniquement (runCardDetailMorphTransition
+   et closeCardDetail, respectivement card-grid-renderer.js/card-detail.js), piloté via
+   runViewTransition('card-detail', ...) (modules/view-transitions.js). Pendant la transition, on
+   neutralise la transition CSS de la modale ci-dessus : sinon elle se superpose au cross-fade natif
+   du root de la View Transition (les deux animent opacity en parallèle, désynchronisées ->
+   flash/double-fondu). Ciblé via :active-view-transition-type() plutôt qu'une classe JS posée/retirée
+   à la main - actif uniquement pendant une transition de type card-detail, jamais pour un futur type
+   (navigation, VT2, pourra vouloir garder ce cross-fade).
+   Support natif Chrome/Edge uniquement à ce jour : sur Firefox, document.startViewTransition n'existe
+   pas, ce sélecteur ne matche donc jamais, la modale garde sa transition CSS habituelle.
+   .modal-card ajouté (manquait ici) : c'est LUI, pas seulement .modal-overlay, qui porte son propre
+   fondu opacity:0->1 (cf .modal-card plus bas) - sans cette ligne, la carte continuait à démarrer
+   transparente et à se fondre en parallèle du morph, exactement le "flash/double-fondu" que ce
+   commentaire dit vouloir éviter, mais que l'ancienne regle ne couvrait qu'a moitié (signale par
+   l'utilisateur : "un modal tres transparent apparait avant d'afficher le vrai fond"). */
+html:active-view-transition-type(card-detail) .modal-overlay,
+html:active-view-transition-type(card-detail) .modal-card {
+    transition: none;
+}
+
+/* Neutralise le cross-fade par défaut du root (::view-transition-old/new(root), joué par le
+   navigateur sur TOUTE transition sauf override) pour ce type uniquement : le morph de l'image doit
+   rester le seul mouvement visible, pas un fondu de toute la page derrière. Scopé au type card-detail
+   pour ne pas affecter un futur type qui, lui, pourrait vouloir garder ce cross-fade (navigation, VT2). */
+html:active-view-transition-type(card-detail)::view-transition-old(root),
+html:active-view-transition-type(card-detail)::view-transition-new(root) {
+    animation: none;
+}
+
+/* Collecteur -> profil public (VT4, cf roadmap technique animations premium) : neutralise le root
+   comme card-detail/navigation/collection-reorder - seul l'avatar partagé doit bouger. Le cross-fade
+   du root initialement prévu ici capturait deux snapshots plein-écran (avant + après) en plus de
+   l'avatar, un coût qui grandit avec la complexité visuelle de la page Collecteurs (nombre de lignes,
+   images) - cause identifiée d'animation saccadée constatée en usage réel, retirée au profit d'un
+   mouvement d'avatar seul, plus léger et plus net. */
+html:active-view-transition-type(profile-open)::view-transition-old(root),
+html:active-view-transition-type(profile-open)::view-transition-new(root) {
+    animation: none;
+}
+
+/* Réorganisation du Tableau Collection (VT5, cf roadmap technique animations premium) : comme
+   card-detail, aucun fade global - seules les lignes explicitement nommées (collection-row-<id>,
+   modules/collection.js#filterAndDisplayReorder) doivent bouger, jamais la navbar/les KPI/le hero/les
+   filtres/le reste de la page. Durée/easing par défaut du groupe : interpolation position+taille
+   uniquement (comportement natif de ::view-transition-group), pas de rotation/scale volontaire. */
+html:active-view-transition-type(collection-reorder)::view-transition-old(root),
+html:active-view-transition-type(collection-reorder)::view-transition-new(root) {
+    animation: none;
+}
+
+/* ::view-transition-group(*) : les noms sont dynamiques (un par carte, collection-row-<id>), donc pas
+   moyen de les cibler un par un en CSS statique - * est sans risque ici car scopé au seul type
+   collection-reorder, où aucun autre nom que collection-row-<id> n'est jamais assigné. */
+html:active-view-transition-type(collection-reorder)::view-transition-group(*) {
+    animation-duration: var(--motion-duration-normal);
+    animation-timing-function: var(--motion-ease-standard);
+}
+
+html:active-view-transition-type(profile-open)::view-transition-group(collector-profile-avatar) {
+    animation-duration: var(--motion-duration-normal);
+    animation-timing-function: var(--motion-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
 }
 
 /* #wishlist-picker-overlay peut s'ouvrir par-dessus un autre .modal-overlay déjà actif (fiche détail
@@ -4182,8 +4808,8 @@ tbody tr:hover {
         radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
         rgba(19,19,19,0.6);
-    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
     -webkit-backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
+    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
     box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 20px rgba(232,169,59,0.1);
 }
 
@@ -4269,8 +4895,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.12);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
@@ -4304,8 +4930,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.4);
-    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
@@ -4376,8 +5002,8 @@ tbody tr:hover {
         radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
         linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 35%),
         rgba(15,15,17,0.97);
-    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
     -webkit-backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
     box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
@@ -4410,6 +5036,102 @@ tbody tr:hover {
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
+}
+
+/* Fiche détail carte publique (modules/public-profile.js, showPublicCardDetail/showPublicWishlistItemDetail)
+   : rejoint la même famille visuelle que #card-detail-card/#wishlist-detail-card (verre fumé, liseré or
+   conique) au lieu de retomber sur le rectangle gris générique de .modal-card - demandé explicitement
+   après le correctif backdrop-filter (2026-08-14), les autres fiches carte l'avaient déjà. Mêmes valeurs
+   exactes que #card-detail-card (fond/flou/glow), seul border-radius aligné sur #wishlist-detail-card
+   (22px, cette fiche est plus étroite que #card-detail-card - cf max-width:800px plus bas dans le
+   fichier). Layout/max-width/paddings propres à cette fiche restent inchangés, seul l'habillage visuel
+   est ajouté ici. */
+#public-card-detail-card {
+    border-radius: 22px;
+    border: 1px solid transparent;
+    background:
+        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
+        rgba(19,19,19,0.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
+    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 20px rgba(232,169,59,0.1);
+}
+
+#public-card-detail-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 200deg at 50% 50%,
+        rgba(230,192,123,0.12),
+        rgba(230,192,123,0.7) 12%,
+        rgba(230,192,123,0.12) 30%,
+        rgba(230,192,123,0.12) 60%,
+        rgba(230,192,123,0.6) 78%,
+        rgba(230,192,123,0.12));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Le flou (backdrop-filter) ne peut pas se recalculer correctement pendant une View Transition : le
+   navigateur anime des snapshots figes (::view-transition-old/new), qui ne peuvent pas recomposer un
+   flou en continu contre ce qu'il y a derriere - resultat, le contenu de la page reste net et visible
+   a travers le panneau pendant tout le morph (~260ms), puis le flou "saute" d'un coup une fois la
+   transition finie (constate par l'utilisateur, pas seulement sur mobile - la version precedente de
+   ce correctif etait scopee a @media max-width:768px, hypothese initiale erronee que c'etait un
+   probleme de cout GPU mobile uniquement). Retire le flou pendant la transition, repli sur le fond
+   degrade opaque (rgba(19,19,19,0.6)/(0.97)) seul le temps du mouvement - flou desactive puis
+   reactive d'un coup est bien moins visible qu'un flou absent puis soudainement present.
+   background-color ajoute ici (manquait) : sans lui, #card-detail-card/#public-card-detail-card
+   retombent sur leur rgba(19,19,19,0.6) de base (pense pour etre adouci PAR le blur, jamais vu seul)
+   - sans le flou pendant la transition, ce fond reste transparent a 40% et laisse la grille derriere
+   apparaitre nette a travers le panneau pendant tout le morph, un vrai "ancien fond" qui se voit avant
+   que le flou ne revienne d'un coup en fin de transition (signale par l'utilisateur avec une video :
+   "le vieux fond de modale qu'on avait avant apparait encore avant le nouveau"). #wishlist-detail-card
+   n'a jamais eu ce probleme, deja a 0.97 d'opacite de base - pas touche ici. */
+html:active-view-transition-type(card-detail) #card-detail-card,
+html:active-view-transition-type(card-detail) #public-card-detail-card {
+    background-color: rgba(19,19,19,0.97);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+html:active-view-transition-type(card-detail) #wishlist-detail-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+/* Allège en plus le coût GPU du panneau derrière le morph carte -> fiche (VT1/VT3,
+   card-grid-renderer.js) sur mobile : le flou apparaît à pleine intensité dès la première frame de la
+   transition (transition CSS neutralisée pour laisser la View Transition piloter, cf
+   :active-view-transition-type(card-detail) plus haut) et reste recalculé à chaque frame pendant tout
+   le déplacement de l'image partagée (~260ms) - blur(24-28px) + saturate + contrast est l'une des
+   opérations les plus coûteuses pour un GPU mobile, cause identifiée de lag constaté en usage réel.
+   Radius réduit et saturate/contrast retirés uniquement sous ce seuil - effet verre desktop inchangé. */
+@media (max-width: 768px) {
+    #card-detail-card,
+    #public-card-detail-card {
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+    }
+
+    #wishlist-detail-card {
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+    }
+
+    /* Durée raccourcie du morph lui-même sur mobile (jamais fixée avant, donc valeur par défaut du
+       navigateur ~250ms utilisée jusqu'ici) : une animation plus courte laisse moins de temps pour
+       qu'un à-coup soit perceptible, même si le frame rate sous-jacent reste imparfait sur mobile -
+       complète la neutralisation du flou ci-dessus, ne la remplace pas. Desktop non touché
+       (--motion-duration-normal, 260ms, inchangé). */
+    html:active-view-transition-type(card-detail)::view-transition-group(card-detail-morph) {
+        animation-duration: 180ms;
+    }
 }
 
 .wishlist-detail-layout {
@@ -5084,8 +5806,8 @@ tbody tr:hover {
         border: none;
         box-shadow: none;
         background: none;
-        backdrop-filter: none;
         -webkit-backdrop-filter: none;
+        backdrop-filter: none;
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -5223,8 +5945,8 @@ tbody tr:hover {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
@@ -6088,12 +6810,6 @@ tbody tr:hover {
     }
 }
 
-.modal-meta-line {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    margin-bottom: 0.4rem;
-}
-
 .modal-note {
     display: flex;
     align-items: flex-start;
@@ -6114,11 +6830,6 @@ tbody tr:hover {
     font-style: normal;
     margin-top: 0.1rem;
     flex-shrink: 0;
-}
-
-.modal-meta-label {
-    color: var(--slate);
-    margin-right: 0.3rem;
 }
 
 .edit-form-grid {
@@ -6346,16 +7057,6 @@ tbody tr:hover {
 .edit-form-actions .modal-save-btn,
 .edit-form-actions .modal-cancel-btn {
     flex: none;
-}
-
-.edit-security-note {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    margin-top: 0.85rem;
-    font-size: 0.75rem;
-    color: var(--slate);
 }
 
 .modal-delete-btn-v2 {
@@ -6655,7 +7356,7 @@ tbody tr:hover {
     left: 50%;
     bottom: 1.5rem;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: 1100;
     width: min(420px, calc(100vw - 2rem));
     pointer-events: none;
 }
@@ -6758,11 +7459,23 @@ tbody tr:hover {
         display: none !important;
     }
 
-    #collection-grid-wrapper {
+    /* :not(.collection-view-binder):not(.collection-view-recap) (Phase 4, Vue Classeur B4 + Récap R2) :
+       cette règle ne doit forcer la Galerie visible QUE quand elle corrige un mode 'table' invalide sur
+       mobile (cf commentaire ci-dessus). Sans ces exclusions, elle écraserait aussi le Classeur ou le
+       Récap (display:none posé par JS sur #collection-grid-wrapper) et afficherait les deux vues
+       superposées - bug réel déjà constaté par l'utilisateur avec le Classeur avant cette exclusion.
+       Les classes sont posées par setCollectionView() (collection.js) sur #tab-collection, jamais
+       réinitialisées par un changement d'onglet (contrairement à document.body.className, réécrit en
+       bloc par renderTab). */
+    #tab-collection:not(.collection-view-binder):not(.collection-view-recap) #collection-grid-wrapper {
         display: block !important;
     }
 
-    #grid-sort {
+    /* :not(.collection-view-recap) : ce !important garantissait le tri visible sur mobile pour
+       Galerie/Tableau(->Galerie)/Classeur, mais écrasait aussi le display:none posé par setCollectionView()
+       en mode Récap (où le tri n'a pas de sens, aucune liste de cartes) - corrigé en réutilisant la même
+       classe déjà posée sur #tab-collection que pour l'exclusion #collection-grid-wrapper ci-dessus. */
+    #tab-collection:not(.collection-view-recap) #grid-sort {
         display: inline-block !important;
     }
 
@@ -6844,11 +7557,6 @@ tbody tr:hover {
     .progression-filters-row.centered-row .view-toggle {
         width: max-content;
         max-width: 100%;
-    }
-
-    .collection-display-case {
-        padding: 1rem;
-        border-radius: 12px;
     }
 
     .grid-sort-select {
@@ -7139,10 +7847,10 @@ body.page-wishlist #wishlist-stats-bottom {
 }
 
 .stat-card-top-img {
-    width: 56px;
-    height: 78px;
+    width: 40px;
+    height: 56px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 5px;
     flex-shrink: 0;
     transform: rotate(-8deg);
     box-shadow: 0 4px 10px rgba(0,0,0,0.35);
@@ -7201,11 +7909,13 @@ body.page-progression .progression-atlas-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/atlas.png');
     background-size: cover;
@@ -7223,7 +7933,7 @@ body.page-progression .progression-atlas-hero {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 2rem;
     width: 100%;
@@ -7269,11 +7979,13 @@ body.page-collection .collection-atlas-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/collection.png');
     background-size: cover;
@@ -7291,7 +8003,7 @@ body.page-collection .collection-atlas-hero {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 2rem;
     width: 100%;
@@ -7422,11 +8134,13 @@ body.page-statistics .stats-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/stats.png');
     background-size: cover;
@@ -7444,7 +8158,7 @@ body.page-statistics .stats-hero {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 2rem;
     width: 100%;
@@ -7506,11 +8220,13 @@ body.page-wishlist .wishlist-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
+    animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/wishlist.png');
     background-size: cover;
@@ -7528,7 +8244,7 @@ body.page-wishlist .wishlist-hero {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 2rem;
     width: 100%;
@@ -7594,75 +8310,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     }
 }
 
-/* ===== MES SETS SUIVIS ===== */
-
-.progression-followed-sets {
-    display: none;
-    position: relative;
-    margin-top: -0.375rem;
-    margin-bottom: 1.5rem;
-    padding: 1.5rem 1.5rem 1.25rem;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-}
-
-body.page-progression .progression-followed-sets {
-    display: block;
-}
-
-/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
-.progression-followed-sets::before {
-    content: '';
-    position: absolute;
-    left: 1.5rem;
-    right: 1.5rem;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
-    pointer-events: none;
-}
-
-.followed-sets-heading {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    margin-bottom: 1rem;
-}
-
-.followed-sets-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(232,169,59,0.08);
-    color: var(--gold);
-    font-size: 0.95rem;
-}
-
-.followed-sets-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.05rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--parchment);
-}
-
-.followed-sets-subtitle {
-    font-size: 0.78rem;
-    color: var(--slate);
-    margin-top: 0.1rem;
-}
-
-.followed-sets-empty {
+/* Etat vide générique de la page Progression (aucune série commencée) - ex-classes .followed-sets-*
+   (section "Mes sets suivis", jamais utilisée en pratique, retirée le 2026-08-16), renommées
+   génériquement puisque réutilisées ici hors de ce contexte. */
+.progression-empty-state {
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px;
@@ -7670,110 +8321,17 @@ body.page-progression .progression-followed-sets {
     text-align: center;
 }
 
-.followed-sets-empty-title {
+.progression-empty-state-title {
     color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
 }
 
-.followed-sets-empty-text {
+.progression-empty-state-text {
     color: var(--slate);
     font-size: 0.76rem;
     line-height: 1.4;
-}
-
-.followed-sets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1rem;
-}
-
-.followed-set-card {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.followed-set-card:hover {
-    background: rgba(255,255,255,0.03);
-}
-
-.followed-set-logo {
-    height: 32px;
-    width: 50px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.followed-set-logo-placeholder {
-    height: 32px;
-    width: 50px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--panel-light);
-    border-radius: 4px;
-    color: var(--slate);
-}
-
-.followed-set-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.followed-set-name {
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    font-weight: 600;
-    margin-bottom: 0.35rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.followed-set-progress-bar {
-    height: 5px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 0.3rem;
-}
-
-.followed-set-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold), #f4c766);
-    border-radius: 3px;
-}
-
-.followed-set-count {
-    font-size: 0.78rem;
-    color: var(--slate);
-}
-
-@media (max-width: 640px) {
-    .progression-followed-sets {
-        padding: 1.1rem 1.1rem 1rem;
-    }
-
-    .followed-sets-title {
-        font-size: 0.95rem;
-    }
-
-    .followed-sets-subtitle {
-        font-size: 0.72rem;
-    }
-
-    .followed-sets-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 1199px) and (min-width: 641px) {
@@ -7794,51 +8352,23 @@ body.page-progression .progression-followed-sets {
         font-size: 0.85rem;
     }
 
-    .progression-series-header {
-        flex-wrap: wrap;
-        padding: 0.85rem 1rem;
+    .progression-series-eyebrow {
+        padding: 0 1rem;
     }
 
-    .progression-series-logo {
-        height: 26px;
-    }
-
-    .progression-series-progress-bar {
-        max-width: none;
-        width: 100%;
-    }
-
-    .progression-series-pct {
-        order: 3;
-        min-width: 0;
-    }
-
-    .progression-series-toggle {
-        order: 4;
-    }
-
-    .progression-series-info {
-        order: 2;
-        flex-basis: 100%;
+    .progression-sets-list {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.6rem;
+        padding: 0.75rem;
     }
 
     .progression-set-row {
-        flex-wrap: wrap;
-        padding: 0.75rem 1rem;
-        row-gap: 0.5rem;
+        padding: 0.85rem 0.6rem 0.65rem;
     }
 
-    .progression-set-info {
-        flex-basis: 100%;
-        order: 2;
-    }
-
-    .progression-set-count {
-        order: 3;
-    }
-
-    .progression-chevron {
-        order: 4;
+    .progression-set-logo-wrap {
+        width: 50px;
+        height: 50px;
     }
 }
 
@@ -7917,8 +8447,8 @@ body.page-progression .progression-followed-sets {
 }
 
 @keyframes dashboard-hero-float {
-    0%, 100% { transform: rotate(-1.8deg) translateY(35px); }
-    50% { transform: rotate(-1.8deg) translateY(30px); }
+    0%, 100% { transform: rotate(-1.8deg) translateY(12px); }
+    50% { transform: rotate(-1.8deg) translateY(8px); }
 }
 
 
@@ -7929,8 +8459,8 @@ body.page-progression .progression-followed-sets {
     align-items: center;
     column-gap: 2rem;
     row-gap: 0.5rem;
-    min-height: 600px;
-    padding: 104px 40px 40px 40px;
+    min-height: 340px;
+    padding: 32px;
     border-radius: 24px;
     overflow: hidden;
     background-image:
@@ -8023,7 +8553,7 @@ body.page-progression .progression-followed-sets {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.45rem;
 }
 
 .dashboard-hero-value {
@@ -8045,7 +8575,7 @@ body.page-progression .progression-followed-sets {
     gap: 0.35rem;
     font-size: 0.85rem;
     font-weight: 600;
-    margin-top: 1rem;
+    margin-top: 0.6rem;
     padding: 7px 12px;
     border-radius: 999px;
     width: fit-content;
@@ -8062,13 +8592,6 @@ body.page-progression .progression-followed-sets {
     font-size: 0.75rem;
     color: #8A93A6;
     margin-top: 0.5rem;
-}
-
-.dashboard-hero-actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1.75rem;
-    flex-wrap: wrap;
 }
 
 .dashboard-btn-primary,
@@ -8113,18 +8636,9 @@ body.page-progression .progression-followed-sets {
     flex-shrink: 0;
     width: fit-content;
     height: 100%;
-    min-height: 240px;
-    transform: translateY(30px);
+    min-height: 165px;
+    transform: translateY(12px);
 }
-
-.dashboard-hero-halo {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: 0;
-    pointer-events: none;
-}
-
 
 
 /* Décharge électrique multicouche (SVG externe) : glow violet + jaune électrique + cœur blanc, aucune modif du path source */
@@ -8140,14 +8654,14 @@ body.page-progression .progression-followed-sets {
 .dashboard-hero-card-img-wrap {
     position: relative;
     animation: dashboard-hero-float 6s ease-in-out infinite;
-    transform: rotate(-1.8deg) translateY(35px);
+    transform: rotate(-1.8deg) translateY(12px);
     filter: drop-shadow(0 28px 45px rgba(0,0,0,0.42)) drop-shadow(0 8px 16px rgba(0,0,0,0.28)) drop-shadow(0 0 24px rgba(255,255,255,0.10));
 }
 
 .dashboard-hero-card-stage:hover .dashboard-hero-card-img-wrap,
 .dashboard-hero-card-img-wrap:hover {
     animation: none !important;
-    transform: rotate(-1.8deg) translateY(35px) !important;
+    transform: rotate(-1.8deg) translateY(12px) !important;
     transition: none !important;
     filter: drop-shadow(0 32px 56px rgba(0,0,0,0.50)) drop-shadow(0 12px 22px rgba(0,0,0,0.35)) drop-shadow(0 0 32px rgba(255,255,255,0.12)) !important;
 }
@@ -8161,8 +8675,8 @@ body.page-progression .progression-followed-sets {
 
 .dashboard-hero-card-img {
     display: block;
-    width: clamp(210px, 18vw, 260px);
-    max-height: 320px;
+    width: clamp(145px, 12vw, 175px);
+    max-height: 215px;
     object-fit: contain;
     border-radius: 12px;
 }
@@ -8218,6 +8732,7 @@ body.page-progression .progression-followed-sets {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     box-shadow: 0 16px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     z-index: -1;
 }
@@ -8321,12 +8836,10 @@ body.page-progression .progression-followed-sets {
     }
 }
 
-/* Nav flottante masquée sous 768px (barre mobile à la place) : plus besoin de la marge
-   du haut prévue pour elle, sinon le contenu du Hero se retrouve comprimé. */
 @media (max-width: 768px) and (min-width: 641px) {
     .dashboard-hero {
         min-height: 340px;
-        padding: 24px 32px;
+        padding: 32px;
     }
 }
 
@@ -8348,22 +8861,6 @@ body.page-progression .progression-followed-sets {
 .dashboard-hero .kpi-plaque {
     flex: 0 1 210px;
     min-width: 160px;
-}
-
-.dashboard-kpi-text {
-    min-width: 0;
-}
-
-.dashboard-kpi-value {
-    font-weight: 800;
-    font-size: 1.5rem;
-    line-height: 1.2;
-}
-
-.dashboard-kpi-label {
-    color: #A9B3C9;
-    font-size: 0.76rem;
-    margin-top: 0.15rem;
 }
 
 /* ----- Grilles principale / basse ----- */
@@ -8405,8 +8902,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 1.4rem;
@@ -8435,10 +8932,6 @@ body.page-progression .progression-followed-sets {
 .dashboard-widget:hover {
     transform: translateY(-2px);
     box-shadow: 0 16px 32px -14px rgba(0,0,0,0.6);
-}
-
-.dashboard-widget-wide {
-    grid-column: span 2;
 }
 
 .dashboard-widget-full {
@@ -8543,6 +9036,16 @@ body.page-progression .progression-followed-sets {
     color: #A9B3C9;
     font-size: 0.78rem;
     margin-top: 0.5rem;
+}
+
+.dashboard-objective-extra {
+    color: #A9B3C9;
+    font-size: 0.78rem;
+    margin-top: 0.4rem;
+}
+
+.dashboard-objective-extra:empty {
+    display: none;
 }
 
 /* ----- Top hausses ----- */
@@ -8828,7 +9331,6 @@ body.page-progression .progression-followed-sets {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .dashboard-widget-wide,
     .dashboard-widget-full {
         grid-column: span 2;
     }
@@ -8904,21 +9406,6 @@ body.page-progression .progression-followed-sets {
         width: clamp(180px, 45vw, 200px);
     }
 
-    .dashboard-hero-halo--outer {
-        width: 340px;
-        height: 260px;
-    }
-
-    .dashboard-hero-halo--inner {
-        width: 200px;
-        height: 170px;
-    }
-
-    .dashboard-hero-floor-light {
-        width: 220px;
-        height: 36px;
-    }
-
     .dashboard-hero-pokeball {
         width: 220px;
         height: 220px;
@@ -8937,35 +9424,21 @@ body.page-progression .progression-followed-sets {
             40px 140px 0 0px rgba(255,255,255,0.35);
     }
 
-    .dashboard-hero-actions {
-        flex-direction: column;
-    }
-
     .dashboard-kpis {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.75rem;
-    }
-
-    .dashboard-kpi-value {
-        font-size: 1.15rem;
     }
 
     .dashboard-main-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .dashboard-widget-wide,
     .dashboard-widget-full {
         grid-column: span 1;
     }
 
     .dashboard-hero-value {
         font-size: clamp(2.5rem, 9vw, 3rem);
-    }
-
-    .dashboard-hero-actions .dashboard-btn-primary,
-    .dashboard-hero-actions .dashboard-btn-secondary {
-        width: 100%;
     }
 
     .dashboard-acquisition-card {
@@ -9070,8 +9543,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 1.5rem;
@@ -9439,8 +9912,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 1.75rem 1.5rem;
@@ -9515,8 +9988,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
         rgba(26,26,30,0.35);
-    backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 1.75rem;
@@ -9664,8 +10137,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 40%),
         rgba(32,32,36,0.4);
-    backdrop-filter: blur(16px) saturate(1.3);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 1.5rem;
@@ -9741,8 +10214,8 @@ body.page-progression .progression-followed-sets {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 40%),
         rgba(32,32,36,0.4);
-    backdrop-filter: blur(16px) saturate(1.3);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 0.9rem 1rem;
@@ -10056,4 +10529,49 @@ body.page-progression .progression-followed-sets {
 
 .changelog-popup-confirm:active {
     transform: translateY(0);
+}
+
+/* Placee ici (fin de fichier) plutot que pres de body::before plus haut : meme specificite exacte
+   (body.page-X .X-hero) que les regles de base des heroes definies plus haut dans ce fichier -
+   place avant elles, l'override perdait la cascade malgre le media query qui matchait (specificite
+   egale = ordre source qui tranche). Chaque hero
+   anime son opacity EN MEME TEMPS que .tab-content.active anime la sienne, sur un element qui porte
+   deja une vraie photo (background-image: url(...)), plusieurs box-shadow (dont des inset) et
+   border-radius+overflow:hidden - la double animation opacity sur un tel fond force un rendu
+   logiciel du calque sur GPU mobile faible, cause du scintillement signale au changement de page
+   (distinct du ralentissement au scroll deja corrige via background-attachment/body::before plus
+   haut). .tab-content.active garde son fondu (fond simple, pas de cout equivalent) - seuls les
+   heroes le perdent, desktop inchange. */
+@media (max-width: 768px) {
+    body.page-progression .progression-atlas-hero,
+    body.page-collection .collection-atlas-hero,
+    body.page-statistics .stats-hero,
+    body.page-wishlist .wishlist-hero {
+        animation: none;
+    }
+}
+
+/* .collection-card porte en permanence (pas seulement au survol) un box-shadow a 4 couches -
+   sur une grille de plusieurs centaines de cartes (collections denses reelles, cf retour
+   utilisateur avec 724 cartes), c'est un cout de rasterisation qui se paie a CHAQUE peinture de la
+   grille : ouverture de page (fondu), scroll, et surtout la capture d'ecran "avant" que la View
+   Transition doit prendre de toute la grille au moment d'ouvrir une fiche detail (cf le
+   scintillement au changement de page ET la lenteur a l'ouverture d'une carte, tous deux signales
+   sur mobile apres l'ajout de cet effet cette session). Reduit a une seule couche de contact +
+   liseret dore sous 768px - le mix-blend-mode du sheen (.collection-card::after) est egalement
+   retire : il ne se declenche qu'au survol (:hover), inexistant au toucher, mais force quand meme
+   un contexte d'isolation par carte des sa presence dans le DOM. Desktop inchange. */
+@media (max-width: 768px) {
+    .collection-card {
+        box-shadow: 0 8px 16px -6px rgba(0,0,0,0.6);
+        transition: transform 180ms ease-out, border-color 180ms ease-out;
+    }
+
+    .collection-card:hover {
+        box-shadow: 0 8px 16px -6px rgba(0,0,0,0.6);
+    }
+
+    .collection-card::after {
+        display: none;
+    }
 }

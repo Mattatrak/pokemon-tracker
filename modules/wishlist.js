@@ -3,10 +3,15 @@
 // selectedCard/customPreviewImage (cards.js), showTextPromptModal/showConfirmModal (ui.js), showMessage (utils.js), normalizeForMatch (utils.js)
 // Etat possédé : allWishlists, allWishlistItems, expandedWishlistIds, wishlistPriceMap, wishlistSearchQuery, wishlistSortMode, wishlistEditResolve
 
-let allWishlists = [];
-let allWishlistItems = [];
+// window.x plutôt que let (ticket V2 Vite, type="module") pour allWishlists/allWishlistItems/
+// wishlistPriceMap : lus depuis import-export.js/wishlist-detail.js/stats-render.js/dashboard.js/
+// public-profile.js aussi. Les autres restent 100% locales à ce fichier, gardées en let normal.
+window.allWishlists = [];
+window.allWishlistItems = [];
 let expandedWishlistIds = new Set();
-let wishlistPriceMap = {};
+window.wishlistPriceMap = {};
+// window.x (ticket V2 Vite) : lu depuis wishlist-detail.js aussi (fiche détail item, P2-4).
+window.wishlistPriceSignalMap = {};
 let wishlistSearchQuery = '';
 let wishlistSortMode = 'date-desc';
 let wishlistEditResolve = null;
@@ -23,6 +28,19 @@ const WISHLIST_COLOR_PRESET = [
     { key: 'slate', hex: '#8A93A6' }
 ];
 const WISHLIST_THUMB_CAP = 8;
+
+// Duree de fraicheur (ms) en dessous de laquelle renderTab (tracker.js) saute un rechargement
+// automatique de l'onglet Souhaits - lue depuis tracker.js via window.WISHLIST_RELOAD_STALE_MS
+// (export plus bas), jamais dupliquee en dur la-bas.
+window.WISHLIST_RELOAD_STALE_MS = 15000;
+
+// Horodatage du dernier chargement reussi, lu par renderTab (tracker.js) pour eviter un refetch+
+// rebuild complet de la grille a chaque simple visite de l'onglet (cf WISHLIST_RELOAD_STALE_MS
+// juste au-dessus, tracker.js#renderTab pour l'usage). Mis a jour ici, dans loadWishlists()
+// elle-meme (jamais dans les call sites) : ainsi les rafraichissements explicites apres mutation
+// (moveWishlistItem, renameWishlist, deleteWishlist(Item), markWishlistItemOwned...) restent toujours
+// a jour, seul l'appel automatique de renderTab decide de sauter ou non un chargement.
+window.wishlistLastLoadedAt = 0;
 
 async function loadWishlists() {
     const [wishlistsRes, itemsRes] = await Promise.all([
@@ -44,6 +62,56 @@ async function loadWishlists() {
     await loadWishlistPrices();
     renderWishlistsUI();
     markDashboardDirty();
+    window.wishlistLastLoadedAt = Date.now();
+}
+
+// Signal de prix Wishlist (Phase 2, ticket P2-4, cf audit du 2026-08-14) : position du prix actuel
+// dans l'historique réellement disponible (méthode B — la seule robuste à l'espacement irrégulier des
+// observations, card_price_history n'étant alimentée que par des déclencheurs ad hoc, jamais un cron).
+// Seuils délibérément conservateurs, faute de volume réel documenté pour calibrer autrement : ≥3
+// observations ET ≥5 jours d'étalement avant d'afficher quoi que ce soit — sous ce seuil, silence,
+// jamais un badge "historique insuffisant" qui encombrerait chaque carte peu suivie. Aucune requête
+// supplémentaire : réutilise `rows`, déjà l'historique complet (pas juste le dernier prix) que
+// loadWishlistPrices() récupère et jetait jusqu'ici.
+function buildWishlistPriceSignals(rows) {
+    const grouped = {};
+    rows.forEach(row => {
+        if (!grouped[row.tcgdex_id]) grouped[row.tcgdex_id] = [];
+        grouped[row.tcgdex_id].push(row);
+    });
+
+    const signals = {};
+    Object.keys(grouped).forEach(id => {
+        // rows est déjà trié recorded_at desc (requête de loadWishlistPrices) : obs[0] = prix courant.
+        const obs = grouped[id];
+        const prices = obs.map(o => Number(o.market_value) || 0).filter(p => p > 0);
+        if (prices.length < 3) return;
+
+        const dates = obs.map(o => new Date(o.recorded_at).getTime()).filter(t => !isNaN(t));
+        if (dates.length === 0) return;
+        const spreadDays = (Math.max(...dates) - Math.min(...dates)) / 86400000;
+        if (spreadDays < 5) return;
+
+        const currentPrice = prices[0];
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        if (maxPrice === minPrice) return; // aucune variation observée, rien à signaler
+
+        const range = maxPrice - minPrice;
+        const nearLow = currentPrice <= minPrice + range * 0.1;
+        const nearHigh = currentPrice >= maxPrice - range * 0.1;
+        if (!nearLow && !nearHigh) return; // ni bas ni haut : pas de signal plutôt qu'un signal flou
+
+        const type = nearLow ? 'low' : 'high';
+        const preciseWindow = spreadDays >= 25; // assez proche de 30j pour l'annoncer explicitement
+        const wording = type === 'low'
+            ? (preciseWindow ? 'Prix bas par rapport aux 30 derniers jours' : 'Proche de son plus bas observé récemment')
+            : (preciseWindow ? 'Prix élevé par rapport aux 30 derniers jours' : 'Proche de son plus haut observé récemment');
+
+        signals[id] = { type, wording, count: prices.length, spreadDays: Math.round(spreadDays) };
+    });
+
+    return signals;
 }
 
 // Dernier prix marché connu par carte, via card_price_history (table partagée entre comptes, cf.
@@ -51,6 +119,7 @@ async function loadWishlists() {
 async function loadWishlistPrices() {
     const uniqueIds = [...new Set(allWishlistItems.filter(i => i.tcgdex_id).map(i => i.tcgdex_id))];
     wishlistPriceMap = {};
+    wishlistPriceSignalMap = {};
     if (uniqueIds.length === 0) return;
 
     const { data, error } = await supabaseClient
@@ -69,6 +138,10 @@ async function loadWishlistPrices() {
             wishlistPriceMap[row.tcgdex_id] = Number(row.market_value) || 0;
         }
     });
+
+    // Même `data` que ci-dessus (déjà l'historique complet, pas juste le dernier prix) : aucune
+    // requête supplémentaire pour le signal de prix.
+    wishlistPriceSignalMap = buildWishlistPriceSignals(data);
 
     // Une carte présente uniquement dans une wishlist (jamais possédée/rafraîchie) n'a jamais eu
     // de point dans card_price_history : on va chercher son prix directement sur TCGdex, et on
@@ -267,6 +340,7 @@ function renderWishlistsUI() {
 
     if (allWishlists.length === 0) {
         container.innerHTML = '<p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l\'instant</p>';
+        playWishlistContainerFadeIn(container);
         return;
     }
 
@@ -295,15 +369,19 @@ function renderWishlistsUI() {
         const thumbsHtml = shownItems.map(item => {
             const owned = item.tcgdex_id && ownedTcgdexIds.has(item.tcgdex_id);
             const price = wishlistPriceMap[item.tcgdex_id] || 0;
+            // P2-4 : badge compact, jamais affiché en même temps que "Obtenue" (l'un ou l'autre occupe
+            // le coin haut-gauche, la carte est déjà obtenue ne concerne plus un signal d'achat).
+            const signal = !owned ? wishlistPriceSignalMap[item.tcgdex_id] : null;
 
             return `
                 <div class="wishlist-thumb-wrap">
-                    <div class="collection-card wishlist-thumb-card" onclick="openWishlistItemDetail(${item.id})" title="${escapeHtml(item.name)}">
+                    <div class="collection-card wishlist-thumb-card" data-wishlist-item-id="${item.id}" onclick="openWishlistItemDetail(${item.id}, event)" title="${escapeHtml(item.name)}">
                         ${item.image
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
                         ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Obtenue</div>' : ''}
+                        ${signal ? `<div class="price-signal-badge price-signal-${signal.type}" title="${escapeHtml(signal.wording)}"><i class="ti ti-arrow-${signal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i></div>` : ''}
                         ${price > 0 ? `<div class="price-badge">${price.toFixed(2)}€</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
@@ -356,6 +434,20 @@ function renderWishlistsUI() {
     }).join('');
 
     refreshWishlistThumbPlaceholders();
+    playWishlistContainerFadeIn(container);
+}
+
+// Adoucit le pop du tout premier chargement (fetch reseau + reconstruction complete du innerHTML,
+// cf WISHLIST_RELOAD_STALE_MS plus haut - les visites suivantes reutilisent le DOM existant et ne
+// repassent jamais ici) : reutilise tab-content-fade-in (styles.css), meme duree/easing que le reste
+// du site. Reset explicite de l'animation avant de la relancer (animation:none + reflow forcee via
+// offsetWidth) car reappliquer la meme valeur de propriete animation ne relance pas une animation deja
+// terminee - necessaire ici puisque #wishlists-container est le meme noeud DOM a chaque appel, jamais
+// recree contrairement au contenu qu'il contient.
+function playWishlistContainerFadeIn(container) {
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'tab-content-fade-in 300ms ease-in-out';
 }
 
 // Complète visuellement la dernière ligne de chaque grille de miniatures avec des emplacements
@@ -444,12 +536,6 @@ function updateWishlistKpis() {
         topImgEl.style.display = 'none';
         topEmojiEl.style.display = 'flex';
     }
-}
-
-function openWishlistItemCardmarket(itemId) {
-    const item = allWishlistItems.find(i => i.id === itemId);
-    if (!item) return;
-    window.open(getCardmarketUrl(item.cardmarket_id, item.name), '_blank', 'noopener');
 }
 
 // ===== MODALE EDITION LISTE (nom + icone + couleur) =====
@@ -744,3 +830,53 @@ async function createWishlistOnly() {
         createWishlistOnlyBusy = false;
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.expandedWishlistIds = expandedWishlistIds;
+window.wishlistSearchQuery = wishlistSearchQuery;
+window.wishlistSortMode = wishlistSortMode;
+window.wishlistEditResolve = wishlistEditResolve;
+window.WISHLIST_ICON_PRESET = WISHLIST_ICON_PRESET;
+window.WISHLIST_COLOR_PRESET = WISHLIST_COLOR_PRESET;
+window.WISHLIST_THUMB_CAP = WISHLIST_THUMB_CAP;
+window.loadWishlists = loadWishlists;
+window.loadWishlistPrices = loadWishlistPrices;
+window.filterWishlist = filterWishlist;
+window.setWishlistSort = setWishlistSort;
+window.sortWishlistItems = sortWishlistItems;
+window.moveWishlistItem = moveWishlistItem;
+window.toggleWishlistSection = toggleWishlistSection;
+window.renameWishlist = renameWishlist;
+window.deleteWishlist = deleteWishlist;
+window.deleteWishlistItem = deleteWishlistItem;
+window.markWishlistItemOwned = markWishlistItemOwned;
+window.renderWishlistsUI = renderWishlistsUI;
+window.WISHLIST_THUMB_CARD_WIDTH = WISHLIST_THUMB_CARD_WIDTH;
+window.WISHLIST_THUMB_CARD_GAP = WISHLIST_THUMB_CARD_GAP;
+window.refreshWishlistThumbPlaceholders = refreshWishlistThumbPlaceholders;
+window.wishlistPlaceholderResizeTimer = wishlistPlaceholderResizeTimer;
+window.updateWishlistKpis = updateWishlistKpis;
+window.showWishlistEditModal = showWishlistEditModal;
+window.selectWishlistEditIcon = selectWishlistEditIcon;
+window.selectWishlistEditColor = selectWishlistEditColor;
+window.submitWishlistEditModal = submitWishlistEditModal;
+window.closeWishlistEditModal = closeWishlistEditModal;
+window.wishlistPickerCard = wishlistPickerCard;
+window.wishlistPickerContext = wishlistPickerContext;
+window.openWishlistPicker = openWishlistPicker;
+window.closeWishlistPicker = closeWishlistPicker;
+window.renderWishlistPicker = renderWishlistPicker;
+window.wishlistPickerBusy = wishlistPickerBusy;
+window.addCardToSpecificWishlist = addCardToSpecificWishlist;
+window.addCardToSpecificWishlistInternal = addCardToSpecificWishlistInternal;
+window.addPublicCardToWishlistInternal = addPublicCardToWishlistInternal;
+window.createWishlistAndAddCard = createWishlistAndAddCard;
+window.createWishlistOnlyBusy = createWishlistOnlyBusy;
+window.createWishlistOnly = createWishlistOnly;

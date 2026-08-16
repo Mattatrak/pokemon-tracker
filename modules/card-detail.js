@@ -1,10 +1,47 @@
 // Modale détail/édition de carte - Pokémon Tracker
 // Dépend de: allCollectionCards/supabaseClient/API_BASE/API_EN/adjustMonthlyStatsAmount/refreshCollection/recordValueSnapshot (tracker.js),
 // getRarityIconHtml/renderFinishBadge/getSetIdFromTcgdexId/getFinishLabel/buildFinishOptionsHtml/initDatePicker (utils.js),
-// uploadImageToStorage/uploadSeriesSymbolManually/uploadSeriesLogoManually (storage.js), showMessage (utils.js)
+// uploadImageToStorage/uploadSeriesSymbolManually/uploadSeriesLogoManually (storage.js), showMessage (utils.js),
+// runCardDetailMorphTransition (card-grid-renderer.js)
 // Etat possédé : cardPriceChartInstance
 
-function showCardDetail(cardId) {
+// Origine de la fiche actuellement ouverte (VT1, cf roadmap technique animations premium), pour la
+// fermeture symétrique fiche -> grille dans closeCardDetail() plus bas. Volontairement minimal :
+// seulement l'id de carte + l'id du conteneur d'où le clic est parti (cf
+// CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR) - jamais une référence DOM gardée pendant toute l'ouverture,
+// la carte source peut disparaître/être recréée entre-temps (filtre, tri, changement de mode) : on la
+// retrouve dans le DOM réel au moment de la fermeture, pas avant. containerId évite qu'une carte
+// visible dans un AUTRE mode/onglet (caché pendant que la fiche est ouverte) soit prise à tort pour
+// la bonne source - une même carte peut exister dans plusieurs zones DOM à la fois.
+let cardDetailOrigin = null;
+
+// VT3 (cf roadmap technique animations premium) : liste explicite étendue à Progression/Dashboard
+// (wrappers stables et évidents, cf audit VT3) plutôt qu'un attribut/registry générique - seulement 3
+// entrées de plus, pas de justification à construire une abstraction pour si peu. Tableau Collection
+// et Statistiques restent volontairement hors de cette liste (VT5, cf roadmap - showCardDetail y est
+// encore appelé sans event, aucun changement ici).
+const CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR =
+    '#collection-grid-wrapper, #collection-binder-wrapper, #collection-recap-wrapper, ' +
+    '#progression-cards-grid, #dashboard-acquisitions-body, #dashboard-activity-body';
+
+// Point d'entrée public (Phase 4, View Transitions, cf roadmap technique) : délègue la mécanique du
+// morph à runCardDetailMorphTransition (card-grid-renderer.js, partagée avec showPublicCardDetail),
+// ce fichier ne garde que son propre rendu (renderCardDetail).
+function showCardDetail(cardId, event) {
+    if (event?.currentTarget) {
+        const originContainer = event.currentTarget.closest(CARD_DETAIL_ORIGIN_CONTAINER_SELECTOR);
+        cardDetailOrigin = originContainer ? { cardId, containerId: originContainer.id } : null;
+    } else if (!cardDetailOrigin || cardDetailOrigin.cardId !== cardId) {
+        // Réouverture interne sans event (édition/upload, cf showCardEditForm/saveCardEdits plus
+        // bas) pour une carte différente de l'origine déjà mémorisée, ou sans origine connue : pas
+        // de source fiable à retenir. Si c'est la MÊME carte, on garde l'origine de l'ouverture
+        // initiale - la fiche n'a jamais vraiment fermé entre les deux.
+        cardDetailOrigin = null;
+    }
+    runCardDetailMorphTransition(event, () => renderCardDetail(cardId));
+}
+
+function renderCardDetail(cardId) {
     const card = allCollectionCards.find(c => c.id === cardId);
     if (!card) return;
 
@@ -155,7 +192,13 @@ function showCardDetail(cardId) {
     document.getElementById('card-detail-overlay').classList.add('active');
 
     if (card.tcgdex_id) {
-        renderCardPriceChart(card.tcgdex_id);
+        // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations premium) :
+        // renderCardPriceChart() est déjà async (attend Supabase avant de dessiner), donc rarement en
+        // concurrence avec l'animation en pratique, mais sur connexion rapide/réponse déjà en cache
+        // navigateur, l'initialisation Chart.js pouvait tomber pile pendant les toutes premières
+        // frames du morph - requestAnimationFrame garantit qu'elle ne démarre jamais avant que le
+        // navigateur ait eu l'occasion de peindre au moins une frame.
+        requestAnimationFrame(() => renderCardPriceChart(card.tcgdex_id));
     }
 }
 
@@ -511,8 +554,66 @@ async function saveCardEdits(cardId, btn) {
     showCardDetail(cardId);
 }
 
+// Retrouve la carte source réellement VISIBLE (pas seulement présente dans le DOM) dans le
+// conteneur d'origine mémorisé à l'ouverture (VT1). Un mode Collection caché (ex. Galerie masquée
+// pendant que le Tableau est affiché, ou Classeur revenu sur une autre page) garde son contenu en
+// mémoire DOM sans être visible - offsetParent est null pour tout élément display:none (lui-même ou
+// un ancêtre), suffisant ici sans recourir à getComputedStyle.
+function findVisibleCardDetailSource(containerId, cardId) {
+    const container = document.getElementById(containerId);
+    if (!container || container.offsetParent === null) return null;
+    const el = container.querySelector(`[data-card-id="${cardId}"]`);
+    if (!el || el.offsetParent === null) return null;
+    return el;
+}
+
+// VT1 (cf roadmap technique animations premium) : fermeture symétrique à l'ouverture quand la carte
+// source est encore visible dans sa vue d'origine - l'image de la fiche morphe vers son emplacement
+// de départ au lieu de disparaître instantanément. Si la source a disparu (filtre changé, mode
+// Collection changé, page Classeur tournée, carte plus dans le DOM/cachée) : fermeture instantanée
+// normale, on ne force jamais de morph vers une destination inexistante ou non pertinente (pas de
+// scroll automatique, pas de changement de filtre/page pour "retrouver" la carte).
 function closeCardDetail() {
-    document.getElementById('card-detail-overlay').classList.remove('active');
+    const overlay = document.getElementById('card-detail-overlay');
+    if (!overlay.classList.contains('active')) return;
+
+    const origin = cardDetailOrigin;
+    cardDetailOrigin = null;
+
+    const sourceEl = origin ? findVisibleCardDetailSource(origin.containerId, origin.cardId) : null;
+    const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
+    const modalImg = overlay.querySelector('.modal-image');
+
+    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function') {
+        overlay.classList.remove('active');
+        return;
+    }
+
+    modalImg.style.viewTransitionName = 'card-detail-morph';
+
+    const cleanup = () => {
+        modalImg.style.viewTransitionName = '';
+        sourceImg.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('card-detail', () => {
+        // Symétrique à l'ouverture (cf card-grid-renderer.js) : retirer explicitement le nom de
+        // modalImg avant de l'assigner à sourceImg, plutôt que de compter sur le fait que masquer
+        // l'overlay le rend implicitement invisible avant la capture "new" - ce comportement n'est
+        // pas garanti, autant ne jamais laisser deux éléments porter le même nom même brièvement.
+        overlay.classList.remove('active');
+        modalImg.style.viewTransitionName = '';
+        sourceImg.style.viewTransitionName = 'card-detail-morph';
+    });
+
+    if (!transition) {
+        // reduced-motion : runViewTransition a déjà fermé l'overlay en synchrone, rien d'autre à
+        // faire que de retirer les noms posés avant de le savoir.
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
 }
 
 async function handleModalSeriesSymbolUpload(event, setId, cardId) {
@@ -588,3 +689,27 @@ async function handleCollectionImageUpload(event, cardId) {
         console.error(error);
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.showCardDetail = showCardDetail;
+window.cardPriceChartInstance = cardPriceChartInstance;
+window.cardPriceChartData = cardPriceChartData;
+window.renderCardPriceChart = renderCardPriceChart;
+window.renderCardPriceChartForPeriod = renderCardPriceChartForPeriod;
+window.setCardPriceChartPeriod = setCardPriceChartPeriod;
+window.showCardEditForm = showCardEditForm;
+window.toggleEditPurchasePriceField = toggleEditPurchasePriceField;
+window.saveCardEdits = saveCardEdits;
+window.closeCardDetail = closeCardDetail;
+window.handleModalSeriesSymbolUpload = handleModalSeriesSymbolUpload;
+window.handleModalSeriesLogoUpload = handleModalSeriesLogoUpload;
+window.getCollectionUploadPlaceholder = getCollectionUploadPlaceholder;
+window.getModalUploadPlaceholder = getModalUploadPlaceholder;
+window.handleCollectionImageUpload = handleCollectionImageUpload;

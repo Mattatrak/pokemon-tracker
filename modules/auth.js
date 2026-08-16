@@ -22,7 +22,9 @@ function isValidRedirectRoute(route) {
 // sql/migrations/2026-08-11_admin_missing_images.sql). Purement déclaratif côté client : sert
 // uniquement à afficher/masquer l'entrée de nav et la route #/admin, la vraie barrière est
 // is_admin() côté serveur, revérifiée par chaque RPC admin.
-let currentUserIsAdmin = false;
+// window.x plutôt que let (ticket V2 Vite, type="module") : lu depuis DesktopNavbar.js/
+// MobileBottomNavigation.js/admin.js aussi.
+window.currentUserIsAdmin = false;
 
 async function init() {
     const [, adminResult] = await Promise.all([loadUserProfile(), supabaseClient.rpc('is_admin')]);
@@ -42,6 +44,11 @@ async function init() {
     await renderDashboard();
     appReady = true; // autorise markDashboardDirty() à re-rendre immédiatement à partir de maintenant
     renderTab(getTabIdFromHash()); // ré-applique l'onglet du hash une fois les données chargées (wishlists/stats/progression dépendent de allCollectionCards)
+    // rebuild:true : premier moment où currentUserProfile/currentUserIsAdmin sont connus avec certitude
+    // (loadUserProfile a été attendu au tout début de init()) - la navbar globale (NAV1) construite plus
+    // tôt (tracker.js#initDesktopNavigation, avant que le profil charge) affichait encore l'icône par
+    // défaut/pas d'entrée Administration jusqu'ici.
+    updateDesktopNavigation(getTabIdFromHash(), { rebuild: true });
     initDatePicker('#card-date-added');
     updateMobileBottomNav('tab-dashboard');
     // typeof-guardé comme currentUserIsAdmin plus haut : si modules/changelog.js n'a pas pu charger
@@ -82,3 +89,17 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         window.location.replace('login.html');
     }
 });
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.REDIRECT_ROUTE_KEY = REDIRECT_ROUTE_KEY;
+window.isValidRedirectRoute = isValidRedirectRoute;
+window.init = init;
+window.handleLogout = handleLogout;
+window.appInitialized = appInitialized;

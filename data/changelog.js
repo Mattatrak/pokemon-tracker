@@ -33,12 +33,40 @@ const CHANGELOG = [
         date: '2026-08-12 02:00',
         title: 'Patch correctif mobile',
         changes: [
+            { type: 'new', text: 'L\'affichage des résultats d\'une recherche de cartes depuis le menu ajouter s\'ouvre maintenant en mode tableau par défaut sur mobile.' },
+            { type: 'fix', text: 'Comportement du scroll lorsqu\'une fenêtre est ouverte.' },
             { type: 'fix', text: 'Correctif alignement de la page wishlist pour mobile.' },
             { type: 'fix', text: 'Correctifs divers sur la page d\'ajout pour mobile.' },
             { type: 'fix', text: 'Correctifs sur le mécanisme de fermeture des fenêtre sur mobile.' },
             { type: 'improved', text: 'Améliorations visuelles de la page collectionneurs pour mobile.' },
             { type: 'improved', text: 'Améliorations visuelles de la page wishlist pour mobile.' },
-            { type: 'new', text: 'L\'affichage des résultats d\'une recherche de cartes depuis le menu ajouter s\'ouvre maintenant en mode tableau par défaut sur mobile.' },
-        ]
-    }
+                    ]
+    },
+
+    {
+        version: '1.1.0',
+        date: '2026-08-12 02:00',
+        title: 'Patch correctif mobile',
+        changes: [
+            { type: 'new', text: 'Affichage des doublons échangeable dans la page collectionneur' },
+            { type: 'new', text: 'Vue classeur depuis la collection' },
+            { type: 'new', text: 'Vue recap depuis la collection' },
+            { type: 'new', text: 'Ajout du prix pour finir un set + vue sur Dashboard' },
+            { type: 'improved', text: 'Améliorations du système de navigation' },
+            { type: 'improved', text: 'Améliorations visuelle globale.' },
+            { type: 'improved', text: 'Améliorations globale des performances du site.' },
+            { type: 'improved', text: 'Améliorations du système de doublons/échanges.' },
+                    ]
+        }
 ];
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.APP_VERSION = APP_VERSION;
+window.CHANGELOG = CHANGELOG;

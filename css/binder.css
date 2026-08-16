@@ -1,0 +1,259 @@
+/* VUE CLASSEUR (Phase 4, cf roadmap technique)
+   Namespace .binder-* dédié : ne touche jamais .collection-card/.collection-grid (Galerie/Tableau
+   inchangés). Slots réutilisent renderGridCardHtml() tel quel (card-grid-renderer.js) - .binder-slot
+   n'est qu'un conteneur de mise en page.
+
+   Dimensionnement (décision produit 2026-08-14, recalibré 2026-08-15, validé desktop et mobile) :
+   vraie double-page ouverte sur desktop (2x 3x3 = 18 cartes), 1 page 2x2 (4 cartes) sur mobile
+   <=768px (même seuil que isCollectionMobileViewport()). --binder-slot-w ne s'applique qu'au DESKTOP :
+   combine une contrainte largeur (vw, dominante sur écran standard) et hauteur (vh, généreuse - ne
+   limite plus que sur fenêtre inhabituellement basse). Le mobile ne lit plus cette variable depuis la
+   correction du débordement horizontal (cf bloc @media plus bas) - il dimensionne ses cartes en
+   1fr/100% directement sur la largeur réelle disponible, pas via un coefficient vw estimé. Un léger
+   scroll vertical est accepté sur desktop (contrainte assouplie par l'utilisateur après avoir vu le
+   premier rendu trop petit) : la priorité est la présence visuelle du classeur, pas le zéro-scroll
+   absolu. Toujours pas de scroll horizontal (largeur bornée par clamp sur desktop, structurellement
+   impossible via 1fr sur mobile). */
+
+:root {
+    --binder-slot-w: clamp(120px, min(15.5vw, 26vh), 230px);
+}
+
+.binder-page-indicator {
+    color: var(--slate);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 0.9rem;
+}
+
+/* Conteneur relatif : porte les boutons précédent/suivant en position absolue sur les bords
+   extérieurs du classeur, verticalement centrés - "je tourne la page" plutôt que des boutons
+   génériques regroupés au-dessus. width:fit-content + margin:0 auto (au lieu d'un flex qui s'étire
+   sur toute la largeur du wrapper) : la scène épouse la largeur réelle du livre, sinon les boutons
+   à left:0/right:0 se retrouvaient collés aux bords du wrapper plutôt qu'à ceux du classeur (grand
+   vide visible dès que le livre est plus étroit que le conteneur). padding latéral = l'espacement
+   entre le bouton et le bord de page (juste assez pour ne pas chevaucher : largeur du bouton + un
+   petit espace). */
+.binder-scene {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto;
+    padding: 0 3.25rem;
+    /* B4 : laisse le scroll vertical natif intact, ne cède le geste tactile horizontal au JS (axis-lock
+       du swipe, binder-view.js) qu'une fois l'axe tranché - jamais avant. */
+    touch-action: pan-y;
+}
+
+.binder-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--slate);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color var(--motion-duration-fast) var(--motion-ease-standard),
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.binder-nav-btn:hover:not(:disabled) {
+    color: var(--gold);
+    border-color: var(--gold);
+    transform: translateY(-50%) translateY(-2px);
+}
+
+.binder-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.binder-nav-prev {
+    left: 0;
+}
+
+.binder-nav-next {
+    right: 0;
+}
+
+.binder-book {
+    display: flex;
+    justify-content: center;
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+    /* min-width:0 : un enfant flex a par défaut min-width:auto, qui l'empêche de rétrécir sous la
+       taille intrinsèque de son contenu (l'image de carte, ~400px) même avec width:100% sur mobile -
+       c'est ce qui causait le débordement horizontal constaté. Même correctif propagé sur toute la
+       chaîne (binder-page, binder-slot ci-dessous). */
+    min-width: 0;
+}
+
+.binder-spread {
+    display: flex;
+    align-items: stretch;
+    gap: clamp(0.5rem, 1.8vw, 1.25rem);
+    min-width: 0;
+    /* B9 : contexte 3D pour la rotation des pages (binder-view.js, animateBinderTurnExit/Enter).
+       Statique, sans effet visuel/perf tant qu'aucun enfant n'a de transform 3D actif - inerte sur
+       mobile (pas de binder-page-right, pas de rotation déclenchée, cf B9 desktop uniquement). */
+    perspective: 1800px;
+}
+
+/* Deux surfaces de page distinctes + reliure centrale, renforcées (retour visuel après premier test :
+   lisait encore comme "deux panneaux avec grilles"). Contour plus marqué + léger liseré clair en haut
+   (impression de bord de feuille) - toujours du CSS statique, aucune animation/texture/blur. */
+.binder-page {
+    background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: clamp(0.6rem, 1.4vw, 1.1rem);
+    box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    min-width: 0;
+}
+
+/* Ombre interne statique côté reliure sur chaque page : suggère que les deux feuilles appartiennent
+   au même objet relié, sans effet 3D ni page-turn. */
+.binder-page-left {
+    box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset -16px 0 24px -18px rgba(0, 0, 0, 0.78);
+    /* B9 : pivot côté reliure pour la rotation (droite = côté spine d'une page gauche). */
+    transform-origin: right center;
+}
+
+.binder-page-right {
+    box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 16px 0 24px -18px rgba(0, 0, 0, 0.78);
+    /* B9 : pivot côté reliure pour la rotation (gauche = côté spine d'une page droite). */
+    transform-origin: left center;
+}
+
+.binder-spine {
+    width: 6px;
+    align-self: stretch;
+    border-radius: 2px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.24) 12%, rgba(255, 255, 255, 0.24) 88%, transparent);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.binder-page-grid {
+    display: grid;
+    grid-template-columns: repeat(3, var(--binder-slot-w));
+    gap: clamp(0.6rem, 1.2vw, 1.05rem);
+    min-width: 0;
+}
+
+/* Bezel de poche : léger fond + padding autour de la carte (celle-ci reste à 100%, donc visuellement
+   insérée dans la poche plutôt que collée à ses bords) - sépare mieux les 9 emplacements entre eux
+   qu'un simple gap. Statique, pas d'ombre animée.
+   min-width:0 : un item grid a par défaut min-width:auto, qui l'empêche de rétrécir sous la taille
+   intrinsèque de son contenu (l'image de la carte, ~400px) même avec un track 1fr (mobile) - c'est la
+   cause du débordement horizontal constaté sur mobile. Sans effet sur desktop (tracks déjà en px fixe). */
+.binder-slot {
+    width: var(--binder-slot-w);
+    min-width: 0;
+    aspect-ratio: 5 / 7;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 11px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.binder-slot .collection-card {
+    width: 100%;
+    height: 100%;
+}
+
+/* Allègement contextuel de l'overlay (audit visuel post-premier-test) : dans une poche déjà petite,
+   la ligne série (logo + nom) et l'icône d'acquisition surchargeaient le bas de carte sans info
+   décisive pour feuilleter vite. Uniquement du CSS, aucun changement de renderGridCardHtml/données -
+   Galerie/Tableau conservent l'overlay complet. Nom/état/finish/prix restent visibles. */
+.binder-slot .collection-card-set,
+.binder-slot .acquisition-icon {
+    display: none;
+}
+
+/* Poche vide : slot statique (pas de carte à cet emplacement), garde la structure physique du
+   classeur sur une dernière double-page incomplète plutôt que de compacter (cf audit §8). CSS
+   statique uniquement - pas de backdrop-filter/blur/box-shadow animé (contrainte GPU du projet). */
+.binder-slot-empty {
+    border-radius: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0;
+    box-shadow: none;
+}
+
+.binder-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--slate);
+}
+
+/* Mobile <=768px (même seuil que isCollectionMobileViewport(), modules/collection.js) : une seule
+   page 2x2, jamais de double-page miniature. Flèches précédent/suivant masquées (le swipe devient la
+   navigation principale, cf binder-view.js) - gardées dans le DOM (juste display:none), pas de logique
+   JS supplémentaire pour ça.
+
+   Dimensionnement en 1fr plutôt qu'en vw (retour utilisateur : l'estimation vw laissait trop de marge
+   inutile). .binder-scene n'a plus de padding propre - le .container applique déjà ~16px/côté (existant,
+   hors de ce fichier), qui devient donc directement la seule marge extérieure visible, dans la fourchette
+   demandée. Les 2 colonnes de .binder-page-grid passent en repeat(2, 1fr) et .binder-slot en width:100% :
+   les cartes se dimensionnent sur la largeur RÉELLEMENT disponible (pas une estimation), ce qui rend un
+   débordement horizontal structurellement impossible (les fr se répartissent toujours exactement dans
+   leur conteneur), sans avoir à deviner un coefficient. max-width sur .binder-scene évite juste des
+   cartes démesurées sur les téléphones les plus larges proches de 768px. */
+@media (max-width: 768px) {
+    .binder-scene {
+        width: 100%;
+        max-width: 480px;
+        padding: 0;
+    }
+
+    .binder-nav-btn {
+        display: none;
+    }
+
+    .binder-spread {
+        gap: 0;
+        width: 100%;
+    }
+
+    .binder-spine {
+        display: none;
+    }
+
+    .binder-page-right {
+        display: none;
+    }
+
+    .binder-book {
+        width: 100%;
+        padding: 0.35rem;
+    }
+
+    .binder-page,
+    .binder-page-left {
+        width: 100%;
+        border-radius: 10px;
+        padding: 0.4rem;
+        box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .binder-page-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .binder-slot {
+        width: 100%;
+    }
+}

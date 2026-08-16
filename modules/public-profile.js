@@ -1,8 +1,12 @@
 // Profil public (Phase 3) - Pokémon Tracker
 // Dépend de: supabaseClient (tracker.js), escapeHtml/sortRaritiesByTier/buildRarityFilterRowHtml/
 // getRarityGroupKey/getRarityIconHtml/renderFinishBadge/getTypesIconsHtml/getCardmarketUrl (utils.js),
-// getGridNoImageHtml (collection.js) — réutilisés en lecture seule (générateurs HTML purs). cardmarket_id
-// exposé par get_cards_public/get_wishlist_items_public depuis 2026-08-09
+// renderGridCardHtml/runCardDetailMorphTransition (card-grid-renderer.js), getDuplicateCardsWithQuantity (collection.js) —
+// réutilisés en lecture seule (générateurs HTML purs / calcul pur). getDuplicateCardsWithQuantity applique la même définition
+// métier du doublon que le filtre "Doublons" de la Collection propriétaire (aucune donnée SQL
+// supplémentaire, aucune nouvelle notion "à l'échange" persistée, cf audit du 2026-08-12) pour la
+// section "Doublons à l'échange" et le match associé. cardmarket_id exposé par
+// get_cards_public/get_wishlist_items_public depuis 2026-08-09
 // (sql/migrations/2026-08-09_public_surfaces_cardmarket_id.sql). computeWishlistMatch (Ticket 2,
 // modules/collector-match.js, module pur sans effet de bord) pour le bloc "Correspondances avec toi".
 // Route #/user/<username>, gérée par getTabIdFromHash()/activateTabContent() dans tracker.js (tabId
@@ -15,11 +19,11 @@
 // allWishlistItems, cf tracker.js/wishlist.js) : les données publiques affichées ici (viewedPublicCards/
 // viewedPublicWishlistItems/...) appartiennent à un autre utilisateur, les mélanger à l'état personnel
 // serait une vraie fuite de confiance au moindre bug. Seule exception volontaire (Ticket 2) :
-// profileMatchesA/B LISENT allWishlistItems/allCollectionCards (déjà garantis chargés au moment de
-// loadPublicProfile, cf init() dans modules/auth.js) en lecture seule, jamais écrits depuis ce fichier,
-// et currentUserProfile (modules/profile.js) pour détecter la consultation de son propre profil.
+// profileMatchesB LIT allCollectionCards (déjà garanti chargé au moment de loadPublicProfile, cf init()
+// dans modules/auth.js) en lecture seule, jamais écrit depuis ce fichier, et currentUserProfile
+// (modules/profile.js) pour détecter la consultation de son propre profil.
 // Etat possédé : viewedPublicProfile, viewedPublicCards, publicCollectionSort, publicCollectionRarityFilterValues,
-// profileMatchesA, profileMatchesB, profileMatchDetailExpanded
+// profileMatchesB, hasReciprocalTrade
 
 let viewedPublicProfile = null;
 
@@ -29,6 +33,14 @@ let viewedPublicProfile = null;
 let viewedPublicCards = [];
 let publicCollectionSort = 'value-desc';
 let publicCollectionRarityFilterValues = new Set();
+
+// Pagination de la grille collection publique (même principe que COLLECTION_PAGE_SIZE, collection.js) :
+// trouvée manquante ici lors d'un diagnostic de lenteur réel (724 cartes/~3000 <img> injectées d'un
+// coup pour un profil de 1780 cartes - la vraie cause du ralentissement constaté sur ces pages, pas
+// les View Transitions). publicCollectionDisplayLimit repart à PUBLIC_COLLECTION_PAGE_SIZE à chaque
+// nouveau profil chargé et à chaque filtre/tri/recherche changé (filterPublicCollectionAndDisplay).
+const PUBLIC_COLLECTION_PAGE_SIZE = 60;
+let publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
 
 // Wishlist publique tierce (lecture seule). Sources : get_wishlists_public/get_wishlist_items_public
 // (Phase 2). viewedPublicWishlistPriceMap vient de card_price_history en lecture directe : ce n'est
@@ -41,12 +53,45 @@ let viewedPublicWishlistPriceMap = {};
 let viewedPublicWishlistExpandedIds = new Set();
 
 // Correspondances Wishlist/Collection (Ticket 2, modules/collector-match.js) — dérivées à 100% de
-// globals déjà chargés (allWishlistItems/allCollectionCards, cf tracker.js/modules/auth.js:init())
-// et des données publiques ci-dessus, aucune requête dédiée. profileMatchesA = ma wishlist trouvée
-// dans sa collection ; profileMatchesB = sa wishlist trouvée dans ma collection.
-let profileMatchesA = [];
+// globals déjà chargés (allCollectionCards, cf tracker.js) et des données publiques ci-dessus, aucune
+// requête dédiée. profileMatchesB = sa wishlist trouvée dans MES doublons réellement échangeables
+// (Phase 5, P5-1 : corrigé pour ne plus lire ma collection brute, cf loadPublicProfile - un exemplaire
+// unique ne doit jamais générer de signal d'échange).
+// profileMatchesA (ma wishlist ∩ sa collection BRUTE, non restreinte aux doublons) a existé un temps
+// dans ce fichier mais retiré en Phase 5 (P5-1, audit demandé) : son seul consommateur était
+// renderProfileMatchSection ci-dessous, où il se présentait de façon ambiguë comme une correspondance
+// d'échange alors qu'il ne l'était pas (comptait aussi mes cartes en un seul exemplaire chez lui). La
+// même direction ("ma wishlist trouvée chez lui"), correctement restreinte au surplus échangeable, est
+// déjà couverte par profileDuplicateMatches - pas de perte d'information utile, juste une ambiguïté en
+// moins. À réintroduire uniquement si un futur usage explicitement non lié à l'échange en a besoin.
 let profileMatchesB = [];
-let profileMatchDetailExpanded = false;
+// Signal "Pour moi" ∩ "Pour lui" (Phase 5, P5-1) : true si profileDuplicateMatches ET profileMatchesB
+// (les deux tableaux déjà restreints au surplus échangeable) ont chacun au moins une correspondance.
+// Affiché en badge "Match réciproque" dans la section Opportunités d'échange (P5-4).
+let hasReciprocalTrade = false;
+
+// Doublons à l'échange (V1 simplifiée, cf audit du 2026-08-12) : dérivés à 100% de viewedPublicCards
+// via getDuplicateCardsWithQuantity (modules/collection.js, même définition métier que le filtre
+// "Doublons" de la Collection propriétaire — pas de deuxième définition). Aucune donnée persistée,
+// aucune requête dédiée. profileDuplicateMatches = doublons du profil consulté qui sont dans MA
+// wishlist (allWishlistItems), calculé via computeWishlistMatch existant (modules/collector-match.js)
+// en substituant quantity par duplicateQuantity — le principe "1 exemplaire principal + N doublons"
+// s'applique aussi au matching (cf audit : 3 possédées = 2 potentiellement échangeables, pas 3).
+let viewedPublicDuplicateCards = [];
+let profileDuplicateMatches = [];
+
+// Raretés jamais retenues comme "doublon à l'échange" (trop communes pour être un vrai signal
+// d'échange, cf demande utilisateur du 2026-08-12) : Commune, Peu commune, Holo (rare de base).
+// Comparaison par clé de groupe (getRarityGroupKey, utils.js) plutôt que par texte brut : couvre
+// toutes les variantes de libellé TCGdex d'une même rareté (ex "Rare Holo"/"Holo Rare"/"Holographique"
+// -> même groupe holo.webp). N'affecte QUE cette section et son matching : le filtre "Doublons" de la
+// Collection propriétaire (modules/collection.js, getDuplicateCardsWithQuantity) reste inchangé et
+// sans notion d'exclusion — l'exclusion est appliquée ici, en amont, sur les données déjà chargées.
+const DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS = new Set(['commune.webp', 'peu-commune.webp', 'holo.webp']);
+
+function getPublicDuplicateEligibleCards(cards) {
+    return (cards || []).filter(c => !DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS.has(getRarityGroupKey(c.rarity)));
+}
 
 // Id (viewedPublicCards) de la carte actuellement affichée dans la fiche détail publique, pour pouvoir
 // rafraîchir uniquement son bouton "Ajouter à ma wishlist" après un ajout (cf. addPublicCardToWishlistInternal,
@@ -81,6 +126,67 @@ function renderPublicProfileNotFound(container) {
     `;
 }
 
+// VT4 (cf roadmap technique animations premium) : contexte préparé par un clic normal sur une carte
+// Collecteur (modules/collectors.js#handleCollectorProfileClick), pour permettre à loadPublicProfile()
+// de rendre un shell d'identité immédiatement, avant tout aller-retour réseau, et à tracker.js de
+// choisir la transition 'profile-open' plutôt que 'navigation' (VT2) pour CETTE navigation précise.
+// Associé explicitement à la route cible exacte (targetHash) : un clic sur A puis une navigation qui
+// finit ailleurs (B, ou un retour en arrière) ne doit jamais laisser les données de A s'appliquer par
+// erreur. Consommé une seule fois par loadPublicProfile() (jamais réutilisé), quel que soit le
+// résultat (succès, erreur, profil introuvable) - tracker.js ne fait que le consulter (peek), jamais
+// le vider lui-même.
+let pendingCollectorProfileContext = null;
+
+// Appelée uniquement par modules/collectors.js, sur un clic normal (même onglet, bouton gauche, sans
+// modificateur) : aucune donnée ici ne vient d'un nouvel appel réseau, uniquement ce que la liste
+// Collecteurs affiche déjà (avatar_url/pseudo/username/created_at).
+function prepareCollectorProfileTransition(targetHash, profile) {
+    pendingCollectorProfileContext = { targetHash, profile };
+}
+
+// Lecture seule (ne consomme pas) : utilisée par tracker.js pour décider du type de View Transition
+// avant même d'appeler renderTab(), et par loadPublicProfile() pour savoir si un shell est pertinent.
+// window.location.hash est déjà la valeur cible au moment où hashchange se déclenche - pas besoin de
+// reconstruire/re-encoder quoi que ce soit ici.
+function getPendingCollectorProfileContext(targetHash) {
+    return (pendingCollectorProfileContext && pendingCollectorProfileContext.targetHash === targetHash)
+        ? pendingCollectorProfileContext
+        : null;
+}
+
+// Bloc identité (avatar + pseudo + username + ancienneté) : extrait de renderPublicProfileShell pour
+// être réutilisé tel quel par le shell d'entrée (VT4, renderPublicProfileEntryShell ci-dessous) - même
+// markup/classes exactement, donc aucun saut visuel de design quand les vraies données remplacent le
+// shell (seules les sections qui suivent ce bloc changent).
+function renderPublicProfileIdentityHeader(profile) {
+    // Même raison qu'ailleurs (profile.js) : avatar_url est un champ contrôlable par l'utilisateur
+    // consulté, jamais faire confiance à sa valeur brute dans un attribut HTML.
+    const avatarHtml = profile.avatar_url
+        ? `<img src="${escapeHtml(profile.avatar_url)}" alt="" class="user-profile-avatar">`
+        : `<span class="user-profile-avatar user-profile-avatar-fallback"><i class="ti ti-user" aria-hidden="true"></i></span>`;
+
+    return `
+        <div class="user-profile-header">
+            ${avatarHtml}
+            <div class="user-profile-identity">
+                <div class="user-profile-pseudo">${escapeHtml(profile.pseudo || profile.username)}</div>
+                <div class="user-profile-username">@${escapeHtml(profile.username)}</div>
+                ${profile.created_at ? `<div class="user-profile-member-since">${formatPublicMemberSince(profile.created_at)}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Shell immédiat (VT4) : identité déjà connue (avatar/pseudo/username/ancienneté), rien d'autre -
+// aucune statistique/donnée inventée (cartes, wishlist, doublons...), qui reste au chargement normal
+// ci-dessous. Rendu de façon strictement synchrone, avant le premier await de loadPublicProfile().
+function renderPublicProfileEntryShell(container, profile) {
+    container.innerHTML = `
+        ${renderPublicProfileIdentityHeader(profile)}
+        <p class="dashboard-empty-text" style="padding:2rem 0; text-align:center;">Chargement...</p>
+    `;
+}
+
 async function loadPublicProfile(username) {
     const container = document.getElementById('user-profile-content');
     if (!container) return;
@@ -89,20 +195,31 @@ async function loadPublicProfile(username) {
     viewedPublicCards = [];
     publicCollectionSort = 'value-desc';
     publicCollectionRarityFilterValues = new Set();
+    publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
     viewedPublicWishlists = [];
     viewedPublicWishlistItems = [];
     viewedPublicWishlistPriceMap = {};
     viewedPublicWishlistExpandedIds = new Set();
-    profileMatchesA = [];
     profileMatchesB = [];
-    profileMatchDetailExpanded = false;
+    viewedPublicDuplicateCards = [];
+    profileDuplicateMatches = [];
+    hasReciprocalTrade = false;
 
     if (!username) {
+        pendingCollectorProfileContext = null; // jamais laissé traîner si la route finit sans username valide
         renderPublicProfileNotFound(container);
         return;
     }
 
-    container.innerHTML = '<p class="dashboard-empty-text" style="padding:3rem 0; text-align:center;">Chargement...</p>';
+    // VT4 : contexte Collecteur consommé ici, une seule fois, qu'il soit utilisé ou non ci-dessous.
+    const shellCtx = getPendingCollectorProfileContext(window.location.hash);
+    pendingCollectorProfileContext = null;
+
+    if (shellCtx) {
+        renderPublicProfileEntryShell(container, shellCtx.profile);
+    } else {
+        container.innerHTML = '<p class="dashboard-empty-text" style="padding:3rem 0; text-align:center;">Chargement...</p>';
+    }
 
     const { data: profile, error } = await supabaseClient
         .from('profiles_public')
@@ -126,6 +243,7 @@ async function loadPublicProfile(username) {
             viewedPublicCards = cards;
             cardCount = cards.reduce((sum, c) => sum + Number(c.quantity || 0), 0);
             collectionValue = cards.reduce((sum, c) => sum + Number(c.quantity || 0) * Number(c.market_value || 0), 0);
+            viewedPublicDuplicateCards = getDuplicateCardsWithQuantity(getPublicDuplicateEligibleCards(viewedPublicCards));
         }
     }
 
@@ -142,11 +260,31 @@ async function loadPublicProfile(username) {
     const isSelf = currentUserProfile && currentUserProfile.id === profile.id;
     if (!isSelf) {
         if (profile.collection_visible) {
-            profileMatchesA = computeWishlistMatch(allWishlistItems, viewedPublicCards);
+            // quantity substituée par duplicateQuantity (surplus au-delà de l'exemplaire principal) :
+            // computeWishlistMatch ne lit que .quantity, aucune modification de cette fonction requise.
+            profileDuplicateMatches = computeWishlistMatch(
+                allWishlistItems,
+                viewedPublicDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }))
+            );
         }
         if (profile.wishlist_visible) {
-            profileMatchesB = computeWishlistMatch(viewedPublicWishlistItems, allCollectionCards);
+            // "Pour lui" (Phase 5, P5-1) : mes doublons réellement échangeables ∩ sa wishlist - même
+            // pipeline symétrique que profileDuplicateMatches ci-dessus (même filtre de raretés
+            // getPublicDuplicateEligibleCards, même substitution quantity -> duplicateQuantity), pour
+            // éviter deux définitions différentes d'une opportunité d'échange. AVANT : lisait
+            // allCollectionCards brut, ce qui comptait aussi mes exemplaires uniques comme échangeables
+            // - incorrect (cf audit Phase 5).
+            const myDuplicateCards = getDuplicateCardsWithQuantity(getPublicDuplicateEligibleCards(allCollectionCards));
+            profileMatchesB = computeWishlistMatch(
+                viewedPublicWishlistItems,
+                myDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }))
+            );
         }
+
+        // Match réciproque : les deux signaux ("Pour moi" = profileDuplicateMatches, "Pour lui" =
+        // profileMatchesB) sont déjà restreints au surplus échangeable à ce stade - hasPotentialTrade
+        // n'a plus qu'à vérifier qu'aucun des deux n'est vide (modules/collector-match.js).
+        hasReciprocalTrade = hasPotentialTrade(profileDuplicateMatches, profileMatchesB);
     }
 
     viewedPublicProfile = { ...profile, cardCount, collectionValue, wishlistCount };
@@ -191,21 +329,8 @@ async function loadPublicWishlistPrices() {
 }
 
 function renderPublicProfileShell(container, profile) {
-    // Même raison qu'ailleurs (profile.js) : avatar_url est un champ contrôlable par l'utilisateur
-    // consulté, jamais faire confiance à sa valeur brute dans un attribut HTML.
-    const avatarHtml = profile.avatar_url
-        ? `<img src="${escapeHtml(profile.avatar_url)}" alt="" class="user-profile-avatar">`
-        : `<span class="user-profile-avatar user-profile-avatar-fallback"><i class="ti ti-user" aria-hidden="true"></i></span>`;
-
     container.innerHTML = `
-        <div class="user-profile-header">
-            ${avatarHtml}
-            <div class="user-profile-identity">
-                <div class="user-profile-pseudo">${escapeHtml(profile.pseudo || profile.username)}</div>
-                <div class="user-profile-username">@${escapeHtml(profile.username)}</div>
-                ${profile.created_at ? `<div class="user-profile-member-since">${formatPublicMemberSince(profile.created_at)}</div>` : ''}
-            </div>
-        </div>
+        ${renderPublicProfileIdentityHeader(profile)}
 
         <div class="user-profile-stats">
             ${profile.collection_visible ? `
@@ -250,16 +375,25 @@ function renderPublicProfileShell(container, profile) {
             </div>
         ` : ''}
 
+        ${(profile.collection_visible && viewedPublicDuplicateCards.length > 0) ? `
+            <div class="user-profile-section user-profile-duplicates-browser">
+                <div class="user-profile-section-title"><i class="ti ti-copy" aria-hidden="true"></i> Ses doublons disponibles</div>
+                <div class="collection-display-case">
+                    <div class="collection-grid">${renderPublicDuplicateCardsHtml()}</div>
+                </div>
+            </div>
+        ` : ''}
+
         ${profile.collection_visible ? `
             <div class="user-profile-section user-profile-collection-browser">
                 <div class="user-profile-section-title"><i class="ti ti-cards" aria-hidden="true"></i> Collection</div>
                 <div class="catalogue-toolbar">
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="renderPublicCollectionGrid()">
+                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="filterPublicCollectionAndDisplay()">
                     </div>
                     <div class="catalogue-toolbar-actions">
-                        <select id="public-collection-series-filter" onchange="renderPublicCollectionGrid()">
+                        <select id="public-collection-series-filter" onchange="filterPublicCollectionAndDisplay()">
                             <option value="">Toutes les séries</option>
                         </select>
                         <select class="catalogue-sort-select" onchange="setPublicCollectionSort(this.value)">
@@ -273,6 +407,9 @@ function renderPublicProfileShell(container, profile) {
                 <div class="rarity-filter-row" id="public-collection-rarity-row"></div>
                 <div class="collection-display-case">
                     <div class="collection-grid" id="public-collection-grid"></div>
+                </div>
+                <div class="load-more-row" id="public-collection-load-more-row" style="display: none;">
+                    <button class="filter-toggle-btn" id="public-collection-load-more-btn" onclick="loadMorePublicCollectionCards()"></button>
                 </div>
             </div>
         ` : ''}
@@ -289,61 +426,47 @@ function renderPublicProfileShell(container, profile) {
     }
 }
 
-// Bloc "Correspondances avec toi" (Ticket 2, s'appuie sur modules/collector-match.js). Wording
-// volontairement neutre sur la quantité : "possédée en plusieurs exemplaires" ne dit jamais que le
-// propriétaire souhaite s'en séparer, cf audit. Retourne '' (rien affiché) si aucune ligne pertinente
-// (isSelf déjà filtré en amont via profileMatchesA/B laissés vides dans loadPublicProfile).
+// Bloc "Opportunités d'échange" (Phase 5, P5-4 - anciennement "Correspondances avec toi"). Retourne ''
+// (rien affiché) si aucune direction n'a de correspondance (isSelf déjà filtré en amont via
+// profileDuplicateMatches/profileMatchesB laissés vides dans loadPublicProfile) - pas de section vide
+// sur les profils sans opportunité, pas de faux compteur à 0 (décision explicite, cf demande P5-4 §6).
+// Toujours affichée dépliée (l'ancien résumé replié + détail à double-clic a été retiré : ce bloc EST
+// déjà le détail, pas une redite d'un résumé au-dessus) - titres de groupe génériques ("il"/"tu") plutôt
+// que le pseudo répété partout, décision produit explicite.
 function renderProfileMatchSection(profile) {
-    const summaryLines = [];
+    if (profileDuplicateMatches.length === 0 && profileMatchesB.length === 0) return '';
 
-    if (profileMatchesA.length > 0) {
-        const n = profileMatchesA.length;
-        summaryLines.push(`${n} carte${n > 1 ? 's' : ''} de ta wishlist ${n > 1 ? 'sont' : 'est'} dans sa collection`);
-        const multipleA = profileMatchesA.filter(m => m.multiple).length;
-        if (multipleA > 0) {
-            summaryLines.push(`${multipleA} ${multipleA > 1 ? 'sont' : 'est'} possédée${multipleA > 1 ? 's' : ''} en plusieurs exemplaires`);
-        }
-    }
+    // Une seule direction présente -> le groupe occupe toute la largeur (grid-column: 1/-1) plutôt que
+    // de laisser une colonne vide à côté (la grille 2 colonnes de .trade-opportunity-groups ne s'adapte
+    // pas seule au nombre d'enfants réels).
+    const onlyOneDirection = profileDuplicateMatches.length === 0 || profileMatchesB.length === 0;
+    const groupClass = onlyOneDirection ? 'user-profile-match-group user-profile-match-group-full' : 'user-profile-match-group';
 
-    if (profileMatchesB.length > 0) {
-        const n = profileMatchesB.length;
-        summaryLines.push(`${n} carte${n > 1 ? 's' : ''} de sa wishlist ${n > 1 ? 'sont' : 'est'} dans ta collection`);
-        const multipleB = profileMatchesB.filter(m => m.multiple).length;
-        if (multipleB > 0) {
-            summaryLines.push(`${multipleB} ${multipleB > 1 ? 'sont' : 'est'} présente${multipleB > 1 ? 's' : ''} en plusieurs exemplaires chez toi`);
-        }
-    }
+    // Groupe A - "Pour moi" : ses doublons échangeables qui correspondent à ma wishlist.
+    const groupA = profileDuplicateMatches.length > 0 ? `
+        <div class="${groupClass}">
+            <div class="user-profile-match-group-title">Ce qu'il peut te proposer</div>
+            <div class="wishlist-thumb-grid">${profileDuplicateMatches.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
+        </div>
+    ` : '';
 
-    if (summaryLines.length === 0) return ''; // rien d'exploitable : ni collection privée à tester, ni wishlist vide/privée n'ont produit de match
-
-    const expanded = profileMatchDetailExpanded;
-
-    const groupsHtml = `
-        ${profileMatchesA.length > 0 ? `
-            <div class="user-profile-match-group">
-                <div class="user-profile-match-group-title">Dans ta wishlist</div>
-                <div class="wishlist-thumb-grid">${profileMatchesA.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
-            </div>
-        ` : ''}
-        ${profileMatchesB.length > 0 ? `
-            <div class="user-profile-match-group">
-                <div class="user-profile-match-group-title">Dans la wishlist de ${escapeHtml(profile.pseudo || profile.username)}</div>
-                <div class="wishlist-thumb-grid">${profileMatchesB.map(m => renderProfileMatchThumb(m, `showPublicWishlistItemDetail(${m.wishlistItemId})`)).join('')}</div>
-            </div>
-        ` : ''}
-    `;
+    // Groupe B - "Pour lui" : mes doublons échangeables qui correspondent à sa wishlist.
+    const groupB = profileMatchesB.length > 0 ? `
+        <div class="${groupClass}">
+            <div class="user-profile-match-group-title">Ce que tu peux lui proposer</div>
+            <div class="wishlist-thumb-grid">${profileMatchesB.map(m => renderProfileMatchThumb(m, `showPublicWishlistItemDetail(${m.wishlistItemId})`)).join('')}</div>
+        </div>
+    ` : '';
 
     return `
         <div class="user-profile-section user-profile-match-section">
-            <div class="user-profile-match-header" onclick="toggleProfileMatchDetail()">
-                <div class="user-profile-section-title"><i class="ti ti-repeat" aria-hidden="true"></i> Correspondances avec toi</div>
-                <i class="ti ti-chevron-right wishlist-chevron ${expanded ? 'expanded' : ''}" aria-hidden="true"></i>
+            <div class="user-profile-match-header">
+                <div class="user-profile-section-title"><i class="ti ti-repeat" aria-hidden="true"></i> Opportunités d'échange</div>
+                ${hasReciprocalTrade ? '<span class="trade-reciprocal-badge">Match réciproque</span>' : ''}
             </div>
-            <div class="user-profile-match-summary">
-                ${summaryLines.map(line => `<p>${escapeHtml(line)}</p>`).join('')}
-            </div>
-            <div class="user-profile-match-detail" style="display:${expanded ? 'block' : 'none'};">
-                ${groupsHtml}
+            <div class="trade-opportunity-groups">
+                ${groupA}
+                ${groupB}
             </div>
         </div>
     `;
@@ -371,16 +494,6 @@ function renderProfileMatchThumb(match, onclickExpr) {
     `;
 }
 
-// Bascule DOM pure (pas de re-fetch/re-render du shell entier) : aucun état propriétaire touché,
-// juste l'affichage du détail déjà présent dans le DOM.
-function toggleProfileMatchDetail() {
-    profileMatchDetailExpanded = !profileMatchDetailExpanded;
-    const detail = document.querySelector('.user-profile-match-detail');
-    const chevron = document.querySelector('.user-profile-match-header .wishlist-chevron');
-    if (detail) detail.style.display = profileMatchDetailExpanded ? 'block' : 'none';
-    if (chevron) chevron.classList.toggle('expanded', profileMatchDetailExpanded);
-}
-
 function populatePublicCollectionSeriesFilter() {
     const select = document.getElementById('public-collection-series-filter');
     if (!select) return;
@@ -404,11 +517,24 @@ function setPublicCollectionRarityFilter(value) {
         publicCollectionRarityFilterValues.add(value);
     }
     renderPublicCollectionRarityRow();
-    renderPublicCollectionGrid();
+    filterPublicCollectionAndDisplay();
 }
 
 function setPublicCollectionSort(value) {
     publicCollectionSort = value;
+    filterPublicCollectionAndDisplay();
+}
+
+// Repart toujours à la première page (comme filterAndDisplay(), collection.js) : recherche/série/tri/
+// rareté changés doivent réafficher depuis publicCollectionDisplayLimit initial, jamais garder la
+// pagination d'un filtre précédent.
+function filterPublicCollectionAndDisplay() {
+    publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
+    renderPublicCollectionGrid();
+}
+
+function loadMorePublicCollectionCards() {
+    publicCollectionDisplayLimit += PUBLIC_COLLECTION_PAGE_SIZE;
     renderPublicCollectionGrid();
 }
 
@@ -448,54 +574,68 @@ function getFilteredSortedPublicCollection() {
     return sorted;
 }
 
-// Réutilise les classes CSS de la grille personnelle (.collection-card, .qty-badge, .price-badge,
-// .collection-card-overlay, ...) — purement visuelles, aucun couplage JS à allCollectionCards. Pas
-// d'icône d'obtention (acquisition_type absent de get_cards_public, volontairement non exposé), pas de
-// placeholder d'upload au clic (aucune écriture possible ici) : simple icône statique en cas d'erreur image.
+// Section "Doublons à l'échange" (V1 simplifiée, cf audit du 2026-08-12) : aucune nouvelle fiche
+// détail, clic -> showPublicCardDetail existant (card.id reste un id valide de viewedPublicCards,
+// getDuplicateCardsWithQuantity ne fait que sélectionner une carte représentative par groupe). Le badge
+// affiche duplicateQuantity (surplus au-delà de l'exemplaire principal), jamais quantity brute — cf audit
+// "3 exemplaires = 2 doublons potentiels, pas 3". Rendu partagé avec renderPublicCollectionGrid, cf
+// card-grid-renderer.js (Phase 3).
+function renderPublicDuplicateCardsHtml() {
+    return viewedPublicDuplicateCards.map(card => renderGridCardHtml(card, {
+        detailFn: 'showPublicCardDetail',
+        badgeMode: 'duplicate'
+    })).join('');
+}
+
+// Rendu partagé avec la grille personnelle (renderCollectionGrid, collection.js), cf
+// card-grid-renderer.js (Phase 3). Pas d'icône d'obtention ici (acquisition_type absent de
+// get_cards_public, volontairement non exposé) ni de placeholder d'upload au clic (aucune écriture
+// possible sur un profil public) : options par défaut de renderGridCardHtml, pas besoin de les passer.
 function renderPublicCollectionGrid() {
     const grid = document.getElementById('public-collection-grid');
     if (!grid) return;
 
     const filtered = getFilteredSortedPublicCollection();
+    const page = filtered.slice(0, publicCollectionDisplayLimit);
 
     if (filtered.length === 0) {
         grid.innerHTML = '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
+        updatePublicCollectionLoadMoreRow(0, 0);
         return;
     }
 
-    grid.innerHTML = filtered.map(card => {
-        const qty = Number(card.quantity || 1);
-        const lineTotal = Number(card.market_value || 0) * qty;
-        const conditionClass = (card.condition || '').toLowerCase();
+    grid.innerHTML = page.map(card => renderGridCardHtml(card, {
+        detailFn: 'showPublicCardDetail'
+    })).join('');
+    updatePublicCollectionLoadMoreRow(filtered.length, page.length);
+}
 
-        return `
-            <div class="collection-card" onclick="showPublicCardDetail(${card.id})">
-                ${card.image
-                    ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
-                    : getGridNoImageHtml()
-                }
-                ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
-                <div class="price-badge">${lineTotal.toFixed(2)}€</div>
-                <div class="set-rarity-badge-row">
-                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
-                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
-                </div>
-                <div class="collection-card-overlay">
-                    <div class="collection-card-name">${escapeHtml(card.name)}</div>
-                    <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)} · #${card.number}</div>
-                    <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
-                    ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
-                </div>
-            </div>
-        `;
-    }).join('');
+function updatePublicCollectionLoadMoreRow(totalCount, shownCount) {
+    const row = document.getElementById('public-collection-load-more-row');
+    const btn = document.getElementById('public-collection-load-more-btn');
+    if (!row || !btn) return;
+
+    const remaining = totalCount - shownCount;
+    if (remaining > 0) {
+        row.style.display = 'flex';
+        btn.textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
+    } else {
+        row.style.display = 'none';
+    }
+}
+
+// Point d'entrée public (Phase 4, View Transitions) : délègue la mécanique du morph à
+// runCardDetailMorphTransition (card-grid-renderer.js, partagée avec showCardDetail/card-detail.js),
+// ce fichier ne garde que son propre rendu (renderPublicCardDetail).
+function showPublicCardDetail(cardId, event) {
+    runCardDetailMorphTransition(event, () => renderPublicCardDetail(cardId));
 }
 
 // Fiche détail carte publique : overlay/DOM dédiés (#public-card-detail-*, index.html), jamais
 // #card-detail-overlay (fiche propriétaire) pour ne jamais mélanger les deux flux. Aucun bouton
 // Modifier/Retirer, aucune quantité modifiable, aucun prix d'achat ni date d'acquisition (colonnes
 // absentes de get_cards_public par construction) : uniquement ce que la fonction publique expose déjà.
-function showPublicCardDetail(cardId) {
+function renderPublicCardDetail(cardId) {
     const card = viewedPublicCards.find(c => c.id === cardId);
     if (!card) return;
 
@@ -779,3 +919,57 @@ function showPublicWishlistItemDetail(itemId) {
 
     document.getElementById('public-card-detail-overlay').classList.add('active');
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.viewedPublicProfile = viewedPublicProfile;
+window.viewedPublicCards = viewedPublicCards;
+window.publicCollectionSort = publicCollectionSort;
+window.publicCollectionRarityFilterValues = publicCollectionRarityFilterValues;
+window.viewedPublicWishlists = viewedPublicWishlists;
+window.viewedPublicWishlistItems = viewedPublicWishlistItems;
+window.viewedPublicWishlistPriceMap = viewedPublicWishlistPriceMap;
+window.viewedPublicWishlistExpandedIds = viewedPublicWishlistExpandedIds;
+window.profileMatchesB = profileMatchesB;
+window.hasReciprocalTrade = hasReciprocalTrade;
+window.viewedPublicDuplicateCards = viewedPublicDuplicateCards;
+window.profileDuplicateMatches = profileDuplicateMatches;
+window.DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS = DUPLICATE_SECTION_EXCLUDED_RARITY_GROUPS;
+window.getPublicDuplicateEligibleCards = getPublicDuplicateEligibleCards;
+window.publicCardDetailOpenId = publicCardDetailOpenId;
+window.getUsernameFromHash = getUsernameFromHash;
+window.escapePublicUsernameIlike = escapePublicUsernameIlike;
+window.formatPublicMemberSince = formatPublicMemberSince;
+window.renderPublicProfileNotFound = renderPublicProfileNotFound;
+window.prepareCollectorProfileTransition = prepareCollectorProfileTransition;
+window.getPendingCollectorProfileContext = getPendingCollectorProfileContext;
+window.renderPublicProfileIdentityHeader = renderPublicProfileIdentityHeader;
+window.renderPublicProfileEntryShell = renderPublicProfileEntryShell;
+window.loadPublicProfile = loadPublicProfile;
+window.loadPublicWishlistData = loadPublicWishlistData;
+window.loadPublicWishlistPrices = loadPublicWishlistPrices;
+window.renderPublicProfileShell = renderPublicProfileShell;
+window.renderProfileMatchSection = renderProfileMatchSection;
+window.renderProfileMatchThumb = renderProfileMatchThumb;
+window.populatePublicCollectionSeriesFilter = populatePublicCollectionSeriesFilter;
+window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
+window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
+window.setPublicCollectionSort = setPublicCollectionSort;
+window.filterPublicCollectionAndDisplay = filterPublicCollectionAndDisplay;
+window.loadMorePublicCollectionCards = loadMorePublicCollectionCards;
+window.getFilteredSortedPublicCollection = getFilteredSortedPublicCollection;
+window.renderPublicDuplicateCardsHtml = renderPublicDuplicateCardsHtml;
+window.renderPublicCollectionGrid = renderPublicCollectionGrid;
+window.showPublicCardDetail = showPublicCardDetail;
+window.closePublicCardDetail = closePublicCardDetail;
+window.openWishlistPickerForPublicCard = openWishlistPickerForPublicCard;
+window.refreshPublicCardDetailWishlistState = refreshPublicCardDetailWishlistState;
+window.renderPublicWishlistLists = renderPublicWishlistLists;
+window.togglePublicWishlistSection = togglePublicWishlistSection;
+window.showPublicWishlistItemDetail = showPublicWishlistItemDetail;

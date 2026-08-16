@@ -1,10 +1,14 @@
 // Tri/filtre/rendu de l'onglet "Ma Collection" - Pokémon Tracker
 // Dépend de: allCollectionCards/changeQuantity/deleteCard (tracker.js), sortRaritiesByTier/getRarityIconHtml/
-// renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js)
+// renderFinishBadge/buildRarityFilterRowHtml (utils.js), showCardDetail/closeCardDetail/getCollectionUploadPlaceholder (card-detail.js),
+// renderGridCardHtml (card-grid-renderer.js), resetBinderPage/renderBinderView/setupBinderLifecycle/
+// teardownBinderLifecycle (binder-view.js)
 // Etat possédé : sortColumn, sortDirection, collectionFilters, collectionViewMode
 
-let sortColumn = 'value';
-let sortDirection = 'desc';
+// window.x plutôt que let (ticket V2 Vite, type="module") : sortColumn/sortDirection sont lus/écrits
+// depuis tracker.js aussi.
+window.sortColumn = 'value';
+window.sortDirection = 'desc';
 
 // Source de vérité unique pour tous les filtres Collection (refonte filtres, cf. audit du 2026-08-11).
 // Seul point d'écriture manuel : le picker "+ Ajouter un filtre" (applyCollectionFilter/removeCollectionFilter
@@ -32,7 +36,7 @@ function filterCollectionByIllustrator(illustrator) {
 
     closeCardDetail();
     collectionFilters.illustrator = trimmed;
-    filterAndDisplay();
+    filterAndDisplayReorder();
     navigateToTab('tab-collection');
 }
 
@@ -133,7 +137,7 @@ function removeCollectionFilter(key, value) {
         default:
             return;
     }
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 // ===== "AJOUTER UN FILTRE" — POPOVER 2 ETAPES (Ticket 3, seul moyen manuel d'ajouter un filtre depuis
@@ -386,7 +390,7 @@ function applyCollectionFilter(filterKey, value) {
             return;
     }
     closeCollectionFilterPicker();
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 // Clic extérieur = fermeture propre, jamais de modification de collectionFilters (cf. closeCollectionFilterPicker).
@@ -413,7 +417,7 @@ function sortCollection(column) {
         sortDirection = 'asc';
     }
     updateSortArrows();
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 function updateSortArrows() {
@@ -516,6 +520,29 @@ function computeDuplicateGroupTotals() {
     return totals;
 }
 
+// Version générique de la logique doublon ci-dessus (même regroupement via getDuplicateGroupKey, même
+// seuil total > 1), mais paramétrée sur un tableau de cartes arbitraire au lieu du global
+// allCollectionCards — réutilisable pour une collection publique tierce (profil public, matching).
+// Ne modifie ni ne duplique la définition métier existante, se contente de l'appliquer ailleurs.
+// Retourne une carte représentative par groupe (la première rencontrée) enrichie d'un champ
+// duplicateQuantity = total du groupe - 1 : le total inclut l'exemplaire "principal" qu'on ne
+// considère jamais comme échangeable, seul le surplus l'est (cf audit demandé : quantity=4 -> 3
+// doublons potentiels, pas 4).
+function getDuplicateCardsWithQuantity(cards) {
+    const totals = {};
+    const representative = {};
+
+    (cards || []).forEach(card => {
+        const key = getDuplicateGroupKey(card);
+        totals[key] = (totals[key] || 0) + Number(card.quantity || 1);
+        if (!representative[key]) representative[key] = card;
+    });
+
+    return Object.keys(totals)
+        .filter(key => totals[key] > 1)
+        .map(key => ({ ...representative[key], duplicateQuantity: totals[key] - 1 }));
+}
+
 // Un filtre actif (hors recherche, hors tri) : condition/série/type/rareté/doublons/illustrateur
 function hasActiveCollectionFilters() {
     return !!collectionFilters.condition ||
@@ -540,7 +567,7 @@ function resetCollectionFilters() {
     collectionFilters.duplicatesOnly = false;
     collectionFilters.illustrator = null;
 
-    filterAndDisplay();
+    filterAndDisplayReorder();
 }
 
 function getFilteredSortedCollection() {
@@ -676,8 +703,184 @@ async function bulkDeleteSelected() {
 
 function filterAndDisplay() {
     collectionDisplayLimit = COLLECTION_PAGE_SIZE; // toute recherche/filtre/tri repart de la première page
+    resetBinderPage(); // idem pour le classeur (binder-view.js) : repart de la première double-page
     clearSelection(); // évite d'agir sur une sélection de cartes qu'on ne voit plus
     renderFilteredCollection();
+}
+
+// VT5 (cf roadmap technique animations premium) : au-delà duquel on n'anime plus la réorganisation du
+// Tableau (perf + lisibilité - cf audit VT5). COLLECTION_PAGE_SIZE (60) est la page max réellement
+// affichable, mais animer jusqu'à 60 lignes capturerait bien plus que ce qui est réellement visible
+// sans défilement sur la plupart des écrans ; 24 reste dans la fourchette demandée (20-30), largement
+// au-dessus du nombre de lignes visibles sans scroll, sans être si bas qu'un tri sur une trentaine de
+// cartes filtrées perdrait tout son intérêt.
+const COLLECTION_REORDER_MAX_ROWS = 24;
+
+// VT5b (cf roadmap technique animations premium) : plafond de cartes Galerie animées simultanément -
+// volontairement plus bas que COLLECTION_REORDER_MAX_ROWS (24, Tableau). La grille desktop
+// (.collection-grid, minmax(190px,1fr)) tient ~5-6 colonnes sur une largeur de contenu courante ; avec
+// des cartes en aspect-ratio 5/7 (~190-250px de large, donc ~270-350px de haut), une hauteur de
+// viewport utile d'environ 700-800px après hero/filtres affiche grossièrement 2-3 rangées pleines,
+// soit ~12-18 cartes. 16 couvre cet "écran de cartes" sans capturer toute la page.
+const COLLECTION_GALLERY_REORDER_MAX_CARDS = 16;
+
+// Carte "dans ou proche du viewport" (VT5b) : vérification ponctuelle via getBoundingClientRect() au
+// moment de l'action, jamais un observer/listener persistant (cf demande explicite). Marge de 200px
+// pour inclure les cartes juste sous le pli, dont le mouvement reste naturel sans qu'elles soient
+// pixel-parfaitement visibles à l'instant T.
+function isCollectionCardNearViewport(el, margin = 200) {
+    const rect = el.getBoundingClientRect();
+    return rect.bottom > -margin && rect.top < window.innerHeight + margin;
+}
+
+// VT5 (Tableau) : logique strictement inchangée depuis sa validation manuelle, simplement extraite
+// pour être appelée depuis filterAndDisplayReorder() au même titre que la variante Galerie (VT5b)
+// ci-dessous. Ne pas modifier seuil/noms/comportement ici.
+function runCollectionTableReorder(intersection) {
+    if (intersection.length < 2 || intersection.length > COLLECTION_REORDER_MAX_ROWS) {
+        filterAndDisplay();
+        return;
+    }
+
+    const intersectionSet = new Set(intersection);
+    const tbody = document.getElementById('cards-list');
+
+    const nameIntersectionRows = () => {
+        tbody.querySelectorAll('tr[data-card-id]').forEach(tr => {
+            if (intersectionSet.has(tr.dataset.cardId)) {
+                tr.style.viewTransitionName = `collection-row-${tr.dataset.cardId}`;
+            }
+        });
+    };
+    const clearRowNames = () => {
+        tbody.querySelectorAll('tr[data-card-id]').forEach(tr => {
+            if (tr.style.viewTransitionName) tr.style.viewTransitionName = '';
+        });
+    };
+
+    nameIntersectionRows();
+
+    const transition = runViewTransition('collection-reorder', () => {
+        clearRowNames();
+        filterAndDisplay();
+        nameIntersectionRows();
+    });
+
+    if (!transition) {
+        clearRowNames();
+        return;
+    }
+
+    transition.finished.finally(clearRowNames);
+}
+
+// VT5b (expérimental, cf roadmap technique animations premium) : même principe que le Tableau (VT5),
+// mais restreint aux cartes qui sont À LA FOIS dans l'intersection OLD/NEW ET actuellement visibles
+// (ou proches du viewport) - jamais les 60 cartes de la page. oldEls déjà en ordre DOM (haut en bas,
+// gauche à droite) : filtrer puis tronquer à COLLECTION_GALLERY_REORDER_MAX_CARDS suffit à obtenir un
+// sous-ensemble déterministe, pas besoin d'un tri supplémentaire.
+//
+// Élément animé : la racine .collection-card entière (pas seulement l'image) - c'est une boîte propre
+// (aspect-ratio fixe, overflow:hidden, border-radius, un seul <img> + badges/overlay internes) dont le
+// contenu est capturé comme un unique snapshot aplati ; animer seulement l'image aurait laissé les
+// badges/overlay apparaître/disparaître indépendamment de l'image en mouvement, un résultat moins
+// convaincant que "la carte physique se déplace".
+function runCollectionGalleryReorder(intersection, oldEls) {
+    const intersectionSet = new Set(intersection);
+    const candidates = oldEls
+        .filter(el => intersectionSet.has(el.dataset.cardId) && isCollectionCardNearViewport(el))
+        .slice(0, COLLECTION_GALLERY_REORDER_MAX_CARDS)
+        .map(el => el.dataset.cardId);
+
+    if (candidates.length < 2) {
+        filterAndDisplay();
+        return;
+    }
+
+    const candidateSet = new Set(candidates);
+    const grid = document.getElementById('collection-grid');
+
+    const nameCandidateCards = () => {
+        grid.querySelectorAll('.collection-card[data-card-id]').forEach(card => {
+            if (candidateSet.has(card.dataset.cardId)) {
+                card.style.viewTransitionName = `collection-gallery-card-${card.dataset.cardId}`;
+            }
+        });
+    };
+    const clearCardNames = () => {
+        grid.querySelectorAll('.collection-card[data-card-id]').forEach(card => {
+            if (card.style.viewTransitionName) card.style.viewTransitionName = '';
+        });
+    };
+
+    nameCandidateCards(); // OLD
+
+    const transition = runViewTransition('collection-reorder', () => {
+        // Retrait avant re-render - même piège d'unicité que VT1/VT2/VT5.
+        clearCardNames();
+        filterAndDisplay();
+        // Une candidate disparue du nouveau rendu (filtrée entre-temps, cas rare) ne matche
+        // simplement aucun élément ici : pas d'erreur, juste pas de nom posé pour elle.
+        nameCandidateCards(); // NEW
+    });
+
+    if (!transition) {
+        clearCardNames();
+        return;
+    }
+
+    transition.finished.finally(clearCardNames);
+}
+
+// VT5/VT5b (cf roadmap technique animations premium) : variante de filterAndDisplay() pour les
+// actions utilisateur qui changent réellement le contenu du Tableau ou de la Galerie déjà affichés
+// (filtre ajouté/retiré, tri, recherche après debounce) - jamais pour un changement de mode
+// (setCollectionView), un refresh de données (refreshCollection, add/delete/édition d'une carte) ou
+// le premier affichage : ces cas continuent d'appeler filterAndDisplay() directement, sans transition.
+// C'est l'unique point de distinction retenu (cf audit VT5, section 4) - pas de flag global, juste
+// deux points d'entrée différents vers le même rendu final.
+//
+// Ne réimplémente jamais getFilteredSortedCollection() : les ids OLD viennent du DOM réel de la vue
+// affichée (data-card-id déjà posé sur chaque <tr>/.collection-card), les ids NEW du même appel/state
+// que le rendu réel s'apprête à utiliser - jamais une resimulation séparée de la logique de filtre/tri.
+//
+// Galerie exclue sur mobile (VT5b, cf audit section 27) : grille à ~2 colonnes seulement en dessous de
+// 768px (isCollectionMobileViewport), où une réorganisation peut déplacer une carte sur une très
+// grande distance verticale (peu de colonnes = peu de voisins proches) - risque de mouvement chaotique
+// plutôt que la sensation recherchée. Le Tableau, lui, n'est de toute façon jamais le mode effectif
+// sous ce seuil (getEffectiveCollectionViewMode), donc rien à exclure spécifiquement pour lui.
+function filterAndDisplayReorder() {
+    const effectiveMode = getEffectiveCollectionViewMode();
+    const isReorderableMode = effectiveMode === 'table' || (effectiveMode === 'grid' && !isCollectionMobileViewport());
+
+    if (!isReorderableMode || !document.getElementById('tab-collection')?.classList.contains('active')) {
+        filterAndDisplay();
+        return;
+    }
+
+    const oldSelector = effectiveMode === 'table' ? '#cards-list tr[data-card-id]' : '#collection-grid .collection-card[data-card-id]';
+    const oldEls = [...document.querySelectorAll(oldSelector)];
+    const oldIds = oldEls.map(el => el.dataset.cardId);
+
+    // Même page que celle que filterAndDisplay()/renderFilteredCollection() vont réellement afficher
+    // (collectionDisplayLimit repart toujours à COLLECTION_PAGE_SIZE pour ces actions).
+    const newIds = getFilteredSortedCollection().slice(0, COLLECTION_PAGE_SIZE).map(c => String(c.id));
+
+    if (oldIds.length === 0 || oldIds.join(',') === newIds.join(',')) {
+        // Vue vide avant, ou séquence strictement identique (cf section 15/16 de la demande VT5) :
+        // rien à réorganiser.
+        filterAndDisplay();
+        return;
+    }
+
+    const newIdSet = new Set(newIds);
+    const intersection = oldIds.filter(id => newIdSet.has(id));
+
+    if (effectiveMode === 'table') {
+        runCollectionTableReorder(intersection);
+    } else {
+        runCollectionGalleryReorder(intersection, oldEls);
+    }
 }
 
 function loadMoreCollectionCards() {
@@ -719,25 +922,30 @@ function updateCollectionSummary(filtered, page) {
         maximumFractionDigits: 2
     }).format(displayedValue);
 
+    // summary-text-group isolé du reste : en mode Récap (cf styles.css, #tab-collection.collection-view-recap
+    // .summary-text-group), seule cette partie (pagination/tri, sans sens sur des agrégats) est masquée -
+    // les chips de filtres actifs restent visibles et fonctionnels (removeCollectionFilter inchangé).
     summary.innerHTML = `
-        <span class="summary-segment summary-count">
-            <span class="summary-value">${displayed}</span>
-            <span class="summary-label">carte${displayed > 1 ? 's' : ''} affichée${displayed > 1 ? 's' : ''}</span>
-        </span>
-        <span class="summary-separator">•</span>
-        <span class="summary-segment">
-            <span class="summary-label">sur</span>
-            <span class="summary-value">${total}</span>
-        </span>
-        <span class="summary-separator">•</span>
-        <span class="summary-segment">
-            <span class="summary-label">Valeur :</span>
-            <span class="summary-value">${formattedValue}</span>
-        </span>
-        <span class="summary-separator">•</span>
-        <span class="summary-segment">
-            <span class="summary-label">Tri :</span>
-            <span class="summary-value">${sortLabel}</span>
+        <span class="summary-text-group">
+            <span class="summary-segment summary-count">
+                <span class="summary-value">${displayed}</span>
+                <span class="summary-label">carte${displayed > 1 ? 's' : ''} affichée${displayed > 1 ? 's' : ''}</span>
+            </span>
+            <span class="summary-separator">•</span>
+            <span class="summary-segment">
+                <span class="summary-label">sur</span>
+                <span class="summary-value">${total}</span>
+            </span>
+            <span class="summary-separator">•</span>
+            <span class="summary-segment">
+                <span class="summary-label">Valeur :</span>
+                <span class="summary-value">${formattedValue}</span>
+            </span>
+            <span class="summary-separator">•</span>
+            <span class="summary-segment">
+                <span class="summary-label">Tri :</span>
+                <span class="summary-value">${sortLabel}</span>
+            </span>
         </span>
         ${renderCollectionFilterChips()}
     `;
@@ -792,26 +1000,48 @@ function renderCollectionHeaderKpis(filtered) {
 function renderFilteredCollection() {
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
+    // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
+    const effectiveMode = getEffectiveCollectionViewMode();
 
-    updateCollectionSummary(filtered, page);
     renderCollectionHeaderKpis(filtered);
     updateResetFiltersButtonVisibility();
     updateCollectionAddFilterButtonState();
 
-    // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
-    if (getEffectiveCollectionViewMode() === 'table') {
+    // Toujours mis à jour (y compris en Récap) : les chips de filtres actifs qu'il contient doivent
+    // rester visibles/à jour quel que soit le mode. Seule la partie "60 cartes affichées · sur 724 ·
+    // Valeur... · Tri..." (pagination/tri, sans sens pour des agrégats) est masquée en CSS pour le Récap
+    // - cf #tab-collection.collection-view-recap .summary-text-group dans styles.css.
+    updateCollectionSummary(filtered, page);
+
+    if (effectiveMode === 'table') {
         renderCollectionTable(page);
+    } else if (effectiveMode === 'binder') {
+        // Le classeur reçoit filtered en entier (pas page/collectionDisplayLimit) : sa pagination par
+        // double-page (binder-view.js) est indépendante du "Charger plus" de Galerie/Tableau.
+        renderBinderView(filtered);
+    } else if (effectiveMode === 'recap') {
+        // Récap (collection-recap.js) : agrégats calculés sur le même sous-ensemble filtré que les
+        // autres vues (filtered, jamais allCollectionCards directement) - respecte série/condition/
+        // finish/recherche actifs. Le tri n'a pas de sens pour des agrégats, filtered reste trié mais
+        // ce n'est pas exploité ici.
+        renderCollectionRecap(filtered);
     } else {
         renderCollectionGrid(page);
     }
 
+    // Le classeur gère sa propre pagination (précédent/suivant), le Récap n'affiche pas de liste de
+    // cartes paginée : pas de ligne "Charger plus" dans les deux cas.
     const loadMoreRow = document.getElementById('load-more-row');
-    const remaining = filtered.length - page.length;
-    if (remaining > 0) {
-        loadMoreRow.style.display = 'flex';
-        document.getElementById('load-more-btn').textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
-    } else {
+    if (effectiveMode === 'binder' || effectiveMode === 'recap') {
         loadMoreRow.style.display = 'none';
+    } else {
+        const remaining = filtered.length - page.length;
+        if (remaining > 0) {
+            loadMoreRow.style.display = 'flex';
+            document.getElementById('load-more-btn').textContent = `Charger plus (${remaining} restante${remaining > 1 ? 's' : ''})`;
+        } else {
+            loadMoreRow.style.display = 'none';
+        }
     }
 }
 
@@ -840,7 +1070,7 @@ function renderCollectionTable(filtered) {
         const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
         const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
         return `
-        <tr>
+        <tr data-card-id="${card.id}">
             <td class="select-col"><input type="checkbox" class="row-select-checkbox" data-id="${card.id}" ${selectedCardIds.has(card.id) ? 'checked' : ''} onchange="toggleCardSelection(${card.id})"></td>
             <td>${card.image
                 ? `<img src="${card.image}" alt="${card.name}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id})">`
@@ -883,10 +1113,6 @@ function replayEntrance(el) {
     el.classList.add('motion-enter');
 }
 
-function getGridNoImageHtml() {
-    return '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
-}
-
 function renderCollectionGrid(filtered) {
     const grid = document.getElementById('collection-grid');
     if (!grid) return;
@@ -897,40 +1123,17 @@ function renderCollectionGrid(filtered) {
         return;
     }
 
-    grid.innerHTML = filtered.map(card => {
-        const qty = Number(card.quantity || 1);
-        const lineTotal = Number(card.market_value || 0) * qty;
-        const conditionClass = (card.condition || '').toLowerCase();
-        const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
-        const acquisitionTitle = card.acquisition_type === 'pack' ? 'Sortie d\'un booster' : 'Achetée';
-
-        return `
-            <div class="collection-card" onclick="showCardDetail(${card.id})">
-                ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" loading="lazy" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'full')">`
-                    : getCollectionUploadPlaceholder(card.id, 'full')
-                }
-                ${qty > 1 ? `<div class="qty-badge">×${qty}</div>` : ''}
-                <div class="price-badge">${lineTotal.toFixed(2)}€</div>
-                <div class="set-rarity-badge-row">
-                    ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${card.series}" onerror="this.remove()">` : ''}
-                    ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${card.rarity}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
-                </div>
-                <div class="collection-card-overlay">
-                    <div class="collection-card-name">${card.name}</div>
-                    <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${card.series} · #${card.number}</div>
-                    <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
-                    ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
-                    <span class="acquisition-icon" title="${acquisitionTitle}">${acquisitionIcon}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    grid.innerHTML = filtered.map(card => renderGridCardHtml(card, {
+        detailFn: 'showCardDetail',
+        imageFallback: 'upload',
+        showAcquisitionIcon: true
+    })).join('');
 
     replayEntrance(grid);
 }
 
-let collectionViewMode = 'grid';
+// window.x plutôt que let (ticket V2 Vite, type="module") : lu depuis tracker.js aussi.
+window.collectionViewMode = 'grid';
 
 function isCollectionMobileViewport() {
     return window.matchMedia('(max-width: 768px)').matches;
@@ -945,12 +1148,31 @@ function getEffectiveCollectionViewMode() {
 }
 
 function setCollectionView(mode) {
+    // Lifecycle du clavier binder (B3) : attache/détache uniquement au changement effectif de mode,
+    // jamais à chaque appel (ex: re-clic sur le bouton déjà actif) - setup/teardown sont de toute façon
+    // idempotents côté binder-view.js, mais ce garde évite le travail inutile.
+    if (mode !== collectionViewMode) {
+        if (collectionViewMode === 'binder') teardownBinderLifecycle();
+        if (mode === 'binder') setupBinderLifecycle();
+    }
+
     collectionViewMode = mode;
+    // Lue en CSS (styles.css, filet mobile qui force la Galerie visible quand le Tableau est
+    // indisponible <768px) pour ne pas s'appliquer par-dessus le Classeur/Récap : cf commentaire sur
+    // #tab-collection:not(.collection-view-binder):not(.collection-view-recap) #collection-grid-wrapper.
+    document.getElementById('tab-collection')?.classList.toggle('collection-view-binder', mode === 'binder');
+    document.getElementById('tab-collection')?.classList.toggle('collection-view-recap', mode === 'recap');
     document.getElementById('view-btn-grid').classList.toggle('active', mode === 'grid');
     document.getElementById('view-btn-table').classList.toggle('active', mode === 'table');
+    document.getElementById('view-btn-binder').classList.toggle('active', mode === 'binder');
+    document.getElementById('view-btn-recap').classList.toggle('active', mode === 'recap');
     document.getElementById('collection-grid-wrapper').style.display = mode === 'grid' ? 'block' : 'none';
     document.getElementById('collection-table-wrapper').style.display = mode === 'table' ? 'block' : 'none';
-    document.getElementById('grid-sort').style.display = mode === 'grid' ? 'inline-block' : 'none';
+    document.getElementById('collection-binder-wrapper').style.display = mode === 'binder' ? 'block' : 'none';
+    document.getElementById('collection-recap-wrapper').style.display = mode === 'recap' ? 'block' : 'none';
+    // Le tri par sélecteur reste pertinent en Classeur (Tableau a ses propres en-têtes cliquables) :
+    // visible pour grid ET binder, masqué pour Tableau et Récap (pas de liste de cartes à trier ici).
+    document.getElementById('grid-sort').style.display = (mode !== 'table' && mode !== 'recap') ? 'inline-block' : 'none';
     filterAndDisplay();
 }
 
@@ -999,3 +1221,72 @@ async function backfillIllustrators() {
     await refreshCollection();
     showMessage(`Illustrateur ajouté sur ${updated}/${missing.length} carte(s)`, 'success');
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.collectionFilters = collectionFilters;
+window.filterCollectionByIllustrator = filterCollectionByIllustrator;
+window.COLLECTION_CONDITION_LABELS = COLLECTION_CONDITION_LABELS;
+window.getRarityLabelForGroupKey = getRarityLabelForGroupKey;
+window.getActiveCollectionFilterChips = getActiveCollectionFilterChips;
+window.renderCollectionFilterChips = renderCollectionFilterChips;
+window.removeCollectionFilter = removeCollectionFilter;
+window.collectionFilterPickerStep = collectionFilterPickerStep;
+window.collectionFilterPickerActiveKey = collectionFilterPickerActiveKey;
+window.collectionFilterPickerSearchTerm = collectionFilterPickerSearchTerm;
+window.COLLECTION_FILTER_TYPES = COLLECTION_FILTER_TYPES;
+window.COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD = COLLECTION_FILTER_PICKER_SEARCH_THRESHOLD;
+window.getCollectionFilterPickerOptions = getCollectionFilterPickerOptions;
+window.isCollectionFilterTypeAvailable = isCollectionFilterTypeAvailable;
+window.hasAvailableCollectionFilterTypes = hasAvailableCollectionFilterTypes;
+window.updateCollectionAddFilterButtonState = updateCollectionAddFilterButtonState;
+window.openCollectionFilterPicker = openCollectionFilterPicker;
+window.closeCollectionFilterPicker = closeCollectionFilterPicker;
+window.positionCollectionFilterPicker = positionCollectionFilterPicker;
+window.showCollectionFilterTypeOptions = showCollectionFilterTypeOptions;
+window.showCollectionFilterValueOptions = showCollectionFilterValueOptions;
+window.renderCollectionFilterPickerValueRows = renderCollectionFilterPickerValueRows;
+window.setCollectionFilterPickerSearch = setCollectionFilterPickerSearch;
+window.applyCollectionFilter = applyCollectionFilter;
+window.sortCollection = sortCollection;
+window.updateSortArrows = updateSortArrows;
+window.applySorting = applySorting;
+window.pruneStaleCollectionFilters = pruneStaleCollectionFilters;
+window.getDuplicateGroupKey = getDuplicateGroupKey;
+window.computeDuplicateGroupTotals = computeDuplicateGroupTotals;
+window.getDuplicateCardsWithQuantity = getDuplicateCardsWithQuantity;
+window.hasActiveCollectionFilters = hasActiveCollectionFilters;
+window.updateResetFiltersButtonVisibility = updateResetFiltersButtonVisibility;
+window.resetCollectionFilters = resetCollectionFilters;
+window.getFilteredSortedCollection = getFilteredSortedCollection;
+window.COLLECTION_PAGE_SIZE = COLLECTION_PAGE_SIZE;
+window.collectionDisplayLimit = collectionDisplayLimit;
+window.selectedCardIds = selectedCardIds;
+window.clearSelection = clearSelection;
+window.toggleCardSelection = toggleCardSelection;
+window.toggleSelectAllVisible = toggleSelectAllVisible;
+window.updateSelectAllCheckboxState = updateSelectAllCheckboxState;
+window.updateBulkActionsBar = updateBulkActionsBar;
+window.bulkUpdateCondition = bulkUpdateCondition;
+window.bulkDeleteSelected = bulkDeleteSelected;
+window.filterAndDisplay = filterAndDisplay;
+window.filterAndDisplayReorder = filterAndDisplayReorder;
+window.loadMoreCollectionCards = loadMoreCollectionCards;
+window.getSortLabel = getSortLabel;
+window.updateCollectionSummary = updateCollectionSummary;
+window.renderCollectionHeaderKpis = renderCollectionHeaderKpis;
+window.renderFilteredCollection = renderFilteredCollection;
+window.renderCollectionTable = renderCollectionTable;
+window.replayEntrance = replayEntrance;
+window.renderCollectionGrid = renderCollectionGrid;
+window.isCollectionMobileViewport = isCollectionMobileViewport;
+window.getEffectiveCollectionViewMode = getEffectiveCollectionViewMode;
+window.setCollectionView = setCollectionView;
+window.collectionViewResizeTimer = collectionViewResizeTimer;
+window.backfillIllustrators = backfillIllustrators;

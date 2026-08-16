@@ -43,6 +43,25 @@ function showMessage(text, type = 'error') {
     }, 3000);
 }
 
+// Validation avant upload Storage (taille + type réel du fichier, pas juste l'attribut HTML
+// accept="image/*" qui ne protège rien côté client). Appelée uniquement sur les File venant d'un
+// <input type="file"> choisi par l'utilisateur — jamais sur les Blob récupérés en interne depuis
+// TCGdex/Pokémon TCG API (déjà des images de confiance, pas une entrée utilisateur).
+// Lève une Error avec un message affichable tel quel (showMessage) si le fichier est invalide.
+const MAX_UPLOAD_IMAGE_BYTES = 15 * 1024 * 1024; // 15 Mo : généreux pour une photo de carte, bloque le reste
+
+function validateImageFile(file) {
+    if (!file) {
+        throw new Error('Aucun fichier sélectionné.');
+    }
+    if (!file.type || !file.type.startsWith('image/')) {
+        throw new Error('Le fichier doit être une image.');
+    }
+    if (file.size > MAX_UPLOAD_IMAGE_BYTES) {
+        throw new Error(`Image trop lourde (${(file.size / (1024 * 1024)).toFixed(1)} Mo, maximum 15 Mo).`);
+    }
+}
+
 // Redimensionne une image et la convertit en Blob JPEG, prête à uploader
 function resizeImageToBlob(file, maxWidth = 400) {
     return new Promise((resolve, reject) => {
@@ -437,3 +456,47 @@ function initDatePicker(selector, presetValue) {
         defaultDate: presetValue || null
     });
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.toLocalDateInputValue = toLocalDateInputValue;
+window.handleTcgdexImgError = handleTcgdexImgError;
+window.escapeHtml = escapeHtml;
+window.showMessage = showMessage;
+window.MAX_UPLOAD_IMAGE_BYTES = MAX_UPLOAD_IMAGE_BYTES;
+window.validateImageFile = validateImageFile;
+window.resizeImageToBlob = resizeImageToBlob;
+window.resizeBlobToJpeg = resizeBlobToJpeg;
+window.sanitizeForPath = sanitizeForPath;
+window.getTcgdexImagePath = getTcgdexImagePath;
+window.getSeriesLogoPath = getSeriesLogoPath;
+window.resizeImageToWebpBlob = resizeImageToWebpBlob;
+window.getSeriesSymbolPath = getSeriesSymbolPath;
+window.getSetIdFromTcgdexId = getSetIdFromTcgdexId;
+window.normalizeForMatch = normalizeForMatch;
+window.getCardmarketSearchUrl = getCardmarketSearchUrl;
+window.getCardmarketUrl = getCardmarketUrl;
+window.RARITY_ICON_MAP = RARITY_ICON_MAP;
+window.RARITY_ORDER = RARITY_ORDER;
+window.sortRaritiesByTier = sortRaritiesByTier;
+window.buildFinishOptionsFromCard = buildFinishOptionsFromCard;
+window.buildFinishOptionsHtml = buildFinishOptionsHtml;
+window.getMarketValueForFinish = getMarketValueForFinish;
+window.FOIL_ICON_MAP = FOIL_ICON_MAP;
+window.getFoilIconHtml = getFoilIconHtml;
+window.renderFinishBadge = renderFinishBadge;
+window.getFinishLabel = getFinishLabel;
+window.getRarityIconHtml = getRarityIconHtml;
+window.getRarityGroupKey = getRarityGroupKey;
+window.TYPE_ICON_BASE_URL = TYPE_ICON_BASE_URL;
+window.getTypeIconHtml = getTypeIconHtml;
+window.getTypesIconsHtml = getTypesIconsHtml;
+window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
+window.parseCsvDate = parseCsvDate;
+window.initDatePicker = initDatePicker;

@@ -4,11 +4,15 @@
 // Etat possédé : selectedCard, lastSearchResults, customPreviewImage, searchRequestId, currentMarketValue,
 // catalogueViewUserSet
 
-let selectedCard = null;
-let lastSearchResults = [];
-let customPreviewImage = null; // URL Supabase Storage une fois uploadée
+// Ex-let converties en propriétés window (ticket V2 Vite, type="module") : lues/écrites depuis
+// d'autres fichiers (wishlist.js, public-profile.js, tracker.js), une déclaration locale isolerait
+// ce fichier de leurs écritures/lectures. Toute autre ligne de ce fichier qui fait "nom = valeur"
+// plus loin continue de cibler ces mêmes propriétés window sans autre changement.
+window.selectedCard = null;
+window.lastSearchResults = [];
+window.customPreviewImage = null; // URL Supabase Storage une fois uploadée
 
-let currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
+window.currentMarketValue = 0;    // Valeur marché (CardMarket) de la carte actuellement sélectionnée
 
 // Devient true dès que l'utilisateur clique explicitement sur un bouton grille/liste
 // (setCatalogueView) : au-delà, on ne réapplique plus jamais le défaut mobile automatique
@@ -697,25 +701,6 @@ function closeCardDateFlatpickr() {
     if (input && input._flatpickr) input._flatpickr.close();
 }
 
-// Verrou de scroll dédié à cette modale (jamais partagé avec la fiche Wishlist ou une autre modale) :
-// mémorise document.body.style.overflow uniquement au premier verrouillage, pour ne jamais écraser une
-// valeur déjà modifiée par un autre overlay si jamais deux venaient à se chevaucher.
-let mobileAddPanelScrollLocked = false;
-let mobileAddPanelPreviousBodyOverflow = '';
-
-function lockMobileAddPanelScroll() {
-    if (mobileAddPanelScrollLocked) return;
-    mobileAddPanelPreviousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    mobileAddPanelScrollLocked = true;
-}
-
-function unlockMobileAddPanelScroll() {
-    if (!mobileAddPanelScrollLocked) return;
-    document.body.style.overflow = mobileAddPanelPreviousBodyOverflow;
-    mobileAddPanelScrollLocked = false;
-}
-
 function openMobileAddPanel() {
     if (!isMobileAddPanelViewport()) return;
     if (isMobileAddPanelOpen()) return;
@@ -727,8 +712,7 @@ function openMobileAddPanel() {
 
     closeCardDateFlatpickr();
     overlayCard.appendChild(sheet);
-    overlay.classList.add('active');
-    lockMobileAddPanelScroll();
+    overlay.classList.add('active'); // verrou de scroll générique : cf syncModalScrollLock (tracker.js)
 }
 
 function closeMobileAddPanel() {
@@ -736,7 +720,6 @@ function closeMobileAddPanel() {
 
     closeCardDateFlatpickr();
     document.getElementById('mobile-add-overlay').classList.remove('active');
-    unlockMobileAddPanelScroll();
 
     const sheet = document.querySelector('.catalogue-sheet-sticky');
     const desktopSlot = document.querySelector('.catalogue-sheet-col');
@@ -763,3 +746,52 @@ window.addEventListener('resize', () => {
         }
     }, 150);
 });
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.catalogueViewUserSet = catalogueViewUserSet;
+window.showSearchResultsSkeleton = showSearchResultsSkeleton;
+window.searchRequestId = searchRequestId;
+window.searchCards = searchCards;
+window.searchByIllustrator = searchByIllustrator;
+window.displaySearchResults = displaySearchResults;
+window.populateSearchFilters = populateSearchFilters;
+window.getCataloguePageSize = getCataloguePageSize;
+window.lastFilteredResults = lastFilteredResults;
+window.catalogueVisibleCount = catalogueVisibleCount;
+window.applySearchFilters = applySearchFilters;
+window.loadMoreCatalogueResults = loadMoreCatalogueResults;
+window.updateCatalogueLoadMoreButton = updateCatalogueLoadMoreButton;
+window.renderSearchResults = renderSearchResults;
+window.selectionToken = selectionToken;
+window.selectCard = selectCard;
+window.applyCardToPreview = applyCardToPreview;
+window.replaySelectionEntrance = replaySelectionEntrance;
+window.showPreviewUploadPlaceholder = showPreviewUploadPlaceholder;
+window.handlePreviewImageUpload = handlePreviewImageUpload;
+window.addCard = addCard;
+window.toggleAddPanel = toggleAddPanel;
+window.isAddPanelDefaultOpen = isAddPanelDefaultOpen;
+window.stepAddQuantity = stepAddQuantity;
+window.markResultSelected = markResultSelected;
+window.onSearchResultClick = onSearchResultClick;
+window.activeSort = activeSort;
+window.getSearchResultPrice = getSearchResultPrice;
+window.sortSearchResults = sortSearchResults;
+window.updateCatalogueResultsInfo = updateCatalogueResultsInfo;
+window.setSearchSort = setSearchSort;
+window.setCatalogueView = setCatalogueView;
+window.toggleCatalogueFilterPopover = toggleCatalogueFilterPopover;
+window.isMobileAddPanelViewport = isMobileAddPanelViewport;
+window.isMobileAddPanelOpen = isMobileAddPanelOpen;
+window.closeCardDateFlatpickr = closeCardDateFlatpickr;
+window.openMobileAddPanel = openMobileAddPanel;
+window.closeMobileAddPanel = closeMobileAddPanel;
+window.mobileAddPanelWasMobile = mobileAddPanelWasMobile;
+window.mobileAddPanelResizeTimer = mobileAddPanelResizeTimer;

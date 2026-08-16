@@ -69,17 +69,112 @@ function renderCollectorsNoPublicProfiles(container) {
     container.innerHTML = '<p class="collectors-state-text"><i class="ti ti-users-group" aria-hidden="true"></i> Aucun profil public pour l\'instant.</p>';
 }
 
+// Phase 5 (P5-3) : un seul appel RPC pour tout le lot de profils déjà chargés (jamais un appel par
+// profil - cf audit Phase 5 §7/§10, get_collector_trade_signals conçue exactement pour ce lot borné,
+// P5-2). Échec réseau/RPC : dégradation silencieuse (Map vide -> aucun badge affiché) plutôt que casser
+// l'affichage de la liste elle-même, cohérent avec le reste du fichier (cf onError des contrôleurs).
+async function fetchCollectorTradeSignals(profiles) {
+    const ids = (profiles || []).map(p => p.id).filter(Boolean);
+    if (ids.length === 0) return new Map();
+
+    try {
+        const { data, error } = await supabaseClient.rpc('get_collector_trade_signals', { p_target_ids: ids });
+        if (error) throw error;
+        return new Map((data || []).map(row => [row.user_id, row]));
+    } catch (error) {
+        console.error('Erreur signaux d\'échange collecteurs:', error);
+        return new Map();
+    }
+}
+
+// Tri par opportunité (Phase 5, P5-3) : critères explicites déjà calculés par la RPC, jamais un score
+// composite (cf audit - une "compatibilité 87%" a été explicitement écartée). Réciproque d'abord, puis
+// ce que l'autre a pour moi, puis ce que j'ai pour lui. Un profil absent de signalsMap (self exclu,
+// profil/collection/wishlist privé côté RPC, ou échec réseau) est traité comme {0,0,false} : Array.sort
+// étant stable, ces profils gardent leur ordre d'origine entre eux - dégradation naturelle vers le tri
+// existant (date d'inscription / pertinence recherche) sans code spécifique pour ce cas (audit §11).
+function sortCollectorsByOpportunity(profiles, signalsMap) {
+    const getSignal = (p) => signalsMap.get(p.id) || { for_me_count: 0, for_them_count: 0, is_reciprocal: false };
+
+    return [...profiles].sort((a, b) => {
+        const sa = getSignal(a);
+        const sb = getSignal(b);
+        if (sa.is_reciprocal !== sb.is_reciprocal) return sa.is_reciprocal ? -1 : 1;
+        if (sa.for_me_count !== sb.for_me_count) return sb.for_me_count - sa.for_me_count;
+        if (sa.for_them_count !== sb.for_them_count) return sb.for_them_count - sa.for_them_count;
+        return 0;
+    });
+}
+
+// Badges compacts : chiffres explicites (jamais un score), un seul appel par ligne à la Map déjà
+// résolue - aucune requête ici. signal undefined (profil hors signalsMap, cf sortCollectorsByOpportunity)
+// -> aucun badge affiché, jamais un badge "0" trompeur.
+function renderCollectorSignalBadges(signal) {
+    if (!signal) return '';
+
+    const badges = [];
+    if (signal.is_reciprocal) {
+        badges.push('<span class="collectors-signal-badge collectors-signal-reciprocal"><i class="ti ti-repeat" aria-hidden="true"></i> Match réciproque</span>');
+    }
+    if (signal.for_me_count > 0) {
+        // "toi" (pas "vous") : aligné sur le registre déjà établi côté profil public pour ce même
+        // signal ("Ce qu'il peut te proposer", modules/public-profile.js) - trouvé en audit P5-5,
+        // incohérence de tutoiement/vouvoiement sur la même information entre les deux écrans.
+        badges.push(`<span class="collectors-signal-badge collectors-signal-for-me">${signal.for_me_count} pour toi</span>`);
+    }
+    if (signal.for_them_count > 0) {
+        badges.push(`<span class="collectors-signal-badge collectors-signal-for-them">${signal.for_them_count} pour lui</span>`);
+    }
+
+    return badges.length > 0 ? `<div class="collectors-result-signals">${badges.join('')}</div>` : '';
+}
+
+// VT4 (cf roadmap technique animations premium) : clic normal (même onglet, bouton gauche, sans
+// modificateur) sur une carte Collecteur -> prépare un shell + avatar partagé pour le profil public
+// ciblé, consommés par modules/public-profile.js#loadPublicProfile et tracker.js (choix de la
+// transition 'profile-open'). Un clic modifié (Ctrl/Cmd/Maj/Alt/bouton non-gauche, ex. nouvel onglet)
+// ne doit rien préparer et laisser le lien natif faire son travail normal - jamais de preventDefault.
+// Données lues directement sur l'ancre (data-collector-*) plutôt que reconstruites : uniquement ce
+// que la liste Collecteurs affiche déjà, aucun nouvel appel réseau.
+function handleCollectorProfileClick(event, anchorEl) {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        return;
+    }
+    if (typeof prepareCollectorProfileTransition !== 'function') return;
+
+    prepareCollectorProfileTransition(anchorEl.getAttribute('href'), {
+        id: anchorEl.dataset.collectorId,
+        avatar_url: anchorEl.dataset.collectorAvatarUrl || null,
+        pseudo: anchorEl.dataset.collectorPseudo,
+        username: anchorEl.dataset.collectorUsername,
+        created_at: anchorEl.dataset.collectorCreatedAt || null
+    });
+}
+
 // Chaque résultat est un <a href="#/user/..."> natif : entièrement cliquable, s'appuie sur le routeur
-// hashchange existant, aucun onclick/handler JS supplémentaire nécessaire. Ligne complète (vue #/collectors).
-function renderCollectorsResults(container, profiles) {
+// hashchange existant. Ligne complète (vue #/collectors) - seule cette variante prépare la transition
+// VT4 (data-collector-id sert aussi à retrouver l'avatar source réellement visible au moment où la
+// transition démarre, cf tracker.js#runProfileOpenTransition) ; la variante compacte Dashboard
+// (renderDashboardCollectorsResults, ci-dessous) n'est volontairement pas concernée, cf audit VT4 -
+// même rendu visuel mais fonction de template distincte, hors scope de ce ticket.
+// signalsMap (Phase 5, P5-3) : optionnel, défaut vide - la variante Dashboard n'affiche jamais de
+// badges, seule la page #/collectors complète les demande (withTradeSignals, plus bas).
+function renderCollectorsResults(container, profiles, signalsMap = new Map()) {
     container.innerHTML = profiles.map(p => `
-        <a href="#/user/${encodeURIComponent(p.username)}" class="collectors-result-row">
+        <a href="#/user/${encodeURIComponent(p.username)}" class="collectors-result-row"
+            data-collector-id="${p.id}"
+            data-collector-avatar-url="${p.avatar_url ? escapeHtml(p.avatar_url) : ''}"
+            data-collector-pseudo="${escapeHtml(p.pseudo || p.username)}"
+            data-collector-username="${escapeHtml(p.username)}"
+            data-collector-created-at="${p.created_at || ''}"
+            onclick="handleCollectorProfileClick(event, this)">
             ${profileAvatarHtml(p, 44)}
             <div class="collectors-result-identity">
                 <div class="collectors-result-pseudo">${escapeHtml(p.pseudo || p.username)}</div>
                 <div class="collectors-result-username">@${escapeHtml(p.username)}</div>
                 ${p.created_at ? `<div class="collectors-result-since">${formatPublicMemberSince(p.created_at)}</div>` : ''}
             </div>
+            ${renderCollectorSignalBadges(signalsMap.get(p.id))}
             <i class="ti ti-chevron-right collectors-result-chevron" aria-hidden="true"></i>
         </a>
     `).join('');
@@ -105,7 +200,7 @@ function renderDashboardCollectorsResults(container, profiles) {
 // et le bloc Dashboard tournent chacun leur propre timer/requestId sans jamais se marcher dessus, même
 // si les deux venaient à exister simultanément dans le DOM. Chaque appelant fournit seulement ses
 // callbacks de rendu (les deux vues affichent des choses visuellement différentes).
-function createCollectorsSearchController({ limit = COLLECTORS_RESULT_LIMIT, onHint, onLoading, onError, onNoResults, onResults }) {
+function createCollectorsSearchController({ limit = COLLECTORS_RESULT_LIMIT, withTradeSignals = false, onHint, onLoading, onError, onNoResults, onResults }) {
     let timer = null;
     let requestId = 0;
 
@@ -129,7 +224,15 @@ function createCollectorsSearchController({ limit = COLLECTORS_RESULT_LIMIT, onH
             onNoResults();
             return;
         }
-        onResults(profiles);
+
+        // Phase 5 (P5-3) : second aller-retour async (RPC signaux) - re-vérifié après coup, une saisie
+        // plus récente a pu invalider requestId pendant l'attente, exactement comme pour searchPublicCollectors
+        // ci-dessus.
+        const signalsMap = withTradeSignals ? await fetchCollectorTradeSignals(profiles) : new Map();
+        if (myRequestId !== requestId) return;
+
+        const sorted = withTradeSignals ? sortCollectorsByOpportunity(profiles, signalsMap) : profiles;
+        onResults(sorted, signalsMap);
     }
 
     function handleInput(rawValue) {
@@ -169,8 +272,9 @@ function createCollectorsSearchController({ limit = COLLECTORS_RESULT_LIMIT, onH
 // (policy "select public profiles" OR "select own profile") : sans ce filtre, le propre profil de
 // l'utilisateur connecté remonterait dans la liste "publique" même s'il est resté privé. username non
 // null requis : un profil public sans username n'a pas d'URL #/user/<username> valide à afficher ici.
-function createDefaultCollectorsLoader({ limit, containerId, renderResults }) {
+function createDefaultCollectorsLoader({ limit, containerId, renderResults, withTradeSignals = false }) {
     let profiles = null; // null = pas encore chargé / erreur, [] = chargé mais vide
+    let signalsMap = new Map();
     let hasError = false;
 
     async function load() {
@@ -186,7 +290,12 @@ function createDefaultCollectorsLoader({ limit, containerId, renderResults }) {
                 .order('created_at', { ascending: false })
                 .limit(limit);
             if (error) throw error;
-            profiles = data || [];
+
+            // Phase 5 (P5-3) : signaux + tri résolus une seule fois ici et mis en cache avec les profils
+            // (pas à chaque renderFromCache) - withTradeSignals=false pour le loader Dashboard, qui
+            // n'appelle jamais get_collector_trade_signals.
+            signalsMap = withTradeSignals ? await fetchCollectorTradeSignals(data || []) : new Map();
+            profiles = withTradeSignals ? sortCollectorsByOpportunity(data || [], signalsMap) : (data || []);
             hasError = false;
         } catch (error) {
             console.error('Erreur chargement profils publics:', error);
@@ -211,7 +320,7 @@ function createDefaultCollectorsLoader({ limit, containerId, renderResults }) {
             renderCollectorsNoPublicProfiles(container);
             return;
         }
-        renderResults(container, profiles);
+        renderResults(container, profiles, signalsMap);
     }
 
     return { load, renderFromCache };
@@ -219,14 +328,18 @@ function createDefaultCollectorsLoader({ limit, containerId, renderResults }) {
 
 // ===== Vue #/collectors (page complète, limite 20) =====
 
+// withTradeSignals: true uniquement ici (page #/collectors) - le widget Dashboard plus bas n'active
+// jamais get_collector_trade_signals, cohérent avec le scope P5-3 ("page Collecteurs").
 const collectorsPageDefaultLoader = createDefaultCollectorsLoader({
     limit: COLLECTORS_RESULT_LIMIT,
     containerId: 'collectors-search-results',
-    renderResults: renderCollectorsResults
+    renderResults: renderCollectorsResults,
+    withTradeSignals: true
 });
 
 const collectorsPageSearchController = createCollectorsSearchController({
     limit: COLLECTORS_RESULT_LIMIT,
+    withTradeSignals: true,
     // Champ vidé (text === '') : réafficher la liste par défaut depuis le cache plutôt qu'un état
     // vide. Saisie à 1 caractère (text = hint réel) : garder le hint compact, ne pas toucher au cache.
     onHint: (text) => {
@@ -239,7 +352,7 @@ const collectorsPageSearchController = createCollectorsSearchController({
     onLoading: () => renderCollectorsLoading(document.getElementById('collectors-search-results')),
     onError: () => renderCollectorsError(document.getElementById('collectors-search-results')),
     onNoResults: () => renderCollectorsNoResults(document.getElementById('collectors-search-results')),
-    onResults: (profiles) => renderCollectorsResults(document.getElementById('collectors-search-results'), profiles)
+    onResults: (profiles, signalsMap) => renderCollectorsResults(document.getElementById('collectors-search-results'), profiles, signalsMap)
 });
 
 function onCollectorsSearchInput() {
@@ -286,3 +399,38 @@ const dashboardCollectorsSearchController = createCollectorsSearchController({
 function onDashboardCollectorsSearchInput() {
     dashboardCollectorsSearchController.handleInput(document.getElementById('dashboard-collectors-input')?.value);
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.COLLECTORS_MIN_QUERY_LENGTH = COLLECTORS_MIN_QUERY_LENGTH;
+window.COLLECTORS_DEBOUNCE_MS = COLLECTORS_DEBOUNCE_MS;
+window.COLLECTORS_RESULT_LIMIT = COLLECTORS_RESULT_LIMIT;
+window.DASHBOARD_COLLECTORS_RESULT_LIMIT = DASHBOARD_COLLECTORS_RESULT_LIMIT;
+window.escapeCollectorsIlike = escapeCollectorsIlike;
+window.searchPublicCollectors = searchPublicCollectors;
+window.renderCollectorsHint = renderCollectorsHint;
+window.renderCollectorsLoading = renderCollectorsLoading;
+window.renderCollectorsError = renderCollectorsError;
+window.renderCollectorsNoResults = renderCollectorsNoResults;
+window.fetchCollectorTradeSignals = fetchCollectorTradeSignals;
+window.sortCollectorsByOpportunity = sortCollectorsByOpportunity;
+window.renderCollectorSignalBadges = renderCollectorSignalBadges;
+window.renderCollectorsNoPublicProfiles = renderCollectorsNoPublicProfiles;
+window.handleCollectorProfileClick = handleCollectorProfileClick;
+window.renderCollectorsResults = renderCollectorsResults;
+window.renderDashboardCollectorsResults = renderDashboardCollectorsResults;
+window.createCollectorsSearchController = createCollectorsSearchController;
+window.createDefaultCollectorsLoader = createDefaultCollectorsLoader;
+window.collectorsPageDefaultLoader = collectorsPageDefaultLoader;
+window.collectorsPageSearchController = collectorsPageSearchController;
+window.onCollectorsSearchInput = onCollectorsSearchInput;
+window.resetCollectorsSearchView = resetCollectorsSearchView;
+window.dashboardCollectorsDefaultLoader = dashboardCollectorsDefaultLoader;
+window.dashboardCollectorsSearchController = dashboardCollectorsSearchController;
+window.onDashboardCollectorsSearchInput = onDashboardCollectorsSearchInput;

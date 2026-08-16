@@ -2,14 +2,15 @@
 // Dépend de: supabaseClient/API_BASE/API_EN/allCollectionCards/performCardAdd/refreshCollection/recordValueSnapshot (tracker.js),
 // sanitizeForPath/getSetIdFromTcgdexId/sortRaritiesByTier/buildRarityFilterRowHtml/getFoilIconHtml/buildFinishOptionsHtml/
 // getRarityIconHtml/initDatePicker (utils.js), getStoredImageFilenames/uploadImageToStorage/uploadSeriesLogoManually (storage.js),
-// showCardDetail/closeCardDetail/getGridNoImageHtml (card-detail.js/collection.js), showMessage (utils.js)
+// showCardDetail/closeCardDetail (card-detail.js), getGridNoImageHtml (card-grid-renderer.js), showMessage (utils.js)
 // Le HTML de renderProgressionCardsGrid appelle showAddCardModal/quickInstantAdd en onclick : ces deux sous-features
 // sont couplées via le DOM, d'où leur regroupement dans un seul module.
 // Etat possédé : customQuickAddImage, QUICKADD_DEFAULTS_KEY, allTcgdexSeries, currentProgressionSetId,
 // currentProgressionCards, progressionFilter, progressionFinishMode, currentProgressionStoredFilenames,
 // progressionRarityFilterValues
 
-let customQuickAddImage = null; // URL Supabase Storage une fois uploadée (vignette d'ajout rapide)
+// window.x plutôt que let (ticket V2 Vite, type="module") : lu depuis tracker.js aussi.
+window.customQuickAddImage = null; // URL Supabase Storage une fois uploadée (vignette d'ajout rapide)
 
 // ===== REGLAGES D'AJOUT RAPIDE (Progression) =====
 
@@ -103,15 +104,16 @@ function saveQuickAddSettings() {
 
 // ===== PROGRESSION PAR SERIE =====
 
-let allTcgdexSeries = [];
-let currentProgressionSetId = null;
+// window.x plutôt que let (ticket V2 Vite, type="module") pour allTcgdexSeries/currentProgressionSetId :
+// lus depuis stats-render.js/dashboard.js/tracker.js aussi. currentProgressionCards reste 100% locale.
+window.allTcgdexSeries = [];
+window.currentProgressionSetId = null;
 let currentProgressionCards = [];
 let progressionFilter = 'all';
 let progressionFinishMode = 'normal';
 let currentProgressionStoredFilenames = new Set();
 let progressionStoredLogoFilenames = new Set();
 let progressionLogosLoaded = false;
-let progressionOpenSeriesIds = new Set(); // chapitres actuellement ouverts dans le catalogue
 let progressionLogoCachingTriggered = new Set(); // évite de relancer un upload déjà en cours pendant la session
 
 // Logo d'un set/série : sert la version Supabase déjà cachée en priorité (rapide), sinon le lien TCGdex
@@ -254,6 +256,67 @@ function renderProgressionKpis() {
 
 // Rendu pur du catalogue (aucun appel réseau) : appelé après chargement initial et à chaque
 // ouverture/fermeture de chapitre, pour rester instantané
+// Priorisation des sets (Phase 2, ticket P2-3, cf audit du 2026-08-14) : deux catégories objectives,
+// jamais un score composite. "Le moins cher à compléter" volontairement absent de cette V1 — demanderait
+// de charger le prix de chaque carte manquante de chaque set en cours (aujourd'hui uniquement chargé
+// à l'ouverture d'un set précis), trop coûteux pour un calcul à chaque affichage de la liste.
+function computeProgressionPriorityGoals(ownedIdsBySet) {
+    const inProgress = [];
+    allTcgdexSeries.forEach(series => {
+        (series.sets || []).forEach(set => {
+            const officialCount = set.cardCount?.official || 0;
+            const total = set.cardCount?.total || officialCount;
+            const owned = ownedIdsBySet[set.id]?.size || 0;
+            if (owned === 0 || total === 0) return;
+            const pct = Math.round((owned / total) * 100);
+            if (pct === 100) return;
+            inProgress.push({ set, pct, missing: total - owned });
+        });
+    });
+
+    if (inProgress.length === 0) return { almostDone: null, mostAccessible: null };
+
+    const almostDone = inProgress.reduce((best, e) => (!best || e.pct > best.pct) ? e : best, null);
+    const mostAccessible = inProgress.reduce((best, e) => (!best || e.missing < best.missing) ? e : best, null);
+
+    return { almostDone, mostAccessible };
+}
+
+function renderProgressionPriorityGoals(ownedIdsBySet) {
+    const container = document.getElementById('progression-priority-goals');
+    if (!container) return;
+
+    const { almostDone, mostAccessible } = computeProgressionPriorityGoals(ownedIdsBySet);
+    if (!almostDone && !mostAccessible) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const goalCardHtml = (label, entry) => {
+        if (!entry) return '';
+        const { set, pct, missing } = entry;
+        const safeName = (set.name || '').replace(/'/g, "\\'");
+        const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
+        return `
+            <div class="progression-goal-card" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
+                <div class="progression-goal-label">${label}</div>
+                ${logoUrl ? `<img src="${logoUrl}" class="progression-goal-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">` : ''}
+                <div class="progression-goal-name">${set.name}</div>
+                <div class="progression-goal-metric">${label === 'Presque terminé' ? `${pct}%` : `${missing} carte${missing > 1 ? 's' : ''} manquante${missing > 1 ? 's' : ''}`}</div>
+            </div>
+        `;
+    };
+
+    // Si le même set gagne les deux catégories, les deux cartes restent affichées : l'information
+    // ("pourquoi ce set ressort") diffère même si la cible est identique.
+    container.innerHTML = `
+        <div class="progression-goals-row">
+            ${goalCardHtml('Presque terminé', almostDone)}
+            ${goalCardHtml('Ton objectif le plus accessible', mostAccessible)}
+        </div>
+    `;
+}
+
 function renderProgressionSeriesList() {
     const container = document.getElementById('progression-series-list');
     if (!container) return;
@@ -268,6 +331,8 @@ function renderProgressionSeriesList() {
         }
     });
 
+    renderProgressionPriorityGoals(ownedIdsBySet);
+
     // Ne garder que les générations où au moins une extension est entamée
     const seriesWithOwnedSets = allTcgdexSeries
         .map(series => ({ series, sets: (series.sets || []).filter(set => (ownedIdsBySet[set.id]?.size || 0) > 0) }))
@@ -275,27 +340,19 @@ function renderProgressionSeriesList() {
 
     // Compte neuf (ou aucune carte avec tcgdex_id) : sans ce garde, container.innerHTML devient une
     // chaîne vide et l'onglet Progression paraît cassé, alors que les KPI juste au-dessus affichent
-    // déjà "Aucun set commencé". Réutilise les classes .followed-sets-empty existantes (section Sets
-    // suivis, même page) plutôt que d'introduire un nouveau style.
+    // déjà "Aucun set commencé".
     if (seriesWithOwnedSets.length === 0) {
         container.innerHTML = `
-            <div class="followed-sets-empty">
-                <p class="followed-sets-empty-title">Aucune série commencée</p>
-                <p class="followed-sets-empty-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
+            <div class="progression-empty-state">
+                <p class="progression-empty-state-title">Aucune série commencée</p>
+                <p class="progression-empty-state-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
                 <button class="dashboard-add-btn" style="margin-top:0.75rem;" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
             </div>
         `;
         return;
     }
 
-    // Par défaut, le chapitre le plus récent est ouvert (fait office de "chapitre consulté")
-    if (progressionOpenSeriesIds.size === 0 && seriesWithOwnedSets.length > 0) {
-        progressionOpenSeriesIds.add(seriesWithOwnedSets[0].series.id);
-    }
-
     container.innerHTML = seriesWithOwnedSets.map(({ series, sets }) => {
-        const isOpen = progressionOpenSeriesIds.has(series.id);
-
         const setsHtml = sets.map(set => {
             const officialCount = set.cardCount?.official || 0;
             const total = set.cardCount?.total || officialCount;
@@ -318,23 +375,26 @@ function renderProgressionSeriesList() {
             const isAlmost = pct >= 90 && pct < 100;
             const isLow = pct > 0 && pct < 10;
             const rowStateClass = isComplete ? 'is-complete' : isAlmost ? 'is-almost' : isLow ? 'is-low' : '';
+            // Badge % distinct de l'état de la carte (rowStateClass) : gris tant qu'aucune carte n'est
+            // possédée, vert une fois complète, or sinon - cf maquette grille validée (2026-08-16).
+            const badgeClass = isComplete ? 'is-complete' : owned === 0 ? 'is-zero' : '';
 
-            const countHtml = isComplete
+            const subtitleHtml = isComplete
                 ? `<span class="progression-set-complete"><i class="ti ti-check" aria-hidden="true"></i> Terminée</span>`
-                : `${owned}/${officialCount} · <span class="progression-set-pct">${pct}%</span>`;
+                : `${owned}/${officialCount} cartes`;
 
             return `
                 <div class="progression-set-row ${rowStateClass}" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
-                    ${logoHtml}
+                    <span class="progression-set-pct-badge ${badgeClass}">${pct}%</span>
+                    <div class="progression-set-logo-wrap">${logoHtml}</div>
                     <div class="progression-set-info">
                         <div class="progression-set-name">${set.name}</div>
+                        <div class="progression-set-count">
+                            ${subtitleHtml}
+                            ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
+                        </div>
                         <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pct}%"></div></div>
                     </div>
-                    <div class="progression-set-count">
-                        ${countHtml}
-                        ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
-                    </div>
-                    <span class="progression-chevron">›</span>
                 </div>
             `;
         }).join('');
@@ -345,127 +405,22 @@ function renderProgressionSeriesList() {
         const genTotal = sets.reduce((sum, set) => sum + (set.cardCount?.total || set.cardCount?.official || 0), 0);
         const genPct = genTotal > 0 ? Math.round((genOwned / genTotal) * 100) : 0;
 
-        const seriesLogoUrl = resolveCachedLogoUrl(series.id, series.logo);
-
+        // En-tête "eyebrow" (libellé + trait), inspiré de /guides sur duffus.fr - remplace l'ancien
+        // bloc repliable (logo/nom/barre/%/chevron cliquable) : toutes les séries possédées restent
+        // dépliées en permanence, cf maquette validée le 2026-08-16
+        // (docs/inspiration-duffus-animations.md#4). seriesWithOwnedSets ne garde déjà que les séries
+        // entamées, donc pas de risque de page à rallonge avec des dizaines de blocs vides.
         return `
-            <div class="progression-series-block ${isOpen ? 'is-open' : 'is-closed'}">
-                <div class="progression-series-header" onclick="toggleProgressionSeries('${series.id}')">
-                    ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="progression-series-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">` : ''}
-                    <div class="progression-series-info">
-                        <div class="progression-series-name">${series.name}</div>
-                        <div class="progression-series-meta">${sets.length} extension${sets.length > 1 ? 's' : ''} · ${genOwned}/${genOfficial} cartes</div>
-                        <div class="progression-series-progress-bar"><div class="progression-series-progress-fill" style="width:${genPct}%"></div></div>
-                    </div>
-                    <div class="progression-series-pct">${genPct}%</div>
-                    <span class="progression-series-toggle"><i class="ti ti-chevron-down" aria-hidden="true"></i></span>
+            <div class="progression-series-block">
+                <div class="progression-series-eyebrow">
+                    <span class="progression-series-eyebrow-label">${series.name}</span>
+                    <span class="progression-series-eyebrow-line"></span>
+                    <span class="progression-series-eyebrow-pct">${genPct}% · ${genOwned}/${genOfficial}</span>
                 </div>
-                <div class="progression-sets-list" ${isOpen ? '' : 'style="display:none"'}>${setsHtml}</div>
+                <div class="progression-sets-list">${setsHtml}</div>
             </div>
         `;
     }).join('');
-}
-
-function toggleProgressionSeries(seriesId) {
-    if (progressionOpenSeriesIds.has(seriesId)) {
-        progressionOpenSeriesIds.delete(seriesId);
-    } else {
-        progressionOpenSeriesIds.add(seriesId);
-    }
-    renderProgressionSeriesList();
-}
-
-// ===== MES SETS SUIVIS =====
-// Lecture seule pour ce sprint : la table followed_sets se peuple via Supabase pour l'instant,
-// le contrôle d'ajout/retrait (pin) arrivera dans un sprint dédié.
-
-let followedSets = [];
-
-async function loadFollowedSets() {
-    const container = document.getElementById('progression-followed-sets');
-    if (!container) return;
-
-    try {
-        const { data, error } = await supabaseClient.from('followed_sets').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        followedSets = data || [];
-    } catch (error) {
-        followedSets = [];
-        console.error('Erreur lors du chargement des sets suivis:', error);
-    }
-
-    renderFollowedSetsSection();
-}
-
-function renderFollowedSetsSection() {
-    const container = document.getElementById('progression-followed-sets');
-    if (!container) return;
-
-    const headerHtml = `
-        <div class="followed-sets-heading">
-            <span class="followed-sets-icon"><i class="ti ti-bookmark" aria-hidden="true"></i></span>
-            <div>
-                <div class="followed-sets-title">Sets suivis</div>
-                <div class="followed-sets-subtitle">Retrouvez ici vos projets de collection en cours.</div>
-            </div>
-        </div>
-    `;
-
-    if (followedSets.length === 0) {
-        container.innerHTML = `
-            ${headerHtml}
-            <div class="followed-sets-empty">
-                <p class="followed-sets-empty-title">Aucun set suivi pour le moment</p>
-                <p class="followed-sets-empty-text">Les sets que vous épinglerez apparaîtront ici pour un accès rapide.</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Recompose logo/nom/progression à partir des données déjà chargées (aucun nouvel appel API)
-    const ownedIdsBySet = {};
-    allCollectionCards.forEach(card => {
-        if (card.tcgdex_id) {
-            const setId = getSetIdFromTcgdexId(card.tcgdex_id);
-            if (!ownedIdsBySet[setId]) ownedIdsBySet[setId] = new Set();
-            ownedIdsBySet[setId].add(card.tcgdex_id);
-        }
-    });
-
-    const allSets = [];
-    allTcgdexSeries.forEach(series => (series.sets || []).forEach(set => allSets.push(set)));
-
-    const cardsHtml = followedSets.map(follow => {
-        const set = allSets.find(s => s.id === follow.set_id);
-        if (!set) return '';
-
-        const officialCount = set.cardCount?.official || 0;
-        const total = set.cardCount?.total || officialCount;
-        const owned = ownedIdsBySet[set.id]?.size || 0;
-        const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
-        const safeName = (set.name || '').replace(/'/g, "\\'");
-
-        const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
-
-        const logoHtml = logoUrl
-            ? `<img src="${logoUrl}" class="followed-set-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">`
-            : `<div class="followed-set-logo-placeholder"><i class="ti ti-cards" aria-hidden="true"></i></div>`;
-
-        return `
-            <div class="followed-set-card" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
-                ${logoHtml}
-                <div class="followed-set-info">
-                    <div class="followed-set-name">${set.name}</div>
-                    <div class="followed-set-progress-bar"><div class="followed-set-progress-fill" style="width:${pct}%"></div></div>
-                    <div class="followed-set-count">${owned}/${officialCount} · ${pct}%</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    container.innerHTML = `
-        ${headerHtml}
-        <div class="followed-sets-grid">${cardsHtml}</div>
-    `;
 }
 
 async function handleProgressionSeriesLogoUpload(event, setId) {
@@ -483,6 +438,46 @@ async function handleProgressionSeriesLogoUpload(event, setId) {
         showMessage('Erreur lors de l\'envoi du logo', 'error');
         console.error(error);
     }
+}
+
+// Récupère la liste complète et détaillée (rareté, prix, image) des cartes d'un set TCGdex, par lots
+// de 5. Extrait d'openSetProgression pour être réutilisable par le Dashboard (P2-5, budget de
+// l'objectif) sans dupliquer la logique de fetch/fallback FR→EN.
+async function fetchSetCardsDetailed(setId, onProgress) {
+    let response = await fetch(`${API_BASE}/cards?set=${setId}`);
+    let data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+        const enResponse = await fetch(`${API_EN}/cards?set=${setId}`);
+        data = await enResponse.json();
+    }
+
+    const basicList = (Array.isArray(data) ? data : []).filter(c => getSetIdFromTcgdexId(c.id) === setId);
+
+    const detailed = [];
+    const batchSize = 5;
+    for (let i = 0; i < basicList.length; i += batchSize) {
+        const batch = basicList.slice(i, i + batchSize);
+        if (onProgress) onProgress(Math.min(i + batchSize, basicList.length), basicList.length);
+
+        const results = await Promise.all(batch.map(async (card) => {
+            try {
+                const detailRes = await fetch(`${API_BASE}/cards/${card.id}`);
+                const detail = await detailRes.json();
+                if (detail && !detail.status) return detail;
+                throw new Error('fr not found');
+            } catch {
+                try {
+                    const enDetailRes = await fetch(`${API_EN}/cards/${card.id}`);
+                    return await enDetailRes.json();
+                } catch {
+                    return card; // filet de sécurité minimal
+                }
+            }
+        }));
+        detailed.push(...results);
+    }
+
+    return detailed.sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));
 }
 
 async function openSetProgression(setId, setName, logoUrl) {
@@ -515,44 +510,8 @@ async function openSetProgression(setId, setName, logoUrl) {
     if (progressText) progressText.textContent = 'Chargement des cartes...';
 
     try {
-        let response = await fetch(`${API_BASE}/cards?set=${setId}`);
-        let data = await response.json();
-        if (!Array.isArray(data) || data.length === 0) {
-            const enResponse = await fetch(`${API_EN}/cards?set=${setId}`);
-            data = await enResponse.json();
-        }
-
-        const basicList = (Array.isArray(data) ? data : []).filter(c => getSetIdFromTcgdexId(c.id) === setId);
-
-        // Récupérer les détails complets (rareté, prix, image) par lots de 5
-        const detailed = [];
-        const batchSize = 5;
-        for (let i = 0; i < basicList.length; i += batchSize) {
-            const batch = basicList.slice(i, i + batchSize);
-            if (progressText) progressText.textContent = `Chargement des cartes... ${Math.min(i + batchSize, basicList.length)}/${basicList.length}`;
-
-            const results = await Promise.all(batch.map(async (card) => {
-                try {
-                    const detailRes = await fetch(`${API_BASE}/cards/${card.id}`);
-                    const detail = await detailRes.json();
-                    if (detail && !detail.status) return detail;
-                    throw new Error('fr not found');
-                } catch {
-                    try {
-                        const enDetailRes = await fetch(`${API_EN}/cards/${card.id}`);
-                        return await enDetailRes.json();
-                    } catch {
-                        return card; // filet de sécurité minimal
-                    }
-                }
-            }));
-            detailed.push(...results);
-        }
-
-        currentProgressionCards = detailed.sort((a, b) => {
-            const numA = parseInt(a.localId) || 0;
-            const numB = parseInt(b.localId) || 0;
-            return numA - numB;
+        currentProgressionCards = await fetchSetCardsDetailed(setId, (done, total) => {
+            if (progressText) progressText.textContent = `Chargement des cartes... ${done}/${total}`;
         });
 
         // Mis en cache une seule fois ici : évite de re-vérifier (et de vider la grille) à chaque
@@ -588,6 +547,57 @@ function populateProgressionRarityFilter() {
         buildRarityFilterRowHtml(rarities, progressionRarityFilterValues, 'setProgressionRarityFilter');
 }
 
+// Budget de complétion (Phase 2, ticket P2-1/P2-2, cf audit du 2026-08-14) : prix TCGdex live déjà
+// présent sur les cartes manquantes (currentProgressionCards, pas de requête supplémentaire), jamais
+// card_price_history (quasi jamais peuplée pour une carte jamais possédée). Réutilise
+// getMarketValueForFinish (modules/utils.js) — même résolution de prix par finition que le reste de
+// l'app, pas une deuxième logique de prix. Un prix de 0 est traité comme "inconnu", jamais sommé
+// comme gratuit (cf audit, cas limites). mostExpensive calculé dans la même passe pour P2-2, pas
+// affiché ici.
+function computeSetCompletionBudget(missingCards, finishMode) {
+    let totalKnown = 0;
+    let countKnown = 0;
+    let countUnknown = 0;
+    let mostExpensive = null;
+
+    missingCards.forEach(card => {
+        const price = getMarketValueForFinish(card, finishMode);
+        if (price > 0) {
+            totalKnown += price;
+            countKnown++;
+            if (!mostExpensive || price > mostExpensive.price) {
+                mostExpensive = { card, price };
+            }
+        } else {
+            countUnknown++;
+        }
+    });
+
+    return { totalKnown, countKnown, countUnknown, mostExpensive };
+}
+
+function renderProgressionSetBudgetText(missingCount, budget) {
+    const el = document.getElementById('progression-set-budget-text');
+    if (!el) return;
+
+    if (missingCount === 0) {
+        el.textContent = '';
+        return;
+    }
+
+    const { totalKnown, countKnown, countUnknown } = budget;
+
+    if (countKnown === 0) {
+        el.textContent = 'Prix inconnu pour toutes les cartes manquantes';
+        return;
+    }
+
+    const amount = `<span class="budget-amount">≈ ${totalKnown.toFixed(2)} €</span>`;
+    el.innerHTML = countUnknown === 0
+        ? `${amount} pour compléter ce set (${countKnown} carte${countKnown > 1 ? 's' : ''})`
+        : `${amount} pour les ${countKnown} carte${countKnown > 1 ? 's' : ''} manquante${countKnown > 1 ? 's' : ''} dont le prix est connu — ${countUnknown} sans estimation`;
+}
+
 async function renderProgressionCardsGrid() {
     const grid = document.getElementById('progression-cards-grid');
     const searchTerm = document.getElementById('progression-search').value.toLowerCase();
@@ -607,6 +617,14 @@ async function renderProgressionCardsGrid() {
     const totalCount = baseCards.length;
     const pct = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
     document.getElementById('progression-set-progress-text').textContent = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
+
+    // Un seul calcul pour le budget (P2-1) et la carte manquante la plus chère (P2-2) — même passe,
+    // pas de logique dupliquée. Portée à toutes les cartes manquantes du set, indépendamment du
+    // filtre affiché (recherche/possédées/manquantes/rareté) : le budget représente le set entier.
+    const missingSetCards = baseCards.filter(c => !isOwnedInMode(c.id, progressionFinishMode));
+    const setBudget = computeSetCompletionBudget(missingSetCards, progressionFinishMode);
+    renderProgressionSetBudgetText(missingSetCards.length, setBudget);
+    const mostExpensiveMissingId = setBudget.mostExpensive?.card?.id || null;
 
     let cards = baseCards;
     if (searchTerm) {
@@ -656,13 +674,19 @@ async function renderProgressionCardsGrid() {
             imageUrl = `${card.image}/low.webp`; // Lien brut TCGdex en secours
         }
 
+        // P2-2 : mise en évidence de la carte manquante la plus chère du set (dérivée du même calcul
+        // que le budget P2-1, aucune donnée/requête supplémentaire) — jamais "la plus difficile",
+        // seulement "la plus chère", cf audit du 2026-08-14 sur les concepts à ne pas fusionner.
+        const isMostExpensiveMissing = !owned && mostExpensiveMissingId && card.id === mostExpensiveMissingId;
+
         return `
-            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''}" ${owned && ownedCardRow ? `onclick="showCardDetail(${ownedCardRow.id})"` : `onclick="addFromProgression('${card.id}', null)"`}>
+            <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''} ${isMostExpensiveMissing ? 'most-expensive-missing' : ''}" ${owned && ownedCardRow ? `data-card-id="${ownedCardRow.id}" onclick="showCardDetail(${ownedCardRow.id}, event)"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
                     ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="handleTcgdexImgError(this)">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
+                ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${setBudget.mostExpensive.price.toFixed(2)} €</div>` : ''}
                 <button class="progression-add-badge" onclick="event.stopPropagation(); quickInstantAdd('${card.id}', this)">+</button>
                 <div class="progression-card-label">#${card.localId} ${card.name}</div>
             </div>
@@ -997,3 +1021,52 @@ async function submitQuickAdd(card) {
         renderProgressionCardsGrid();
     }
 }
+
+// ===== Exports window (ticket V2 Vite, type="module") =====
+// Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
+// (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
+// (chargés en modules indépendants, sans import/export entre eux, scope global inchangé)
+// puissent continuer à référencer ces noms tels quels — y compris depuis des onclick="..."
+// inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
+// (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
+// du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.QUICKADD_DEFAULTS_KEY = QUICKADD_DEFAULTS_KEY;
+window.getQuickAddDefaults = getQuickAddDefaults;
+window.saveQuickAddDefaultsToStorage = saveQuickAddDefaultsToStorage;
+window.openQuickAddSettingsModal = openQuickAddSettingsModal;
+window.toggleQaSettingsPriceField = toggleQaSettingsPriceField;
+window.closeQuickAddSettingsModal = closeQuickAddSettingsModal;
+window.saveQuickAddSettings = saveQuickAddSettings;
+window.currentProgressionCards = currentProgressionCards;
+window.progressionFilter = progressionFilter;
+window.progressionFinishMode = progressionFinishMode;
+window.currentProgressionStoredFilenames = currentProgressionStoredFilenames;
+window.progressionStoredLogoFilenames = progressionStoredLogoFilenames;
+window.progressionLogosLoaded = progressionLogosLoaded;
+window.progressionLogoCachingTriggered = progressionLogoCachingTriggered;
+window.resolveCachedLogoUrl = resolveCachedLogoUrl;
+window.loadSeriesProgress = loadSeriesProgress;
+window.computeProgressionKpiData = computeProgressionKpiData;
+window.renderProgressionKpis = renderProgressionKpis;
+window.renderProgressionSeriesList = renderProgressionSeriesList;
+window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
+window.openSetProgression = openSetProgression;
+window.fetchSetCardsDetailed = fetchSetCardsDetailed;
+window.computeSetCompletionBudget = computeSetCompletionBudget;
+window.progressionRarityFilterValues = progressionRarityFilterValues;
+window.setProgressionRarityFilter = setProgressionRarityFilter;
+window.populateProgressionRarityFilter = populateProgressionRarityFilter;
+window.renderProgressionCardsGrid = renderProgressionCardsGrid;
+window.computeAvailableFinishModes = computeAvailableFinishModes;
+window.renderProgressionFinishToggle = renderProgressionFinishToggle;
+window.cardHasFinishVariant = cardHasFinishVariant;
+window.setProgressionFinishMode = setProgressionFinishMode;
+window.setProgressionFilter = setProgressionFilter;
+window.backToSeriesProgress = backToSeriesProgress;
+window.addFromProgression = addFromProgression;
+window.quickInstantAdd = quickInstantAdd;
+window.getQuickAddUploadPlaceholderHtml = getQuickAddUploadPlaceholderHtml;
+window.handleQuickAddImageUpload = handleQuickAddImageUpload;
+window.showAddCardModal = showAddCardModal;
+window.toggleQuickAddPurchasePriceField = toggleQuickAddPurchasePriceField;
+window.submitQuickAdd = submitQuickAdd;

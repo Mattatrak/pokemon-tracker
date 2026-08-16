@@ -1,0 +1,5 @@
+# Scaffold minimal pour déployer les Edge Functions via la CLI Supabase (Phase 3).
+# Remplacer <PROJECT_REF> par la référence du projet (Dashboard Supabase -> Project Settings -> General)
+# avant de lancer `supabase functions deploy purge-price-history --project-ref <PROJECT_REF>`,
+# ou passer --project-ref directement en argument CLI sans éditer ce fichier.
+project_id = "<PROJECT_REF>"
