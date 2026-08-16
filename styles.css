@@ -8591,8 +8591,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     align-items: center;
     column-gap: 2rem;
     row-gap: 0.5rem;
-    min-height: 600px;
-    padding: 40px;
+    min-height: 340px;
+    padding: 32px;
     border-radius: 24px;
     overflow: hidden;
     background-image:
