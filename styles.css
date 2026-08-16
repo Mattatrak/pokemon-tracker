@@ -1199,7 +1199,7 @@ body {
     grid-template-columns: minmax(0, 1fr) 400px;
     align-items: end;
     gap: 2rem;
-    min-height: 500px;
+    min-height: 320px;
     padding: 1.5rem 2.5rem 1rem;
 }
 

@@ -59,7 +59,6 @@ function generateDesktopNavigation(activeTabId) {
             </div>
             <div class="dashboard-integrated-nav-right">
                 <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action" title="Rechercher"><i class="ti ti-search" aria-hidden="true"></i></a>
-                <a href="#${TAB_ROUTES['tab-add']}" class="dashboard-integrated-nav-action dashboard-integrated-nav-action--primary" title="Ajouter"><i class="ti ti-plus" aria-hidden="true"></i></a>
                 <div class="profile-menu-wrap">
                     <button class="dashboard-integrated-nav-action dashboard-integrated-nav-action--profile${pseudoHtml ? ' dashboard-integrated-nav-action--profile-named' : ''}" title="Mon profil" onclick="toggleProfileMenu(event)">
                         ${avatarHtml}${pseudoHtml}

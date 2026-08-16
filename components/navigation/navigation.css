@@ -166,18 +166,6 @@
     transform: translateY(-1px);
 }
 
-.dashboard-integrated-nav-action--primary {
-    background: var(--gold);
-    border-color: var(--gold);
-    color: var(--ink-navy);
-}
-
-.dashboard-integrated-nav-action--primary:hover {
-    background: var(--gold-hover);
-    border-color: var(--gold-hover);
-    color: var(--ink-navy);
-}
-
 /* Profil (NAV3) : contour doré discret plutôt que le même gris neutre que Rechercher - le bouton doit se
    lire comme "compte" plutôt que comme une troisième action générique du groupe, sans texte/badge/chevron
    ajouté (contenu du bouton inchangé, cf DesktopNavbar.js). */
