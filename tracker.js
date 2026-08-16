@@ -813,7 +813,7 @@ function activateTabContent(tabId) {
     // en arrivant sur Souhaits (nouveaux noeuds DOM pour des cartes visuellement identiques). Les
     // rafraichissements apres une vraie mutation (wishlist.js) restent toujours a jour : ils appellent
     // loadWishlists() directement, jamais via ce garde-fou.
-    if (tabId === 'tab-wishlist' && (typeof wishlistLastLoadedAt === 'undefined' || Date.now() - wishlistLastLoadedAt >= 15000)) {
+    if (tabId === 'tab-wishlist' && (typeof wishlistLastLoadedAt === 'undefined' || Date.now() - wishlistLastLoadedAt >= WISHLIST_RELOAD_STALE_MS)) {
         loadWishlists();
     }
 

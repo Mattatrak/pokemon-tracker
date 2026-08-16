@@ -29,9 +29,14 @@ const WISHLIST_COLOR_PRESET = [
 ];
 const WISHLIST_THUMB_CAP = 8;
 
+// Duree de fraicheur (ms) en dessous de laquelle renderTab (tracker.js) saute un rechargement
+// automatique de l'onglet Souhaits - lue depuis tracker.js via window.WISHLIST_RELOAD_STALE_MS
+// (export plus bas), jamais dupliquee en dur la-bas.
+window.WISHLIST_RELOAD_STALE_MS = 15000;
+
 // Horodatage du dernier chargement reussi, lu par renderTab (tracker.js) pour eviter un refetch+
 // rebuild complet de la grille a chaque simple visite de l'onglet (cf WISHLIST_RELOAD_STALE_MS
-// plus bas dans ce fichier, tracker.js#renderTab pour l'usage). Mis a jour ici, dans loadWishlists()
+// juste au-dessus, tracker.js#renderTab pour l'usage). Mis a jour ici, dans loadWishlists()
 // elle-meme (jamais dans les call sites) : ainsi les rafraichissements explicites apres mutation
 // (moveWishlistItem, renameWishlist, deleteWishlist(Item), markWishlistItemOwned...) restent toujours
 // a jour, seul l'appel automatique de renderTab decide de sauter ou non un chargement.
