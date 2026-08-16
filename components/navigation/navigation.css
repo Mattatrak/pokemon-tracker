@@ -421,20 +421,6 @@
     box-shadow: 0 0 8px 2px rgba(232, 169, 59, 0.8);
 }
 
-/* Neutralise le cross-fade par défaut du root pour ce type uniquement : seul nav-active-dot doit
-   bouger, jamais toute la navbar/page/hero (VT2, contrairement à un futur usage du cross-fade root
-   pour d'autres types éventuels). Durée/easing explicites sur le groupe nommé lui-même plutôt que de
-   compter sur les valeurs par défaut du navigateur - tokens motion existants réutilisés tels quels. */
-html:active-view-transition-type(navigation)::view-transition-old(root),
-html:active-view-transition-type(navigation)::view-transition-new(root) {
-    animation: none;
-}
-
-html:active-view-transition-type(navigation)::view-transition-group(nav-active-indicator) {
-    animation-duration: var(--motion-duration-normal);
-    animation-timing-function: var(--motion-ease-standard);
-}
-
 /* ===================== BREAKPOINT SWITCH ===================== */
 
 @media (max-width: 768px) {

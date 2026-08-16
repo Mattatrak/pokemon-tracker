@@ -597,24 +597,97 @@ function navigateToTab(tabId) {
     }
 }
 
-// VT2 (cf roadmap technique animations premium) DESACTIVEE (2026-08-17, mobile puis desktop) :
-// faisait morpher .nav-active-dot vers le nouvel onglet via une View Transition. Meme avec le
-// cross-fade du root deja neutralise en CSS (navigation.css), la View Transition force le
-// navigateur a rasteriser un instantane plein document de la NOUVELLE page juste apres le rendu
-// synchrone - si cet instantane est capture avant que les effets couteux de la nouvelle page
-// (backdrop-filter des .kpi-plaque, gradients du hero, grain) aient fini de se composer,
-// l'instantane rate (flou informe, aucun texte lisible) reste fige a l'ecran pendant toute la
-// duree de la transition (~250-500ms). Confirme via extraction frame-par-frame d'un enregistrement
-// ecran fourni par l'utilisateur (Progression -> Collection : ~6 frames a 12fps = ~500ms d'un
-// fondu marron-violet sans aucun element d'UI, couleurs identiques aux atmospheres de fond de
-// body). D'abord desactivee sous 768px seul pour raison de cout de rasterisation (scintillement
-// signale "sur toutes les pages") ; le bug s'est avere pire qu'un cout de perf - un rendu casse
-// tenu immobile une demi-seconde - et touchait aussi desktop. Le gain visuel (le point glissant
-// entre deux icones adjacentes) ne justifiait le risque nulle part. .nav-active-dot reste dans le
-// DOM/CSS (indicateur visuel statique de l'onglet actif, toujours utile), seul le morph anime est
-// retire : renderTab() est appele directement, sans wrapper.
+// VT2 (cf roadmap technique animations premium) : petit indicateur actif (.nav-active-dot, desktop
+// ET mobile) qui glisse physiquement vers le nouvel onglet au lieu de disparaître/réapparaître.
+// offsetParent !== null : seule visibilité réelle qui compte (desktop/mobile ne sont jamais visibles
+// tous les deux à la fois, cf navigation.css, mais on vérifie plutôt que de supposer) - pas de
+// media query JS dupliquée, la vérité vient du rendu réel.
+function findVisibleNavActiveDot() {
+    const dots = document.querySelectorAll('.nav-active-dot');
+    for (const dot of dots) {
+        if (dot.offsetParent !== null) return dot;
+    }
+    return null;
+}
+
+// Identité du bouton de nav qui porte un indicateur : href du lien pour un item standard, id pour le
+// déclencheur "Plus" mobile (bouton, pas un lien). Sert uniquement à détecter si l'ancien et le
+// nouvel indicateur actif désignent en réalité le MÊME bouton physique (ex: passer de Progression à
+// Statistiques sur mobile allume "Plus" dans les deux cas, cf MOBILE_NAV_MORE_ACTIVE_TABS) - dans ce
+// cas, pas de morph sur soi-même.
+function getNavItemKey(dotEl) {
+    const item = dotEl.closest('a, button');
+    return item ? (item.getAttribute('href') || item.id || null) : null;
+}
+
+// Reimplementation en FLIP (First-Last-Invert-Play, pur transform CSS) apres l'abandon de la View
+// Transition d'origine (2026-08-17) : celle-ci capturait un instantane plein document de la NOUVELLE
+// page juste apres le rendu synchrone, et si cet instantane etait pris avant que les effets couteux
+// de la page (backdrop-filter des .kpi-plaque, gradients du hero) aient fini de se composer,
+// l'instantane rate (flou informe, aucun texte lisible) restait fige a l'ecran ~250-500ms - confirme
+// via extraction frame-par-frame d'un enregistrement fourni par l'utilisateur. Le FLIP ci-dessous
+// n'implique aucun instantane de page : il anime uniquement le petit noeud .nav-active-dot lui-meme
+// via une transform CSS classique, jamais document.startViewTransition() - le bug ne peut donc pas
+// se reproduire, quel que soit l'etat de composition du reste de la page.
+//   First : rect de l'ancien indicateur (avant que doRenderTab() ne le detruise/recree).
+//   Last  : rect du nouvel indicateur, une fois rendu a sa position finale (transform CSS deja
+//           applique par navigation.css - getBoundingClientRect() renvoie la position visuelle
+//           finale, transform inclus).
+//   Invert: delta First-Last applique en transform inline SUPPLEMENTAIRE (compose avec la transform
+//           de base lue via getComputedStyle, jamais ecrasee - navigation.css centre deja le trait
+//           desktop via translateX(-50%)) - le nouvel indicateur semble alors toujours a l'ancienne
+//           position, sans mouvement visible.
+//   Play  : reflow force (offsetHeight) puis retour a la transform de base seule, anime par une
+//           transition CSS - le navigateur interpole du delta vers 0, effet de glissement identique
+//           a l'ancien VT2, sans jamais toucher au reste du DOM/de la page.
 function runNavIndicatorTransition(doRenderTab) {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const oldDot = findVisibleNavActiveDot();
+    if (!oldDot || reduceMotion) {
+        // Pas d'indicateur actif visible actuellement (route secondaire sans entrée dédiée sur
+        // desktop, ex. admin/changelog/profil public), ou reduced-motion : rien à animer.
+        doRenderTab();
+        return;
+    }
+    const oldKey = getNavItemKey(oldDot);
+    const oldRect = oldDot.getBoundingClientRect();
+
     doRenderTab();
+
+    const newDot = findVisibleNavActiveDot();
+    if (!newDot || getNavItemKey(newDot) === oldKey) {
+        // Même bouton physique déjà actif avant/après (ex. Plus sur mobile), ou aucun nouvel
+        // indicateur visible (route secondaire) : aucun morph artificiel sur soi-même.
+        return;
+    }
+
+    const newRect = newDot.getBoundingClientRect();
+    const dx = oldRect.left - newRect.left;
+    const dy = oldRect.top - newRect.top;
+    if (!dx && !dy) return;
+
+    const baseTransform = getComputedStyle(newDot).transform;
+    const base = baseTransform && baseTransform !== 'none' ? baseTransform : '';
+
+    newDot.style.transition = 'none';
+    newDot.style.transform = `translate(${dx}px, ${dy}px) ${base}`;
+    // Force le navigateur a peindre l'etat "invert" ci-dessus avant de programmer la transition et
+    // l'etat final juste en dessous - sans ce reflow, les deux changements de style se fondraient en
+    // un seul, sans aucune animation visible (piège classique du FLIP).
+    void newDot.offsetHeight;
+    newDot.style.transition = `transform var(--motion-duration-normal) var(--motion-ease-standard)`;
+    newDot.style.transform = base;
+
+    // Filet de securite (meme pattern que showMessage, modules/utils.js) : si transitionend ne se
+    // declenche pas (transition interrompue par une navigation suivante, cas limite navigateur), le
+    // nettoyage tombe quand meme apres la duree de l'animation plutot que de laisser une transform
+    // inline perimee indefiniment sur le noeud.
+    const cleanup = () => {
+        newDot.style.transition = '';
+        newDot.style.transform = '';
+    };
+    newDot.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(cleanup, 400);
 }
 
 // VT4 (cf roadmap technique animations premium) : variante de runNavIndicatorTransition pour la
