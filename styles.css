@@ -79,10 +79,10 @@ body {
        symetrie du halo seul - meme principe que le fond de duffus.fr (releve en fouillant leur CSS),
        adapte a notre palette. Composite normalement (alpha), pas besoin de blend mode. */
     background-image:
-        radial-gradient(140% 100% at 12% 15%, rgba(232,169,59,0.05), transparent 55%),
-        radial-gradient(120% 110% at 90% 85%, rgba(80,60,150,0.06), transparent 60%),
-        radial-gradient(160% 90% at 55% 100%, rgba(0,0,0,0.35), transparent 50%),
-        radial-gradient(ellipse at 50% 0%, rgba(232, 169, 59, 0.1) 0%, var(--bg) 60%);
+        radial-gradient(140% 100% at 12% 15%, rgba(232,169,59,0.12), transparent 55%),
+        radial-gradient(120% 110% at 90% 85%, rgba(80,60,150,0.14), transparent 60%),
+        radial-gradient(160% 90% at 55% 100%, rgba(0,0,0,0.5), transparent 50%),
+        radial-gradient(ellipse at 50% 0%, rgba(232, 169, 59, 0.16) 0%, var(--bg) 60%);
     background-attachment: fixed;
     color: var(--text-primary);
 }
