@@ -1171,9 +1171,10 @@ body {
     position: relative;
     margin-bottom: 2rem;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(90deg, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.58) 40%, rgba(10,12,20,0.38) 62%, rgba(10,12,20,0.64) 100%),
         url('images/catalogue.png');
-    background-size: 100% auto;
+    background-size: cover, 100% auto, 100% auto;
     background-position: center center;
     background-repeat: no-repeat;
     background-color: var(--panel);
@@ -1190,6 +1191,30 @@ body {
     height: 130px;
     background: linear-gradient(180deg, transparent 0%, rgba(8,7,6,0.45) 100%);
     pointer-events: none;
+}
+
+/* Grain (bruit CSS via feTurbulence, aucun fichier image) commun aux 6 heroes - inspire de
+   duffus.fr, maquette validee le 2026-08-16 (docs/inspiration-duffus-animations.md#5). Combine avec
+   la vignette ajoutee au background-image de chaque hero (radial-gradient assombrissant les bords) :
+   les deux ensemble donnent plus de profondeur/texture aux photos de fond, jusque-la plates.
+   z-index:0 : sous le contenu (.X-hero-content etc., toujours z-index:1), au-dessus du fond photo
+   (peint par le background-image du hero lui-meme, toujours derriere tout pseudo-element/enfant). */
+.progression-atlas-hero::before,
+.collection-atlas-hero::before,
+.stats-hero::before,
+.wishlist-hero::before,
+.dashboard-hero::before,
+.catalogue-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    background-repeat: repeat;
 }
 
 .catalogue-hero-stage {
@@ -8051,6 +8076,7 @@ body.page-progression .progression-atlas-hero {
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/atlas.png');
     background-size: cover;
@@ -8120,6 +8146,7 @@ body.page-collection .collection-atlas-hero {
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/collection.png');
     background-size: cover;
@@ -8274,6 +8301,7 @@ body.page-statistics .stats-hero {
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/stats.png');
     background-size: cover;
@@ -8359,6 +8387,7 @@ body.page-wishlist .wishlist-hero {
     border-radius: 24px;
     overflow: hidden;
     background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
         url('images/wishlist.png');
     background-size: cover;
