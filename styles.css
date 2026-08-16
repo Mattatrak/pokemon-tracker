@@ -180,7 +180,7 @@ body {
        Collection/Stats/Wishlist, ci-dessous body.page-X .X-hero) reçoivent le même fondu synchronisé,
        pour ne pas recréer le décalage de rythme (hero instantané vs contenu animé) qui avait fait
        abandonner cette idée une première fois. */
-    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
+    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -8039,7 +8039,7 @@ body.page-progression .progression-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
+    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8108,7 +8108,7 @@ body.page-collection .collection-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
+    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8262,7 +8262,7 @@ body.page-statistics .stats-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
+    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8347,7 +8347,7 @@ body.page-wishlist .wishlist-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
-    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
+    animation: tab-content-fade-in var(--motion-duration-emphasized) ease;
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
