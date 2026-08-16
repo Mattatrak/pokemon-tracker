@@ -132,26 +132,16 @@ function dashboardShowNextFavorite(count) {
     const today = new Date().toISOString().slice(0, 10);
     const nextIndex = (dashboardGetFeaturedFavoriteIndex(count) + 1) % count;
     localStorage.setItem(DASHBOARD_FEATURED_FAVORITE_KEY, JSON.stringify({ date: today, index: nextIndex }));
-    renderDashboardHero();
+    renderDashboardHeroShowcase();
 }
 
-function renderDashboardHero() {
-    const el = document.getElementById('dashboard-hero');
-    const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
-
-    // Info de mise à jour des prix
-    const lastRefresh = localStorage.getItem('lastPriceRefresh');
-    const lastRefreshHtml = lastRefresh
-        ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
-        : '';
-
-    // Variation sur 7 jours : placeholder rempli après coup par dashboardUpdateHeroVariation (prix
-    // marché uniquement, cf. computeMarketFluctuation dans stats.js — ne bouge pas avec les
-    // ajouts/suppressions de cartes)
-    const variationHtml = '<div class="dashboard-hero-variation" id="dashboard-hero-variation"></div>';
-
-    // Carte mise à l'honneur : un favori possédé (rotation quotidienne, cf. dashboardGetFeaturedFavoriteIndex),
-    // sinon la plus chère de la collection, sinon la première, sinon état vide
+// Carte mise à l'honneur : un favori possédé (rotation quotidienne, cf. dashboardGetFeaturedFavoriteIndex),
+// sinon la plus chère de la collection, sinon la première, sinon état vide. Factorisé hors de
+// renderDashboardHero pour être appelable seul (renderDashboardHeroShowcase, cf. dashboardShowNextFavorite)
+// sans reconstruire tout le hero - qui blanchissait au passage le badge de variation 7j le temps du
+// re-fetch réseau (dashboardUpdateHeroVariation), un "flash" visible à chaque clic sur "carte suivante"
+// alors que seule la carte affichée change, jamais la valeur totale/variation.
+function getDashboardFeaturedCardHtml() {
     let featured = null;
     let favoriteCount = 0;
     if (allCollectionCards.length > 0) {
@@ -212,6 +202,44 @@ function renderDashboardHero() {
         `;
     }
 
+    return { mediaHtml, metaHtml };
+}
+
+// Reconstruit uniquement .dashboard-hero-showcase (carte + méta) - jamais la valeur totale, la
+// variation 7j ou les KPI, qui ne dépendent pas de la carte mise à l'honneur.
+function renderDashboardHeroShowcase() {
+    const showcase = document.getElementById('dashboard-hero-showcase');
+    if (!showcase) return;
+    const { mediaHtml, metaHtml } = getDashboardFeaturedCardHtml();
+    showcase.innerHTML = `
+        <div class="dashboard-hero-card-stage">
+            <div class="dashboard-hero-card-media">
+                ${mediaHtml}
+            </div>
+        </div>
+        <div class="dashboard-hero-card-meta">
+            ${metaHtml}
+        </div>
+    `;
+}
+
+function renderDashboardHero() {
+    const el = document.getElementById('dashboard-hero');
+    const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+
+    // Info de mise à jour des prix
+    const lastRefresh = localStorage.getItem('lastPriceRefresh');
+    const lastRefreshHtml = lastRefresh
+        ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
+        : '';
+
+    // Variation sur 7 jours : placeholder rempli après coup par dashboardUpdateHeroVariation (prix
+    // marché uniquement, cf. computeMarketFluctuation dans stats.js — ne bouge pas avec les
+    // ajouts/suppressions de cartes)
+    const variationHtml = '<div class="dashboard-hero-variation" id="dashboard-hero-variation"></div>';
+
+    const { mediaHtml, metaHtml } = getDashboardFeaturedCardHtml();
+
     el.innerHTML = `
         <div class="dashboard-hero-background" aria-hidden="true">
             <span class="dashboard-hero-nebula"></span>
@@ -227,7 +255,7 @@ function renderDashboardHero() {
             ${lastRefreshHtml}
         </div>
 
-        <div class="dashboard-hero-showcase">
+        <div class="dashboard-hero-showcase" id="dashboard-hero-showcase">
             <div class="dashboard-hero-card-stage">
                 <div class="dashboard-hero-card-media">
                     ${mediaHtml}
@@ -745,6 +773,8 @@ window.dashboardGetLastMovers = dashboardGetLastMovers;
 window.DASHBOARD_FEATURED_FAVORITE_KEY = DASHBOARD_FEATURED_FAVORITE_KEY;
 window.dashboardGetFeaturedFavoriteIndex = dashboardGetFeaturedFavoriteIndex;
 window.dashboardShowNextFavorite = dashboardShowNextFavorite;
+window.getDashboardFeaturedCardHtml = getDashboardFeaturedCardHtml;
+window.renderDashboardHeroShowcase = renderDashboardHeroShowcase;
 window.renderDashboardHero = renderDashboardHero;
 window.dashboardUpdateHeroVariation = dashboardUpdateHeroVariation;
 window.renderDashboardKpis = renderDashboardKpis;
