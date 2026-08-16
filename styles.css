@@ -84,9 +84,9 @@ body {
        https://claude.ai/code/artifact/19526b48-f95c-479c-a715-6335e110836d */
     background-color: var(--bg);
     background-image:
-        radial-gradient(120% 90% at 50% 0%, rgba(232,169,59,0.09) 0%, transparent 75%),
-        radial-gradient(120% 90% at 15% 100%, rgba(232,169,59,0.06) 0%, transparent 70%),
-        radial-gradient(130% 100% at 90% 100%, rgba(80,60,150,0.08) 0%, transparent 70%);
+        radial-gradient(120% 90% at 50% 0%, rgba(232,169,59,0.14) 0%, transparent 75%),
+        radial-gradient(120% 90% at 15% 100%, rgba(232,169,59,0.1) 0%, transparent 70%),
+        radial-gradient(130% 100% at 90% 100%, rgba(80,60,150,0.13) 0%, transparent 70%);
     background-attachment: fixed;
     color: var(--text-primary);
 }
