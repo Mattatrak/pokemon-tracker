@@ -166,22 +166,31 @@ body {
     display: none;
 }
 
-.tab-content.active {
-    display: block;
-    /* Pas d'animation d'entrée ici : les heroes hors .tab-content (Progression/Collection/Stats/
-       Wishlist/Collectors, hormis Dashboard qui garde le sien à l'intérieur) basculent instantanément
-       via document.body.className. Un fondu sur .tab-content seul créait un décalage de rythme avec ce
-       bascule instantané (flash/pulse dans la zone haute). Contenu et Hero changent donc tous deux au
-       même rythme (instantané). La navbar desktop globale (NAV1) est hors de ce mécanisme : sticky et
-       persistante, elle ne bascule plus jamais avec le contenu. Les animations internes des composants/
-       cartes ne sont pas concernées par ce choix. */
+@keyframes tab-content-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-/* L'animation d'entrée laisse un transform: translateY(0) collé en permanence sur l'ancêtre
-   (fill-mode both) une fois finie, ce qui casse position:sticky pour tous les descendants
-   (cf .catalogue-sheet-sticky). On la désactive pour cet onglet, où le sticky est requis. */
-#tab-add.tab-content.active {
-    animation: none;
+.tab-content.active {
+    display: block;
+    /* Fondu d'entrée (inspiré de duffus.fr, cf docs/inspiration-duffus-animations.md#3) : opacity
+       seule, jamais de transform - un transform animé (même translateY(0) au repos une fois fini, en
+       fill-mode both) crée un containing block pour tout descendant en position:sticky, ce qui le
+       casserait (cf .catalogue-sheet-sticky dans #tab-add). Les heroes hors .tab-content (Progression/
+       Collection/Stats/Wishlist, ci-dessous body.page-X .X-hero) reçoivent le même fondu synchronisé,
+       pour ne pas recréer le décalage de rythme (hero instantané vs contenu animé) qui avait fait
+       abandonner cette idée une première fois. */
+    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tab-content.active,
+    body.page-progression .progression-atlas-hero,
+    body.page-collection .collection-atlas-hero,
+    body.page-statistics .stats-hero,
+    body.page-wishlist .wishlist-hero {
+        animation: none;
+    }
 }
 
 .stat-label {
@@ -8030,6 +8039,7 @@ body.page-progression .progression-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
+    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8098,6 +8108,7 @@ body.page-collection .collection-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
+    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8251,6 +8262,7 @@ body.page-statistics .stats-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
+    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;
@@ -8335,6 +8347,7 @@ body.page-wishlist .wishlist-hero {
     display: flex;
     align-items: flex-end;
     min-height: 600px;
+    animation: tab-content-fade-in var(--motion-duration-normal) var(--motion-ease-enter);
     padding: 2rem 2.5rem;
     border-radius: 24px;
     overflow: hidden;

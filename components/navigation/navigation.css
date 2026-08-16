@@ -92,13 +92,15 @@
     cursor: pointer;
     padding: 0.5rem 0 0.75rem;
     text-decoration: none;
-    transition: color var(--motion-duration-fast) var(--motion-ease-standard);
+    transition: color var(--motion-duration-fast) var(--motion-ease-standard),
+        transform var(--motion-duration-fast) var(--motion-ease-standard);
     white-space: nowrap;
     position: relative;
 }
 
 .dashboard-integrated-nav-link:hover {
     color: var(--gold);
+    transform: translateY(-1px);
 }
 
 .dashboard-integrated-nav-link:focus-visible {
@@ -153,13 +155,15 @@
     text-decoration: none;
     transition: background var(--motion-duration-fast) var(--motion-ease-standard),
         border-color var(--motion-duration-fast) var(--motion-ease-standard),
-        color var(--motion-duration-fast) var(--motion-ease-standard);
+        color var(--motion-duration-fast) var(--motion-ease-standard),
+        transform var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .dashboard-integrated-nav-action:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--gold);
     border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
 }
 
 .dashboard-integrated-nav-action--primary {
@@ -328,6 +332,11 @@
 @media (prefers-reduced-motion: reduce) {
     .mobile-more-panel.open {
         animation: none;
+    }
+
+    .dashboard-integrated-nav-link:hover,
+    .dashboard-integrated-nav-action:hover {
+        transform: none;
     }
 }
 
