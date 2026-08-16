@@ -108,6 +108,22 @@ body::before {
     background-repeat: repeat;
 }
 
+/* background-attachment:fixed + body::before en position:fixed (juste au-dessus) empechent tous
+   deux le navigateur de composer le fond sur son propre calque GPU - sur mobile, ca force un
+   repaint du fond a chaque frame de scroll, cause du ralentissement general constate par
+   l'utilisateur apres l'ajout des atmospheres/grain cette session. Meme compromis deja fait pour
+   le blur des fiches detail (backdrop-filter reduit sous 768px, cf plus bas) : on troque un effet
+   visuel subtil contre un scroll fluide, uniquement sous ce seuil - desktop inchange. */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+    }
+    body::before {
+        display: none;
+    }
+
+}
+
 .container {
     position: relative;
     z-index: 1;
@@ -10808,4 +10824,24 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .changelog-popup-confirm:active {
     transform: translateY(0);
+}
+
+/* Placee ici (fin de fichier) plutot que pres de body::before plus haut : meme specificite exacte
+   (body.page-X .X-hero) que les regles de base des heroes definies plus haut dans ce fichier -
+   place avant elles, l'override perdait la cascade malgre le media query qui matchait (specificite
+   egale = ordre source qui tranche). Chaque hero
+   anime son opacity EN MEME TEMPS que .tab-content.active anime la sienne, sur un element qui porte
+   deja une vraie photo (background-image: url(...)), plusieurs box-shadow (dont des inset) et
+   border-radius+overflow:hidden - la double animation opacity sur un tel fond force un rendu
+   logiciel du calque sur GPU mobile faible, cause du scintillement signale au changement de page
+   (distinct du ralentissement au scroll deja corrige via background-attachment/body::before plus
+   haut). .tab-content.active garde son fondu (fond simple, pas de cout equivalent) - seuls les
+   heroes le perdent, desktop inchange. */
+@media (max-width: 768px) {
+    body.page-progression .progression-atlas-hero,
+    body.page-collection .collection-atlas-hero,
+    body.page-statistics .stats-hero,
+    body.page-wishlist .wishlist-hero {
+        animation: none;
+    }
 }
