@@ -4433,51 +4433,81 @@ tbody tr:hover {
     transform: rotate(0deg);
 }
 
-.progression-set-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+/* Grille de cartes (inspirée de duffus.fr/guides, maquette validée le 2026-08-16, cf
+   docs/inspiration-duffus-animations.md#5) : une carte par set plutôt qu'une ligne, badge % en
+   coin, logo dans un contenant rond neutre (object-fit: contain, pas de crop - les logos TCGdex
+   sont rectangulaires avec texte, contrairement aux icônes rondes de Dofus qui ont inspiré ce
+   pattern). */
+.progression-sets-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.85rem;
+    padding: 1rem 1.25rem 1.25rem;
 }
 
-.progression-set-row:last-child {
-    border-bottom: none;
+.progression-set-row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0.85rem 0.85rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
 
 .progression-set-row:hover {
-    background: rgba(255,255,255,0.035);
-    border-bottom-color: rgba(232,169,59,0.15);
+    background: rgba(227,188,132,0.06);
+    border-color: rgba(227,188,132,0.3);
+    transform: translateY(-2px);
 }
 
 .progression-set-row:hover .progression-set-name {
     color: #ffffff;
 }
 
-.progression-set-row:hover .progression-chevron {
-    color: var(--gold);
+.progression-set-row:hover .progression-set-logo {
+    transform: scale(1.08);
+}
+
+.progression-set-logo-wrap {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 0.65rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--panel), var(--ink-navy));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .progression-set-logo {
-    height: 32px;
-    width: 50px;
+    max-width: 78%;
+    max-height: 78%;
+    width: auto;
+    height: auto;
     object-fit: contain;
-    flex-shrink: 0;
-    opacity: 0.92;
+    opacity: 0.95;
+    transition: transform 0.16s ease;
+}
+
+.progression-set-logo-wrap .progression-set-logo-upload {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border-radius: 50%;
 }
 
 .progression-set-logo-upload {
-    height: 32px;
-    width: 50px;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--panel-light);
     border: 1px dashed rgba(255,255,255,0.2);
-    border-radius: 4px;
     font-size: 0.9rem;
     cursor: pointer;
     transition: border-color 0.2s;
@@ -4488,15 +4518,16 @@ tbody tr:hover {
 }
 
 .progression-set-info {
-    flex: 1;
+    width: 100%;
     min-width: 0;
 }
 
 .progression-set-name {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: var(--parchment);
     font-weight: 600;
-    margin-bottom: 0.4rem;
+    text-align: center;
+    margin-bottom: 0.3rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -4504,53 +4535,59 @@ tbody tr:hover {
 }
 
 .progression-progress-bar {
-    height: 6px;
+    height: 4px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 3px;
+    border-radius: 2px;
     overflow: hidden;
 }
 
 .progression-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, rgba(199,164,116,0.92), rgba(227,188,132,0.92));
-    border-radius: 3px;
+    border-radius: 2px;
     transition: width 0.3s ease;
 }
 
 .progression-set-count {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: var(--slate);
-    white-space: nowrap;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
+    text-align: center;
+    margin-bottom: 0.4rem;
 }
 
 .progression-secret-badge {
-    font-size: 0.62rem;
+    display: inline-block;
+    margin-top: 0.3rem;
+    font-size: 0.6rem;
     color: #a888c9;
     background: rgba(40,32,50,0.6);
     border: 1px solid rgba(199,125,255,0.15);
-    padding: 0.08rem 0.45rem;
+    padding: 0.08rem 0.4rem;
     border-radius: 20px;
     font-weight: 600;
 }
 
-.progression-chevron {
-    color: var(--slate);
-    font-size: 1.2rem;
-    flex-shrink: 0;
-    transition: color 0.15s ease;
+.progression-set-pct-badge {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--ink-navy);
+    background: var(--gold);
+    padding: 0.12rem 0.4rem;
+    border-radius: 20px;
+    line-height: 1.3;
 }
 
-/* Etats sobres d'une extension : terminée / presque terminée / très peu commencée */
-.progression-set-pct {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--gold);
+.progression-set-pct-badge.is-zero {
+    background: rgba(255,255,255,0.08);
+    color: var(--slate);
+}
+
+.progression-set-pct-badge.is-complete {
+    background: #7ED9A7;
 }
 
 .progression-set-row.is-complete {
@@ -4563,11 +4600,7 @@ tbody tr:hover {
     gap: 0.3rem;
     color: #7ED9A7;
     font-weight: 600;
-    font-size: 0.85rem;
-}
-
-.progression-set-row.is-almost .progression-set-pct {
-    color: var(--gold);
+    font-size: 0.8rem;
 }
 
 .progression-set-row.is-low .progression-set-name {
@@ -8688,23 +8721,19 @@ body.page-progression .progression-followed-sets {
         flex-basis: 100%;
     }
 
+    .progression-sets-list {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.6rem;
+        padding: 0.75rem;
+    }
+
     .progression-set-row {
-        flex-wrap: wrap;
-        padding: 0.75rem 1rem;
-        row-gap: 0.5rem;
+        padding: 0.85rem 0.6rem 0.65rem;
     }
 
-    .progression-set-info {
-        flex-basis: 100%;
-        order: 2;
-    }
-
-    .progression-set-count {
-        order: 3;
-    }
-
-    .progression-chevron {
-        order: 4;
+    .progression-set-logo-wrap {
+        width: 50px;
+        height: 50px;
     }
 }
 

@@ -384,23 +384,26 @@ function renderProgressionSeriesList() {
             const isAlmost = pct >= 90 && pct < 100;
             const isLow = pct > 0 && pct < 10;
             const rowStateClass = isComplete ? 'is-complete' : isAlmost ? 'is-almost' : isLow ? 'is-low' : '';
+            // Badge % distinct de l'état de la carte (rowStateClass) : gris tant qu'aucune carte n'est
+            // possédée, vert une fois complète, or sinon - cf maquette grille validée (2026-08-16).
+            const badgeClass = isComplete ? 'is-complete' : owned === 0 ? 'is-zero' : '';
 
-            const countHtml = isComplete
+            const subtitleHtml = isComplete
                 ? `<span class="progression-set-complete"><i class="ti ti-check" aria-hidden="true"></i> Terminée</span>`
-                : `${owned}/${officialCount} · <span class="progression-set-pct">${pct}%</span>`;
+                : `${owned}/${officialCount} cartes`;
 
             return `
                 <div class="progression-set-row ${rowStateClass}" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
-                    ${logoHtml}
+                    <span class="progression-set-pct-badge ${badgeClass}">${pct}%</span>
+                    <div class="progression-set-logo-wrap">${logoHtml}</div>
                     <div class="progression-set-info">
                         <div class="progression-set-name">${set.name}</div>
+                        <div class="progression-set-count">
+                            ${subtitleHtml}
+                            ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
+                        </div>
                         <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pct}%"></div></div>
                     </div>
-                    <div class="progression-set-count">
-                        ${countHtml}
-                        ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
-                    </div>
-                    <span class="progression-chevron">›</span>
                 </div>
             `;
         }).join('');
