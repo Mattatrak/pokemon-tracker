@@ -1357,6 +1357,14 @@ body::before {
 /* KPI SIGNATURE — refonte fidèle au mockup PT-001 (Sprint KPI V2), exclusive à la page
    Collection. Classes .kpi-plaque-* dédiées, aucune classe partagée avec Wishlist/Progression
    (.stat-card-icon/-cartes/-value/-achat) n'est touchée : ces pages restent inchangées. */
+/* background quasi-opaque (0.55, avant 0.12) : ce panneau compte sur backdrop-filter pour se
+   distinguer du hero-photo derriere lui, mais un backdrop-filter ne se recalcule pas instantanement
+   des le premier paint (meme cause exacte que #card-detail-card plus haut, cf son commentaire) -
+   pendant l'instant ou le flou n'est pas encore compose (arrivee sur la page, fondu tab-content-fade-in
+   en cours), un fond a 0.12 laissait la photo du hero transparaitre nette derriere, signale par
+   l'utilisateur comme "les KPI n'apparaissent pas tout de suite avec le bon fond". A 0.55, le flou
+   reste l'effet dominant une fois compose (rendu final quasi identique) mais l'etat transitoire avant
+   compose devient illisible-mais-pas-faux plutot que franchement transparent. */
 .kpi-plaque {
     position: relative;
     overflow: hidden;
@@ -1366,7 +1374,7 @@ body::before {
     gap: 14px;
     background:
         linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.12);
+        rgba(26,26,30,0.55);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
