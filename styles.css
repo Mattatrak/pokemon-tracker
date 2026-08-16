@@ -4305,132 +4305,44 @@ tbody tr:hover {
     text-align: center;
 }
 
-/* PROGRESSION PAR SERIE — chapitres de l'Atlas */
+/* PROGRESSION PAR SERIE — chapitres de l'Atlas.
+   En-tête "eyebrow" (libellé + trait), inspiré de /guides sur duffus.fr - remplace l'ancien bloc
+   repliable en verre fumé. Toutes les séries possédées restent dépliées en permanence (plus de
+   is-open/is-closed), cf maquette validée le 2026-08-16 (docs/inspiration-duffus-animations.md#4). */
 .progression-series-block {
-    position: relative;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
-        rgba(26,26,30,0.35);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-left: 2px solid transparent;
-    border-radius: 12px;
-    margin-bottom: 1.75rem;
-    overflow: hidden;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-    transition: border-color 0.2s ease, opacity 0.2s ease;
+    margin-bottom: 2.25rem;
 }
 
-/* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
-.progression-series-block::before {
-    content: '';
-    position: absolute;
-    left: 1.25rem;
-    right: 1.25rem;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent);
-    pointer-events: none;
-    z-index: 1;
-}
-
-.progression-series-block.is-open {
-    border-left-color: rgba(224,201,155,0.6);
-}
-
-.progression-series-block.is-closed .progression-series-header:hover {
-    background: rgba(255,255,255,0.03);
-}
-
-.progression-series-header {
+.progression-series-eyebrow {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    cursor: pointer;
-    transition: background 0.2s ease;
+    gap: 0.75rem;
+    padding: 0 1.25rem;
+    margin-bottom: 1rem;
 }
 
-.progression-series-block.is-open .progression-series-header {
-    background: rgba(255,255,255,0.05);
+.progression-series-eyebrow-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(227,188,132,0.85);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.progression-series-block.is-closed .progression-series-header {
-    border-bottom-color: transparent;
-}
-
-.progression-series-logo {
-    height: 32px;
-    width: auto;
-    max-width: 140px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.progression-series-info {
+.progression-series-eyebrow-line {
     flex: 1;
-    min-width: 0;
+    height: 1px;
+    background: rgba(227,188,132,0.18);
 }
 
-.progression-series-name {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.3rem;
-    color: var(--parchment);
-    letter-spacing: 0.02em;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-}
-
-.progression-series-meta {
+.progression-series-eyebrow-pct {
     font-size: 0.8rem;
     color: var(--slate);
-    opacity: 0.85;
-    margin-bottom: 0.45rem;
-}
-
-.progression-series-progress-bar {
-    height: 6px;
-    max-width: 320px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progression-series-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, rgba(193,161,102,0.8), rgba(232,215,181,0.85));
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
-.progression-series-pct {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.15rem;
-    color: var(--gold);
-    letter-spacing: 0.02em;
     flex-shrink: 0;
-    min-width: 3.2rem;
-    text-align: right;
-}
-
-.progression-series-toggle {
-    color: var(--slate);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-}
-
-.progression-series-toggle i {
-    display: inline-block;
-    transition: transform 0.2s ease;
-    transform: rotate(-90deg);
-}
-
-.progression-series-block.is-open .progression-series-toggle i {
-    transform: rotate(0deg);
+    white-space: nowrap;
 }
 
 /* Grille de cartes (inspirée de duffus.fr/guides, maquette validée le 2026-08-16, cf
@@ -8693,32 +8605,8 @@ body.page-progression .progression-followed-sets {
         font-size: 0.85rem;
     }
 
-    .progression-series-header {
-        flex-wrap: wrap;
-        padding: 0.85rem 1rem;
-    }
-
-    .progression-series-logo {
-        height: 26px;
-    }
-
-    .progression-series-progress-bar {
-        max-width: none;
-        width: 100%;
-    }
-
-    .progression-series-pct {
-        order: 3;
-        min-width: 0;
-    }
-
-    .progression-series-toggle {
-        order: 4;
-    }
-
-    .progression-series-info {
-        order: 2;
-        flex-basis: 100%;
+    .progression-series-eyebrow {
+        padding: 0 1rem;
     }
 
     .progression-sets-list {

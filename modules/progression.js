@@ -114,7 +114,6 @@ let progressionFinishMode = 'normal';
 let currentProgressionStoredFilenames = new Set();
 let progressionStoredLogoFilenames = new Set();
 let progressionLogosLoaded = false;
-let progressionOpenSeriesIds = new Set(); // chapitres actuellement ouverts dans le catalogue
 let progressionLogoCachingTriggered = new Set(); // évite de relancer un upload déjà en cours pendant la session
 
 // Logo d'un set/série : sert la version Supabase déjà cachée en priorité (rapide), sinon le lien TCGdex
@@ -354,14 +353,7 @@ function renderProgressionSeriesList() {
         return;
     }
 
-    // Par défaut, le chapitre le plus récent est ouvert (fait office de "chapitre consulté")
-    if (progressionOpenSeriesIds.size === 0 && seriesWithOwnedSets.length > 0) {
-        progressionOpenSeriesIds.add(seriesWithOwnedSets[0].series.id);
-    }
-
     container.innerHTML = seriesWithOwnedSets.map(({ series, sets }) => {
-        const isOpen = progressionOpenSeriesIds.has(series.id);
-
         const setsHtml = sets.map(set => {
             const officialCount = set.cardCount?.official || 0;
             const total = set.cardCount?.total || officialCount;
@@ -414,33 +406,22 @@ function renderProgressionSeriesList() {
         const genTotal = sets.reduce((sum, set) => sum + (set.cardCount?.total || set.cardCount?.official || 0), 0);
         const genPct = genTotal > 0 ? Math.round((genOwned / genTotal) * 100) : 0;
 
-        const seriesLogoUrl = resolveCachedLogoUrl(series.id, series.logo);
-
+        // En-tête "eyebrow" (libellé + trait), inspiré de /guides sur duffus.fr - remplace l'ancien
+        // bloc repliable (logo/nom/barre/%/chevron cliquable) : toutes les séries possédées restent
+        // dépliées en permanence, cf maquette validée le 2026-08-16
+        // (docs/inspiration-duffus-animations.md#4). seriesWithOwnedSets ne garde déjà que les séries
+        // entamées, donc pas de risque de page à rallonge avec des dizaines de blocs vides.
         return `
-            <div class="progression-series-block ${isOpen ? 'is-open' : 'is-closed'}">
-                <div class="progression-series-header" onclick="toggleProgressionSeries('${series.id}')">
-                    ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="progression-series-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">` : ''}
-                    <div class="progression-series-info">
-                        <div class="progression-series-name">${series.name}</div>
-                        <div class="progression-series-meta">${sets.length} extension${sets.length > 1 ? 's' : ''} · ${genOwned}/${genOfficial} cartes</div>
-                        <div class="progression-series-progress-bar"><div class="progression-series-progress-fill" style="width:${genPct}%"></div></div>
-                    </div>
-                    <div class="progression-series-pct">${genPct}%</div>
-                    <span class="progression-series-toggle"><i class="ti ti-chevron-down" aria-hidden="true"></i></span>
+            <div class="progression-series-block">
+                <div class="progression-series-eyebrow">
+                    <span class="progression-series-eyebrow-label">${series.name}</span>
+                    <span class="progression-series-eyebrow-line"></span>
+                    <span class="progression-series-eyebrow-pct">${genPct}% · ${genOwned}/${genOfficial}</span>
                 </div>
-                <div class="progression-sets-list" ${isOpen ? '' : 'style="display:none"'}>${setsHtml}</div>
+                <div class="progression-sets-list">${setsHtml}</div>
             </div>
         `;
     }).join('');
-}
-
-function toggleProgressionSeries(seriesId) {
-    if (progressionOpenSeriesIds.has(seriesId)) {
-        progressionOpenSeriesIds.delete(seriesId);
-    } else {
-        progressionOpenSeriesIds.add(seriesId);
-    }
-    renderProgressionSeriesList();
 }
 
 // ===== MES SETS SUIVIS =====
@@ -1157,14 +1138,12 @@ window.progressionFinishMode = progressionFinishMode;
 window.currentProgressionStoredFilenames = currentProgressionStoredFilenames;
 window.progressionStoredLogoFilenames = progressionStoredLogoFilenames;
 window.progressionLogosLoaded = progressionLogosLoaded;
-window.progressionOpenSeriesIds = progressionOpenSeriesIds;
 window.progressionLogoCachingTriggered = progressionLogoCachingTriggered;
 window.resolveCachedLogoUrl = resolveCachedLogoUrl;
 window.loadSeriesProgress = loadSeriesProgress;
 window.computeProgressionKpiData = computeProgressionKpiData;
 window.renderProgressionKpis = renderProgressionKpis;
 window.renderProgressionSeriesList = renderProgressionSeriesList;
-window.toggleProgressionSeries = toggleProgressionSeries;
 window.followedSets = followedSets;
 window.loadFollowedSets = loadFollowedSets;
 window.renderFollowedSetsSection = renderFollowedSetsSection;
