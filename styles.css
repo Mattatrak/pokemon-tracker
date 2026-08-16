@@ -8045,7 +8045,7 @@ body.page-progression .progression-atlas-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
     animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
@@ -8114,7 +8114,7 @@ body.page-collection .collection-atlas-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
     animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
@@ -8268,7 +8268,7 @@ body.page-statistics .stats-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
     animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
@@ -8353,7 +8353,7 @@ body.page-wishlist .wishlist-hero {
     position: relative;
     display: flex;
     align-items: flex-end;
-    min-height: 600px;
+    min-height: 340px;
     animation: tab-content-fade-in 300ms ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 24px;
