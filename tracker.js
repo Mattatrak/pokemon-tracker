@@ -807,7 +807,13 @@ function activateTabContent(tabId) {
         }
     }
 
-    if (tabId === 'tab-wishlist') {
+    // WISHLIST_RELOAD_STALE_MS (15s) : evite de reconstruire toute la grille (loadWishlists() ->
+    // renderWishlistsUI() -> innerHTML complet) a chaque simple visite de l'onglet quand les donnees
+    // viennent deja d'etre chargees - cause du scintillement de la grille signale par l'utilisateur
+    // en arrivant sur Souhaits (nouveaux noeuds DOM pour des cartes visuellement identiques). Les
+    // rafraichissements apres une vraie mutation (wishlist.js) restent toujours a jour : ils appellent
+    // loadWishlists() directement, jamais via ce garde-fou.
+    if (tabId === 'tab-wishlist' && (typeof wishlistLastLoadedAt === 'undefined' || Date.now() - wishlistLastLoadedAt >= 15000)) {
         loadWishlists();
     }
 

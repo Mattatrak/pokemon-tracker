@@ -29,6 +29,14 @@ const WISHLIST_COLOR_PRESET = [
 ];
 const WISHLIST_THUMB_CAP = 8;
 
+// Horodatage du dernier chargement reussi, lu par renderTab (tracker.js) pour eviter un refetch+
+// rebuild complet de la grille a chaque simple visite de l'onglet (cf WISHLIST_RELOAD_STALE_MS
+// plus bas dans ce fichier, tracker.js#renderTab pour l'usage). Mis a jour ici, dans loadWishlists()
+// elle-meme (jamais dans les call sites) : ainsi les rafraichissements explicites apres mutation
+// (moveWishlistItem, renameWishlist, deleteWishlist(Item), markWishlistItemOwned...) restent toujours
+// a jour, seul l'appel automatique de renderTab decide de sauter ou non un chargement.
+window.wishlistLastLoadedAt = 0;
+
 async function loadWishlists() {
     const [wishlistsRes, itemsRes] = await Promise.all([
         supabaseClient.from('wishlists').select('*').order('created_at', { ascending: true }),
@@ -49,6 +57,7 @@ async function loadWishlists() {
     await loadWishlistPrices();
     renderWishlistsUI();
     markDashboardDirty();
+    window.wishlistLastLoadedAt = Date.now();
 }
 
 // Signal de prix Wishlist (Phase 2, ticket P2-4, cf audit du 2026-08-14) : position du prix actuel
