@@ -2140,48 +2140,16 @@ button:disabled {
     font-weight: 500;
 }
 
-/* VITRINE DE COLLECTION (vue galerie). Opaque (voulu : "vitrine" posée sur la page) - le grain et
-   les atmosphères du fond body (styles.css ~76) ne peuvent donc pas transparaître ici, contrairement
-   aux heros. Recoit son propre traitement (glow + grain) plutot que de compter sur une transparence
-   qui casserait le look "vitrine". */
+/* Ex-"vitrine de collection" (vue galerie) : le cadre/panneau opaque qui entourait toute la grille a
+   ete retire a la demande de l'utilisateur - les cartes flottent directement sur le fond de page
+   (grain + atmospheres de body, styles.css ~76), comme dans la maquette qui avait motive ce chantier.
+   Classe gardee (au lieu de la retirer du HTML) pour ne pas toucher aux appels JS qui la referencent
+   (modules/collection.js) ; ne porte plus qu'un espacement, aucun habillage visuel. */
 .collection-display-case {
-    position: relative;
-    overflow: hidden;
-    background-image:
-        radial-gradient(90% 75% at 12% -5%, rgba(232,169,59,0.22), transparent 60%),
-        radial-gradient(80% 70% at 100% 100%, rgba(80,60,150,0.16), transparent 60%),
-        linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-radius: 16px;
-    padding: 1rem 1.5rem 1.5rem 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: inset 0 0 60px rgba(0,0,0,0.25);
-    /* Lueur externe (filter: drop-shadow, pas box-shadow - non rogne par overflow:hidden ci-dessus,
-       contrairement a un box-shadow classique sur le meme element). Une collection bien remplie
-       laisse quasiment plus de fond visible entre les cartes : le glow interne (background-image
-       ci-dessus) devient alors invisible, cache par les vignettes. Cette lueur reste visible quelle
-       que soit la densite de la grille, puisqu'elle deborde hors du panneau plutot que de compter
-       sur des espaces vides a l'interieur. */
-    filter:
-        drop-shadow(0 0 55px rgba(232,169,59,0.14))
-        drop-shadow(0 0 90px rgba(80,60,150,0.1));
-}
-
-.collection-display-case::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    opacity: 0.07;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size: 120px 120px;
-    background-repeat: repeat;
 }
 
 .collection-grid {
-    position: relative;
-    z-index: 1;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     column-gap: 1.625rem;
@@ -7771,11 +7739,6 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     .progression-filters-row.centered-row .view-toggle {
         width: max-content;
         max-width: 100%;
-    }
-
-    .collection-display-case {
-        padding: 1rem;
-        border-radius: 12px;
     }
 
     .grid-sort-select {
