@@ -2590,7 +2590,12 @@ button:disabled {
     aspect-ratio: 5 / 7;
     background: var(--ink-navy);
     border: 1px solid var(--border);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    /* Profondeur portee par la carte elle-meme (pas le fond derriere) : sur une grille bien remplie,
+       les gouttieres entre cartes (~26-28px) sont trop fines pour qu'un glow de fond se voie - cette
+       ombre, elle, existe autour de CHAQUE carte, donc reste visible quelle que soit la densite de la
+       grille. box-shadow (non-inset) n'est pas rogne par overflow:hidden ci-dessus (contrairement aux
+       enfants) : seul le contenu de la carte est clippe, pas son ombre portee. */
+    box-shadow: 0 10px 24px -6px rgba(0,0,0,0.7), 0 3px 10px rgba(0,0,0,0.5);
     transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
 }
 
