@@ -50,7 +50,12 @@ async function init() {
     // défaut/pas d'entrée Administration jusqu'ici.
     updateDesktopNavigation(getTabIdFromHash(), { rebuild: true });
     initDatePicker('#card-date-added');
-    updateMobileBottomNav('tab-dashboard');
+    // getTabIdFromHash() (pas 'tab-dashboard' en dur) : si l'utilisateur a change d'onglet pendant que
+    // ces await plus haut chargeaient encore (ex. tap sur Collection juste apres une installation
+    // fraiche, chargement reseau plus long), renderTab() (ligne 46) a deja mis a jour la nav avec le
+    // bon onglet - la forcer sur 'tab-dashboard' ici l'ecrasait et desynchronisait la barre (highlight
+    // Accueil) du contenu reellement affiche (Collection).
+    updateMobileBottomNav(getTabIdFromHash());
     // typeof-guardé comme currentUserIsAdmin plus haut : si modules/changelog.js n'a pas pu charger
     // (ex. cache SW désaligné hors ligne), init() continue quand même sans planter.
     if (typeof maybeShowChangelogPopup === 'function') {
