@@ -8556,16 +8556,19 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-bottom: 0.45rem;
 }
 
+/* Degrade blanc -> parchemin -> or (avant : blanc -> lavande -> violet, hors charte - le plus gros
+   chiffre du site, sur la page la plus visitee, ne devait pas utiliser une couleur absente du reste
+   de l'identite visuelle. cf audit "look premium" du 2026-08-17). */
 .dashboard-hero-value {
     font-size: clamp(3.4rem, 5vw, 4rem);
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.01em;
-    background: linear-gradient(135deg, #ffffff 0%, #f1ecff 55%, #cdbdff 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f7f0de 55%, #e3bc84 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 4px 28px rgba(139,92,246,0.28);
+    text-shadow: 0 4px 28px rgba(232,169,59,0.28);
     width: fit-content;
 }
 
