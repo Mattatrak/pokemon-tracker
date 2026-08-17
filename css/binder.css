@@ -114,7 +114,7 @@
 .binder-page {
     background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: clamp(0.6rem, 1.4vw, 1.1rem);
     box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     min-width: 0;
@@ -139,7 +139,7 @@
 .binder-spine {
     width: 6px;
     align-self: stretch;
-    border-radius: 2px;
+    border-radius: 4px;
     background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.24) 12%, rgba(255, 255, 255, 0.24) 88%, transparent);
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
@@ -163,7 +163,7 @@
     aspect-ratio: 5 / 7;
     padding: 3px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 11px;
+    border-radius: 14px;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
@@ -185,7 +185,7 @@
    classeur sur une dernière double-page incomplète plutôt que de compacter (cf audit §8). CSS
    statique uniquement - pas de backdrop-filter/blur/box-shadow animé (contrainte GPU du projet). */
 .binder-slot-empty {
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px dashed rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.02);
     padding: 0;
@@ -243,7 +243,7 @@
     .binder-page,
     .binder-page-left {
         width: 100%;
-        border-radius: 10px;
+        border-radius: 8px;
         padding: 0.4rem;
         box-shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
