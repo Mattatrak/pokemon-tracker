@@ -480,6 +480,37 @@ async function fetchSetCardsDetailed(setId, onProgress) {
     return detailed.sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));
 }
 
+// Repere sticky (nom du set + progression, cf progression-set-sticky-bar dans index.html) : revele
+// une fois que .progression-set-title-row (le vrai titre, en haut) sort de l'ecran - utile sur un
+// set dense (200+ cartes, cf Heros Transcendants) ou on perd de vue le nom/pourcentage en scrollant.
+// IntersectionObserver plutot qu'un scroll listener : aucun recalcul a chaque frame de scroll, le
+// navigateur ne notifie que sur le changement d'etat (visible <-> invisible).
+let progressionStickyObserver = null;
+
+function setupProgressionStickyBar() {
+    if (progressionStickyObserver) progressionStickyObserver.disconnect();
+
+    const titleRow = document.querySelector('#progression-set-view .progression-set-title-row');
+    const stickyBar = document.getElementById('progression-set-sticky-bar');
+    if (!titleRow || !stickyBar) return;
+
+    progressionStickyObserver = new IntersectionObserver(([entry]) => {
+        stickyBar.classList.toggle('visible', !entry.isIntersecting);
+    });
+    progressionStickyObserver.observe(titleRow);
+}
+
+// Deconnecte l'observer en quittant la vue detail d'un set (backToSeriesProgress) : sans ca, un
+// observer reste actif par-dessus un titre qui n'est plus affiche (display:none), potentiellement
+// un par aller-retour set -> liste -> set si jamais recree sans etre nettoye avant.
+function teardownProgressionStickyBar() {
+    if (progressionStickyObserver) {
+        progressionStickyObserver.disconnect();
+        progressionStickyObserver = null;
+    }
+    document.getElementById('progression-set-sticky-bar')?.classList.remove('visible');
+}
+
 async function openSetProgression(setId, setName, logoUrl) {
     currentProgressionSetId = setId;
     progressionFilter = 'all';
@@ -492,15 +523,23 @@ async function openSetProgression(setId, setName, logoUrl) {
     document.getElementById('progression-series-view').style.display = 'none';
     document.getElementById('progression-set-view').style.display = 'block';
     document.getElementById('progression-set-title').textContent = setName;
+    document.getElementById('progression-sticky-title').textContent = setName;
 
     const logoImg = document.getElementById('progression-set-logo');
+    const stickyLogo = document.getElementById('progression-sticky-logo');
     if (logoUrl) {
         logoImg.src = logoUrl;
         logoImg.style.display = 'inline-block';
         logoImg.onerror = () => { logoImg.style.display = 'none'; };
+        stickyLogo.src = logoUrl;
+        stickyLogo.style.display = 'inline-block';
+        stickyLogo.onerror = () => { stickyLogo.style.display = 'none'; };
     } else {
         logoImg.style.display = 'none';
+        stickyLogo.style.display = 'none';
     }
+
+    setupProgressionStickyBar();
 
     const grid = document.getElementById('progression-cards-grid');
     const progressText = document.getElementById('progression-set-progress-text');
@@ -616,7 +655,12 @@ async function renderProgressionCardsGrid() {
     const ownedCount = baseCards.filter(c => isOwnedInMode(c.id, progressionFinishMode)).length;
     const totalCount = baseCards.length;
     const pct = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
-    document.getElementById('progression-set-progress-text').textContent = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
+    const progressLabel = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
+    document.getElementById('progression-set-progress-text').textContent = progressLabel;
+    // Miroir compact pour la barre sticky (progression-set-sticky-bar, index.html) - meme source,
+    // mis a jour au meme endroit pour ne jamais desynchroniser les deux affichages.
+    const stickyProgress = document.getElementById('progression-sticky-progress');
+    if (stickyProgress) stickyProgress.textContent = `${pct}%`;
 
     // Un seul calcul pour le budget (P2-1) et la carte manquante la plus chère (P2-2) — même passe,
     // pas de logique dupliquée. Portée à toutes les cartes manquantes du set, indépendamment du
@@ -767,6 +811,7 @@ function backToSeriesProgress() {
     document.getElementById('progression-series-view').style.display = 'block';
     document.getElementById('progression-set-view').style.display = 'none';
     currentProgressionSetId = null;
+    teardownProgressionStickyBar();
     // Rafraîchir les compteurs de la liste (au cas où des cartes ont été ajoutées entre-temps)
     loadSeriesProgress();
 }
@@ -1050,6 +1095,8 @@ window.computeProgressionKpiData = computeProgressionKpiData;
 window.renderProgressionKpis = renderProgressionKpis;
 window.renderProgressionSeriesList = renderProgressionSeriesList;
 window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
+window.setupProgressionStickyBar = setupProgressionStickyBar;
+window.teardownProgressionStickyBar = teardownProgressionStickyBar;
 window.openSetProgression = openSetProgression;
 window.fetchSetCardsDetailed = fetchSetCardsDetailed;
 window.computeSetCompletionBudget = computeSetCompletionBudget;

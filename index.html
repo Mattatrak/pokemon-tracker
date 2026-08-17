@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=20260817-19">
+    <link rel="stylesheet" href="styles.css?v=20260817-20">
     <link rel="stylesheet" href="css/layout-tokens.css?v=20260811-4">
     <link rel="stylesheet" href="css/motion-tokens.css?v=20260817-3">
     <link rel="stylesheet" href="css/motion-components.css?v=20260817-1">
@@ -539,6 +539,16 @@
             </div>
 
             <div id="progression-set-view" style="display: none;">
+                <!-- Repere de contexte (nom du set + progression) qui apparait une fois que
+                     .progression-set-title-row a defile hors champ - utile sur un set dense (200+
+                     cartes) ou on perd de vue le nom/pourcentage en scrollant. Observe via
+                     IntersectionObserver (setupProgressionStickyBar, progression.js), jamais un
+                     scroll listener - pas de recalcul a chaque frame. -->
+                <div id="progression-set-sticky-bar" class="progression-set-sticky-bar" aria-hidden="true">
+                    <img id="progression-sticky-logo" src="" alt="" style="display:none;">
+                    <span id="progression-sticky-title"></span>
+                    <span id="progression-sticky-progress"></span>
+                </div>
                 <button class="back-btn" onclick="backToSeriesProgress()">← Retour aux séries</button>
                 <div class="progression-set-title-row">
                     <img id="progression-set-logo" src="" alt="" style="display:none;">
@@ -1129,7 +1139,7 @@
     <script type="module" src="modules/wishlist.js?v=20260817-3"></script>
     <script type="module" src="modules/wishlist-detail.js?v=20260805-1"></script>
     <script type="module" src="modules/stats-render.js?v=20260805-1"></script>
-    <script type="module" src="modules/progression.js?v=20260816-2"></script>
+    <script type="module" src="modules/progression.js?v=20260817-1"></script>
     <script type="module" src="modules/dashboard.js?v=20260816-2"></script>
     <script type="module" src="modules/profile.js?v=20260812-7"></script>
     <script type="module" src="modules/collector-match.js?v=20260809-1"></script>
