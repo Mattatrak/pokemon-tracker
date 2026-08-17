@@ -2541,7 +2541,13 @@ button:disabled {
     background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(232,169,59,0.35) 55%, transparent 70%);
     mix-blend-mode: overlay;
     opacity: 0;
-    transition: opacity var(--motion-duration-normal) ease;
+    /* Alignee sur --motion-duration-fast (comme .collection-card et .collection-card img juste en
+       dessous), pas -normal : ce sont 3 proprietes d'UNE MEME interaction de survol (carte + image +
+       reflet), elles doivent bouger ensemble. Un ecart de duree entre elles (etait -normal ici avant,
+       -fast sur la carte) donnait un effet de flottement/tremblement au survol - la carte finissait son
+       mouvement pendant que l'image continuait de zoomer, perceptible des que l'ecart entre -fast et
+       -normal s'est agrandi (2026-08-17, ralentissement des durees de transition). */
+    transition: opacity var(--motion-duration-fast) ease;
     pointer-events: none;
     border-radius: inherit;
 }
@@ -2555,7 +2561,7 @@ button:disabled {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform var(--motion-duration-normal) ease-out;
+    transition: transform var(--motion-duration-fast) ease-out;
 }
 
 .collection-card:hover img {
