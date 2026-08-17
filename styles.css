@@ -254,7 +254,7 @@ body::before {
 
 .input-with-icon input:hover {
     border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
 /* SKELETON DE CHARGEMENT */
@@ -1411,7 +1411,7 @@ body::before {
     bottom: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(230, 192, 123, 0.3);
+    box-shadow: 0 0 16px rgba(232, 169, 59, 0.3);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1728,7 +1728,7 @@ select {
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
 textarea {
@@ -1774,7 +1774,7 @@ button:active {
 
 button:hover {
     border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -1909,7 +1909,7 @@ button:disabled {
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
         rgba(255,255,255,0.05);
     border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
 }
 
@@ -3386,7 +3386,7 @@ tbody tr:hover {
     border: 1px solid transparent;
     border-radius: 14px;
     padding: 0.4rem;
-    box-shadow: 0 16px 32px -12px rgba(0,0,0,0.6), 0 0 14px rgba(227, 188, 132, 0.12);
+    box-shadow: 0 16px 32px -12px rgba(0,0,0,0.6), 0 0 14px rgba(232, 169, 59, 0.12);
     z-index: 20;
 }
 
@@ -4896,7 +4896,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
 }
 
@@ -4931,7 +4931,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
 }
 
@@ -4962,7 +4962,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     bottom: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(230, 192, 123, 0.3);
+    box-shadow: 0 0 16px rgba(232, 169, 59, 0.3);
 }
 
 .modal-overlay.active .modal-card {
@@ -5556,7 +5556,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 .wishlist-detail-acquisition-price-wrap:focus-within {
     border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
 .wishlist-detail-acquisition-price-wrap input {
@@ -6891,7 +6891,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 #card-detail-card .modal-save-btn:hover {
     border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -10524,7 +10524,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .changelog-popup-confirm:hover {
     border-color: rgba(227, 188, 132, 0.6);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.15);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.15);
     transform: translateY(-1px);
 }
 
