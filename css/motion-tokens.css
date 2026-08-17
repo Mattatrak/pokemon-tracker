@@ -3,8 +3,8 @@
    Toute nouvelle animation structurelle doit consommer ces tokens plutot qu'une valeur en dur. */
 
 :root {
-    --motion-duration-fast: 150ms;
-    --motion-duration-normal: 260ms;
+    --motion-duration-fast: 200ms;
+    --motion-duration-normal: 340ms;
     --motion-duration-emphasized: 480ms;
 
     --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
