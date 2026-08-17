@@ -4482,8 +4482,15 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
+    /* env(safe-area-inset-top) : indispensable en PWA plein ecran sur iPhone (viewport-fit=cover +
+       apple-mobile-web-app-status-bar-style:black-translucent, cf index.html) - sans cet offset, un
+       position:fixed; top:0 rend son contenu SOUS la barre de statut/l'encoche (zone non tactile,
+       texte invisible) tout en laissant le fond flou (backdrop-filter) deborder visuellement dans
+       cette zone. Meme pattern deja utilise par .mobile-bottom-nav (bottom, navigation.css) - jamais
+       reproduit ici avant, signale par l'utilisateur via une capture d'ecran de l'app installee sur
+       l'ecran d'accueil (mode standalone, pas visible dans Safari/navigateur classique). */
     .progression-set-sticky-bar {
-        top: 0;
+        top: env(safe-area-inset-top, 0px);
     }
 }
 
