@@ -323,7 +323,7 @@ body::before {
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.75rem;
     background: rgba(255,255,255,0.03);
     transition:
         background 180ms ease,
@@ -1540,7 +1540,7 @@ body::before {
 .preview-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     margin-bottom: 0.9rem;
 }
 
@@ -2032,7 +2032,7 @@ button:disabled {
 
 .summary-segment {
     display: inline-flex;
-    gap: 0.375rem;
+    gap: 0.4rem;
     align-items: center;
 }
 
@@ -2430,7 +2430,7 @@ button:disabled {
 .recap-dup-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     padding: 0.6rem;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.03);
@@ -5270,7 +5270,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .wishlist-detail-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.6rem;
 }
 
 /* Famille de boutons unifiée : Je l'ai !/Cardmarket/Déplacer partagent hauteur, rayon, bordure et
@@ -5978,7 +5978,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 .card-price-chart-periods {
     display: flex;
-    gap: 2px;
+    gap: 0.15rem;
     padding: 2px;
     background: rgba(255,255,255,0.04);
     border-radius: 8px;
@@ -6960,7 +6960,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .edit-info-box {
     display: flex;
     align-items: flex-start;
-    gap: 0.65rem;
+    gap: 0.6rem;
     margin-top: 1rem;
     padding: 0.85rem 1rem;
     background: rgba(255,255,255,0.03);
@@ -7371,7 +7371,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .message {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     padding: 0.9rem 1.1rem;
     border-radius: 8px;
     margin-bottom: 1rem;
@@ -7706,7 +7706,7 @@ span.flatpickr-weekday {
 }
 
 html body .flatpickr-calendar .dayContainer {
-    row-gap: 2px;
+    row-gap: 0.15rem;
     column-gap: 0;
 }
 
@@ -9654,7 +9654,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.5rem;
     font-size: 0.76rem;
     flex: 1;
     min-width: 0;
@@ -9725,7 +9725,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .stx-barlist {
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.75rem;
 }
 
 .stx-composition-grid .stx-barlist {
