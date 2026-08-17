@@ -8033,6 +8033,10 @@ body.page-collection .collection-atlas-hero {
     margin-bottom: 0.6rem;
 }
 
+/* text-shadow ajoute (manquait ici) : identique a .progression-atlas-hero-title (meme famille de
+   hero, meme texte blanc sur photo) - ecart trouve lors de l'audit "look premium" du 2026-08-17,
+   sans doute une divergence au fil des refontes plutot qu'un choix delibere puisque les 4 heroes
+   partagent la meme structure (photo + degrade sombre + titre blanc). */
 .collection-atlas-hero-title,
 .stats-hero-title,
 .wishlist-hero-title {
@@ -8042,6 +8046,7 @@ body.page-collection .collection-atlas-hero {
     line-height: 1.2;
     letter-spacing: -0.01em;
     margin-bottom: 0.6rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);
 }
 
 .collection-atlas-hero-subtitle,
@@ -8051,6 +8056,7 @@ body.page-collection .collection-atlas-hero {
     font-size: 0.95rem;
     line-height: 1.5;
     margin-bottom: 1.4rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 .collection-atlas-hero-search {
