@@ -253,7 +253,7 @@ body::before {
 }
 
 .input-with-icon input:hover {
-    border-color: rgba(227, 188, 132, 0.45);
+    border-color: rgba(232, 169, 59, 0.45);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
@@ -748,7 +748,7 @@ body::before {
     background:
         linear-gradient(180deg, rgba(227, 188, 132, 0.14) 0%, transparent 60%),
         rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(227, 188, 132, 0.3);
+    border: 1px solid rgba(232, 169, 59, 0.3);
     border-radius: 20px;
     padding: 0.5rem 1.25rem 1.25rem;
     overflow: hidden;
@@ -1588,7 +1588,7 @@ body::before {
     background:
         linear-gradient(180deg, rgba(227, 188, 132, 0.14) 0%, transparent 60%),
         rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(227, 188, 132, 0.3);
+    border: 1px solid rgba(232, 169, 59, 0.3);
     border-radius: 14px;
     padding: 1.1rem 1.25rem 1.5rem;
     margin-bottom: 1.5rem;
@@ -1727,7 +1727,7 @@ select {
 
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: rgba(227, 188, 132, 0.45);
+    border-color: rgba(232, 169, 59, 0.45);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
@@ -1773,7 +1773,7 @@ button:active {
 }
 
 button:hover {
-    border-color: rgba(227, 188, 132, 0.45);
+    border-color: rgba(232, 169, 59, 0.45);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
     background:
@@ -1908,7 +1908,7 @@ button:disabled {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
         rgba(255,255,255,0.05);
-    border-color: rgba(227, 188, 132, 0.45);
+    border-color: rgba(232, 169, 59, 0.45);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
 }
@@ -3364,7 +3364,7 @@ tbody tr:hover {
 
 .profile-avatar-fallback {
     background: rgba(227, 188, 132, 0.13);
-    border: 1px solid rgba(227, 188, 132, 0.4);
+    border: 1px solid rgba(232, 169, 59, 0.4);
     line-height: 1;
 }
 
@@ -4018,7 +4018,7 @@ tbody tr:hover {
 
 .collectors-signal-for-me {
     color: var(--gold);
-    border-color: rgba(227, 188, 132, 0.35);
+    border-color: rgba(232, 169, 59, 0.35);
 }
 
 .collectors-signal-for-them {
@@ -5553,7 +5553,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .wishlist-detail-acquisition-price-wrap:focus-within {
-    border-color: rgba(227, 188, 132, 0.45);
+    border-color: rgba(232, 169, 59, 0.45);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
@@ -6888,7 +6888,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 #card-detail-card .modal-save-btn:hover {
-    border-color: rgba(227, 188, 132, 0.45);
+    border-color: rgba(232, 169, 59, 0.45);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
     background:
@@ -9543,7 +9543,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex-shrink: 0;
     border-radius: 50%;
     background: rgba(227, 188, 132, 0.1);
-    border: 1px solid rgba(227, 188, 132, 0.3);
+    border: 1px solid rgba(232, 169, 59, 0.3);
     color: var(--gold);
     display: flex;
     align-items: center;
@@ -10502,7 +10502,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .changelog-change--fixed .changelog-change-badge,
 .changelog-change--fix .changelog-change-badge {
     color: var(--gold);
-    border-color: rgba(227, 188, 132, 0.35);
+    border-color: rgba(232, 169, 59, 0.35);
     background: rgba(227, 188, 132, 0.1);
 }
 
@@ -10542,7 +10542,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-top: 1.25rem;
     padding: 0.7rem 1rem;
     border-radius: 14px;
-    border: 1px solid rgba(227, 188, 132, 0.35);
+    border: 1px solid rgba(232, 169, 59, 0.35);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 45%),
         rgba(227, 188, 132, 0.12);
@@ -10553,7 +10553,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .changelog-popup-confirm:hover {
-    border-color: rgba(227, 188, 132, 0.6);
+    border-color: rgba(232, 169, 59, 0.6);
     box-shadow: 0 0 14px rgba(232, 169, 59, 0.15);
     transform: translateY(-1px);
 }

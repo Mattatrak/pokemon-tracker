@@ -171,12 +171,12 @@
    ajouté (contenu du bouton inchangé, cf DesktopNavbar.js). */
 .dashboard-integrated-nav-action--profile {
     background: rgba(227, 188, 132, 0.06);
-    border-color: rgba(227, 188, 132, 0.35);
+    border-color: rgba(232, 169, 59, 0.35);
 }
 
 .dashboard-integrated-nav-action--profile:hover {
     background: rgba(227, 188, 132, 0.1);
-    border-color: rgba(227, 188, 132, 0.55);
+    border-color: rgba(232, 169, 59, 0.55);
     color: var(--gold);
 }
 
