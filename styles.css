@@ -5089,7 +5089,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
 /* Le flou (backdrop-filter) ne peut pas se recalculer correctement pendant une View Transition : le
    navigateur anime des snapshots figes (::view-transition-old/new), qui ne peuvent pas recomposer un
    flou en continu contre ce qu'il y a derriere - resultat, le contenu de la page reste net et visible
-   a travers le panneau pendant tout le morph (~260ms), puis le flou "saute" d'un coup une fois la
+   a travers le panneau pendant tout le morph, puis le flou "saute" d'un coup une fois la
    transition finie (constate par l'utilisateur, pas seulement sur mobile - la version precedente de
    ce correctif etait scopee a @media max-width:768px, hypothese initiale erronee que c'etait un
    probleme de cout GPU mobile uniquement). Retire le flou pendant la transition, repli sur le fond
