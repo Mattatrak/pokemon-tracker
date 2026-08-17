@@ -8428,6 +8428,26 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 0.35rem;
 }
 
+/* Style "primary" repris tel quel du bouton de connexion (.login-submit-btn, styles-login.css) :
+   degrade --gold -> --gold-hover, texte blanc, ombre doree - jusqu'ici seul le login avait un vrai
+   bouton d'action principale distinct, .dashboard-add-btn/.dashboard-btn-primary (malgre son nom)
+   retombaient sur le meme style "verre" neutre que n'importe quel bouton secondaire/annuler (button{},
+   plus haut dans ce fichier). Audit "look premium" du 2026-08-17. */
+.dashboard-add-btn,
+.dashboard-btn-primary {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(232, 169, 59, 0.3);
+}
+
+.dashboard-add-btn:hover,
+.dashboard-btn-primary:hover {
+    background: linear-gradient(135deg, var(--gold-hover) 0%, #b8956a 100%);
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba(232, 169, 59, 0.4);
+}
+
 .dashboard-add-btn {
     border-radius: 26px;
     padding: 0.7rem 1.3rem;
