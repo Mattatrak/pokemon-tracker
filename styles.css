@@ -4480,18 +4480,12 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
-    /* 2e passe (premiere tentative insuffisante, cf capture ecran utilisateur) : top:env(...) seul
-       laissait la zone de l'encoche/barre de statut sans aucun fond a nous - iOS y floute alors ce
-       qui defile juste en dessous (nos cartes, tres colorees), un flou "sauvage" visible au-dessus du
-       texte. Corrige en repassant a top:0 (le fond de la barre couvre TOUTE la zone, encoche comprise)
-       + padding-top qui pousse le texte/logo sous l'encoche via le meme env(safe-area-inset-top) -
-       iOS floute alors notre propre fond uni (#120e0c, plus de transparence du tout, cf regle de base
-       plus haut) plutot que le contenu de la page, resultat uniforme au lieu d'un flou colore
-       imprevisible. Meme pattern deja utilise par .mobile-bottom-nav cote bas (navigation.css),
-       jamais reproduit ici avant ce fix. */
+    /* padding-top supplementaire (env(safe-area-inset-top)) retire : c'etait un contournement du flou
+       de la barre de statut iOS en black-translucent, cause reelle corrigee a la source (meta
+       apple-mobile-web-app-status-bar-style: black, index.html/login.html) - plus besoin de pousser le
+       contenu de cette barre, ca ne faisait qu'ajouter un espace en trop en haut. */
     .progression-set-sticky-bar {
         top: 0;
-        padding-top: calc(0.65rem + env(safe-area-inset-top, 0px));
     }
 }
 

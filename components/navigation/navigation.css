@@ -432,13 +432,8 @@
         display: flex;
     }
 
-    /* Laisse la place à la barre flottante en bas pour que le dernier contenu ne soit jamais masqué.
-       padding-top réduit (2rem -> 1rem) : sur mobile la navbar desktop est masquée (display:none
-       ci-dessus), rien ne remplit le haut de l'écran - au-dessus s'ajoute déjà la réservation native
-       de la barre de statut iOS (apple-mobile-web-app-status-bar-style: black, index.html/login.html),
-       un padding identique au desktop cumulait un espace mort trop généreux en haut de page. */
+    /* Laisse la place à la barre flottante en bas pour que le dernier contenu ne soit jamais masqué */
     .container {
-        padding-top: 1rem;
         padding-bottom: calc(2rem + 90px + env(safe-area-inset-bottom, 0px));
     }
 }
