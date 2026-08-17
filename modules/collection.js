@@ -1123,10 +1123,11 @@ function renderCollectionGrid(filtered) {
         return;
     }
 
-    grid.innerHTML = filtered.map(card => renderGridCardHtml(card, {
+    grid.innerHTML = filtered.map((card, i) => renderGridCardHtml(card, {
         detailFn: 'showCardDetail',
         imageFallback: 'upload',
-        showAcquisitionIcon: true
+        showAcquisitionIcon: true,
+        staggerIndex: i
     })).join('');
 
     replayEntrance(grid);

@@ -19,4 +19,10 @@
     --motion-scale-enter: 0.985;
 
     --motion-stagger-normal: 55ms;
+    /* Cascade rapide reservee aux grilles denses (dizaines/centaines d'items, ex. .collection-card) :
+       --motion-stagger-normal (55ms) est calibre pour 4-6 grandes sections, un pas bien trop lent des
+       qu'on l'applique carte par carte (des la 20e carte, un delai de plus d'une seconde avant meme
+       le debut de son animation). Le nombre de cartes decalees doit rester plafonne cote JS (voir
+       renderGridCardHtml, card-grid-renderer.js) - ce token ne borne que le pas, pas le total. */
+    --motion-stagger-fast: 18ms;
 }
