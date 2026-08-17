@@ -9,8 +9,6 @@
     --text-primary: #F5F5F7;
     --gold: #e3bc84;
     --gold-hover: #cba672;
-    --teal: #3FA7A1;
-    --teal-hover: #358f8a;
     --slate: #A1A1AA;
     --light-line: #E6C07B;
     --positive: #7ED9A7;
@@ -1518,8 +1516,8 @@ body::before {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(63, 167, 161, 0.15);
-    color: var(--teal);
+    background: rgba(232, 169, 59, 0.15);
+    color: var(--gold);
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.4rem 0.75rem;
@@ -2540,7 +2538,7 @@ button:disabled {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(63,167,161,0.35) 55%, transparent 70%);
+    background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(232,169,59,0.35) 55%, transparent 70%);
     mix-blend-mode: overlay;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -4571,7 +4569,7 @@ tbody tr:hover {
 }
 
 .progression-card-item.reverse-mode.owned {
-    border-color: var(--teal);
+    border-color: var(--gold);
 }
 
 .progression-card-item.owned:hover {
@@ -4588,7 +4586,7 @@ tbody tr:hover {
 .progression-card-item.missing:hover {
     opacity: 0.9;
     transform: translateY(-3px);
-    border-color: var(--teal);
+    border-color: var(--gold);
 }
 
 /* Carte manquante la plus chère du set (Phase 2, P2-2) : sort du lot des cartes manquantes fanées
@@ -6367,8 +6365,8 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 .finish-pill,
 .finish-badge {
-    background: rgba(63, 167, 161, 0.15) !important;
-    color: var(--teal) !important;
+    background: rgba(232, 169, 59, 0.15) !important;
+    color: var(--gold) !important;
     display: inline-flex !important;
     align-items: center;
     gap: 0.3rem;
@@ -6386,8 +6384,8 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .condition-pill.hp { color: #ff6b6b; }
 
 .acquisition-pill {
-    background: rgba(63, 167, 161, 0.15);
-    color: var(--teal);
+    background: rgba(232, 169, 59, 0.15);
+    color: var(--gold);
 }
 
 #card-detail-card .modal-pill {
@@ -6427,13 +6425,13 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 #card-detail-card .acquisition-pill {
     background: transparent;
-    color: #6bcbff;
-    border-color: rgba(107, 203, 255, 0.4);
+    color: var(--gold);
+    border-color: rgba(232, 169, 59, 0.4);
 }
 
 #card-detail-card .finish-pill {
     background: transparent !important;
-    border-color: rgba(63, 167, 161, 0.4);
+    border-color: rgba(232, 169, 59, 0.4);
 }
 
 .modal-value-block {
@@ -6498,7 +6496,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
     font-size: 1.15rem;
     font-weight: 800;
-    color: var(--teal);
+    color: var(--gold);
     letter-spacing: -0.01em;
 }
 
@@ -9196,8 +9194,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: rgba(63,167,161,0.15);
-    color: var(--teal);
+    background: rgba(232,169,59,0.15);
+    color: var(--gold);
     display: flex;
     align-items: center;
     justify-content: center;
