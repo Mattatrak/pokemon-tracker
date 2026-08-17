@@ -8430,11 +8430,21 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* Style "primary" repris tel quel du bouton de connexion (.login-submit-btn, styles-login.css) :
    degrade --gold -> --gold-hover, texte blanc, ombre doree - jusqu'ici seul le login avait un vrai
-   bouton d'action principale distinct, .dashboard-add-btn/.dashboard-btn-primary (malgre son nom)
-   retombaient sur le meme style "verre" neutre que n'importe quel bouton secondaire/annuler (button{},
-   plus haut dans ce fichier). Audit "look premium" du 2026-08-17. */
+   bouton d'action principale distinct, tout le reste de l'appli retombait sur le meme style "verre"
+   neutre que n'importe quel bouton secondaire/annuler (button{}, plus haut dans ce fichier). Audit
+   "look premium" du 2026-08-17, etendu (2e passe) au-dela du Dashboard :
+   - .btn-primary : classe generique a poser sur n'importe quel bouton d'action principale d'une page
+     qui n'a pas deja sa propre classe dediee (ex. #search-btn, "Nouvelle liste" sur Wishlist).
+   - .modal-save-btn (base, non scopee) : couvre "Valider"/"Enregistrer"/"Ajouter a ma collection" dans
+     la plupart des modales (wishlist edit, profil, admin, import CSV, quickadd...) - jamais les boutons
+     destructifs, qui utilisent .modal-delete-btn-v2, deja rouge, non touchee ici.
+     #card-detail-card .modal-save-btn (plus haut dans ce fichier, specificite ID) garde son propre
+     traitement verre dedie, deliberement distinct (deja a l'interieur d'un panneau verre) - non
+     modifiee, cette regle plus specifique continue de gagner la cascade. */
 .dashboard-add-btn,
-.dashboard-btn-primary {
+.dashboard-btn-primary,
+.modal-save-btn,
+.btn-primary {
     background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
     color: white;
     border-color: transparent;
@@ -8442,7 +8452,9 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .dashboard-add-btn:hover,
-.dashboard-btn-primary:hover {
+.dashboard-btn-primary:hover,
+.modal-save-btn:hover,
+.btn-primary:hover {
     background: linear-gradient(135deg, var(--gold-hover) 0%, #b8956a 100%);
     border-color: transparent;
     box-shadow: 0 6px 20px rgba(232, 169, 59, 0.4);
