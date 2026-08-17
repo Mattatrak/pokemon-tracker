@@ -28,6 +28,45 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+// Anime un chiffre-cle de 0 vers sa valeur finale (effet "premium" des dashboards) plutot que de
+// l'afficher brut. Toujours depuis 0, jamais depuis la valeur precedente : les elements portant
+// data-count-target sont recrees a chaque rendu (innerHTML, pattern du reste du projet), aucune
+// memoire DOM ne survit d'un rendu a l'autre - garder ce comportement simple plutot que de faire
+// transiter un etat "derniere valeur affichee" par une variable JS externe au DOM.
+// Attributs lus sur l'element : data-count-target (obligatoire, nombre), data-count-decimals
+// (defaut 0), data-count-suffix (defaut '', ex. '€').
+function animateCountUp(el) {
+    if (!el) return;
+    const target = Number(el.dataset.countTarget);
+    if (isNaN(target)) return;
+    const decimals = Number(el.dataset.countDecimals || 0);
+    const suffix = el.dataset.countSuffix || '';
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.textContent = target.toFixed(decimals) + suffix;
+        return;
+    }
+
+    const duration = 600;
+    const start = performance.now();
+    function frame(now) {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubique
+        el.textContent = (target * eased).toFixed(decimals) + suffix;
+        if (progress < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+
+// Lance animateCountUp sur tous les elements [data-count-target] a l'interieur d'un conteneur -
+// appeler juste apres avoir pose le innerHTML qui les contient (le conteneur lui-meme peut porter
+// l'attribut, querySelectorAll seul ne le verrait pas : verifie separement).
+function animateCountUpIn(container) {
+    if (!container) return;
+    if (container.matches?.('[data-count-target]')) animateCountUp(container);
+    container.querySelectorAll('[data-count-target]').forEach(animateCountUp);
+}
+
 function showMessage(text, type = 'error') {
     const container = document.getElementById('message-container');
     const div = document.createElement('div');
@@ -468,6 +507,8 @@ function initDatePicker(selector, presetValue) {
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
 window.escapeHtml = escapeHtml;
+window.animateCountUp = animateCountUp;
+window.animateCountUpIn = animateCountUpIn;
 window.showMessage = showMessage;
 window.MAX_UPLOAD_IMAGE_BYTES = MAX_UPLOAD_IMAGE_BYTES;
 window.validateImageFile = validateImageFile;

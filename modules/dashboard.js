@@ -250,7 +250,7 @@ function renderDashboardHero() {
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
             <div class="dashboard-hero-label">Valeur totale de la collection</div>
-            <div class="dashboard-hero-value">${totalValue.toFixed(2)}€</div>
+            <div class="dashboard-hero-value" data-count-target="${totalValue}" data-count-decimals="2" data-count-suffix="€">${totalValue.toFixed(2)}€</div>
             ${variationHtml}
             ${lastRefreshHtml}
         </div>
@@ -274,6 +274,7 @@ function renderDashboardHero() {
         </div>
     `;
 
+    animateCountUpIn(el);
     dashboardUpdateHeroVariation();
     renderDashboardKpis();
 }
@@ -319,18 +320,30 @@ function renderDashboardKpis() {
         .reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
     const spentSub = spentThisMonth > 0 ? `+${spentThisMonth.toFixed(2)}€ ce mois` : '';
 
-    document.getElementById('dashboard-kpi-cards').innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection', '', cardsSub);
-    document.getElementById('dashboard-kpi-series').innerHTML = dashboardKpiHtml('ti-stack-2', seriesCount, 'séries différentes');
-    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', `${totalSpent.toFixed(2)}€`, 'investis', '', spentSub);
-    document.getElementById('dashboard-kpi-wishlist').innerHTML = dashboardKpiHtml('ti-star', wishlistCount, 'cartes en wishlist');
+    const kpiCardsEl = document.getElementById('dashboard-kpi-cards');
+    kpiCardsEl.innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection', '', cardsSub, totalCards, 0);
+    const kpiSeriesEl = document.getElementById('dashboard-kpi-series');
+    kpiSeriesEl.innerHTML = dashboardKpiHtml('ti-stack-2', seriesCount, 'séries différentes', '', '', seriesCount, 0);
+    const kpiSpentEl = document.getElementById('dashboard-kpi-spent');
+    kpiSpentEl.innerHTML = dashboardKpiHtml('ti-wallet', `${totalSpent.toFixed(2)}€`, 'investis', '', spentSub, totalSpent, 2, '€');
+    const kpiWishlistEl = document.getElementById('dashboard-kpi-wishlist');
+    kpiWishlistEl.innerHTML = dashboardKpiHtml('ti-star', wishlistCount, 'cartes en wishlist', '', '', wishlistCount, 0);
+
+    [kpiCardsEl, kpiSeriesEl, kpiSpentEl, kpiWishlistEl].forEach(animateCountUpIn);
 }
 
-function dashboardKpiHtml(icon, value, label, extraClass = '', sub = '') {
+// countTarget/countDecimals/countSuffix (optionnels) : posent data-count-target sur .kpi-plaque-value
+// pour animateCountUpIn (modules/utils.js) - value reste le texte affiche tel quel avant que
+// l'animation ne le remplace (fallback si jamais l'animation ne se declenche pas).
+function dashboardKpiHtml(icon, value, label, extraClass = '', sub = '', countTarget = null, countDecimals = 0, countSuffix = '') {
+    const countAttrs = countTarget === null
+        ? ''
+        : ` data-count-target="${countTarget}" data-count-decimals="${countDecimals}" data-count-suffix="${countSuffix}"`;
     return `
         <span class="kpi-plaque-icon"><i class="ti ${icon}" aria-hidden="true"></i></span>
         <div class="kpi-plaque-text">
             <div class="kpi-plaque-label">${label}</div>
-            <div class="kpi-plaque-value ${extraClass}">${value}</div>
+            <div class="kpi-plaque-value ${extraClass}"${countAttrs}>${value}</div>
             ${sub ? `<div class="kpi-plaque-sub positive">${sub}</div>` : ''}
         </div>
     `;
