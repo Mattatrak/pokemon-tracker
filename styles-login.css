@@ -160,7 +160,7 @@
     font-family: inherit;
     background: #1B2233;
     color: #EDEFF5;
-    transition: all 0.2s ease;
+    transition: all var(--motion-duration-fast) ease;
 }
 
 .form-field input::placeholder {
@@ -207,7 +207,7 @@
     color: #e3bc84;
     font-size: 0.85rem;
     text-decoration: none;
-    transition: color 0.2s ease;
+    transition: color var(--motion-duration-fast) ease;
     white-space: nowrap;
 }
 
@@ -257,7 +257,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    transition: all 0.3s ease;
+    transition: all var(--motion-duration-normal) ease;
     box-shadow: 0 4px 12px rgba(232, 169, 59,0.3);
     margin-top: 0.5rem;
 }
@@ -281,7 +281,7 @@
     color: #e3bc84;
     text-decoration: none;
     font-size: 0.9rem;
-    transition: color 0.2s ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .login-link:hover {
@@ -347,7 +347,7 @@
     color: #e3bc84;
     text-decoration: none;
     font-weight: 600;
-    transition: color 0.2s ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .signup-link:hover {

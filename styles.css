@@ -207,8 +207,8 @@ body::before {
 .tab-content.active {
     display: block;
     /* Fondu d'entrée (inspiré de duffus.fr, cf docs/inspiration-duffus-animations.md#3). Durée/easing
-       (300ms, ease-in-out) repris tels quels des deux appels Element.prototype.animate() interceptés
-       sur duffus.fr (opacity [1,0] puis [0,1], 300ms ease-in-out chacun) - chez eux c'est un vrai
+       (var(--motion-duration-normal), ease-in-out) repris tels quels des deux appels Element.prototype.animate() interceptés
+       sur duffus.fr (opacity [1,0] puis [0,1], var(--motion-duration-normal) ease-in-out chacun) - chez eux c'est un vrai
        crossfade (ancienne ET nouvelle page superposées, fondues simultanément), pas reproduit ici :
        notre changement d'onglet passe par une View Transition (VT2, runNavIndicatorTransition,
        tracker.js) qui suppose une mutation DOM synchrone - un crossfade demanderait de la rendre
@@ -220,7 +220,7 @@ body::before {
        body.page-X .X-hero) reçoivent le même fondu synchronisé, pour ne pas recréer le décalage de
        rythme (hero instantané vs contenu animé) qui avait fait abandonner cette idée une première
        fois. */
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -326,10 +326,10 @@ body::before {
     gap: 0.75rem;
     background: rgba(255,255,255,0.03);
     transition:
-        background 180ms ease,
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        transform 180ms ease;
+        background var(--motion-duration-fast) ease,
+        border-color var(--motion-duration-fast) ease,
+        box-shadow var(--motion-duration-fast) ease,
+        transform var(--motion-duration-fast) ease;
 }
 
 .catalogue-load-more-row {
@@ -368,7 +368,7 @@ body::before {
     object-fit: cover;
     border-radius: 8px;
     background: var(--ink-navy);
-    transition: transform 0.2s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .search-result-item:hover .search-result-img {
@@ -467,7 +467,7 @@ body::before {
     cursor: pointer;
     flex-direction: column;
     gap: 0.25rem;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background var(--motion-duration-fast), border-color var(--motion-duration-fast);
 }
 
 .upload-placeholder:hover {
@@ -825,7 +825,7 @@ body::before {
     display: grid;
     grid-template-rows: 0fr;
     opacity: 0;
-    transition: grid-template-rows 0.25s var(--motion-ease-standard), opacity 0.2s var(--motion-ease-standard);
+    transition: grid-template-rows var(--motion-duration-normal) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .catalogue-add-expand-inner {
@@ -1072,7 +1072,7 @@ body::before {
    (cf selectCard()/applyCardToPreview() dans modules/cards.js) :
    1) .card-swap-exit atténue l'ancien contenu (~90ms)
    2) une fois presque transparent, les données sont remplacées dans le DOM
-   3) .card-swap-enter fait entrer le nouveau contenu (~240ms)
+   3) .card-swap-enter fait entrer le nouveau contenu (~var(--motion-duration-normal))
    opacity/transform uniquement, aucun impact sur le layout. */
 .preview-image.card-swap-exit,
 .preview-details.card-swap-exit {
@@ -1091,11 +1091,11 @@ body::before {
 }
 
 .preview-image.card-swap-enter {
-    animation: preview-image-swap-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: preview-image-swap-enter var(--motion-duration-normal) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .preview-details.card-swap-enter {
-    animation: preview-details-swap-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: preview-details-swap-enter var(--motion-duration-normal) cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: 24ms;
 }
 
@@ -1765,7 +1765,7 @@ button:active {
 
 @media (prefers-reduced-motion: reduce) {
     button {
-        transition: background 0.2s;
+        transition: background var(--motion-duration-fast);
     }
     button:active {
         transform: none;
@@ -1897,7 +1897,7 @@ button:disabled {
         rgba(255,255,255,0.04);
     color: #F4F1EB;
     border: 1px solid rgba(255,255,255,0.14);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+    transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
 }
 
 .wishlist-toolbar .filter-toggle-btn i {
@@ -2515,7 +2515,7 @@ button:disabled {
         0 6px 14px rgba(0,0,0,0.5),
         0 0 0 1px rgba(232,169,59,0.05),
         0 0 16px rgba(232,169,59,0.12);
-    transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
+    transition: transform var(--motion-duration-fast) ease-out, box-shadow var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
 }
 
 .collection-card:hover {
@@ -2541,7 +2541,7 @@ button:disabled {
     background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(232,169,59,0.35) 55%, transparent 70%);
     mix-blend-mode: overlay;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--motion-duration-normal) ease;
     pointer-events: none;
     border-radius: inherit;
 }
@@ -2555,7 +2555,7 @@ button:disabled {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 220ms ease-out;
+    transition: transform var(--motion-duration-normal) ease-out;
 }
 
 .collection-card:hover img {
@@ -2591,7 +2591,7 @@ button:disabled {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 150ms ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .collection-card:hover .collection-card-name {
@@ -2645,7 +2645,7 @@ button:disabled {
     font-size: 0.8rem;
     color: var(--slate);
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color var(--motion-duration-fast), color var(--motion-duration-fast);
 }
 
 .modal-logo-upload:hover {
@@ -2857,7 +2857,7 @@ th {
 th.sortable {
     cursor: pointer;
     user-select: none;
-    transition: color 0.2s;
+    transition: color var(--motion-duration-fast);
 }
 
 th.sortable:hover {
@@ -3130,7 +3130,7 @@ tbody tr:hover {
 .wishlist-chevron {
     font-size: 0.9rem;
     color: var(--slate);
-    transition: transform 0.2s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .wishlist-chevron.expanded {
@@ -3213,7 +3213,7 @@ tbody tr:hover {
 .wishlist-thumb-card {
     cursor: pointer;
     box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-    transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+    transition: transform var(--motion-duration-fast) ease-out, box-shadow var(--motion-duration-fast) ease-out;
 }
 
 .wishlist-thumb-card:hover {
@@ -3310,7 +3310,7 @@ tbody tr:hover {
     cursor: pointer;
     color: var(--text-primary);
     font-weight: 600;
-    transition: border-color 0.15s;
+    transition: border-color var(--motion-duration-fast);
     border: 1px solid var(--border);
 }
 
@@ -4270,7 +4270,7 @@ tbody tr:hover {
     border: 1px solid var(--border);
     border-radius: 14px;
     cursor: pointer;
-    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease;
 }
 
 .progression-set-row:hover {
@@ -4307,7 +4307,7 @@ tbody tr:hover {
     height: auto;
     object-fit: contain;
     opacity: 0.95;
-    transition: transform 0.16s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .progression-set-logo-wrap .progression-set-logo-upload {
@@ -4325,7 +4325,7 @@ tbody tr:hover {
     border: 1px dashed rgba(255,255,255,0.2);
     font-size: 0.9rem;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color var(--motion-duration-fast);
 }
 
 .progression-set-logo-upload:hover {
@@ -4346,7 +4346,7 @@ tbody tr:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 0.15s ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .progression-progress-bar {
@@ -4361,7 +4361,7 @@ tbody tr:hover {
     height: 100%;
     background: linear-gradient(90deg, rgba(199,164,116,0.92), rgba(227,188,132,0.92));
     border-radius: 4px;
-    transition: width 0.3s ease;
+    transition: width var(--motion-duration-normal) ease;
 }
 
 .progression-set-count {
@@ -4480,7 +4480,7 @@ tbody tr:hover {
     border-radius: 8px;
     padding: 0.9rem 1rem;
     cursor: pointer;
-    transition: transform 0.2s, border-color 0.2s;
+    transition: transform var(--motion-duration-fast), border-color var(--motion-duration-fast);
 }
 
 .progression-goal-card:hover {
@@ -4561,7 +4561,7 @@ tbody tr:hover {
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
-    transition: transform 0.2s;
+    transition: transform var(--motion-duration-fast);
 }
 
 .progression-card-item.owned {
@@ -4580,7 +4580,7 @@ tbody tr:hover {
 .progression-card-item.missing {
     opacity: 0.55;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s, border-color 0.2s;
+    transition: opacity var(--motion-duration-fast), transform var(--motion-duration-fast), border-color var(--motion-duration-fast);
 }
 
 .progression-card-item.missing:hover {
@@ -5126,7 +5126,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
        complète la neutralisation du flou ci-dessus, ne la remplace pas. Desktop non touché
        (--motion-duration-normal, 260ms, inchangé). */
     html:active-view-transition-type(card-detail)::view-transition-group(card-detail-morph) {
-        animation-duration: 180ms;
+        animation-duration: var(--motion-duration-fast);
     }
 }
 
@@ -5291,7 +5291,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     text-decoration: none;
     cursor: pointer;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    transition: background 0.18s ease, border-color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-btn:hover {
@@ -5388,7 +5388,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     width: 100%;
     color: var(--text-primary);
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-move-option:hover {
@@ -5471,7 +5471,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     color: var(--text-primary);
     text-align: left;
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-acquisition-choice-btn i {
@@ -5605,7 +5605,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-acquisition-back:hover {
@@ -5994,7 +5994,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     color: var(--slate);
     border-radius: 8px;
     cursor: pointer;
-    transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    transition: color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease;
 }
 
 .chart-period-btn:hover {
@@ -6254,7 +6254,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     color: var(--slate);
     border: 1px dashed rgba(255,255,255,0.2);
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color var(--motion-duration-fast), color var(--motion-duration-fast);
 }
 
 .symbol-upload-pill:hover {
@@ -6294,7 +6294,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color var(--motion-duration-fast), background var(--motion-duration-fast);
     color: var(--text-primary);
     position: relative;
 }
@@ -6318,7 +6318,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s ease;
+    transition: opacity var(--motion-duration-fast) ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.45);
     z-index: 30;
 }
@@ -6570,7 +6570,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     text-decoration: underline dotted;
     text-underline-offset: 3px;
     text-decoration-color: rgba(232, 169, 59, 0.55);
-    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+    transition: color var(--motion-duration-fast) ease, text-decoration-color var(--motion-duration-fast) ease;
 }
 
 .illustrator-link:hover {
@@ -6641,7 +6641,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: border-color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
 }
 
 .collection-add-filter-btn:hover:not(:disabled) {
@@ -6880,7 +6880,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
         rgba(255,255,255,0.04);
     color: #F4F1EB;
     border: 1px solid rgba(255,255,255,0.14);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+    transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
 }
 
 #card-detail-card .modal-save-btn i {
@@ -6906,7 +6906,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     background: rgba(255,255,255,0.02);
     color: var(--slate);
     font-weight: 500;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
 }
 
 #card-detail-card .modal-cancel-btn:hover {
@@ -7097,7 +7097,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     cursor: pointer;
     text-align: left;
     width: 100%;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease;
 }
 
 .modal-action-row:disabled {
@@ -7668,7 +7668,7 @@ html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
     align-items: center;
     justify-content: center;
     top: 0.45rem !important;
-    transition: background 0.15s;
+    transition: background var(--motion-duration-fast);
 }
 
 .flatpickr-prev-month:hover,
@@ -7906,7 +7906,7 @@ body.page-progression .progression-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 26px;
     overflow: hidden;
@@ -7976,7 +7976,7 @@ body.page-collection .collection-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 26px;
     overflow: hidden;
@@ -8131,7 +8131,7 @@ body.page-statistics .stats-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 26px;
     overflow: hidden;
@@ -8217,7 +8217,7 @@ body.page-wishlist .wishlist-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
     border-radius: 26px;
     overflow: hidden;
@@ -9009,7 +9009,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
 }
 
 .dashboard-activity-row:hover {
@@ -9091,7 +9091,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin: 0 -0.5rem;
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
 }
 
 .dashboard-mover-row:hover {
@@ -9136,7 +9136,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     position: relative;
     cursor: pointer;
     text-align: center;
-    transition: transform 0.15s ease;
+    transition: transform var(--motion-duration-fast) ease;
     flex: 0 0 100px;
     width: 100px;
 }
@@ -9172,7 +9172,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     object-fit: cover;
     border-radius: 8px;
     display: block;
-    transition: transform 0.3s ease;
+    transition: transform var(--motion-duration-normal) ease;
 }
 
 .dashboard-acquisition-card:hover img {
@@ -9209,7 +9209,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
 }
 
 .dashboard-todo-row:hover {
@@ -9230,7 +9230,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform 0.15s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .dashboard-todo-row:hover .dashboard-todo-icon {
@@ -9258,7 +9258,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin: 0 -0.5rem;
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
 }
 
 .dashboard-wishlist-row:hover {
@@ -10025,7 +10025,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: 14px;
     padding: 1.75rem;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-    transition: transform var(--motion-duration-fast, 150ms) ease, border-color var(--motion-duration-fast, 150ms) ease;
+    transition: transform var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 /* Ouvre la fiche carte (comme dans Collection) partout où une carte possédée est référencée
@@ -10549,7 +10549,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     color: #F4F1EB;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease;
 }
 
 .changelog-popup-confirm:hover {
@@ -10595,7 +10595,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 @media (max-width: 768px) {
     .collection-card {
         box-shadow: 0 8px 16px -6px rgba(0,0,0,0.6);
-        transition: transform 180ms ease-out, border-color 180ms ease-out;
+        transition: transform var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
     }
 
     .collection-card:hover {
