@@ -111,8 +111,12 @@ function closeWishlistItemDetail() {
     const sourceEl = origin ? findVisibleWishlistDetailSource(origin.containerId, origin.itemId) : null;
     const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
     const modalImg = overlay.querySelector('.wishlist-detail-image');
+    // Desactive sur mobile, symetrique a runCardDetailMorphTransition (card-grid-renderer.js) : sans
+    // ce garde-fou, la fermeture (swipe ou croix) gardait le morph inverse alors que l'ouverture ne
+    // l'a plus - signale par l'utilisateur ("la carte qui retourne a son emplacement" au swipe).
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function') {
+    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function' || isMobile) {
         overlay.classList.remove('active');
         finishClose();
         return;
