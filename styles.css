@@ -7477,6 +7477,14 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         margin-right: auto;
     }
 
+    /* Image de la carte reduite (retour utilisateur, 2026-08-18) : 316px (heritee de la regle
+       ci-dessus, partagee avec le graphique/disclaimer) prenait quasi toute la largeur du bottom
+       sheet - trop imposant pour une simple vignette d'identification en haut de fiche. Uniquement
+       .modal-image-wrap, le graphique et le disclaimer gardent 316px. */
+    #card-detail-card .modal-image-wrap {
+        max-width: 220px;
+    }
+
     /* .card-price-chart-wrap déborde volontairement sa colonne de 20px de chaque côté en desktop
        (margin-left négatif, cf déclaration de base) pour un effet bord-à-bord dans la colonne image :
        sans ce reset, width:100% + margin-left:-20px l'aurait fait déborder de la colonne mobile. */
