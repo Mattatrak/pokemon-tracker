@@ -30,6 +30,13 @@
     <link rel="stylesheet" href="css/binder.css?v=20260817-1">
 </head>
 <body>
+    <!-- Banniere "nouvelle version disponible" (audit PWA 2026-08-18, modules/pwa.js) : masquee par
+         defaut, affichee uniquement quand un nouveau service worker reste en attente au lieu de
+         prendre la main silencieusement (self.skipWaiting() retire de sw.js). -->
+    <div id="sw-update-banner" class="sw-update-banner" aria-hidden="true">
+        <span>Nouvelle version disponible.</span>
+        <button type="button" id="sw-update-reload-btn">Recharger</button>
+    </div>
     <!-- Navbar desktop globale et persistante (NAV1, cf audit navbar du 2026-08-16) : un seul DOM,
          hors de .container/des heroes/des tab-content, jamais recréé au changement d'onglet - seul
          updateDesktopNavigation (components/navigation/DesktopNavbar.js) y touche ensuite. Masquée en
@@ -1147,6 +1154,7 @@
     <script type="module" src="modules/collectors.js?v=20260805-1"></script>
     <script type="module" src="modules/admin.js?v=20260812-8"></script>
     <script type="module" src="modules/changelog.js?v=20260812-7"></script>
+    <script type="module" src="modules/pwa.js?v=20260818-1"></script>
     <script type="module" src="tracker.js?v=20260818-2"></script>
     <script type="module" src="modules/auth.js?v=20260818-2"></script>
     <script type="module">
@@ -1154,9 +1162,7 @@
         // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
         // (`vite preview`) ou en production. Comportement de production inchangé.
         if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
-            });
+            window.addEventListener('load', registerServiceWorker);
         }
     </script>
 </body>

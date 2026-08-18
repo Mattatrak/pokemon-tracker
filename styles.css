@@ -10763,3 +10763,60 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         display: none;
     }
 }
+
+/* ===================== PWA : BANNIERE MAJ + BOUTON INSTALLER (audit 2026-08-18) ===================== */
+
+/* Bandeau "nouvelle version disponible" (modules/pwa.js) : masque par defaut, .visible ajoutee au
+   premier service worker en attente. env(safe-area-inset-top) : meme pattern que .progression-set-sticky-bar
+   plus haut dans ce fichier, pour ne jamais chevaucher la barre de statut iOS en mode PWA installee. */
+.sw-update-banner {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    padding-top: calc(0.65rem + env(safe-area-inset-top, 0px));
+    background: #16120f;
+    border-bottom: 1px solid rgba(232, 169, 59, 0.25);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.sw-update-banner.visible {
+    display: flex;
+}
+
+#sw-update-reload-btn {
+    background: var(--gold);
+    color: var(--ink-navy);
+    border: none;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#sw-update-reload-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Entree "Installer l'app" (menu Plus mobile / menu profil desktop) : masquee par defaut, revelee
+   uniquement quand beforeinstallprompt s'est declenche (modules/pwa.js ajoute .pwa-installable sur
+   body) - jamais sur Safari/iOS, ou cette API n'existe pas. display:flex (pas block) : identique a
+   .mobile-more-panel-item/.profile-menu-item au repos (styles.css, plus haut), pour ne pas desaligner
+   l'icone du libelle une fois revele. */
+.pwa-install-item {
+    display: none;
+}
+
+body.pwa-installable .pwa-install-item {
+    display: flex;
+}

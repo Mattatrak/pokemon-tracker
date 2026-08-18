@@ -26,6 +26,13 @@
     <link rel="stylesheet" href="styles-login.css?v=20260817-4">
 </head>
 <body class="login-page">
+    <!-- Banniere "nouvelle version disponible" (audit PWA 2026-08-18, modules/pwa.js) : masquee par
+         defaut, affichee uniquement quand un nouveau service worker reste en attente au lieu de
+         prendre la main silencieusement (self.skipWaiting() retire de sw.js). -->
+    <div id="sw-update-banner" class="sw-update-banner" aria-hidden="true">
+        <span>Nouvelle version disponible.</span>
+        <button type="button" id="sw-update-reload-btn">Recharger</button>
+    </div>
     <div class="login-background"></div>
 
     <div class="login-container">
@@ -230,14 +237,13 @@
     <script type="module" src="modules/profile.js?v=20260805-1"></script>
     <script type="module" src="tracker.js?v=20260818-2"></script>
     <script type="module" src="modules/auth-login.js?v=20260805-1"></script>
+    <script type="module" src="modules/pwa.js?v=20260818-1"></script>
     <script type="module">
         // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre
         // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
         // (`vite preview`) ou en production. Comportement de production inchangé.
         if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
-            });
+            window.addEventListener('load', registerServiceWorker);
         }
     </script>
 </body>
