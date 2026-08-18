@@ -1192,11 +1192,19 @@ function initEventListeners() {
             searchCards();
         }, 350);
     });
-    document.getElementById('filter-rarity').addEventListener('change', applySearchFilters);
-    document.getElementById('filter-series').addEventListener('change', applySearchFilters);
+    // Wrappees en fleches (pas la reference directe) : passer la fonction elle-meme oblige a ce
+    // qu'elle existe DEJA au moment ou cette ligne s'execute (initEventListeners tourne au chargement
+    // de tracker.js), alors que ces 4 fonctions sont definies dans d'autres modules (cards.js,
+    // progression.js, stats-render.js) - l'ordre de chargement <script> est respecte en dev, mais pas
+    // garanti une fois tous les modules concatenes en un seul bundle par Vite en prod (cause du
+    // ReferenceError "applySearchFilters is not defined" remonte par Sentry, 2026-08-18). Une fleche ne
+    // resout le nom qu'au moment ou l'evenement se declenche reellement (clic/saisie utilisateur), bien
+    // apres que tous les modules aient fini de charger - plus aucune dependance a l'ordre.
+    document.getElementById('filter-rarity').addEventListener('change', () => applySearchFilters());
+    document.getElementById('filter-series').addEventListener('change', () => applySearchFilters());
 
-    document.getElementById('progression-search').addEventListener('input', renderProgressionCardsGrid);
-    document.getElementById('month-summary-select').addEventListener('change', renderMonthlySummary);
+    document.getElementById('progression-search').addEventListener('input', () => renderProgressionCardsGrid());
+    document.getElementById('month-summary-select').addEventListener('change', () => renderMonthlySummary());
 }
 
 if (document.getElementById('search-collection')) initEventListeners();
