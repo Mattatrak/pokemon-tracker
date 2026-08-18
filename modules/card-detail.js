@@ -72,14 +72,15 @@ function renderCardDetail(cardId) {
                     }
                 </div>
                 ${card.tcgdex_id ? `
-                    <div class="card-price-chart-wrap">
-                        <div class="card-price-chart-header">
+                    <div class="card-price-chart-wrap" id="card-price-chart-wrap">
+                        <div class="card-price-chart-header" onclick="toggleCardPriceChart('${card.tcgdex_id}')">
                             <div class="card-price-chart-title">Historique des prix</div>
-                            <div class="card-price-chart-periods" id="card-price-chart-periods">
+                            <div class="card-price-chart-periods" id="card-price-chart-periods" onclick="event.stopPropagation()">
                                 <button class="chart-period-btn" data-days="1" onclick="setCardPriceChartPeriod(1, this)">1J</button>
                                 <button class="chart-period-btn" data-days="7" onclick="setCardPriceChartPeriod(7, this)">7J</button>
                                 <button class="chart-period-btn active" data-days="30" onclick="setCardPriceChartPeriod(30, this)">30J</button>
                             </div>
+                            <i class="ti ti-chevron-down card-price-chart-toggle" aria-hidden="true"></i>
                         </div>
                         <div class="card-price-chart-body">
                             <div class="card-price-chart-plot">
@@ -192,13 +193,37 @@ function renderCardDetail(cardId) {
     document.getElementById('card-detail-overlay').classList.add('active');
 
     if (card.tcgdex_id) {
-        // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations premium) :
-        // renderCardPriceChart() est déjà async (attend Supabase avant de dessiner), donc rarement en
-        // concurrence avec l'animation en pratique, mais sur connexion rapide/réponse déjà en cache
-        // navigateur, l'initialisation Chart.js pouvait tomber pile pendant les toutes premières
-        // frames du morph - requestAnimationFrame garantit qu'elle ne démarre jamais avant que le
-        // navigateur ait eu l'occasion de peindre au moins une frame.
-        requestAnimationFrame(() => renderCardPriceChart(card.tcgdex_id));
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            // Replié par défaut sur mobile (allégement fiche carte, 2026-08-18) : Chart.js n'est
+            // initialisé qu'à la première ouverture du volet (toggleCardPriceChart ci-dessous), jamais
+            // pendant qu'il est masqué - un canvas cache CSS (display:none) a des dimensions nulles,
+            // Chart.js s'y dessinerait de façon cassée. Desktop inchangé (toujours déplié d'office).
+        } else {
+            // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations
+            // premium) : renderCardPriceChart() est déjà async (attend Supabase avant de dessiner),
+            // donc rarement en concurrence avec l'animation en pratique, mais sur connexion
+            // rapide/réponse déjà en cache navigateur, l'initialisation Chart.js pouvait tomber pile
+            // pendant les toutes premières frames du morph - requestAnimationFrame garantit qu'elle ne
+            // démarre jamais avant que le navigateur ait eu l'occasion de peindre au moins une frame.
+            requestAnimationFrame(() => renderCardPriceChart(card.tcgdex_id));
+        }
+    }
+}
+
+// Volet repliable du graphique de prix sur mobile (allégement fiche carte, 2026-08-18) : desktop garde
+// le graphique toujours déplié (cf renderCardDetail), cette fonction n'a d'effet visuel qu'en dessous
+// de 768px (règles CSS scopées, styles.css). Chargement paresseux : Chart.js n'est initialisé qu'au
+// premier dépli (dataset.loaded), jamais en amont sur un canvas encore masqué.
+function toggleCardPriceChart(tcgdexId) {
+    const wrap = document.getElementById('card-price-chart-wrap');
+    if (!wrap) return;
+
+    const expanding = !wrap.classList.contains('expanded');
+    wrap.classList.toggle('expanded', expanding);
+
+    if (expanding && wrap.dataset.loaded !== 'true') {
+        wrap.dataset.loaded = 'true';
+        renderCardPriceChart(tcgdexId);
     }
 }
 
@@ -706,6 +731,7 @@ window.showCardDetail = showCardDetail;
 window.cardPriceChartInstance = cardPriceChartInstance;
 window.cardPriceChartData = cardPriceChartData;
 window.renderCardPriceChart = renderCardPriceChart;
+window.toggleCardPriceChart = toggleCardPriceChart;
 window.renderCardPriceChartForPeriod = renderCardPriceChartForPeriod;
 window.setCardPriceChartPeriod = setCardPriceChartPeriod;
 window.showCardEditForm = showCardEditForm;

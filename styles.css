@@ -5175,6 +5175,14 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
    le déplacement de l'image partagée - blur(24-28px) + saturate + contrast est l'une des
    opérations les plus coûteuses pour un GPU mobile, cause identifiée de lag constaté en usage réel.
    Radius réduit et saturate/contrast retirés uniquement sous ce seuil - effet verre desktop inchangé. */
+/* Chevron du volet prix (allegement fiche carte, 2026-08-18) : masque par defaut ici (desktop garde le
+   graphique toujours deplie, aucune notion de volet a annoncer), reactive uniquement sous 768px (regle
+   mobile plus bas dans ce fichier - doit rester APRES cette regle en ordre source pour gagner la
+   cascade a specificite egale). */
+.card-price-chart-toggle {
+    display: none;
+}
+
 /* Bottom sheet mobile (essai, 2026-08-18, retour utilisateur "pas hyper satisfait des modales sur
    mobile") : la carte flottante centree (comme sur desktop) devient une feuille ancree en bas, pleine
    largeur, coins arrondis seulement en haut - pattern natif attendu sur iOS/Android, deja utilise pour
@@ -5250,6 +5258,43 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
        sur mobile - complète la neutralisation du flou ci-dessus, ne la remplace pas. */
     html:active-view-transition-type(card-detail)::view-transition-group(card-detail-morph) {
         animation-duration: var(--motion-duration-fast);
+    }
+
+    /* Fiche carte allegee sur mobile (retour utilisateur, 2026-08-18) : le graphique de prix (canvas +
+       selecteur de periode + stat, le plus gros bloc de la fiche) reste replie par defaut, deplie au
+       tap sur son en-tete (toggleCardPriceChart, card-detail.js). Desktop inchange (toujours deplie
+       d'office, cf renderCardDetail). */
+    .card-price-chart-header {
+        cursor: pointer;
+    }
+
+    .card-price-chart-toggle {
+        display: block;
+        color: var(--slate);
+        font-size: 0.9rem;
+        transition: transform var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    .card-price-chart-body {
+        display: none;
+    }
+
+    .card-price-chart-wrap.expanded .card-price-chart-body {
+        display: flex;
+    }
+
+    .card-price-chart-wrap.expanded .card-price-chart-toggle {
+        transform: rotate(180deg);
+    }
+
+    /* Boutons d'action compacts (Modifier / Cardmarket / Retirer) : le sous-titre descriptif prend de
+       la place pour une information deja portee par le libellé seul sur un petit ecran. */
+    .modal-action-row {
+        padding: 0.7rem 1rem;
+    }
+
+    .modal-action-subtitle {
+        display: none;
     }
 }
 
