@@ -198,6 +198,19 @@ function renderCardDetail(cardId) {
             // initialisé qu'à la première ouverture du volet (toggleCardPriceChart ci-dessous), jamais
             // pendant qu'il est masqué - un canvas cache CSS (display:none) a des dimensions nulles,
             // Chart.js s'y dessinerait de façon cassée. Desktop inchangé (toujours déplié d'office).
+
+            // Deplacement DOM reel (pas juste visuel via CSS order) : le graphique reste imbrique dans
+            // .modal-image-wrap (colonne image desktop, cf CSS ::before/bleed dedie a cette largeur-la)
+            // - impossible a repositionner en CSS pur sans casser cette mise en page desktop, jamais
+            // touchee ici. Sur mobile uniquement, deplace apres le bloc prix (retour utilisateur : voir
+            // la carte + le nom d'abord, le graphique vient ensuite) - le noeud (canvas, id, listeners)
+            // n'est pas recree, juste reancre : le repli/depli et le chargement paresseux plus bas
+            // continuent de fonctionner normalement.
+            const chartWrap = document.getElementById('card-price-chart-wrap');
+            const valueBlock = modalCard.querySelector('.modal-value-block');
+            if (chartWrap && valueBlock) {
+                valueBlock.insertAdjacentElement('afterend', chartWrap);
+            }
         } else {
             // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations
             // premium) : renderCardPriceChart() est déjà async (attend Supabase avant de dessiner),
