@@ -7479,10 +7479,13 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
     /* Image de la carte reduite (retour utilisateur, 2026-08-18) : 316px (heritee de la regle
        ci-dessus, partagee avec le graphique/disclaimer) prenait quasi toute la largeur du bottom
-       sheet - trop imposant pour une simple vignette d'identification en haut de fiche. Uniquement
-       .modal-image-wrap, le graphique et le disclaimer gardent 316px. */
-    #card-detail-card .modal-image-wrap {
+       sheet - trop imposant pour une simple vignette d'identification en haut de fiche. Cible
+       .modal-image (pas .modal-image-wrap, qui contient AUSSI .card-price-chart-wrap en enfant direct -
+       reduire le wrap avait bride le graphique par la meme occasion, signale par l'utilisateur) : le
+       wrap garde sa largeur de 316px, seule l'image est recentree en dessous. */
+    #card-detail-card .modal-stand .modal-image {
         max-width: 220px;
+        margin: 0 auto;
     }
 
     /* .card-price-chart-wrap déborde volontairement sa colonne de 20px de chaque côté en desktop
