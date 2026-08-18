@@ -50,7 +50,13 @@ function defaultResolveModalImg() {
 // que ce qui lui est propre (quel élément nommer, quand nettoyer).
 function runCardDetailMorphTransition(event, renderFn, resolveModalImg = defaultResolveModalImg) {
     const sourceImg = event?.currentTarget?.querySelector('img');
-    if (typeof document.startViewTransition !== 'function' || !sourceImg) {
+    // Desactive sur mobile (retour utilisateur, essai bottom sheet 2026-08-18) : le morph d'image entre
+    // en concurrence avec le slide-up CSS du bottom sheet (styles.css, @media max-width:768px), jugee
+    // plus propre sans lui - deja le cas de facto pour showPublicWishlistItemDetail (public-profile.js),
+    // seul appelant qui n'a jamais utilise ce morph, prefere par l'utilisateur au comparatif. Desktop
+    // inchange (le morph grille -> fiche y reste l'effet voulu).
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (typeof document.startViewTransition !== 'function' || !sourceImg || isMobile) {
         renderFn();
         return;
     }
