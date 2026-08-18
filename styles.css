@@ -9457,39 +9457,11 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         max-width: 100%;
     }
 
+    /* Carte "Favori du jour" retiree sur mobile (demande utilisateur, 2026-08-18) : trop de place prise
+       avant meme d'atteindre les KPIs sur un petit ecran, contrairement au desktop ou l'espace lateral
+       est disponible. Reste inchangee sur desktop (regle de base plus haut, hors media query). */
     .dashboard-hero-showcase {
-        flex-direction: column;
-        height: auto;
-        margin-top: 0.5rem;
-    }
-
-    .dashboard-hero-card-stage {
-        height: auto;
-        min-height: 0;
-        transform: none;
-    }
-
-    .dashboard-hero-card-img-wrap {
-        animation: none;
-        transform: none;
-    }
-
-    .dashboard-hero-card-meta {
-        align-items: center;
-        text-align: center;
-        max-width: 100%;
-        margin-left: 0;
-        margin-top: 1rem;
-        padding: 12px 14px;
-        transform: none;
-    }
-
-    .dashboard-hero-card-meta::before {
-        backdrop-filter: none;
-    }
-
-    .dashboard-hero-card-delta {
-        justify-content: center;
+        display: none;
     }
 
     .dashboard-hero .dashboard-kpis {
