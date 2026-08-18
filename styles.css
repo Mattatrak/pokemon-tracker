@@ -2652,6 +2652,14 @@ button:disabled {
     width: 100%;
 }
 
+/* Le sceau se pose avec un léger temps de retard après l'image (delay 180ms), plutôt que d'apparaître
+   d'un coup en même temps qu'elle - accentue l'idée d'un objet posé sur la carte plutôt qu'un élément
+   d'interface. `both` : reste invisible pendant le délai, garde l'état final une fois joué. */
+@keyframes series-seal-pop {
+    from { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+    to { opacity: 1; transform: scale(1) rotate(-8deg); }
+}
+
 .modal-series-seal {
     position: absolute;
     z-index: 2;
@@ -2663,6 +2671,7 @@ button:disabled {
     object-fit: contain;
     transform: rotate(-8deg);
     filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+    animation: series-seal-pop var(--motion-duration-fast) var(--motion-ease-enter) 180ms both;
 }
 
 .modal-logo-upload {
@@ -6406,6 +6415,20 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .favorite-star.favorite-star-active {
     color: var(--gold);
+}
+
+/* Petit rebond au clic (ajout ET retrait), plutôt que le switch instantané plein/vide d'avant - rejoué
+   à chaque clic via favorite-star-pop retiré/rajouté (modules/favorites.js toggleFavorite). */
+@keyframes favorite-star-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.35); }
+    60% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+.favorite-star.favorite-star-pop i {
+    display: inline-block;
+    animation: favorite-star-pop 380ms var(--motion-ease-enter);
 }
 
 .modal-subtitle {

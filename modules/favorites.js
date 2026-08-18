@@ -37,7 +37,14 @@ async function toggleFavorite(tcgdexId, buttonEl) {
     if (currentlyFavorite) favoriteTcgdexIds.delete(tcgdexId);
     else favoriteTcgdexIds.add(tcgdexId);
 
-    if (buttonEl) applyFavoriteButtonState(buttonEl, !currentlyFavorite);
+    if (buttonEl) {
+        applyFavoriteButtonState(buttonEl, !currentlyFavorite);
+        // Rejoue l'animation même sur clics rapides successifs (retire puis reflow avant de rajouter,
+        // même technique que replaySelectionEntrance dans cards.js).
+        buttonEl.classList.remove('favorite-star-pop');
+        void buttonEl.offsetWidth;
+        buttonEl.classList.add('favorite-star-pop');
+    }
 }
 
 function applyFavoriteButtonState(buttonEl, active) {

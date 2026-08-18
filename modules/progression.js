@@ -944,15 +944,19 @@ function showAddCardModal(card) {
         <div class="modal-scroll">
         <div class="modal-body">
             <div class="modal-image-wrap">
-                <div id="quickadd-image-slot">
-                    ${imageUrl
-                        ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
-                        : getQuickAddUploadPlaceholderHtml(card.id)
-                    }
+                <div class="modal-stand">
+                    <div id="quickadd-image-slot" class="modal-image-frame">
+                        ${imageUrl
+                            ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
+                            : getQuickAddUploadPlaceholderHtml(card.id)
+                        }
+                    </div>
                 </div>
             </div>
             <div class="modal-info">
-                <div class="modal-title">${card.name}</div>
+                <div class="modal-title-row">
+                    <div class="modal-title">${card.name}</div>
+                </div>
                 <div class="modal-subtitle">${card.set?.name || 'N/A'} · #${card.localId || '?'}</div>
 
                 <div class="modal-badges">
