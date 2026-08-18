@@ -7,6 +7,13 @@
 
 let deferredPwaInstallPrompt = null;
 
+// App deja lancee en mode installe (icone ecran d'accueil, pas un onglet de navigateur) : proposer de
+// "l'installer" n'a aucun sens, et un beforeinstallprompt residuel d'avant l'installation (capture par
+// une session precedente, ou signal reste en cache navigateur) echoue silencieusement au prompt() - cf
+// retour utilisateur (2026-08-18, "le clic ne fait rien" sur une app deja sur l'ecran d'accueil).
+const isRunningStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true; // iOS Safari, pas de display-mode standalone fiable
+
 // Empêche le mini-bandeau automatique de Chrome (comportement par défaut) : on garde l'événement pour
 // le déclencher nous-mêmes, au clic sur notre propre bouton "Installer l'app" (menu Plus mobile / menu
 // profil desktop, cf MobileBottomNavigation.js/DesktopNavbar.js), plutôt que de laisser le navigateur
@@ -14,6 +21,7 @@ let deferredPwaInstallPrompt = null;
 // permanence via .pwa-installable, jamais ajoutée à <body>.
 window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
+    if (isRunningStandalone) return;
     deferredPwaInstallPrompt = event;
     document.body.classList.add('pwa-installable');
 });
@@ -28,8 +36,14 @@ async function triggerPwaInstall() {
     const promptEvent = deferredPwaInstallPrompt;
     deferredPwaInstallPrompt = null;
     document.body.classList.remove('pwa-installable');
-    promptEvent.prompt();
-    await promptEvent.userChoice;
+    try {
+        promptEvent.prompt();
+        await promptEvent.userChoice;
+    } catch (err) {
+        // Evenement capture perime (app installee entre-temps par un autre biais, ou deja consomme) -
+        // pas d'erreur bloquante pour l'utilisateur, juste un console.error pour le diagnostic.
+        console.error('Installation PWA impossible (invite perimee) :', err);
+    }
 }
 
 // Affiche #sw-update-banner (index.html/login.html) dès qu'une nouvelle version est en attente, au

@@ -562,7 +562,13 @@ function renderTab(tabId, { activateContent = true } = {}) {
     const targetTab = document.getElementById(tabId);
     if (!targetTab) return; // tabId inconnu ou DOM pas prêt : on ignore plutôt que planter sur classList
 
-    document.body.className = TAB_PAGE_MAP[tabId] || '';
+    // classList.remove/add cible (pas document.body.className = ..., un remplacement complet) : ce
+    // dernier effaçait au passage toute classe posée ailleurs sur <body> independamment du routing -
+    // notamment .pwa-installable (modules/pwa.js), qui disparaissait des la premiere navigation apres
+    // le declenchement de beforeinstallprompt (bouton "Installer l'app" invisible ensuite, signale par
+    // l'utilisateur, 2026-08-18).
+    document.body.classList.remove(...[...document.body.classList].filter(c => c.startsWith('page-')));
+    if (TAB_PAGE_MAP[tabId]) document.body.classList.add(TAB_PAGE_MAP[tabId]);
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     targetTab.classList.add('active');
 
