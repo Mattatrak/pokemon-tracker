@@ -5175,7 +5175,44 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
    le déplacement de l'image partagée - blur(24-28px) + saturate + contrast est l'une des
    opérations les plus coûteuses pour un GPU mobile, cause identifiée de lag constaté en usage réel.
    Radius réduit et saturate/contrast retirés uniquement sous ce seuil - effet verre desktop inchangé. */
+/* Bottom sheet mobile (essai, 2026-08-18, retour utilisateur "pas hyper satisfait des modales sur
+   mobile") : la carte flottante centree (comme sur desktop) devient une feuille ancree en bas, pleine
+   largeur, coins arrondis seulement en haut - pattern natif attendu sur iOS/Android, deja utilise pour
+   le panneau "Ajouter" (.mobile-add-overlay). Seul l'etat FERME change (translateY(100%) au lieu du
+   pop centre scale+translateY court) : l'etat OUVERT (.modal-overlay.active .modal-card, plus haut
+   dans ce fichier) est deja translateY(0) scale(1), valable tel quel ici. Pas de swipe-to-dismiss pour
+   ce premier essai (fermeture via la croix ou le tap sur le fond, comme avant) - a ajouter si le
+   principe est valide. */
 @media (max-width: 768px) {
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: 85vh;
+        max-height: 85dvh;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%) scale(1);
+        padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    #card-detail-card,
+    #wishlist-detail-card,
+    #public-card-detail-card {
+        border-radius: 20px 20px 0 0;
+    }
+
+    #card-detail-card {
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    #wishlist-detail-card {
+        padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
     #card-detail-card,
     #public-card-detail-card {
         -webkit-backdrop-filter: blur(14px);
