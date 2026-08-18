@@ -7476,8 +7476,13 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
        sheet - trop imposant pour une simple vignette d'identification en haut de fiche. Cible
        .modal-image (pas .modal-image-wrap, qui contient AUSSI .card-price-chart-wrap en enfant direct -
        reduire le wrap avait bride le graphique par la meme occasion, signale par l'utilisateur) : le
-       wrap garde sa largeur de 316px, seule l'image est recentree en dessous. */
-    #card-detail-card .modal-stand .modal-image {
+       wrap garde sa largeur de 316px, seule l'image est recentree en dessous.
+       #public-card-detail-card ajoute (oubli initial) : meme fiche reutilisee pour la carte ET le
+       souhait d'un profil collectionneur public (showPublicCardDetail/showPublicWishlistItemDetail,
+       modules/public-profile.js) - sans elle, ces deux modales gardaient l'ancienne taille (316px),
+       differente du reste du site, signale par l'utilisateur. */
+    #card-detail-card .modal-stand .modal-image,
+    #public-card-detail-card .modal-stand .modal-image {
         max-width: 220px;
         margin: 0 auto;
     }
