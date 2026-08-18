@@ -330,11 +330,19 @@ function applyCardToPreview(card) {
 
     const imageUrl = card.image ? `${card.image}/high.webp` : '';
     const previewImageContainer = document.querySelector('.preview-image');
+    // Même source que le logo du breadcrumb (#preview-series-logo plus bas) : sceau incliné sur le coin
+    // de l'image, visible uniquement dans la modale mobile (.mobile-add-overlay-card, cf styles.css) -
+    // sur la page Ajouter desktop, le logo reste uniquement dans le breadcrumb (retour utilisateur,
+    // 2026-08-18 : "on a oublié d'appliquer le logo sur le modal d'ajout de carte").
+    const previewSealLogoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
+    const previewSealHtml = previewSealLogoUrl
+        ? `<img src="${previewSealLogoUrl}" class="modal-series-seal preview-image-seal" alt="" onerror="this.remove()">`
+        : '';
 
     document.getElementById('card-finish').innerHTML = buildFinishOptionsHtml(card, 'normal');
 
     if (imageUrl) {
-        previewImageContainer.innerHTML = '<img id="preview-img" src="" alt="Carte">';
+        previewImageContainer.innerHTML = `<div class="preview-image-frame"><img id="preview-img" src="" alt="Carte">${previewSealHtml}</div>`;
         const img = document.getElementById('preview-img');
         img.onerror = function() {
             handleTcgdexImgError(img, showPreviewUploadPlaceholder);
@@ -344,7 +352,10 @@ function applyCardToPreview(card) {
         // Déjà su depuis la liste de recherche : pas besoin de re-vérifier
         customPreviewImage = card._localImage;
         previewImageContainer.innerHTML = `
-            <img src="${card._localImage}" alt="Carte" style="cursor: pointer;" onclick="document.getElementById('preview-upload-input-2').click()">
+            <div class="preview-image-frame">
+                <img src="${card._localImage}" alt="Carte" style="cursor: pointer;" onclick="document.getElementById('preview-upload-input-2').click()">
+                ${previewSealHtml}
+            </div>
             <input type="file" id="preview-upload-input-2" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
         `;
     } else {
@@ -355,7 +366,10 @@ function applyCardToPreview(card) {
             if (existingUrl && selectedCard === card) {
                 customPreviewImage = existingUrl;
                 previewImageContainer.innerHTML = `
-                    <img src="${existingUrl}" alt="Carte" style="cursor: pointer;" onclick="document.getElementById('preview-upload-input-2').click()">
+                    <div class="preview-image-frame">
+                        <img src="${existingUrl}" alt="Carte" style="cursor: pointer;" onclick="document.getElementById('preview-upload-input-2').click()">
+                        ${previewSealHtml}
+                    </div>
                     <input type="file" id="preview-upload-input-2" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
                 `;
             }
@@ -364,15 +378,6 @@ function applyCardToPreview(card) {
 
     document.getElementById('preview-name').textContent = card.name || '-';
     document.getElementById('preview-set-text').textContent = card.set?.name || '-';
-    const previewLogo = document.getElementById('preview-series-logo');
-    const previewLogoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
-    if (previewLogoUrl) {
-        previewLogo.src = previewLogoUrl;
-        previewLogo.style.display = 'inline-block';
-        previewLogo.onerror = () => { previewLogo.style.display = 'none'; };
-    } else {
-        previewLogo.style.display = 'none';
-    }
     const totalCards = card.set?.cardCount?.official || card.set?.cardCount?.total;
     document.getElementById('preview-number').textContent = card.localId
         ? (totalCards ? `${card.localId}/${totalCards}` : card.localId)
@@ -479,8 +484,16 @@ async function handlePreviewImageUpload(event) {
         const publicUrl = await uploadImageToStorage(file, selectedCard?.id);
         customPreviewImage = publicUrl;
 
+        const previewSealLogoUrl = selectedCard?.set?.logo ? `${selectedCard.set.logo}.webp` : '';
+        const previewSealHtml = previewSealLogoUrl
+            ? `<img src="${previewSealLogoUrl}" class="modal-series-seal preview-image-seal" alt="" onerror="this.remove()">`
+            : '';
+
         previewImageContainer.innerHTML = `
-            <img src="${publicUrl}" alt="Carte" style="cursor: pointer;" onclick="document.getElementById('preview-upload-input-2').click()">
+            <div class="preview-image-frame">
+                <img src="${publicUrl}" alt="Carte" style="cursor: pointer;" onclick="document.getElementById('preview-upload-input-2').click()">
+                ${previewSealHtml}
+            </div>
             <input type="file" id="preview-upload-input-2" accept="image/*" style="display:none" onchange="handlePreviewImageUpload(event)">
         `;
         showMessage('Image envoyée sur Supabase !', 'success');

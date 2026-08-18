@@ -650,6 +650,7 @@ function renderPublicCardDetail(cardId) {
     // cardmarket_id désormais exposé par get_cards_public (2026-08-09) : lien produit exact quand
     // disponible, repli recherche par nom sinon — même fonction que la fiche propriétaire.
     const cardmarketUrl = getCardmarketUrl(card.cardmarket_id, card.name);
+    const seriesLogoUrl = card.series_logo || getSeriesLogoUrl(card.tcgdex_id);
 
     // "Ajouter à ma wishlist" : jamais sur mon propre profil public (comparaison avec soi-même n'a pas
     // de sens, cf. isSelf plus haut dans loadPublicProfile), jamais si déjà présente dans MA wishlist
@@ -667,10 +668,13 @@ function renderPublicCardDetail(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
-                    ${card.image
-                        ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                        : getGridNoImageHtml()
-                    }
+                    <div class="modal-image-frame">
+                        ${card.image
+                            ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                            : getGridNoImageHtml()
+                        }
+                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="this.remove()">` : ''}
+                    </div>
                 </div>
             </div>
             <div class="modal-info">
@@ -678,7 +682,6 @@ function renderPublicCardDetail(cardId) {
                     <div class="modal-title-row">
                         <div class="modal-title">${escapeHtml(card.name)}</div>
                     </div>
-                    ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">` : ''}
                     <div class="modal-subtitle">${escapeHtml(card.series)} · #${card.number}</div>
 
                     <div class="modal-badges">
@@ -860,6 +863,7 @@ function showPublicWishlistItemDetail(itemId) {
     // cardmarket_id désormais exposé par get_wishlist_items_public (2026-08-09) : lien produit exact
     // quand disponible, repli recherche par nom sinon.
     const cardmarketUrl = getCardmarketUrl(item.cardmarket_id, item.name);
+    const seriesLogoUrl = item.series_logo || getSeriesLogoUrl(item.tcgdex_id);
 
     const modalCard = document.getElementById('public-card-detail-card');
     if (!modalCard) return;
@@ -870,10 +874,13 @@ function showPublicWishlistItemDetail(itemId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
-                    ${item.image
-                        ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                        : getGridNoImageHtml()
-                    }
+                    <div class="modal-image-frame">
+                        ${item.image
+                            ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                            : getGridNoImageHtml()
+                        }
+                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="this.remove()">` : ''}
+                    </div>
                 </div>
             </div>
             <div class="modal-info">

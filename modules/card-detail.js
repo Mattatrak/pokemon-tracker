@@ -66,10 +66,13 @@ function renderCardDetail(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
-                    ${card.image
-                        ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
-                        : getModalUploadPlaceholder(card.id)
-                    }
+                    <div class="modal-image-frame">
+                        ${card.image
+                            ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                            : getModalUploadPlaceholder(card.id)
+                        }
+                        ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="this.remove()">` : ''}
+                    </div>
                 </div>
                 ${card.tcgdex_id ? `
                     <div class="card-price-chart-wrap" id="card-price-chart-wrap">
@@ -99,15 +102,12 @@ function renderCardDetail(cardId) {
                         <div class="modal-title">${card.name}</div>
                         ${card.tcgdex_id ? favoriteStarHtml(card.tcgdex_id) : ''}
                     </div>
-                    ${card.series_logo
-                        ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">`
-                        : (card.tcgdex_id ? `
-                            <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
-                                <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
-                            </div>
-                            <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
-                        ` : '')
-                    }
+                    ${!card.series_logo && card.tcgdex_id ? `
+                        <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
+                            <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
+                        </div>
+                        <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
+                    ` : ''}
                     <div class="modal-subtitle">${card.series} · #${card.number}</div>
 
                     <div class="modal-badges">
