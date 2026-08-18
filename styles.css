@@ -5275,7 +5275,13 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         transition: transform var(--motion-duration-fast) var(--motion-ease-standard);
     }
 
-    .card-price-chart-body {
+    /* Selecteur compose (pas .card-price-chart-body seul) : la regle de base (display:flex, plus bas
+       dans ce fichier, hors media query) a la meme specificite qu'un simple .card-price-chart-body et
+       la gagnait par ordre de source malgre cette regle mobile - un descendant a 2 classes augmente la
+       specificite pour gagner sans dependre de la position dans le fichier. La regle .expanded juste
+       en dessous (3 classes) doit rester PLUS specifique que celle-ci (2 classes) pour pouvoir la
+       reprendre au depli - jamais un id ici, qui l'emporterait aussi sur .expanded. */
+    .card-price-chart-wrap .card-price-chart-body {
         display: none;
     }
 
