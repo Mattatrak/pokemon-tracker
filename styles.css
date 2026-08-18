@@ -5794,17 +5794,11 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 @media (max-width: 640px) {
-    #wishlist-detail-overlay {
-        padding: 0.75rem;
-    }
-
-    #wishlist-detail-card {
-        width: 100%;
-        max-width: 100%;
-        max-height: 94vh;
-        max-height: 94dvh;
-    }
-
+    /* padding d'overlay et gabarit de carte retires (2026-08-18) : datait d'avant le bottom sheet
+       generique (.modal-overlay/.modal-card, @media max-width:768px plus haut) et l'emportait dessus
+       via specificite ID > classe, sur un seuil different (640px, pas 768px) - la fiche souhait
+       n'avait donc ni le meme padding (flush aux bords) ni la meme hauteur max (94vh au lieu de 85vh)
+       que les autres modales, signale par l'utilisateur ("plus haut que les autres"). */
     .wishlist-detail-layout {
         grid-template-columns: 1fr;
         justify-items: center;
