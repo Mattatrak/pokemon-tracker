@@ -7494,7 +7494,8 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         margin-left: auto;
     }
 
-    #card-detail-card .modal-info {
+    #card-detail-card .modal-info,
+    #public-card-detail-card .modal-info {
         margin-left: 0;
         max-width: 316px;
         margin-inline: auto;
