@@ -5180,9 +5180,9 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
    largeur, coins arrondis seulement en haut - pattern natif attendu sur iOS/Android, deja utilise pour
    le panneau "Ajouter" (.mobile-add-overlay). Seul l'etat FERME change (translateY(100%) au lieu du
    pop centre scale+translateY court) : l'etat OUVERT (.modal-overlay.active .modal-card, plus haut
-   dans ce fichier) est deja translateY(0) scale(1), valable tel quel ici. Pas de swipe-to-dismiss pour
-   ce premier essai (fermeture via la croix ou le tap sur le fond, comme avant) - a ajouter si le
-   principe est valide. */
+   dans ce fichier) est deja translateY(0) scale(1), valable tel quel ici. Swipe-to-dismiss ajoute
+   ensuite (tracker.js) : la pastille ::after ci-dessous sert d'affordance visuelle ET coincide avec la
+   zone de detection du geste (memes dimensions/position, SWIPE_DISMISS_HANDLE_* dans tracker.js). */
 @media (max-width: 768px) {
     .modal-overlay {
         align-items: flex-end;
@@ -5197,6 +5197,26 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         border-radius: 20px 20px 0 0;
         transform: translateY(100%) scale(1);
         padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+        padding-top: 1.5rem;
+    }
+
+    /* Pastille de poignee : ::after (pas ::before, deja pris par le lisere or conique de
+       #card-detail-card/#wishlist-detail-card/#public-card-detail-card, cf leurs regles plus haut dans
+       ce fichier) - seule exception : #top-movers-content utilise deja ::after pour son propre lisere
+       inferieur decoratif (ID plus specifique qu'une classe, gagne la cascade), cette modale n'affiche
+       donc pas la pastille visuelle mais le swipe y fonctionne quand meme (zone geometrique, pas liee
+       au pseudo-element). */
+    .modal-card::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.25);
+        pointer-events: none;
     }
 
     #card-detail-card,

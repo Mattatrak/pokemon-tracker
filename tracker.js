@@ -1240,6 +1240,74 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
     new MutationObserver(syncModalScrollLock).observe(overlay, { attributes: true, attributeFilter: ['class'] });
 });
 
+// ===== SWIPE-TO-DISMISS DU BOTTOM SHEET (MOBILE) =====
+// Générique, même esprit que le verrou de scroll ci-dessus : aucune des ~14 modales n'a besoin d'être
+// touchée individuellement. Zone de detection volontairement étroite et centrée (bande de
+// SWIPE_HANDLE_WIDTH au-dessus de la carte, sur les SWIPE_HANDLE_HEIGHT premiers pixels) - coïncide
+// avec la pastille dessinée en ::after sur .modal-card (styles.css, @media max-width:768px). Évite
+// toute collision avec .modal-close (coin supérieur droit) et avec le scroll interne de .modal-scroll
+// (qui commence plus bas, sous le padding de la carte) : glisser à l'intérieur du contenu scrolle la
+// modale normalement, glisser depuis la poignée referme la feuille.
+// overlay.click() réutilise la fermeture déjà câblée de chaque modale (onclick="if(event.target===this)
+// close...()", index.html) plutôt qu'une table id -> fonction de fermeture dupliquée ici : un clic
+// simulé sur l'overlay a bien target===overlay, exactement la condition attendue par ces handlers. Les
+// modales sans ce onclick (ex. csv-import, fermeture volontairement bloquée pendant un import) ignorent
+// alors aussi le swipe, cohérent avec leur tap-outside déjà désactivé.
+const SWIPE_DISMISS_HANDLE_HEIGHT = 24;
+const SWIPE_DISMISS_HANDLE_WIDTH = 80;
+const SWIPE_DISMISS_CLOSE_THRESHOLD = 90;
+
+let swipeDismissCard = null;
+let swipeDismissStartY = 0;
+let swipeDismissDeltaY = 0;
+
+function isInSwipeDismissHandle(card, touch) {
+    const rect = card.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    return y >= 0 && y <= SWIPE_DISMISS_HANDLE_HEIGHT &&
+        x >= (rect.width / 2 - SWIPE_DISMISS_HANDLE_WIDTH / 2) &&
+        x <= (rect.width / 2 + SWIPE_DISMISS_HANDLE_WIDTH / 2);
+}
+
+document.addEventListener('touchstart', (event) => {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    const card = event.target.closest('.modal-overlay.active .modal-card');
+    if (!card || !isInSwipeDismissHandle(card, event.touches[0])) return;
+
+    swipeDismissCard = card;
+    swipeDismissStartY = event.touches[0].clientY;
+    swipeDismissDeltaY = 0;
+    card.style.transition = 'none';
+}, { passive: true });
+
+document.addEventListener('touchmove', (event) => {
+    if (!swipeDismissCard) return;
+    swipeDismissDeltaY = Math.max(0, event.touches[0].clientY - swipeDismissStartY);
+    swipeDismissCard.style.transform = `translateY(${swipeDismissDeltaY}px)`;
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+    if (!swipeDismissCard) return;
+    const card = swipeDismissCard;
+    swipeDismissCard = null;
+
+    if (swipeDismissDeltaY > SWIPE_DISMISS_CLOSE_THRESHOLD) {
+        // Styles inline nettoyés après coup (filet de sécurité, même pattern que
+        // runNavIndicatorTransition ci-dessus) : le fondu de fermeture (.modal-overlay, pas la carte -
+        // sa propre transition reste désactivée ici) masque la carte pendant ce délai, aucun flash.
+        card.closest('.modal-overlay')?.click();
+        setTimeout(() => {
+            card.style.transition = '';
+            card.style.transform = '';
+        }, 450);
+    } else {
+        card.style.transition = '';
+        card.style.transform = '';
+    }
+    swipeDismissDeltaY = 0;
+});
+
 // ===== Exports window (ticket V2 Vite, type="module") =====
 // Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
 // (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
