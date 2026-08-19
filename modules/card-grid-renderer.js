@@ -158,7 +158,7 @@ function renderGridCardHtml(card, options) {
                 : fallbackHtml
             }
             ${renderGridCardBadge(card, badgeMode)}
-            <div class="price-badge">${lineTotal.toFixed(2)}€</div>
+            <div class="price-badge">${formatPrice(lineTotal)}</div>
             <div class="set-rarity-badge-row">
                 ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
                 ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}

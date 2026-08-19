@@ -1,6 +1,13 @@
 // Helpers purs - Pokémon Tracker
 // Aucun état partagé, aucune dépendance à supabaseClient. Charge juste après config.js.
 
+// Formate un prix en euros au format français (virgule décimale) - remplace les ~70 toFixed(2)
+// dupliqués à travers le code, dont une partie affichait un point (incohérent avec le reste de
+// l'app, entièrement en français). value peut être undefined/null/NaN (traité comme 0).
+function formatPrice(value) {
+    return (Number(value) || 0).toFixed(2).replace('.', ',') + '€';
+}
+
 // Retarde l'exécution de fn jusqu'à ce que delayMs se soient écoulés sans nouvel appel - utilisé sur
 // les champs de recherche (Progression, Collection publique) pour éviter de relancer un filtrage/rendu
 // coûteux à chaque frappe (retour utilisateur, 2026-08-19 : lag clavier sur mobile, gros set/grosse
@@ -477,6 +484,7 @@ function initDatePicker(selector, presetValue) {
 // inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
 // (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.formatPrice = formatPrice;
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
 window.escapeHtml = escapeHtml;

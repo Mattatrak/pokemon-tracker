@@ -631,7 +631,7 @@ function renderProgressionSetBudgetText(missingCount, budget) {
         return;
     }
 
-    const amount = `<span class="budget-amount">≈ ${totalKnown.toFixed(2)} €</span>`;
+    const amount = `<span class="budget-amount">≈ ${formatPrice(totalKnown)}</span>`;
     el.innerHTML = countUnknown === 0
         ? `${amount} pour compléter ce set (${countKnown} carte${countKnown > 1 ? 's' : ''})`
         : `${amount} pour les ${countKnown} carte${countKnown > 1 ? 's' : ''} manquante${countKnown > 1 ? 's' : ''} dont le prix est connu — ${countUnknown} sans estimation`;
@@ -730,7 +730,7 @@ async function renderProgressionCardsGrid() {
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
-                ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${setBudget.mostExpensive.price.toFixed(2)} €</div>` : ''}
+                ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${formatPrice(setBudget.mostExpensive.price)}</div>` : ''}
                 <button class="progression-add-badge" onclick="event.stopPropagation(); quickInstantAdd('${card.id}', this)">+</button>
                 <div class="progression-card-label">#${card.localId} ${card.name}</div>
             </div>
@@ -961,7 +961,7 @@ function showAddCardModal(card) {
 
                 <div class="modal-badges">
                     <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
-                    ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${marketPrice.toFixed(2)}€ (marché)</span>` : ''}
+                    ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${formatPrice(marketPrice)} (marché)</span>` : ''}
                 </div>
 
                 <div class="edit-form-grid">

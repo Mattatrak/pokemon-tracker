@@ -256,7 +256,7 @@ function renderSearchResults(cards) {
                     <div class="search-result-text">
                         <div class="search-result-name">${card.name || '?'}</div>
                         <div class="search-result-set">${setName} - #${cardNumber}</div>
-                        ${price > 0 ? `<div class="search-result-price">${price.toFixed(2)}€</div>` : ''}
+                        ${price > 0 ? `<div class="search-result-price">${formatPrice(price)}</div>` : ''}
                     </div>
                     ${logoUrl ? `<img src="${logoUrl}" class="search-result-series-logo" alt="" onerror="this.remove()">` : ''}
                 </div>
@@ -419,14 +419,14 @@ function applyCardToPreview(card) {
         avg30 = card.pricing.cardmarket['avg30-holo'] || 0;
     }
     currentMarketValue = price;
-    document.getElementById('preview-price').textContent = price > 0 ? price.toFixed(2) + '€' : '-';
+    document.getElementById('preview-price').textContent = price > 0 ? formatPrice(price) : '-';
     document.getElementById('card-value').value = price > 0 ? price.toFixed(2) : '';
 
     const priceBox = document.getElementById('preview-price-box');
     const trendEl = document.getElementById('preview-price-trend');
     if (price > 0) {
         priceBox.style.display = '';
-        document.getElementById('preview-price-big').textContent = `${price.toFixed(2)} €`;
+        document.getElementById('preview-price-big').textContent = formatPrice(price);
         if (avg30 > 0) {
             const deltaPct = ((price - avg30) / avg30) * 100;
             const arrow = deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '';

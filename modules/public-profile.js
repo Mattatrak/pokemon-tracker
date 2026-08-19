@@ -339,7 +339,7 @@ function renderPublicProfileShell(container, profile) {
                     <div class="user-profile-stat-label">Cartes</div>
                 </div>
                 <div class="user-profile-stat">
-                    <div class="user-profile-stat-value">${profile.collectionValue.toFixed(2)} €</div>
+                    <div class="user-profile-stat-value">${formatPrice(profile.collectionValue)}</div>
                     <div class="user-profile-stat-label">Valeur collection</div>
                 </div>
             ` : ''}
@@ -707,9 +707,9 @@ function renderPublicCardDetail(cardId) {
                     <div class="modal-value-block">
                         <div class="modal-value-label">Valeur estimée</div>
                         <div class="modal-value-row">
-                            <span class="modal-price">${marketValue.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-price">${formatPrice(marketValue)}</span>
                         </div>
-                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2).replace('.', ',')}€ (×${qty})</div>` : ''}
+                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${formatPrice(lineTotal)} (×${qty})</div>` : ''}
                     </div>
 
                     <div class="modal-meta-actions-row">
@@ -824,7 +824,7 @@ function renderPublicWishlistLists() {
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
-                        ${price > 0 ? `<div class="price-badge">${price.toFixed(2)}€</div>` : ''}
+                        ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
                             <div class="collection-card-set">${escapeHtml(item.series || '')}</div>
@@ -841,7 +841,7 @@ function renderPublicWishlistLists() {
                     <div class="wishlist-list-card-title">
                         <span class="wishlist-list-name">${escapeHtml(list.name)}</span>
                         <span class="wishlist-count-badge">${items.length} carte${items.length > 1 ? 's' : ''}</span>
-                        ${listValue > 0 ? `<span class="wishlist-list-value">${listValue.toFixed(2)}€</span>` : ''}
+                        ${listValue > 0 ? `<span class="wishlist-list-value">${formatPrice(listValue)}</span>` : ''}
                     </div>
                     <div class="wishlist-list-card-actions">
                         <i class="ti ti-chevron-right wishlist-chevron ${isExpanded ? 'expanded' : ''}" aria-hidden="true"></i>
@@ -908,7 +908,7 @@ function showPublicWishlistItemDetail(itemId) {
                         <div class="modal-value-block">
                             <div class="modal-value-label">Valeur estimée</div>
                             <div class="modal-value-row">
-                                <span class="modal-price">${price.toFixed(2).replace('.', ',')}€</span>
+                                <span class="modal-price">${formatPrice(price)}</span>
                             </div>
                         </div>
                     ` : ''}

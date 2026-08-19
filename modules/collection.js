@@ -971,14 +971,14 @@ function renderCollectionHeaderKpis(filtered) {
     const avgPrice = purchasedCards > 0 ? totalSpent / purchasedCards : 0;
 
     totalEl.textContent = totalCards;
-    valueEl.textContent = totalValue.toFixed(2) + '€';
-    spentEl.textContent = totalSpent.toFixed(2) + '€';
+    valueEl.textContent = formatPrice(totalValue);
+    spentEl.textContent = formatPrice(totalSpent);
 
     const totalSubEl = document.getElementById('collection-kpi-total-sub');
     const valueSubEl = document.getElementById('collection-kpi-value-sub');
     const spentSubEl = document.getElementById('collection-kpi-spent-sub');
     if (totalSubEl) totalSubEl.textContent = uniqueCards + ' cartes uniques';
-    if (spentSubEl) spentSubEl.textContent = avgPrice.toFixed(2) + '€ / carte en moyenne';
+    if (spentSubEl) spentSubEl.textContent = formatPrice(avgPrice) + ' / carte en moyenne';
 
     // Fluctuation du marché sur 24h (prix uniquement, cf. computeMarketFluctuation dans stats.js) —
     // remplace l'ancien "vs achat" qui ne reflétait pas un vrai mouvement de marché récent.
@@ -991,7 +991,7 @@ function renderCollectionHeaderKpis(filtered) {
                 return;
             }
             const sign = fluctuation.delta > 0 ? '+' : '';
-            valueSubEl.textContent = `${sign}${fluctuation.delta.toFixed(2)}€ sur 24h`;
+            valueSubEl.textContent = `${sign}${formatPrice(fluctuation.delta)} sur 24h`;
             valueSubEl.className = 'kpi-plaque-sub ' + (fluctuation.delta > 0 ? 'positive' : fluctuation.delta < 0 ? 'negative' : '');
         });
     }
@@ -1092,7 +1092,7 @@ function renderCollectionTable(filtered) {
                     <button onclick="changeQuantity(${card.id}, 1, this)"><i class="ti ti-plus" aria-hidden="true"></i></button>
                 </div>
             </td>
-            <td style="text-align: right;"><strong>${lineTotal.toFixed(2)}€</strong></td>
+            <td style="text-align: right;"><strong>${formatPrice(lineTotal)}</strong></td>
             <td style="text-align: center;">
                 <button class="delete-btn" onclick="deleteCard(${card.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
             </td>

@@ -176,8 +176,8 @@ async function renderMonthlySummary() {
     }
 
     countEl.textContent = data.cards_added || 0;
-    spentEl.textContent = Number(data.total_spent || 0).toFixed(2) + '€';
-    valueAddedEl.textContent = Number(data.value_added || 0).toFixed(2) + '€';
+    spentEl.textContent = formatPrice(data.total_spent);
+    valueAddedEl.textContent = formatPrice(data.value_added);
 }
 
 // ===== 6. TIMELINE : une carte par mois, reprend les lignes de monthly_summary déjà utilisées ci-dessus =====
@@ -202,7 +202,7 @@ async function renderStxTimeline() {
         <div class="stx-month-card${row.month === currentMonthKey ? ' active' : ''}">
             <div class="stx-month-label">${formatMonthLabel(row.month)}</div>
             <div class="stx-month-value">+${row.cards_added || 0} cartes</div>
-            <div class="stx-month-sub">+${Number(row.value_added || 0).toFixed(2)}€</div>
+            <div class="stx-month-sub">+${formatPrice(row.value_added)}</div>
         </div>
     `).join('');
 
@@ -264,7 +264,7 @@ async function renderStxTimeline() {
                     },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => ctx.dataset.type === 'line' ? `${ctx.parsed.y.toFixed(2)}€` : `${ctx.parsed.y} cartes`
+                            label: (ctx) => ctx.dataset.type === 'line' ? formatPrice(ctx.parsed.y) : `${ctx.parsed.y} cartes`
                         }
                     }
                 },
@@ -344,7 +344,7 @@ function renderStatsKpis() {
 
     const topCard = [...allCollectionCards].sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0))[0];
     topCardEl.textContent = topCard.name;
-    topCardPriceEl.textContent = `${Number(topCard.market_value || 0).toFixed(2)}€`;
+    topCardPriceEl.textContent = formatPrice(topCard.market_value);
     if (topSeriesEl) topSeriesEl.textContent = (topCard.series && topCard.series !== 'N/A') ? topCard.series : '';
     if (topImgEl) {
         if (topCard.image) {
@@ -538,7 +538,7 @@ function renderSeriesValueChart() {
             cutout: '68%',
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.toFixed(2)}€` } }
+                tooltip: { callbacks: { label: (ctx) => formatPrice(ctx.parsed) } }
             }
         }
     });
@@ -551,7 +551,7 @@ function renderSeriesValueChart() {
             </li>
         `).join('');
     }
-    if (totalEl) totalEl.textContent = `${grandTotal.toFixed(2)}€`;
+    if (totalEl) totalEl.textContent = formatPrice(grandTotal);
 }
 
 // Calcule la liste des cartes avec prix payé renseigné, triée par variation % décroissante.
@@ -574,7 +574,7 @@ function stxMoverRowHtml(c, useAmount = false) {
     const metric = useAmount ? c.gainAmount : c.gainPercent;
     const cls = metric > 0 ? 'positive' : metric < 0 ? 'negative' : 'neutral';
     const sign = metric > 0 ? '+' : '';
-    const label = useAmount ? `${sign}${c.gainAmount.toFixed(2)}€` : `${sign}${c.gainPercent.toFixed(0)}% <span class="period-value-abs">(${c.gainAmount > 0 ? '+' : ''}${c.gainAmount.toFixed(2)}€)</span>`;
+    const label = useAmount ? `${sign}${formatPrice(c.gainAmount)}` : `${sign}${c.gainPercent.toFixed(0)}% <span class="period-value-abs">(${c.gainAmount > 0 ? '+' : ''}${formatPrice(c.gainAmount)})</span>`;
     return `
         <div class="mover-row stx-clickable-card" onclick="showCardDetail(${c.id})">
             <span class="mover-name">${escapeHtml(c.name)} <span class="mover-number">#${c.number}</span></span>
@@ -622,7 +622,7 @@ function renderStatsHabits() {
     // Prix moyen par carte — même formule que l'ancien KPI "Prix moyen / carte"
     const totalQty = allCollectionCards.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
-    avgPriceEl.textContent = `${(totalQty > 0 ? totalValue / totalQty : 0).toFixed(2)}€`;
+    avgPriceEl.textContent = formatPrice(totalQty > 0 ? totalValue / totalQty : 0);
 
     // Extension préférée — reprend le regroupement par série (renderExtBarlist)
     const seriesCounts = {};
@@ -679,7 +679,7 @@ function renderStatsRecords() {
         document.getElementById('stx-record-paid-name').textContent = mostExpensivePaid.name;
         const paidSeriesEl = document.getElementById('stx-record-paid-series');
         if (paidSeriesEl) paidSeriesEl.textContent = (mostExpensivePaid.series && mostExpensivePaid.series !== 'N/A') ? mostExpensivePaid.series : '';
-        document.getElementById('stx-record-paid-price').textContent = `${Number(mostExpensivePaid.purchase_price).toFixed(2)}€`;
+        document.getElementById('stx-record-paid-price').textContent = formatPrice(mostExpensivePaid.purchase_price);
         const img = document.getElementById('stx-record-paid-img');
         if (img) {
             if (mostExpensivePaid.image) { img.src = mostExpensivePaid.image; img.style.display = ''; }
@@ -715,7 +715,7 @@ function renderStatsRecords() {
             document.getElementById('stx-record-gain-name').textContent = biggestGain.name;
             const gainSeriesEl = document.getElementById('stx-record-gain-series');
             if (gainSeriesEl) gainSeriesEl.textContent = (biggestGain.series && biggestGain.series !== 'N/A') ? biggestGain.series : `#${biggestGain.number}`;
-            document.getElementById('stx-record-gain-amount').textContent = `+${biggestGain.gainAmount.toFixed(2)}€`;
+            document.getElementById('stx-record-gain-amount').textContent = `+${formatPrice(biggestGain.gainAmount)}`;
             const gainPctEl = document.getElementById('stx-record-gain-pct');
             if (gainPctEl) gainPctEl.textContent = `+${biggestGain.gainPercent.toFixed(0)}%`;
             const img = document.getElementById('stx-record-gain-img');
@@ -726,7 +726,7 @@ function renderStatsRecords() {
             document.getElementById('stx-record-loss-name').textContent = biggestLoss.name;
             const lossSeriesEl = document.getElementById('stx-record-loss-series');
             if (lossSeriesEl) lossSeriesEl.textContent = (biggestLoss.series && biggestLoss.series !== 'N/A') ? biggestLoss.series : `#${biggestLoss.number}`;
-            document.getElementById('stx-record-loss-amount').textContent = `${biggestLoss.gainAmount.toFixed(2)}€`;
+            document.getElementById('stx-record-loss-amount').textContent = formatPrice(biggestLoss.gainAmount);
             const lossPctEl = document.getElementById('stx-record-loss-pct');
             if (lossPctEl) lossPctEl.textContent = `${biggestLoss.gainPercent.toFixed(0)}%`;
             const img = document.getElementById('stx-record-loss-img');
@@ -796,8 +796,8 @@ function renderValueHistoryChart() {
         const current = values[values.length - 1];
         const delta = current - values[0];
         const pct = values[0] > 0 ? (delta / values[0]) * 100 : 0;
-        evoValueEl.textContent = `${current.toFixed(2)}€`;
-        evoDeltaEl.textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}€ (${delta >= 0 ? '+' : ''}${pct.toFixed(1)}%)`;
+        evoValueEl.textContent = formatPrice(current);
+        evoDeltaEl.textContent = `${delta >= 0 ? '+' : ''}${formatPrice(delta)} (${delta >= 0 ? '+' : ''}${pct.toFixed(1)}%)`;
         evoDeltaEl.className = `stx-evo-delta ${delta > 0 ? 'positive' : delta < 0 ? 'negative' : ''}`;
     }
 
@@ -825,7 +825,7 @@ function renderValueHistoryChart() {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => `${ctx.parsed.y.toFixed(2)}€`
+                        label: (ctx) => formatPrice(ctx.parsed.y)
                     }
                 }
             },

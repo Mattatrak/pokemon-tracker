@@ -1083,7 +1083,7 @@ function renderPriceMovers() {
             return `
             <div class="mover-row${clickClass}"${clickAttr}>
                 <span class="mover-name">${m.name} <span class="mover-number">#${m.number}</span></span>
-                <span class="mover-delta ${positive ? 'positive' : 'negative'}">${positive ? '+' : ''}${m.delta.toFixed(2)}€</span>
+                <span class="mover-delta ${positive ? 'positive' : 'negative'}">${positive ? '+' : ''}${formatPrice(m.delta)}</span>
             </div>
         `;
         }).join('');

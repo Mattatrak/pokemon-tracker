@@ -178,11 +178,11 @@ function getDashboardFeaturedCardHtml() {
         const movers = dashboardGetLastMovers();
         const mover = movers.find(m => m.name === featured.name && String(m.number) === String(featured.number));
         const moverHtml = mover
-            ? `<div class="dashboard-hero-card-delta ${mover.delta > 0 ? 'dashboard-positive' : 'dashboard-negative'}"><i class="ti ${mover.delta > 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${mover.delta > 0 ? '+' : ''}${mover.delta.toFixed(2)}€ depuis le dernier rafraîchissement</div>`
+            ? `<div class="dashboard-hero-card-delta ${mover.delta > 0 ? 'dashboard-positive' : 'dashboard-negative'}"><i class="ti ${mover.delta > 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${mover.delta > 0 ? '+' : ''}${formatPrice(mover.delta)} depuis le dernier rafraîchissement</div>`
             : '';
 
         const valueHtml = Number(featured.market_value || 0) > 0
-            ? `<div class="dashboard-hero-card-value">${Number(featured.market_value).toFixed(2)}€</div>`
+            ? `<div class="dashboard-hero-card-value">${formatPrice(featured.market_value)}</div>`
             : `<div class="dashboard-hero-card-value dashboard-hero-card-value--empty">Valeur indisponible</div>`;
 
         // Bouton "suivant" : uniquement utile s'il y a plusieurs favoris à faire tourner
@@ -250,7 +250,7 @@ function renderDashboardHero() {
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
             <div class="dashboard-hero-label">Valeur totale de la collection</div>
-            <div class="dashboard-hero-value">${totalValue.toFixed(2)}€</div>
+            <div class="dashboard-hero-value">${formatPrice(totalValue)}</div>
             ${variationHtml}
             ${lastRefreshHtml}
         </div>
@@ -294,7 +294,7 @@ async function dashboardUpdateHeroVariation() {
     const cls = delta > 0 ? 'dashboard-positive' : delta < 0 ? 'dashboard-negative' : 'dashboard-neutral';
     const sign = delta > 0 ? '+' : '';
     variationEl.className = `dashboard-hero-variation ${cls}`;
-    variationEl.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€ (${sign}${pct.toFixed(2)}%) sur 7 jours`;
+    variationEl.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${sign}${formatPrice(delta)} (${sign}${pct.toFixed(2)}%) sur 7 jours`;
 }
 
 // ===== KPI =====
@@ -317,11 +317,11 @@ function renderDashboardKpis() {
     const spentThisMonth = allCollectionCards
         .filter(c => c.created_at && new Date(c.created_at).getTime() >= monthAgo)
         .reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
-    const spentSub = spentThisMonth > 0 ? `+${spentThisMonth.toFixed(2)}€ ce mois` : '';
+    const spentSub = spentThisMonth > 0 ? `+${formatPrice(spentThisMonth)} ce mois` : '';
 
     document.getElementById('dashboard-kpi-cards').innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection', '', cardsSub);
     document.getElementById('dashboard-kpi-series').innerHTML = dashboardKpiHtml('ti-stack-2', seriesCount, 'séries différentes');
-    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', `${totalSpent.toFixed(2)}€`, 'investis', '', spentSub);
+    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', formatPrice(totalSpent), 'investis', '', spentSub);
     document.getElementById('dashboard-kpi-wishlist').innerHTML = dashboardKpiHtml('ti-star', wishlistCount, 'cartes en wishlist');
 }
 
@@ -399,7 +399,7 @@ function renderDashboardActivity() {
                     <div class="dashboard-activity-sub">#${escapeHtml(String(item.number))} · Prix ${item.delta > 0 ? 'en hausse' : 'en baisse'}</div>
                 </div>
                 <div class="dashboard-activity-right">
-                    <div class="dashboard-activity-delta ${cls}">${item.delta > 0 ? '+' : ''}${item.delta.toFixed(2)}€</div>
+                    <div class="dashboard-activity-delta ${cls}">${item.delta > 0 ? '+' : ''}${formatPrice(item.delta)}</div>
                 </div>
             </div>
         `;
@@ -550,7 +550,7 @@ async function dashboardEnrichObjectiveBudget(best, myToken) {
         return;
     }
 
-    budgetEl.innerHTML = `<i class="ti ti-wallet" aria-hidden="true"></i> ≈ ${budget.totalKnown.toFixed(2)} € pour compléter cette série${budget.countUnknown > 0 ? ` (${budget.countUnknown} sans prix connu)` : ''}`;
+    budgetEl.innerHTML = `<i class="ti ti-wallet" aria-hidden="true"></i> ≈ ${formatPrice(budget.totalKnown)} pour compléter cette série${budget.countUnknown > 0 ? ` (${budget.countUnknown} sans prix connu)` : ''}`;
 }
 
 // ===== TOP HAUSSES =====
@@ -571,7 +571,7 @@ function renderDashboardTopMovers() {
     el.innerHTML = gainers.map(m => `
         <div class="dashboard-mover-row">
             <span class="dashboard-mover-name">${escapeHtml(m.name)} <span class="dashboard-mover-number">#${escapeHtml(String(m.number))}</span></span>
-            <span class="dashboard-mover-delta dashboard-positive">+${m.delta.toFixed(2)}€</span>
+            <span class="dashboard-mover-delta dashboard-positive">+${formatPrice(m.delta)}</span>
         </div>
     `).join('');
 }
@@ -596,7 +596,7 @@ function renderDashboardAcquisitions() {
                 }
             </div>
             <div class="dashboard-acquisition-name">${escapeHtml(c.name)}</div>
-            ${Number(c.market_value || 0) > 0 ? `<div class="dashboard-acquisition-value">${Number(c.market_value).toFixed(2)}€</div>` : ''}
+            ${Number(c.market_value || 0) > 0 ? `<div class="dashboard-acquisition-value">${formatPrice(c.market_value)}</div>` : ''}
             <div class="dashboard-acquisition-time">${dashboardRelativeTime(c.created_at)}</div>
         </div>
     `).join('')}</div>`;
@@ -671,7 +671,7 @@ function renderDashboardWishlist() {
         const price = (typeof wishlistPriceMap !== 'undefined' && item.tcgdex_id && wishlistPriceMap[item.tcgdex_id])
             ? Number(wishlistPriceMap[item.tcgdex_id])
             : Number(item.market_value || 0);
-        const priceHtml = price > 0 ? `<div class="dashboard-wishlist-price">${price.toFixed(2)}€</div>` : '';
+        const priceHtml = price > 0 ? `<div class="dashboard-wishlist-price">${formatPrice(price)}</div>` : '';
         const trendHtml = item.tcgdex_id ? `<div class="dashboard-wishlist-trend" id="dashboard-wishlist-trend-${item.tcgdex_id}"></div>` : '';
 
         return `
@@ -752,7 +752,7 @@ async function dashboardUpdateWishlistTrends(items) {
         const cls = delta > 0 ? 'dashboard-positive' : delta < 0 ? 'dashboard-negative' : '';
         const sign = delta > 0 ? '+' : '';
         el.className = `dashboard-wishlist-trend ${cls}`;
-        el.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-arrow-up' : 'ti-arrow-down'}" aria-hidden="true"></i> ${sign}${delta.toFixed(2)}€`;
+        el.innerHTML = `<i class="ti ${delta >= 0 ? 'ti-arrow-up' : 'ti-arrow-down'}" aria-hidden="true"></i> ${sign}${formatPrice(delta)}`;
     });
 }
 

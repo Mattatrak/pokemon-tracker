@@ -126,15 +126,15 @@ function renderCardDetail(cardId) {
                     <div class="modal-value-block">
                         <div class="modal-value-label">Valeur estimée</div>
                         <div class="modal-value-row">
-                            <span class="modal-price">${marketValue.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-price">${formatPrice(marketValue)}</span>
                             <span class="modal-trend-dot"><i class="ti ti-chart-line" aria-hidden="true"></i></span>
                         </div>
                         ${!isPack ? `
                         <div class="modal-price-line">
                             <span class="modal-price-label">Prix payé</span>
-                            <span class="modal-price-secondary">${purchasePrice.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-price-secondary">${formatPrice(purchasePrice)}</span>
                         </div>` : ''}
-                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2).replace('.', ',')}€ (×${qty})</div>` : ''}
+                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${formatPrice(lineTotal)} (×${qty})</div>` : ''}
                     </div>
 
                     <div class="modal-meta-actions-row">
@@ -303,8 +303,8 @@ function renderCardPriceChartForPeriod(days) {
     if (rangeLabel) {
         rangeLabel.style.display = 'flex';
         rangeLabel.innerHTML = minVal === maxVal
-            ? `<span>Stable à ${minVal.toFixed(2)}€</span>`
-            : `<span>Min ${minVal.toFixed(2)}€</span><span>Max ${maxVal.toFixed(2)}€</span>`;
+            ? `<span>Stable à ${formatPrice(minVal)}</span>`
+            : `<span>Min ${formatPrice(minVal)}</span><span>Max ${formatPrice(maxVal)}</span>`;
     }
 
     if (statBlock) {
@@ -326,7 +326,7 @@ function renderCardPriceChartForPeriod(days) {
             statBlock.style.display = 'flex';
             statBlock.innerHTML = `
                 <span class="card-price-stat-pct ${cls}">${sign}${pct.toFixed(0)}%</span>
-                <span class="card-price-stat-abs ${cls}">(${sign}${delta.toFixed(2).replace('.', ',')}€)</span>
+                <span class="card-price-stat-abs ${cls}">(${sign}${formatPrice(delta)})</span>
                 <span class="card-price-stat-caption">${periodLabel}</span>
             `;
         }
@@ -369,7 +369,7 @@ function renderCardPriceChartForPeriod(days) {
                     displayColors: false,
                     titleFont: { size: 11 },
                     bodyFont: { size: 13, weight: 'bold' },
-                    callbacks: { label: (ctx) => `${ctx.parsed.y.toFixed(2)}€` }
+                    callbacks: { label: (ctx) => formatPrice(ctx.parsed.y) }
                 }
             },
             scales: {

@@ -447,7 +447,7 @@ function buildWishlistDetailHtml(item) {
                 <div class="wishlist-detail-section wishlist-detail-value-actions">
                     <div class="wishlist-detail-price-block">
                         <div class="modal-value-label">Prix marché</div>
-                        <div class="wishlist-detail-price">${price > 0 ? price.toFixed(2).replace('.', ',') + '€' : 'Non disponible'}</div>
+                        <div class="wishlist-detail-price">${price > 0 ? formatPrice(price) : 'Non disponible'}</div>
                         ${priceSignal ? `<div class="wishlist-detail-price-signal price-signal-${priceSignal.type}"><i class="ti ti-arrow-${priceSignal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i> ${escapeHtml(priceSignal.wording)}</div>` : ''}
                     </div>
 

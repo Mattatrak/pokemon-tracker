@@ -8,8 +8,8 @@ function updateStats() {
     const spent = allCollectionCards.reduce((sum, card) => sum + (Number(card.purchase_price || 0) * Number(card.quantity || 1)), 0);
 
     document.getElementById('total-cards').textContent = total;
-    document.getElementById('total-spent').textContent = spent.toFixed(2) + '€';
-    document.getElementById('hero-total-value').textContent = value.toFixed(2) + '€';
+    document.getElementById('total-spent').textContent = formatPrice(spent);
+    document.getElementById('hero-total-value').textContent = formatPrice(value);
 
     return { total, value, spent };
 }
@@ -155,7 +155,7 @@ async function renderHeroValueCard() {
             fluctEl.className = 'hero-fluctuation';
         } else {
             const sign = fluctuation.delta > 0 ? '+' : '';
-            fluctEl.textContent = `${sign}${fluctuation.delta.toFixed(2)}€ (24h)`;
+            fluctEl.textContent = `${sign}${formatPrice(fluctuation.delta)} (24h)`;
             fluctEl.className = 'hero-fluctuation ' + (fluctuation.delta > 0 ? 'positive' : fluctuation.delta < 0 ? 'negative' : 'neutral');
         }
     }
@@ -270,7 +270,7 @@ async function showTopMoversModal() {
         : top10.map(m => `
             <div class="mover-row">
                 <span class="mover-name">${escapeHtml(m.name)} <span class="mover-number">#${escapeHtml(m.number)}</span></span>
-                <span class="mover-delta ${m.delta > 0 ? 'positive' : 'negative'}"><span style="color: var(--slate);">${m.value.toFixed(2)}€</span> (${m.delta > 0 ? '+' : ''}${m.delta.toFixed(2)}€)</span>
+                <span class="mover-delta ${m.delta > 0 ? 'positive' : 'negative'}"><span style="color: var(--slate);">${formatPrice(m.value)}</span> (${m.delta > 0 ? '+' : ''}${formatPrice(m.delta)})</span>
             </div>
         `).join('');
 

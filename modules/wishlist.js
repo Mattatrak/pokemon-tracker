@@ -397,7 +397,7 @@ function renderWishlistsUI() {
                         }
                         ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Obtenue</div>' : ''}
                         ${signal ? `<div class="price-signal-badge price-signal-${signal.type}" title="${escapeHtml(signal.wording)}"><i class="ti ti-arrow-${signal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i></div>` : ''}
-                        ${price > 0 ? `<div class="price-badge">${price.toFixed(2)}€</div>` : ''}
+                        ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
                             <div class="collection-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(item.series)} · #${escapeHtml(item.number)}</div>
@@ -414,7 +414,7 @@ function renderWishlistsUI() {
                     <div class="wishlist-list-card-title">
                         <span class="wishlist-list-name">${escapeHtml(list.name)}</span>
                         <span class="wishlist-count-badge">${allItemsInList.length} cartes</span>
-                        ${listValue > 0 ? `<span class="wishlist-list-value">${listValue.toFixed(2)}€</span>` : ''}
+                        ${listValue > 0 ? `<span class="wishlist-list-value">${formatPrice(listValue)}</span>` : ''}
                     </div>
                     <div class="wishlist-list-card-actions">
                         <button onclick="event.stopPropagation(); renameWishlist(${list.id})" title="Renommer"><i class="ti ti-edit" aria-hidden="true"></i></button>
@@ -538,9 +538,9 @@ function updateWishlistKpis() {
     const topPrice = topItem ? (wishlistPriceMap[topItem.tcgdex_id] || 0) : 0;
 
     countEl.textContent = allWishlistItems.length;
-    valueEl.textContent = totalValue.toFixed(2) + '€';
+    valueEl.textContent = formatPrice(totalValue);
     listsEl.textContent = allWishlists.length;
-    topPriceEl.textContent = topPrice.toFixed(2) + '€';
+    topPriceEl.textContent = formatPrice(topPrice);
 
     if (topItem && topPrice > 0) {
         topNameEl.textContent = topItem.name;
