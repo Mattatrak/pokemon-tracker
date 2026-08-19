@@ -1,6 +1,18 @@
 // Helpers purs - Pokémon Tracker
 // Aucun état partagé, aucune dépendance à supabaseClient. Charge juste après config.js.
 
+// Précharge une liste d'URLs d'image en arrière-plan (sans les insérer dans le DOM) - anticipe le
+// chargement de la page suivante en pagination (Collection/Catalogue) pour un "Charger plus" plus
+// fluide. new Image() suffit à déclencher le fetch navigateur ; entrées vides ignorées, doublons/
+// déjà-en-cache dédupliqués par le navigateur lui-même via son cache HTTP normal.
+function preloadImages(urls) {
+    (urls || []).forEach(url => {
+        if (!url) return;
+        const img = new Image();
+        img.src = url;
+    });
+}
+
 // Formate un prix en euros au format français (virgule décimale) - remplace les ~70 toFixed(2)
 // dupliqués à travers le code, dont une partie affichait un point (incohérent avec le reste de
 // l'app, entièrement en français). value peut être undefined/null/NaN (traité comme 0).
@@ -485,6 +497,7 @@ function initDatePicker(selector, presetValue) {
 // (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.formatPrice = formatPrice;
+window.preloadImages = preloadImages;
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
 window.escapeHtml = escapeHtml;

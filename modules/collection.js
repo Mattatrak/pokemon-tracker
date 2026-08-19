@@ -1000,6 +1000,10 @@ function renderCollectionHeaderKpis(filtered) {
 function renderFilteredCollection() {
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
+    // Anticipe le "Charger plus" : précharge les images de la page suivante pendant que celle-ci
+    // s'affiche, pour qu'elles soient déjà en cache navigateur au clic (Galerie/Tableau uniquement -
+    // le Classeur gère sa propre pagination indépendante, cf commentaire plus bas).
+    preloadImages(filtered.slice(collectionDisplayLimit, collectionDisplayLimit + COLLECTION_PAGE_SIZE).map(c => c.image));
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     const effectiveMode = getEffectiveCollectionViewMode();
 

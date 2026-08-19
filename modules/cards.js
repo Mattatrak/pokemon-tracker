@@ -203,13 +203,22 @@ function applySearchFilters() {
 
     updateCatalogueResultsInfo(filtered.length);
     renderSearchResults(filtered.slice(0, catalogueVisibleCount));
+    preloadNextCatalogueBatch(filtered);
     updateCatalogueLoadMoreButton(filtered.length);
 }
 
 function loadMoreCatalogueResults() {
     catalogueVisibleCount += getCataloguePageSize();
     renderSearchResults(lastFilteredResults.slice(0, catalogueVisibleCount));
+    preloadNextCatalogueBatch(lastFilteredResults);
     updateCatalogueLoadMoreButton(lastFilteredResults.length);
+}
+
+// Anticipe le prochain "Charger plus de résultats" : précharge les images de la page suivante
+// pendant que la page actuelle s'affiche (même URL /high.webp que renderSearchResults, cf ci-dessus).
+function preloadNextCatalogueBatch(results) {
+    const nextBatch = results.slice(catalogueVisibleCount, catalogueVisibleCount + getCataloguePageSize());
+    preloadImages(nextBatch.map(c => c.image ? `${c.image}/high.webp` : (c._localImage || null)));
 }
 
 function updateCatalogueLoadMoreButton(totalCount) {
