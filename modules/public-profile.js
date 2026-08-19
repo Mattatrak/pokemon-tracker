@@ -390,7 +390,7 @@ function renderPublicProfileShell(container, profile) {
                 <div class="catalogue-toolbar">
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="filterPublicCollectionAndDisplay()">
+                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="debouncedFilterPublicCollectionAndDisplay()">
                     </div>
                     <div class="catalogue-toolbar-actions">
                         <select id="public-collection-series-filter" onchange="filterPublicCollectionAndDisplay()">
@@ -531,6 +531,20 @@ function setPublicCollectionSort(value) {
 function filterPublicCollectionAndDisplay() {
     publicCollectionDisplayLimit = PUBLIC_COLLECTION_PAGE_SIZE;
     renderPublicCollectionGrid();
+}
+
+// Wrapper stable (une seule instance debounce(), pas recréée à chaque frappe - sinon plus de mémoire du
+// timeoutId précédent, le debounce ne servirait à rien). Initialisation paresseuse au premier appel
+// plutôt qu'un `debounce(...)` direct au chargement du module : debounce() vient de utils.js (autre
+// script), et résoudre un nom cross-module au chargement (pas à l'appel) a déjà causé un ReferenceError
+// en prod par le passé (chunking Vite non déterministe, cf commit dd1ae64/applySearchFilters) - même
+// précaution ici.
+let _debouncedFilterPublicCollectionAndDisplay = null;
+function debouncedFilterPublicCollectionAndDisplay() {
+    if (!_debouncedFilterPublicCollectionAndDisplay) {
+        _debouncedFilterPublicCollectionAndDisplay = debounce(filterPublicCollectionAndDisplay, 250);
+    }
+    _debouncedFilterPublicCollectionAndDisplay();
 }
 
 function loadMorePublicCollectionCards() {
@@ -969,6 +983,7 @@ window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
 window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
 window.setPublicCollectionSort = setPublicCollectionSort;
 window.filterPublicCollectionAndDisplay = filterPublicCollectionAndDisplay;
+window.debouncedFilterPublicCollectionAndDisplay = debouncedFilterPublicCollectionAndDisplay;
 window.loadMorePublicCollectionCards = loadMorePublicCollectionCards;
 window.getFilteredSortedPublicCollection = getFilteredSortedPublicCollection;
 window.renderPublicDuplicateCardsHtml = renderPublicDuplicateCardsHtml;

@@ -1150,6 +1150,34 @@ function initEventListeners() {
             } else {
                 closeMobileAddPanel();
             }
+
+            // Modales/menus qui n'avaient encore aucun handler Échap (audit du 2026-08-15, catégorie B).
+            // Toutes sans risque à appeler même fermées : chacune se contente de retirer .active (et de
+            // résoudre une Promise en attente à null/false si besoin), sans effet si l'overlay ne l'a pas.
+            // acknowledgeChangelogPopup() plutôt que le simple closeChangelogPopup() : même comportement
+            // que le clic sur le fond de cette popup precise (marque la version comme vue avant de fermer,
+            // cf modules/changelog.js), pour ne pas la faire réapparaître différemment selon Échap ou clic.
+            // Gardé par un test .active (contrairement aux autres ci-dessous) : acknowledgeChangelogPopup
+            // écrit dans localStorage à chaque appel, contrairement aux simples closeXxx() qui ne font que
+            // retirer .active sans effet si déjà fermé - un appel inconditionnel marquerait la version
+            // comme vue à CHAQUE Échap, même pour fermer une tout autre modale, sans que la popup ait
+            // jamais été montrée.
+            // La modale de progression/rapport d'import CSV (#csv-import-overlay) n'a volontairement pas
+            // de handler Échap ni de clic-sur-le-fond : un import peut être en cours, elle ne doit pas
+            // pouvoir se fermer accidentellement.
+            closeWishlistEditModal();
+            closeAdminImageUploadModal();
+            if (document.getElementById('changelog-popup-overlay')?.classList.contains('active')) {
+                acknowledgeChangelogPopup();
+            }
+            closeTextPrompt();
+            closeConfirmModal(false);
+            closeQuickAddSettingsModal();
+            closeProfileModal();
+            closeProfileMenu();
+            closeTopMoversModal();
+            closePublicCardDetail();
+            closeCsvDropdown();
         }
     });
 
@@ -1209,7 +1237,16 @@ function initEventListeners() {
     document.getElementById('filter-rarity').addEventListener('change', () => applySearchFilters());
     document.getElementById('filter-series').addEventListener('change', () => applySearchFilters());
 
-    document.getElementById('progression-search').addEventListener('input', () => renderProgressionCardsGrid());
+    // debounce() vient de utils.js (autre module) : initialisation paresseuse au premier evenement
+    // plutot qu'un appel direct ici, meme precaution que les fleches ci-dessus (ordre de chargement des
+    // modules pas garanti en prod, cf commentaire juste au-dessus).
+    let debouncedRenderProgressionCardsGrid = null;
+    document.getElementById('progression-search').addEventListener('input', () => {
+        if (!debouncedRenderProgressionCardsGrid) {
+            debouncedRenderProgressionCardsGrid = debounce(() => renderProgressionCardsGrid(), 250);
+        }
+        debouncedRenderProgressionCardsGrid();
+    });
     document.getElementById('month-summary-select').addEventListener('change', () => renderMonthlySummary());
 }
 

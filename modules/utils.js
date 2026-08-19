@@ -1,6 +1,18 @@
 // Helpers purs - Pokémon Tracker
 // Aucun état partagé, aucune dépendance à supabaseClient. Charge juste après config.js.
 
+// Retarde l'exécution de fn jusqu'à ce que delayMs se soient écoulés sans nouvel appel - utilisé sur
+// les champs de recherche (Progression, Collection publique) pour éviter de relancer un filtrage/rendu
+// coûteux à chaque frappe (retour utilisateur, 2026-08-19 : lag clavier sur mobile, gros set/grosse
+// collection). N'affecte pas le coût du calcul lui-même, seulement la fréquence à laquelle il tourne.
+function debounce(fn, delayMs) {
+    let timeoutId = null;
+    return function debounced(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delayMs);
+    };
+}
+
 function toLocalDateInputValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -498,5 +510,6 @@ window.TYPE_ICON_BASE_URL = TYPE_ICON_BASE_URL;
 window.getTypeIconHtml = getTypeIconHtml;
 window.getTypesIconsHtml = getTypesIconsHtml;
 window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
+window.debounce = debounce;
 window.parseCsvDate = parseCsvDate;
 window.initDatePicker = initDatePicker;
