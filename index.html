@@ -199,6 +199,9 @@
 
         <div id="message-container" class="global-message-container"></div>
 
+        <!-- Indicateur pull-to-refresh (mobile, Dashboard/Collection uniquement, modules/pull-to-refresh.js) -->
+        <div id="ptr-indicator" class="ptr-indicator" aria-hidden="true"><i class="ti ti-refresh" aria-hidden="true"></i></div>
+
         <!-- ONGLET DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="dashboard-header" id="dashboard-header"></div>
@@ -1198,6 +1201,7 @@
     <script type="module" src="modules/changelog.js"></script>
     <script type="module" src="modules/pwa.js"></script>
     <script type="module" src="tracker.js"></script>
+    <script type="module" src="modules/pull-to-refresh.js"></script>
     <script type="module" src="modules/auth.js"></script>
     <script type="module">
         // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre

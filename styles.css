@@ -7661,6 +7661,53 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     }
 }
 
+/* Indicateur pull-to-refresh (mobile, Dashboard/Collection - modules/pull-to-refresh.js). Repose hors
+   champ (top:-60px) au repos ; translateY appliqué en JS pendant le tir suit le doigt 1:1 (freine par
+   PTR_PULL_RESISTANCE côté JS), .dragging désactive la transition pour ce suivi, réactivée au
+   relâchement pour l'animation de retour/tir. */
+.ptr-indicator {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate);
+    font-size: 1.1rem;
+    z-index: 150;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    transition: transform 0.25s ease, color 0.15s ease;
+    pointer-events: none;
+}
+
+.ptr-indicator.dragging {
+    transition: color 0.15s ease;
+}
+
+.ptr-indicator.active {
+    color: var(--gold);
+}
+
+.ptr-indicator.loading i {
+    animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ptr-indicator.loading i {
+        animation: none;
+    }
+}
+
 .global-message-container {
     position: fixed;
     left: 50%;
