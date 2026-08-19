@@ -65,8 +65,21 @@ function renderCollectorsNoResults(container) {
     container.innerHTML = '<p class="collectors-state-text"><i class="ti ti-user-question" aria-hidden="true"></i> Aucun collectionneur trouvé.</p>';
 }
 
+// Vraiment aucun collectionneur public sur toute la plateforme (pas une recherche sans résultat,
+// cf renderCollectorsNoResults juste au-dessus qui reste un texte simple) -> état illustré partagé.
 function renderCollectorsNoPublicProfiles(container) {
-    container.innerHTML = '<p class="collectors-state-text"><i class="ti ti-users-group" aria-hidden="true"></i> Aucun profil public pour l\'instant.</p>';
+    container.innerHTML = `
+        <div class="app-empty-state">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+                <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="4" fill="currentColor"/>
+            </svg>
+            <div class="app-empty-title">Aucun profil public pour l'instant</div>
+            <p class="app-empty-text">Reviens plus tard : les collectionneurs qui rendent leur profil public apparaîtront ici.</p>
+        </div>
+    `;
 }
 
 // Phase 5 (P5-3) : un seul appel RPC pour tout le lot de profils déjà chargés (jamais un appel par

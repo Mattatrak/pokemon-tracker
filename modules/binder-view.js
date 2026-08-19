@@ -1,6 +1,6 @@
 // Vue Classeur - 3e mode d'affichage de l'onglet Collection (Phase 4, cf roadmap technique)
-// Dépend de: getFilteredSortedCollection/isCollectionMobileViewport/collectionViewMode (collection.js),
-// renderGridCardHtml (card-grid-renderer.js)
+// Dépend de: getFilteredSortedCollection/isCollectionMobileViewport/collectionViewMode/
+// getCollectionEmptyStateHtml (collection.js), renderGridCardHtml (card-grid-renderer.js)
 //
 // Consomme exactement getFilteredSortedCollection() (mêmes filtres/tri/recherche que Galerie/Tableau,
 // aucune logique de données propre au classeur - un set filtré devient donc automatiquement un
@@ -66,7 +66,11 @@ function renderBinderView(cards) {
     if (!wrapper) return;
 
     if (cards.length === 0) {
-        wrapper.innerHTML = '<div class="binder-empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Aucune carte trouvée</p></div>';
+        // Vraiment vide (nouvel utilisateur) -> même état illustré que Galerie/Tableau ; un filtre
+        // sans résultat reste le texte simple existant.
+        wrapper.innerHTML = allCollectionCards.length === 0
+            ? getCollectionEmptyStateHtml()
+            : '<div class="binder-empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Aucune carte trouvée</p></div>';
         return;
     }
 

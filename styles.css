@@ -3183,9 +3183,13 @@ tbody tr:hover {
     border-radius: 0 0 14px 14px;
 }
 
-/* État vide premium d'une liste sans carte — remplace la grille (pas de placeholders ici,
-   refreshWishlistThumbPlaceholders ne s'applique qu'aux grilles ayant déjà de vraies cartes). */
-.wishlist-empty-state {
+/* État vide "premium" partagé — pour un état VRAIMENT vide (rien ici pour l'instant : liste de
+   souhaits jamais remplie, aucune carte en collection, aucune série commencée...), jamais pour un
+   "aucun résultat de recherche/filtre" (qui reste un texte simple .empty-state, cf styles.css) -
+   illustrer chaque filtre sans résultat serait du bruit, pas un vrai traitement. Générique
+   (app-empty-*, ex-wishlist-empty-*) pour être réutilisé par Collection/Progression/Collectionneurs
+   sans dupliquer ces règles. */
+.app-empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3194,7 +3198,7 @@ tbody tr:hover {
     gap: 0.35rem;
 }
 
-.wishlist-empty-icon {
+.app-empty-icon {
     width: 48px;
     height: 48px;
     color: var(--gold);
@@ -3202,20 +3206,20 @@ tbody tr:hover {
     margin-bottom: 0.5rem;
 }
 
-.wishlist-empty-title {
+.app-empty-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 1.15rem;
     letter-spacing: 0.02em;
     color: var(--text-primary);
 }
 
-.wishlist-empty-text {
+.app-empty-text {
     font-size: 0.85rem;
     color: var(--slate);
     max-width: 320px;
 }
 
-.wishlist-empty-cta {
+.app-empty-cta {
     margin-top: 0.75rem;
 }
 
@@ -8595,30 +8599,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .wishlist-hero {
         animation: none;
     }
-}
-
-/* Etat vide générique de la page Progression (aucune série commencée) - ex-classes .followed-sets-*
-   (section "Mes sets suivis", jamais utilisée en pratique, retirée le 2026-08-16), renommées
-   génériquement puisque réutilisées ici hors de ce contexte. */
-.progression-empty-state {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    text-align: center;
-}
-
-.progression-empty-state-title {
-    color: var(--text-primary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.progression-empty-state-text {
-    color: var(--slate);
-    font-size: 0.76rem;
-    line-height: 1.4;
 }
 
 @media (max-width: 1199px) and (min-width: 641px) {

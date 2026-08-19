@@ -429,16 +429,16 @@ function renderWishlistsUI() {
                         ? (query
                             ? '<p class="empty-state">Aucune carte ne correspond à ta recherche</p>'
                             : `
-                                <div class="wishlist-empty-state">
-                                    <svg class="wishlist-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                                <div class="app-empty-state">
+                                    <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
                                         <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
                                         <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
                                         <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
                                         <circle cx="50" cy="50" r="4" fill="currentColor"/>
                                     </svg>
-                                    <div class="wishlist-empty-title">Cette liste est vide</div>
-                                    <p class="wishlist-empty-text">Ajoutez les cartes que vous recherchez pour commencer cette liste.</p>
-                                    <button class="filter-toggle-btn wishlist-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+                                    <div class="app-empty-title">Cette liste est vide</div>
+                                    <p class="app-empty-text">Ajoutez les cartes que vous recherchez pour commencer cette liste.</p>
+                                    <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
                                 </div>
                             `)
                         : `<div class="wishlist-thumb-grid">${thumbsHtml}</div>`

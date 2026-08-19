@@ -1053,9 +1053,11 @@ function renderCollectionTable(filtered) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="10" style="text-align: center; padding: 2rem;">
-                    <div class="empty-state">
-                        <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
-                    </div>
+                    ${allCollectionCards.length === 0 ? getCollectionEmptyStateHtml() : `
+                        <div class="empty-state">
+                            <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
+                        </div>
+                    `}
                 </td>
             </tr>
         `;
@@ -1104,6 +1106,24 @@ function renderCollectionTable(filtered) {
     replayEntrance(tableWrapper);
 }
 
+// État "vraiment vide" partagé Galerie/Tableau (aucune carte en collection, pas un filtre sans
+// résultat) - même composant que la Wishlist/Progression (.app-empty-*, cf styles.css).
+function getCollectionEmptyStateHtml() {
+    return `
+        <div class="app-empty-state">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+                <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="4" fill="currentColor"/>
+            </svg>
+            <div class="app-empty-title">Ta collection est vide</div>
+            <p class="app-empty-text">Ajoute ta première carte pour commencer à suivre ta collection.</p>
+            <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+        </div>
+    `;
+}
+
 // Rejoue l'entrée douce du Motion System (.motion-enter) sur un conteneur dont le contenu vient
 // d'être reconstruit (innerHTML) - reflow forcé pour redémarrer l'animation CSS à chaque rebuild
 function replayEntrance(el) {
@@ -1118,7 +1138,10 @@ function renderCollectionGrid(filtered) {
     if (!grid) return;
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
+        // Vraiment aucune carte en collection (nouvel utilisateur) -> état illustré ; un filtre/une
+        // recherche qui ne remonte rien reste un texte simple, ne mérite pas la même mise en avant.
+        grid.innerHTML = allCollectionCards.length === 0 ? getCollectionEmptyStateHtml() :
+            '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
         replayEntrance(grid);
         return;
     }
@@ -1285,6 +1308,7 @@ window.renderCollectionHeaderKpis = renderCollectionHeaderKpis;
 window.renderFilteredCollection = renderFilteredCollection;
 window.renderCollectionTable = renderCollectionTable;
 window.replayEntrance = replayEntrance;
+window.getCollectionEmptyStateHtml = getCollectionEmptyStateHtml;
 window.renderCollectionGrid = renderCollectionGrid;
 window.isCollectionMobileViewport = isCollectionMobileViewport;
 window.getEffectiveCollectionViewMode = getEffectiveCollectionViewMode;

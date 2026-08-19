@@ -343,10 +343,16 @@ function renderProgressionSeriesList() {
     // déjà "Aucun set commencé".
     if (seriesWithOwnedSets.length === 0) {
         container.innerHTML = `
-            <div class="progression-empty-state">
-                <p class="progression-empty-state-title">Aucune série commencée</p>
-                <p class="progression-empty-state-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
-                <button class="dashboard-add-btn" style="margin-top:0.75rem;" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+            <div class="app-empty-state">
+                <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+                    <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="4" fill="currentColor"/>
+                </svg>
+                <div class="app-empty-title">Aucune série commencée</div>
+                <p class="app-empty-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
+                <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
             </div>
         `;
         return;
