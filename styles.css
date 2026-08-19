@@ -1184,10 +1184,16 @@ body::before {
     display: block;
 }
 
+/* align-items:stretch (au lieu de flex-start) : .preview-details (texte) est presque toujours plus
+   haute que .preview-image (plafonnée à 380px, cf .card-preview .preview-image) - en flex-start
+   l'image restait calée en haut, laissant un vide sous elle jusqu'au bas de la colonne texte (retour
+   utilisateur, 2026-08-19, capture d'écran à l'appui). stretch donne à .preview-image toute la hauteur
+   de la ligne ; son propre align-items:center/justify-content:center (déjà en place) centre alors
+   l'image dedans, comblant le vide au lieu de le laisser en dessous. */
 .preview-main {
     display: flex;
     gap: 1.5rem;
-    align-items: flex-start;
+    align-items: stretch;
     margin-bottom: 1.75rem;
 }
 
