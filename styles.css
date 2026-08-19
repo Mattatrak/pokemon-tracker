@@ -978,6 +978,126 @@ body::before {
     color: var(--text-primary);
 }
 
+/* Cartes liées (set/illustrateur), modules/cards.js#resetRelatedCardsBlock. Comble le vide constaté
+   sous la fiche "collante" (mesuré : jusqu'à ~2600px de vide sur un gros lot de résultats) sans faire
+   doublon avec la recherche en cours - "même set"/"même illustrateur" ne sont jamais des axes déjà
+   couverts par une recherche par nom, contrairement à "autres éditions du même Pokémon" (retour
+   utilisateur, écarté avant implémentation). */
+.related-cards-block {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.related-cards-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+}
+
+.related-cards-tab {
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0.35rem 0.7rem;
+    border-radius: 100px;
+    background: transparent;
+    color: var(--slate);
+    border: 1px solid var(--border);
+}
+
+.related-cards-tab.active {
+    background: rgba(232, 169, 59, 0.14);
+    border-color: rgba(232, 169, 59, 0.35);
+    color: var(--gold);
+}
+
+.related-cards-tab:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.related-cards-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--slate);
+    opacity: 0.75;
+    margin-bottom: 0.6rem;
+}
+
+.related-cards-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.related-card-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.3rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.related-card-row:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.related-card-thumb {
+    width: 34px;
+    aspect-ratio: 5 / 7;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--ink-navy);
+}
+
+.related-card-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate);
+    font-size: 0.7rem;
+}
+
+.related-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.related-card-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.related-card-set {
+    font-size: 0.72rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.related-card-price {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex-shrink: 0;
+}
+
+.related-cards-empty,
+.related-cards-loading {
+    font-size: 0.8rem;
+    color: var(--slate);
+    padding: 0.5rem 0.3rem;
+    text-align: center;
+}
+
 .preview-cardmarket-btn {
     display: inline-flex;
     align-items: center;

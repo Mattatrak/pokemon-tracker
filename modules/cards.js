@@ -458,6 +458,159 @@ function applyCardToPreview(card) {
     document.getElementById('purchase-price-group').style.display = '';
 
     document.getElementById('card-preview').classList.add('active');
+
+    resetRelatedCardsBlock(card);
+}
+
+// ===== CARTES LIÉES (même set / même illustrateur que la carte sélectionnée) =====
+// Comble le vide sous la fiche "collante" sans jamais faire doublon avec la recherche en cours -
+// contrairement à un simple "autres éditions de ce Pokémon" (qu'une recherche par nom montre déjà),
+// le set et l'illustrateur ne sont jamais des axes déjà couverts par ce que l'utilisateur a tapé.
+
+let relatedCardsMode = 'set';
+let relatedCardsToken = 0;
+let relatedCardsCache = { set: null, illustrator: null };
+const RELATED_CARDS_LIMIT = 6;
+
+function resetRelatedCardsBlock(card) {
+    relatedCardsMode = 'set';
+    relatedCardsCache = { set: null, illustrator: null };
+
+    const block = document.getElementById('related-cards-block');
+    const setTab = document.querySelector('.related-cards-tab[data-mode="set"]');
+    const illustratorTab = document.querySelector('.related-cards-tab[data-mode="illustrator"]');
+    if (!block) return;
+
+    if (!card?.id || !card.set?.id) {
+        block.style.display = 'none';
+        return;
+    }
+
+    block.style.display = '';
+    setTab?.classList.add('active');
+    illustratorTab?.classList.remove('active');
+    if (illustratorTab) illustratorTab.disabled = !card.illustrator;
+
+    loadRelatedCards(card);
+}
+
+function setRelatedCardsMode(mode) {
+    if (mode === relatedCardsMode || !selectedCard) return;
+    if (mode === 'illustrator' && !selectedCard.illustrator) return;
+
+    relatedCardsMode = mode;
+    document.querySelectorAll('.related-cards-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+    loadRelatedCards(selectedCard);
+}
+
+async function loadRelatedCards(card) {
+    const myToken = ++relatedCardsToken;
+    const mode = relatedCardsMode;
+    const listEl = document.getElementById('related-cards-list');
+    const titleEl = document.getElementById('related-cards-title');
+    if (!listEl || !titleEl) return;
+
+    if (relatedCardsCache[mode]) {
+        renderRelatedCardsList(relatedCardsCache[mode], card);
+        return;
+    }
+
+    listEl.innerHTML = '<div class="related-cards-loading"><span class="loading"></span></div>';
+    titleEl.textContent = '';
+
+    try {
+        let briefCards = [];
+        if (mode === 'set') {
+            const res = await fetch(`${API_BASE}/sets/${card.set.id}`);
+            const data = await res.json();
+            briefCards = (data.cards || []).filter(c => c.id !== card.id);
+        } else {
+            const encoded = encodeURIComponent(card.illustrator);
+            const settled = await Promise.allSettled([
+                fetch(`${API_BASE}/cards?illustrator=${encoded}`).then(r => r.json()),
+                fetch(`${API_EN}/cards?illustrator=${encoded}`).then(r => r.json()),
+            ]);
+            const seen = new Set();
+            settled.forEach(r => {
+                if (r.status !== 'fulfilled' || !Array.isArray(r.value)) return;
+                r.value.forEach(c => {
+                    if (c.id !== card.id && !seen.has(c.id)) { seen.add(c.id); briefCards.push(c); }
+                });
+            });
+        }
+
+        if (myToken !== relatedCardsToken) return; // sélection/onglet plus récent entre-temps
+
+        // TCGdex ne renvoie que des objets brefs (id/localId/name/image) sur ces deux endpoints -
+        // même limitation que la recherche principale (cf displaySearchResults) : détail complet
+        // (prix/rareté) récupéré uniquement pour les quelques cartes réellement affichées, jamais pour
+        // tout le lot (un set fait jusqu'à ~250 cartes).
+        const shownBrief = briefCards.slice(0, RELATED_CARDS_LIMIT);
+        const enriched = await Promise.all(shownBrief.map(enrichBriefCard));
+
+        if (myToken !== relatedCardsToken) return;
+
+        relatedCardsCache[mode] = { total: briefCards.length, cards: enriched };
+        renderRelatedCardsList(relatedCardsCache[mode], card);
+    } catch (error) {
+        if (myToken !== relatedCardsToken) return;
+        console.error('Erreur chargement cartes liées:', error);
+        listEl.innerHTML = '<p class="related-cards-empty">Impossible de charger ces cartes pour le moment.</p>';
+    }
+}
+
+// Même repli FR -> EN que displaySearchResults (certains sets récents n'ont pas leurs assets/textes FR).
+async function enrichBriefCard(brief) {
+    try {
+        const res = await fetch(`${API_BASE}/cards/${brief.id}`);
+        const detail = await res.json();
+        if (detail && !detail.status) return detail;
+        throw new Error('not found in FR');
+    } catch {
+        try {
+            const enRes = await fetch(`${API_EN}/cards/${brief.id}`);
+            return await enRes.json();
+        } catch {
+            return brief;
+        }
+    }
+}
+
+function renderRelatedCardsList(result, card) {
+    const listEl = document.getElementById('related-cards-list');
+    const titleEl = document.getElementById('related-cards-title');
+    const mode = relatedCardsMode;
+    const { total, cards } = result;
+
+    titleEl.textContent = mode === 'set'
+        ? `${total} autre${total > 1 ? 's' : ''} carte${total > 1 ? 's' : ''} dans ${card.set?.name || 'ce set'}`
+        : `${total} autre${total > 1 ? 's' : ''} carte${total > 1 ? 's' : ''} de ${card.illustrator}`;
+
+    if (cards.length === 0) {
+        listEl.innerHTML = '<p class="related-cards-empty">Rien d\'autre à montrer ici.</p>';
+        return;
+    }
+
+    listEl.innerHTML = cards.map(c => {
+        const imageUrl = c.image ? `${c.image}/low.webp` : '';
+        let price = 0;
+        if (c.pricing?.cardmarket?.avg) price = c.pricing.cardmarket.avg;
+        else if (c.pricing?.cardmarket?.['avg-holo']) price = c.pricing.cardmarket['avg-holo'];
+
+        return `
+            <div class="related-card-row" onclick="onSearchResultClick(${JSON.stringify(c).replace(/"/g, '&quot;')}, this)">
+                ${imageUrl
+                    ? `<img src="${imageUrl}" alt="" class="related-card-thumb" loading="lazy" onerror="this.outerHTML='<div class=&quot;related-card-thumb related-card-thumb-empty&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
+                    : '<div class="related-card-thumb related-card-thumb-empty"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
+                }
+                <div class="related-card-info">
+                    <div class="related-card-name">${escapeHtml(c.name || '?')}</div>
+                    <div class="related-card-set">${mode === 'set' ? (c.localId ? '#' + c.localId : '') : escapeHtml(c.set?.name || '')}</div>
+                </div>
+                ${price > 0 ? `<div class="related-card-price">${formatPrice(price)}</div>` : ''}
+            </div>
+        `;
+    }).join('');
 }
 
 // Rejoue l'animation d'entrée CSS (.card-swap-enter) sur un élément après un changement de
@@ -817,3 +970,5 @@ window.openMobileAddPanel = openMobileAddPanel;
 window.closeMobileAddPanel = closeMobileAddPanel;
 window.mobileAddPanelWasMobile = mobileAddPanelWasMobile;
 window.mobileAddPanelResizeTimer = mobileAddPanelResizeTimer;
+window.resetRelatedCardsBlock = resetRelatedCardsBlock;
+window.setRelatedCardsMode = setRelatedCardsMode;

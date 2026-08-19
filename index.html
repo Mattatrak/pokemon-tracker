@@ -419,6 +419,16 @@
                                   </div>
                                 </div>
                             </div>
+
+                            <!-- Cartes liées (set/illustrateur de la carte sélectionnée), modules/cards.js -->
+                            <div class="related-cards-block" id="related-cards-block" style="display:none;">
+                                <div class="related-cards-tabs">
+                                    <button type="button" class="related-cards-tab active" data-mode="set" onclick="setRelatedCardsMode('set')">Même set</button>
+                                    <button type="button" class="related-cards-tab" data-mode="illustrator" onclick="setRelatedCardsMode('illustrator')">Même illustrateur</button>
+                                </div>
+                                <div class="related-cards-title" id="related-cards-title"></div>
+                                <div class="related-cards-list" id="related-cards-list"></div>
+                            </div>
                         </div>
                       </div>
                     </aside>
