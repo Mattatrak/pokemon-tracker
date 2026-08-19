@@ -360,7 +360,7 @@ function renderCardPriceChartForPeriod(days) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: '#161B29',
+                    backgroundColor: '#1A1A1E',
                     titleColor: '#8A93A6',
                     bodyColor: '#F7F3EA',
                     borderColor: 'rgba(255,255,255,0.1)',
