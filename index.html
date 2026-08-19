@@ -202,8 +202,17 @@
         <!-- ONGLET DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="dashboard-header" id="dashboard-header"></div>
-            <div class="dashboard-hero" id="dashboard-hero"></div>
-            <div class="dashboard-main-grid" id="dashboard-main-grid"></div>
+            <!-- Silhouette de chargement initial (remplacée par renderDashboardHero/renderDashboard une
+                 fois les données prêtes, cf modules/auth.js#init) -->
+            <div class="dashboard-hero" id="dashboard-hero"><div class="skeleton skeleton-hero"></div></div>
+            <div class="dashboard-main-grid" id="dashboard-main-grid">
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+            </div>
         </div>
 
         <!-- ONGLET AJOUTER -->
@@ -471,7 +480,18 @@
             </div>
 
             <div class="collection-display-case" id="collection-grid-wrapper">
-                <div class="collection-grid" id="collection-grid"></div>
+                <!-- Silhouette de chargement initial (remplacée par renderCollectionGrid dès que
+                     allCollectionCards est prêt) -->
+                <div class="collection-grid" id="collection-grid">
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                </div>
             </div>
 
             <div id="collection-binder-wrapper" style="display: none;"></div>
@@ -540,8 +560,30 @@
         <div id="tab-progression" class="tab-content">
             <div id="progression-series-view">
                 <div id="progression-priority-goals"></div>
+                <!-- Silhouette de chargement initial (remplacée par loadSeriesProgress dès que
+                     allCollectionCards/allTcgdexSeries sont prêts) -->
                 <div id="progression-series-list">
-                    <p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des séries...</p>
+                    <div class="skeleton-row">
+                        <div class="skeleton" style="width:44px; height:44px; border-radius:8px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:35%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:11px; width:55%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-row">
+                        <div class="skeleton" style="width:44px; height:44px; border-radius:8px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:40%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:11px; width:50%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-row">
+                        <div class="skeleton" style="width:44px; height:44px; border-radius:8px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:30%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:11px; width:60%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

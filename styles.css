@@ -282,6 +282,31 @@ body::before {
     border-bottom: none;
 }
 
+/* Silhouettes du tout premier chargement de l'app (init(), modules/auth.js) : posées telles quelles
+   dans le HTML statique (index.html) comme contenu initial de #dashboard-hero/#dashboard-main-grid/
+   #collection-grid/#progression-series-list, jamais gérées en JS - le rendu réel (innerHTML) les
+   remplace de lui-même une fois les données prêtes, aucune coordination de timing à écrire ni à
+   pouvoir désynchroniser. Formes calées sur les vrais composants qu'elles précèdent (.collection-card
+   ratio 5/7, .dashboard-widget hauteur ~200px) pour que l'apparition du vrai contenu ne "saute" pas.
+   Un skeleton contient ses propres tuiles .skeleton (empilables au pluriel dans un même conteneur). */
+.skeleton-card {
+    aspect-ratio: 5 / 7;
+    border-radius: 8px;
+}
+
+/* grid-column:1/-1 : .dashboard-hero est display:grid (2 pistes, 55%/45%) - sans ce span, seule
+   piste-unique-enfant, la silhouette n'aurait occupe que 55% de la largeur au lieu de tout le hero. */
+.skeleton-hero {
+    grid-column: 1 / -1;
+    min-height: 240px;
+    border-radius: 24px;
+}
+
+.skeleton-widget {
+    height: 220px;
+    border-radius: 16px;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .skeleton {
         animation: none;
