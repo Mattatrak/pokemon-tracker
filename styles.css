@@ -9189,7 +9189,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         padding: 32px;
     }
 
+    /* Colonne unique (etait toujours 4 colonnes ici, juste etirees en largeur) : les autres pages
+       restent en 1 colonne empilee sous ~900px, une rangee de 4 a cette largeur les ecrasait. */
     .dashboard-hero .dashboard-kpis {
+        grid-template-columns: 1fr;
         width: 100%;
     }
 }
@@ -9734,7 +9737,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         max-width: 100%;
     }
 
+    /* Colonne unique (etait toujours 4 colonnes) : memes seuils que les autres pages, qui restent
+       empilees sous ~900px plutot qu'ecrasees en rangee. */
     .dashboard-hero .dashboard-kpis {
+        grid-template-columns: 1fr;
         width: 100%;
     }
 
