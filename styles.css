@@ -8982,13 +8982,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .dashboard-hero {
     position: relative;
-    display: grid;
-    /* Colonne unique (etait 55% 45%) : la carte "favori du jour" qui occupait la 2e colonne a ete
-       retiree (retour utilisateur 2026-09) - le resume texte prend maintenant toute la largeur. */
-    grid-template-columns: 1fr;
-    align-items: center;
-    column-gap: 2rem;
-    row-gap: 0.5rem;
+    /* Flex (etait grid 55%/45%) : meme pattern hero que Collection/Statistiques/Progression
+       (.stats-hero-content etc.) - texte a gauche, KPI en bloc compact a droite sur la meme ligne,
+       au lieu de repasser en dessous sur toute la largeur (retour utilisateur 2026-09, "comme sur
+       les autres pages"). */
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
     min-height: 340px;
     padding: 32px;
     border-radius: 26px;
@@ -9161,17 +9162,32 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 /* Navigation (desktop .dashboard-integrated-nav* + mobile .mobile-bottom-nav*) :
    voir components/navigation/navigation.css */
 
+/* En dessous de 1199px, texte + KPI n'ont plus la place cote a cote (meme seuil de principe que
+   .stats-hero-content/.progression-atlas-hero-content sur les autres pages, ~900px) : on repasse
+   en colonne, KPI en dessous plutot que compresses a droite. */
 @media (max-width: 1199px) and (min-width: 769px) {
     .dashboard-hero {
+        flex-direction: column;
+        align-items: stretch;
         min-height: 340px;
         padding: 32px;
+    }
+
+    .dashboard-hero .dashboard-kpis {
+        width: 100%;
     }
 }
 
 @media (max-width: 768px) and (min-width: 641px) {
     .dashboard-hero {
+        flex-direction: column;
+        align-items: stretch;
         min-height: 340px;
         padding: 32px;
+    }
+
+    .dashboard-hero .dashboard-kpis {
+        width: 100%;
     }
 }
 
@@ -9179,15 +9195,17 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* Déplacés dans le Hero (comme les autres pages) : rangée en pied de Hero, plus un bloc séparé
    sous la photo. Réutilise .kpi-plaque (PT-001, verre fumé) au lieu de l'ancien .dashboard-kpi-card. */
+/* Bloc compact a droite (2x2), pas une rangee des 4 pleine largeur en dessous : meme principe que
+   .stats-bottom/.progression-atlas-hero-content sur les autres pages (texte a gauche, KPI a droite,
+   memes ligne), adapte a 4 KPI au lieu de 3 - une rangee de 4 aurait ecrase le gros chiffre du hero. */
 .dashboard-hero .dashboard-kpis {
-    grid-column: 1 / -1;
-    align-self: end;
     position: relative;
     z-index: 1;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
     gap: 0.75rem;
-    margin-top: 0;
+    width: 340px;
+    flex-shrink: 0;
 }
 
 .dashboard-hero .kpi-plaque {
@@ -9708,7 +9726,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 @media (max-width: 640px) {
     .dashboard-hero {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
         min-height: 0;
         padding: 24px;
         border-radius: 20px;
@@ -9721,12 +9740,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     }
 
     .dashboard-hero .dashboard-kpis {
-        flex-direction: column;
-    }
-
-    .dashboard-hero .kpi-plaque {
-        flex: 1 1 100%;
-        min-width: 100%;
+        width: 100%;
     }
 
     .dashboard-hero-pokeball {
