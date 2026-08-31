@@ -9587,10 +9587,28 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* Anneau de progression (progressRingSvg, utils.js) reutilise ici sans le wrapper 60px de
    .progression-set-logo-wrap (Progression) : dimensionne par ses propres attributs width/height,
-   seule la rotation -90deg (depart a midi) doit etre rappelee explicitement hors de ce contexte. */
-.dashboard-objective-row .progress-ring {
+   seule la rotation -90deg (depart a midi) doit etre rappelee explicitement hors de ce contexte.
+   Le wrapper superpose le % au centre (retour utilisateur 2026-09), lu directement dans l'anneau
+   plutot que dans la ligne de texte en dessous (qui ne repete donc plus ce chiffre). */
+.dashboard-objective-ring-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dashboard-objective-ring-wrap .progress-ring {
     transform: rotate(-90deg);
+}
+
+.dashboard-objective-ring-pct {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    color: #F7F3EA;
 }
 
 .dashboard-objective-row-text {

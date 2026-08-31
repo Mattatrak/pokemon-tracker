@@ -480,13 +480,16 @@ function renderDashboardObjective() {
 
     el.innerHTML = `
         <div class="dashboard-objective-row">
-            ${progressRingSvg(pctDisplay)}
+            <div class="dashboard-objective-ring-wrap">
+                ${progressRingSvg(pctDisplay)}
+                <span class="dashboard-objective-ring-pct">${pctDisplay}%</span>
+            </div>
             <div class="dashboard-objective-row-text">
                 ${best.logoUrl ? `<img src="${best.logoUrl}" alt="" class="dashboard-objective-logo" onerror="this.remove()">` : ''}
                 <div class="dashboard-objective-name">${escapeHtml(best.setName)}</div>
             </div>
         </div>
-        <div class="dashboard-objective-count">${best.owned} / ${best.total} cartes · ${pctDisplay}%</div>
+        <div class="dashboard-objective-count">${best.owned} / ${best.total} cartes</div>
         <div class="dashboard-objective-extra" id="dashboard-objective-budget"></div>
         ${lowPriceLine}
         <button class="dashboard-btn-primary dashboard-btn-full" onclick="dashboardGoToProgressionSet('${best.setId}', '${safeName}', '${best.logoUrl}')">Continuer la série</button>
