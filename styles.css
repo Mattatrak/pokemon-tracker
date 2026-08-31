@@ -4476,6 +4476,7 @@ tbody tr:hover {
 }
 
 .progression-set-logo-wrap {
+    position: relative;
     width: 60px;
     height: 60px;
     margin-bottom: 0.65rem;
@@ -4486,6 +4487,43 @@ tbody tr:hover {
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+}
+
+/* Anneau de progression (progressRingSvg, modules/utils.js) : superposé pile sur le cercle de logo
+   (même 60px, reste dans les limites de l'overflow:hidden du wrap), tourné -90deg pour demarrer le
+   trace a midi comme une jauge classique. */
+.progression-set-logo-wrap .progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+}
+
+.progress-ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.08);
+    stroke-width: 4;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: var(--ring-circumference);
+    stroke-dashoffset: var(--ring-circumference);
+    animation: progress-ring-draw var(--motion-duration-normal) var(--motion-ease-enter) 80ms both;
+}
+
+.progress-ring-fill.is-complete {
+    stroke: #7ED9A7;
+}
+
+@keyframes progress-ring-draw {
+    from { stroke-dashoffset: var(--ring-circumference); }
+    to { stroke-dashoffset: var(--ring-offset); }
 }
 
 .progression-set-logo {

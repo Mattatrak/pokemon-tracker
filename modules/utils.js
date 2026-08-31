@@ -32,6 +32,24 @@ function debounce(fn, delayMs) {
     };
 }
 
+// Anneau de progression SVG (stroke-dashoffset animé au montage, cf .progress-ring dans styles.css) -
+// r=27/viewBox 60 dimensionné pour se superposer exactement à un cercle de logo de 60px
+// (.progression-set-logo-wrap, qui garde son overflow:hidden pour clipper l'image - l'anneau reste
+// donc à l'intérieur du cercle plutôt que de déborder, pour ne pas être coupé par ce même overflow).
+function progressRingSvg(pct) {
+    const clamped = Math.max(0, Math.min(100, pct));
+    const r = 27;
+    const circumference = 2 * Math.PI * r;
+    const offset = circumference * (1 - clamped / 100);
+    const fillClass = clamped >= 100 ? 'progress-ring-fill is-complete' : 'progress-ring-fill';
+    return `
+        <svg class="progress-ring" viewBox="0 0 60 60" width="60" height="60" aria-hidden="true">
+            <circle class="progress-ring-track" cx="30" cy="30" r="${r}"></circle>
+            <circle class="${fillClass}" cx="30" cy="30" r="${r}" style="--ring-circumference:${circumference.toFixed(2)}px;--ring-offset:${offset.toFixed(2)}px"></circle>
+        </svg>
+    `;
+}
+
 function toLocalDateInputValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -513,6 +531,7 @@ window.preloadImages = preloadImages;
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
 window.handleSealLogoError = handleSealLogoError;
+window.progressRingSvg = progressRingSvg;
 window.escapeHtml = escapeHtml;
 window.showMessage = showMessage;
 window.MAX_UPLOAD_IMAGE_BYTES = MAX_UPLOAD_IMAGE_BYTES;

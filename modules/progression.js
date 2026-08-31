@@ -392,14 +392,13 @@ function renderProgressionSeriesList() {
             return `
                 <div class="progression-set-row ${rowStateClass}" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
                     <span class="progression-set-pct-badge ${badgeClass}">${pct}%</span>
-                    <div class="progression-set-logo-wrap">${logoHtml}</div>
+                    <div class="progression-set-logo-wrap">${logoHtml}${progressRingSvg(pct)}</div>
                     <div class="progression-set-info">
                         <div class="progression-set-name">${set.name}</div>
                         <div class="progression-set-count">
                             ${subtitleHtml}
                             ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
                         </div>
-                        <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pct}%"></div></div>
                     </div>
                 </div>
             `;
