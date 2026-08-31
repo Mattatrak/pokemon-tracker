@@ -267,10 +267,10 @@ function renderDashboardHero() {
         </div>
 
         <div class="dashboard-kpis" id="dashboard-kpis">
-            <div class="kpi-plaque" id="dashboard-kpi-cards"></div>
-            <div class="kpi-plaque" id="dashboard-kpi-series"></div>
-            <div class="kpi-plaque" id="dashboard-kpi-spent"></div>
-            <div class="kpi-plaque" id="dashboard-kpi-wishlist"></div>
+            <div class="kpi-plaque kpi-plaque--value" id="dashboard-kpi-cards" onclick="navigateToTab('tab-collection')"></div>
+            <div class="kpi-plaque kpi-plaque--value" id="dashboard-kpi-series" onclick="navigateToTab('tab-progression')"></div>
+            <div class="kpi-plaque kpi-plaque--value" id="dashboard-kpi-spent" onclick="navigateToTab('tab-stats')"></div>
+            <div class="kpi-plaque kpi-plaque--value" id="dashboard-kpi-wishlist" onclick="navigateToTab('tab-wishlist')"></div>
         </div>
     `;
 
@@ -675,7 +675,7 @@ function renderDashboardWishlist() {
         const trendHtml = item.tcgdex_id ? `<div class="dashboard-wishlist-trend" id="dashboard-wishlist-trend-${item.tcgdex_id}"></div>` : '';
 
         return `
-        <div class="dashboard-wishlist-row">
+        <div class="dashboard-wishlist-row" onclick="openWishlistItemDetail(${item.id}, event)">
             ${item.image
                 ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="dashboard-wishlist-img" onerror="this.style.display='none'">`
                 : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
