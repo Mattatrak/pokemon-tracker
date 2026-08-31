@@ -108,121 +108,6 @@ function dashboardGetLastMovers() {
     }
 }
 
-// Rotation du favori mis en avant sur le hero : change automatiquement chaque jour (index basé sur le
-// jour de l'année), sauf si l'utilisateur a cliqué sur "suivant" aujourd'hui, auquel cas ce choix
-// manuel reste affiché jusqu'à minuit (stocké dans localStorage avec la date du jour).
-const DASHBOARD_FEATURED_FAVORITE_KEY = 'dashboardFeaturedFavorite';
-
-function dashboardGetFeaturedFavoriteIndex(count) {
-    const today = new Date().toISOString().slice(0, 10);
-
-    try {
-        const stored = JSON.parse(localStorage.getItem(DASHBOARD_FEATURED_FAVORITE_KEY) || 'null');
-        if (stored && stored.date === today && Number.isInteger(stored.index)) {
-            return stored.index % count;
-        }
-    } catch (e) { /* stockage corrompu, on retombe sur la rotation par défaut */ }
-
-    const startOfYear = new Date(new Date().getFullYear(), 0, 0);
-    const dayOfYear = Math.floor((Date.now() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-    return dayOfYear % count;
-}
-
-function dashboardShowNextFavorite(count) {
-    const today = new Date().toISOString().slice(0, 10);
-    const nextIndex = (dashboardGetFeaturedFavoriteIndex(count) + 1) % count;
-    localStorage.setItem(DASHBOARD_FEATURED_FAVORITE_KEY, JSON.stringify({ date: today, index: nextIndex }));
-    renderDashboardHeroShowcase();
-}
-
-// Carte mise à l'honneur : un favori possédé (rotation quotidienne, cf. dashboardGetFeaturedFavoriteIndex),
-// sinon la plus chère de la collection, sinon la première, sinon état vide. Factorisé hors de
-// renderDashboardHero pour être appelable seul (renderDashboardHeroShowcase, cf. dashboardShowNextFavorite)
-// sans reconstruire tout le hero - qui blanchissait au passage le badge de variation 7j le temps du
-// re-fetch réseau (dashboardUpdateHeroVariation), un "flash" visible à chaque clic sur "carte suivante"
-// alors que seule la carte affichée change, jamais la valeur totale/variation.
-function getDashboardFeaturedCardHtml() {
-    let featured = null;
-    let favoriteCount = 0;
-    if (allCollectionCards.length > 0) {
-        const favoritedOwned = [];
-        const seenFavoriteIds = new Set();
-        allCollectionCards.forEach(c => {
-            if (c.tcgdex_id && isFavorite(c.tcgdex_id) && !seenFavoriteIds.has(c.tcgdex_id)) {
-                seenFavoriteIds.add(c.tcgdex_id);
-                favoritedOwned.push(c);
-            }
-        });
-
-        if (favoritedOwned.length > 0) {
-            favoriteCount = favoritedOwned.length;
-            featured = favoritedOwned[dashboardGetFeaturedFavoriteIndex(favoriteCount)];
-        } else {
-            const withValue = [...allCollectionCards].filter(c => Number(c.market_value || 0) > 0).sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
-            featured = withValue.length > 0 ? withValue[0] : allCollectionCards[0];
-        }
-    }
-
-    // Média (image / placeholder) et métadonnées de la carte mise à l'honneur, ou état vide de collection
-    let mediaHtml;
-    let metaHtml;
-
-    if (!featured) {
-        mediaHtml = `<div class="dashboard-hero-card-placeholder"><i class="ti ti-cards" aria-hidden="true"></i></div>`;
-        metaHtml = `<p class="dashboard-hero-empty-text">Ajoutez votre première carte pour la voir apparaître ici</p>`;
-    } else {
-        mediaHtml = featured.image
-            ? `<div class="dashboard-hero-card-img-wrap"><div class="dashboard-hero-card-img-clip"><img src="${featured.image}" alt="${escapeHtml(featured.name)}" class="dashboard-hero-card-img" onerror="this.closest('.dashboard-hero-card-img-wrap').style.display='none'"></div></div>`
-            : `<div class="dashboard-hero-card-placeholder"><i class="ti ti-cards" aria-hidden="true"></i></div>`;
-
-        const movers = dashboardGetLastMovers();
-        const mover = movers.find(m => m.name === featured.name && String(m.number) === String(featured.number));
-        const moverHtml = mover
-            ? `<div class="dashboard-hero-card-delta ${mover.delta > 0 ? 'dashboard-positive' : 'dashboard-negative'}"><i class="ti ${mover.delta > 0 ? 'ti-trending-up' : 'ti-trending-down'}" aria-hidden="true"></i> ${mover.delta > 0 ? '+' : ''}${formatPrice(mover.delta)} depuis le dernier rafraîchissement</div>`
-            : '';
-
-        const valueHtml = Number(featured.market_value || 0) > 0
-            ? `<div class="dashboard-hero-card-value">${formatPrice(featured.market_value)}</div>`
-            : `<div class="dashboard-hero-card-value dashboard-hero-card-value--empty">Valeur indisponible</div>`;
-
-        // Bouton "suivant" : uniquement utile s'il y a plusieurs favoris à faire tourner
-        const nextFavoriteHtml = favoriteCount > 1
-            ? `<button type="button" class="dashboard-hero-card-next" onclick="dashboardShowNextFavorite(${favoriteCount})" title="Voir un autre favori" aria-label="Voir un autre favori"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>`
-            : '';
-
-        metaHtml = `
-            <div class="dashboard-hero-card-label-row">
-                <div class="dashboard-hero-card-label">${favoriteCount > 0 ? 'Favori du jour' : 'Carte du jour'}</div>
-                ${nextFavoriteHtml}
-            </div>
-            <div class="dashboard-hero-card-name">${escapeHtml(featured.name)}</div>
-            ${featured.series ? `<div class="dashboard-hero-card-set">${escapeHtml(featured.series)}</div>` : ''}
-            ${valueHtml}
-            ${moverHtml}
-        `;
-    }
-
-    return { mediaHtml, metaHtml };
-}
-
-// Reconstruit uniquement .dashboard-hero-showcase (carte + méta) - jamais la valeur totale, la
-// variation 7j ou les KPI, qui ne dépendent pas de la carte mise à l'honneur.
-function renderDashboardHeroShowcase() {
-    const showcase = document.getElementById('dashboard-hero-showcase');
-    if (!showcase) return;
-    const { mediaHtml, metaHtml } = getDashboardFeaturedCardHtml();
-    showcase.innerHTML = `
-        <div class="dashboard-hero-card-stage">
-            <div class="dashboard-hero-card-media">
-                ${mediaHtml}
-            </div>
-        </div>
-        <div class="dashboard-hero-card-meta">
-            ${metaHtml}
-        </div>
-    `;
-}
-
 function renderDashboardHero() {
     const el = document.getElementById('dashboard-hero');
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
@@ -238,8 +123,6 @@ function renderDashboardHero() {
     // ajouts/suppressions de cartes)
     const variationHtml = '<div class="dashboard-hero-variation" id="dashboard-hero-variation"></div>';
 
-    const { mediaHtml, metaHtml } = getDashboardFeaturedCardHtml();
-
     el.innerHTML = `
         <div class="dashboard-hero-background" aria-hidden="true">
             <span class="dashboard-hero-nebula"></span>
@@ -253,17 +136,6 @@ function renderDashboardHero() {
             <div class="dashboard-hero-value">${formatPrice(totalValue)}</div>
             ${variationHtml}
             ${lastRefreshHtml}
-        </div>
-
-        <div class="dashboard-hero-showcase" id="dashboard-hero-showcase">
-            <div class="dashboard-hero-card-stage">
-                <div class="dashboard-hero-card-media">
-                    ${mediaHtml}
-                </div>
-            </div>
-            <div class="dashboard-hero-card-meta">
-                ${metaHtml}
-            </div>
         </div>
 
         <div class="dashboard-kpis" id="dashboard-kpis">
@@ -779,11 +651,6 @@ window.dashboardBuildSkeleton = dashboardBuildSkeleton;
 window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
 window.renderDashboardHeader = renderDashboardHeader;
 window.dashboardGetLastMovers = dashboardGetLastMovers;
-window.DASHBOARD_FEATURED_FAVORITE_KEY = DASHBOARD_FEATURED_FAVORITE_KEY;
-window.dashboardGetFeaturedFavoriteIndex = dashboardGetFeaturedFavoriteIndex;
-window.dashboardShowNextFavorite = dashboardShowNextFavorite;
-window.getDashboardFeaturedCardHtml = getDashboardFeaturedCardHtml;
-window.renderDashboardHeroShowcase = renderDashboardHeroShowcase;
 window.renderDashboardHero = renderDashboardHero;
 window.dashboardUpdateHeroVariation = dashboardUpdateHeroVariation;
 window.renderDashboardKpis = renderDashboardKpis;
