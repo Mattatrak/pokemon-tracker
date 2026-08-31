@@ -9193,24 +9193,16 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* ----- KPI ----- */
 
-/* Déplacés dans le Hero (comme les autres pages) : rangée en pied de Hero, plus un bloc séparé
-   sous la photo. Réutilise .kpi-plaque (PT-001, verre fumé) au lieu de l'ancien .dashboard-kpi-card. */
-/* Bloc compact a droite (2x2), pas une rangee des 4 pleine largeur en dessous : meme principe que
-   .stats-bottom/.progression-atlas-hero-content sur les autres pages (texte a gauche, KPI a droite,
-   memes ligne), adapte a 4 KPI au lieu de 3 - une rangee de 4 aurait ecrase le gros chiffre du hero. */
+/* Rangee unique a droite du hero (retour utilisateur 2026-09, "comme sur les autres pages") : meme
+   principe que .stats-bottom/.progression-atlas-hero-content (texte a gauche, KPI a droite sur la
+   meme ligne), une rangee de 4 plutot qu'un bloc 2x2. Reutilise .kpi-plaque (PT-001, verre fume). */
 .dashboard-hero .dashboard-kpis {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
     gap: 0.75rem;
-    width: 340px;
     flex-shrink: 0;
-}
-
-.dashboard-hero .kpi-plaque {
-    flex: 0 1 210px;
-    min-width: 160px;
 }
 
 /* ----- Grilles principale / basse ----- */
