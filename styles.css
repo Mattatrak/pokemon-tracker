@@ -9238,7 +9238,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-hero-card-img-clip {
     position: relative;
     width: fit-content;
-    border-radius: 26px;
+    /* Meme rayon que .dashboard-hero-card-img (14px) : un rayon plus large ici (26px avant) laissait
+       le voile ::after deborder dans les coins, au-dela du coin deja arrondi de l'image elle-meme
+       (retour utilisateur 2026-09, voile "plus grand que la carte"). */
+    border-radius: 14px;
     overflow: hidden;
 }
 
