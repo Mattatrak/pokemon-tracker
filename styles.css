@@ -1524,32 +1524,15 @@ body::before {
         rgba(26,26,30,0.55);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
+    /* Contour sobre (retour utilisateur 2026-09) : remplace l'ancien contour conic-gradient dore
+       (::before ci-dessous, retire) - jugee trop chargee sur un composant repete 4x par page. */
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
     padding: 16px 18px 18px;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5);
     transition:
         transform var(--motion-duration-fast) var(--motion-ease-standard),
         box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
-}
-
-.kpi-plaque::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
 }
 
 .kpi-plaque::after {
@@ -1558,9 +1541,8 @@ body::before {
     left: 18px;
     right: 18px;
     bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(232, 169, 59, 0.3);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14) 50%, transparent);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1593,6 +1575,12 @@ body::before {
     position: relative;
     z-index: 1;
 }
+
+/* Puces colorees (passe premium 2026-09), Dashboard uniquement - cf dashboardKpiHtml (dashboard.js).
+   Les autres pages partagent .kpi-plaque-icon sans ce scope et restent toutes dorees. */
+#dashboard-kpis .kpi-plaque-icon.c2 { border-color: rgba(167,155,220,0.35); background: rgba(167,155,220,0.1); color: var(--chip-series, #A79BDC); }
+#dashboard-kpis .kpi-plaque-icon.c3 { border-color: rgba(110,212,196,0.35); background: rgba(110,212,196,0.1); color: #6ED4C4; }
+#dashboard-kpis .kpi-plaque-icon.c4 { border-color: rgba(227,160,190,0.35); background: rgba(227,160,190,0.1); color: #E3A0BE; }
 
 .kpi-plaque-text {
     display: flex;
@@ -2700,6 +2688,8 @@ button:disabled {
     position: absolute;
     inset: 0;
     background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(232,169,59,0.35) 55%, transparent 70%);
+    background-size: 260% 100%;
+    background-position: 130% 0;
     mix-blend-mode: overlay;
     opacity: 0;
     /* Alignee sur --motion-duration-fast (comme .collection-card et .collection-card img juste en
@@ -2713,8 +2703,19 @@ button:disabled {
     border-radius: inherit;
 }
 
+/* Passe premium 2026-09 : le reflet ne se contente plus d'un fondu sur place, il balaie la carte de
+   droite a gauche au survol (background-position anime plutot qu'une bande fixe) - jamais en boucle
+   ambiante (une grille de plusieurs dizaines de cartes rendrait une animation permanente par carte
+   trop chargee et couteuse). Repart de 130% a chaque nouveau survol (pas de transition sur
+   background-position), seule l'opacite est encore transitionnee pour une apparition douce. */
 .collection-card:hover::after {
     opacity: 1;
+    animation: collection-card-sheen var(--motion-duration-normal) ease-out;
+}
+
+@keyframes collection-card-sheen {
+    from { background-position: 130% 0; }
+    to { background-position: -30% 0; }
 }
 
 .collection-card img {
@@ -2837,17 +2838,24 @@ button:disabled {
     color: var(--gold);
 }
 
+/* Fanion plutot que pastille (passe premium 2026-09) : encoche en V decoupee au clip-path, plus
+   distinctif qu'une pillule ronde identique a tous les autres badges de la carte. Touche le bord
+   superieur (top:0, pas 0.5rem) pour lire comme une etiquette accrochee au coin, pas un badge
+   flottant au milieu de rien. */
 .price-badge {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: var(--gold);
+    top: 0;
+    right: 0.7rem;
+    /* Degrade plus sature (etait #F3D9AC -> --gold, trop pale sur des arts de carte varies) : va
+       jusqu'a l'ambre #E8A93B deja utilise ailleurs pour les halos (kpi-plaque-icon, etc.), + un
+       halo dore en plus de l'ombre noire pour se detacher de n'importe quel fond de carte. */
+    background: linear-gradient(180deg, #F3D9AC 0%, #E8A93B 100%);
     color: #161B29;
     font-weight: 700;
     font-size: 0.7rem;
-    padding: 0.25rem 0.55rem;
-    border-radius: 20px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    padding: 0.3rem 0.55rem 0.55rem;
+    clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 14px rgba(232,169,59,0.4);
 }
 
 /* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
@@ -8975,19 +8983,16 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     50% { opacity: 1; }
 }
 
-@keyframes dashboard-hero-float {
-    0%, 100% { transform: rotate(-1.8deg) translateY(12px); }
-    50% { transform: rotate(-1.8deg) translateY(8px); }
-}
-
-
 .dashboard-hero {
     position: relative;
-    display: grid;
-    grid-template-columns: 55% 45%;
-    align-items: center;
-    column-gap: 2rem;
-    row-gap: 0.5rem;
+    /* Flex (etait grid 55%/45%) : meme pattern hero que Collection/Statistiques/Progression
+       (.stats-hero-content etc.) - texte a gauche, KPI en bloc compact a droite sur la meme ligne,
+       au lieu de repasser en dessous sur toute la largeur (retour utilisateur 2026-09, "comme sur
+       les autres pages"). */
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
     min-height: 340px;
     padding: 32px;
     border-radius: 26px;
@@ -9043,6 +9048,19 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         radial-gradient(160% 90% at 55% 100%, rgba(0,0,0,0.04), transparent 50%);
 }
 
+/* Passe premium (2026-09) : lueur doree + grain de points, en plus de la photo existante (pas a sa
+   place - cf decision utilisateur de garder dashboard.png). Le grain est masque vers le coin
+   superieur gauche (zone texte) pour ne jamais passer sur la carte showcase a droite. */
+.dashboard-hero-background::before {
+    background:
+        radial-gradient(115% 140% at 8% -10%, rgba(232,169,59,0.14), transparent 55%),
+        linear-gradient(90deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.09) 26%, rgba(0,0,0,0.04) 42%, transparent 62%),
+        radial-gradient(circle, rgba(232,169,59,0.35) 1px, transparent 1px);
+    background-size: auto, auto, 24px 24px;
+    -webkit-mask-image: radial-gradient(60% 70% at 20% 15%, black, transparent);
+    mask-image: radial-gradient(60% 70% at 20% 15%, black, transparent);
+}
+
 
 /* Poké Ball et étoiles retirées à cette étape (fond uniquement, cf. Sprint Hero - Etape 1) */
 .dashboard-hero-pokeball {
@@ -9061,6 +9079,9 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* Centre verticalement dans le hero (retour utilisateur 2026-09), independamment des KPI a
+       droite qui restent alignes en bas (align-items:flex-end sur .dashboard-hero, cf plus haut). */
+    align-self: center;
     max-width: 520px;
 }
 
@@ -9147,252 +9168,50 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 /* Navigation (desktop .dashboard-integrated-nav* + mobile .mobile-bottom-nav*) :
    voir components/navigation/navigation.css */
 
-/* ----- Zone droite : scène / showcase ----- */
-
-.dashboard-hero-showcase {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    height: 100%;
-}
-
-.dashboard-hero-card-stage {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: fit-content;
-    height: 100%;
-    min-height: 165px;
-    transform: translateY(12px);
-}
-
-
-/* Décharge électrique multicouche (SVG externe) : glow violet + jaune électrique + cœur blanc, aucune modif du path source */
-
-.dashboard-hero-card-media {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.dashboard-hero-card-img-wrap {
-    position: relative;
-    animation: dashboard-hero-float 6s ease-in-out infinite;
-    transform: rotate(-1.8deg) translateY(12px);
-    filter: drop-shadow(0 28px 45px rgba(0,0,0,0.42)) drop-shadow(0 8px 16px rgba(0,0,0,0.28)) drop-shadow(0 0 24px rgba(255,255,255,0.10));
-}
-
-.dashboard-hero-card-stage:hover .dashboard-hero-card-img-wrap,
-.dashboard-hero-card-img-wrap:hover {
-    animation: none !important;
-    transform: rotate(-1.8deg) translateY(12px) !important;
-    transition: none !important;
-    filter: drop-shadow(0 32px 56px rgba(0,0,0,0.50)) drop-shadow(0 12px 22px rgba(0,0,0,0.35)) drop-shadow(0 0 32px rgba(255,255,255,0.12)) !important;
-}
-
-.dashboard-hero-card-img-clip {
-    position: relative;
-    width: fit-content;
-    border-radius: 26px;
-    overflow: hidden;
-}
-
-.dashboard-hero-card-img {
-    display: block;
-    width: clamp(145px, 12vw, 175px);
-    max-height: 215px;
-    object-fit: contain;
-    border-radius: 14px;
-}
-
-/* Reflet holographique : quasi invisible au repos (hors champ), révélé au survol */
-.dashboard-hero-card-img-clip::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.28) 40%, transparent 55%);
-    transform: translateX(-120%);
-    transition: transform 0.7s ease;
-    pointer-events: none;
-}
-
-
-/* Etat "image absente" : silhouette de carte premium générique, halo/scène conservés */
-.dashboard-hero-card-placeholder {
-    position: relative;
-    z-index: 1;
-    width: clamp(190px, 16vw, 230px);
-    aspect-ratio: 5 / 7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    color: #B7C0D6;
-    font-size: 2.2rem;
-    transform: rotate(-1.8deg);
-}
-
-.dashboard-hero-card-meta {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    gap: 0.35rem;
-    max-width: 220px;
-    margin-left: 1.5rem;
-    transform: translateY(30px);
-    padding: 18px 20px;
-}
-
-.dashboard-hero-card-meta::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(12,18,28,0.66), rgba(12,18,28,0.38));
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    box-shadow: 0 16px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-    z-index: -1;
-}
-
-.dashboard-hero-card-label-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-label {
-    color: rgba(255,255,255,0.72);
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30);
-}
-
-.dashboard-hero-card-next {
-    appearance: none;
-    -webkit-appearance: none;
-    background: rgba(255,255,255,0.12);
-    border: none;
-    outline: none;
-    color: white;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-}
-
-.dashboard-hero-card-next:hover,
-.dashboard-hero-card-next:disabled {
-    background: rgba(255,255,255,0.22);
-}
-
-.dashboard-hero-card-name {
-    color: white;
-    font-weight: 700;
-    font-size: 1.4rem;
-    margin-top: 0.2rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30);
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-set {
-    color: rgba(255,255,255,0.75);
-    font-size: 0.85rem;
-    margin-top: 0.1rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30);
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-value {
-    color: var(--gold);
-    font-weight: 700;
-    font-size: 1.35rem;
-    margin-top: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30), 0 0 20px rgba(232,169,59,0.25);
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-value--empty {
-    color: #B7C0D6;
-    font-weight: 500;
-    font-size: 0.9rem;
-    text-shadow: none;
-}
-
-.dashboard-hero-card-delta {
-    font-size: 0.78rem;
-    font-weight: 600;
-    margin-top: 0.3rem;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.3rem;
-}
-
-.dashboard-hero-empty-text {
-    color: #B7C0D6;
-    font-size: 0.9rem;
-    max-width: 240px;
-    text-align: center;
-}
-
+/* En dessous de 1199px, texte + KPI n'ont plus la place cote a cote (meme seuil de principe que
+   .stats-hero-content/.progression-atlas-hero-content sur les autres pages, ~900px) : on repasse
+   en colonne, KPI en dessous plutot que compresses a droite. */
 @media (max-width: 1199px) and (min-width: 769px) {
     .dashboard-hero {
+        flex-direction: column;
+        align-items: stretch;
         min-height: 340px;
-        grid-template-columns: 52% 48%;
         padding: 32px;
+    }
+
+    .dashboard-hero .dashboard-kpis {
+        width: 100%;
     }
 }
 
 @media (max-width: 768px) and (min-width: 641px) {
     .dashboard-hero {
+        flex-direction: column;
+        align-items: stretch;
         min-height: 340px;
         padding: 32px;
+    }
+
+    /* Colonne unique (etait toujours 4 colonnes ici, juste etirees en largeur) : les autres pages
+       restent en 1 colonne empilee sous ~900px, une rangee de 4 a cette largeur les ecrasait. */
+    .dashboard-hero .dashboard-kpis {
+        grid-template-columns: 1fr;
+        width: 100%;
     }
 }
 
 /* ----- KPI ----- */
 
-/* Déplacés dans le Hero (comme les autres pages) : rangée en pied de Hero, plus un bloc séparé
-   sous la photo. Réutilise .kpi-plaque (PT-001, verre fumé) au lieu de l'ancien .dashboard-kpi-card. */
+/* Rangee unique a droite du hero (retour utilisateur 2026-09, "comme sur les autres pages") : meme
+   principe que .stats-bottom/.progression-atlas-hero-content (texte a gauche, KPI a droite sur la
+   meme ligne), une rangee de 4 plutot qu'un bloc 2x2. Reutilise .kpi-plaque (PT-001, verre fume). */
 .dashboard-hero .dashboard-kpis {
-    grid-column: 1 / -1;
-    align-self: end;
     position: relative;
     z-index: 1;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
     gap: 0.75rem;
-    margin-top: 0;
-}
-
-.dashboard-hero .kpi-plaque {
-    flex: 0 1 210px;
-    min-width: 160px;
+    flex-shrink: 0;
 }
 
 /* ----- Grilles principale / basse ----- */
@@ -9549,8 +9368,41 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-objective-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.85rem;
     margin-bottom: 0.6rem;
+}
+
+/* Anneau de progression (progressRingSvg, utils.js) reutilise ici sans le wrapper 60px de
+   .progression-set-logo-wrap (Progression) : dimensionne par ses propres attributs width/height,
+   seule la rotation -90deg (depart a midi) doit etre rappelee explicitement hors de ce contexte.
+   Le wrapper superpose le % au centre (retour utilisateur 2026-09), lu directement dans l'anneau
+   plutot que dans la ligne de texte en dessous (qui ne repete donc plus ce chiffre). */
+.dashboard-objective-ring-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dashboard-objective-ring-wrap .progress-ring {
+    transform: rotate(-90deg);
+}
+
+.dashboard-objective-ring-pct {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    color: #F7F3EA;
+}
+
+.dashboard-objective-row-text {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
 }
 
 .dashboard-objective-logo {
@@ -9875,7 +9727,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 @media (max-width: 640px) {
     .dashboard-hero {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
         min-height: 0;
         padding: 24px;
         border-radius: 20px;
@@ -9887,28 +9740,11 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         max-width: 100%;
     }
 
-    /* Carte "Favori du jour" retiree sur mobile (demande utilisateur, 2026-08-18) : trop de place prise
-       avant meme d'atteindre les KPIs sur un petit ecran, contrairement au desktop ou l'espace lateral
-       est disponible. Reste inchangee sur desktop (regle de base plus haut, hors media query). */
-    .dashboard-hero-showcase {
-        display: none;
-    }
-
+    /* Colonne unique (etait toujours 4 colonnes) : memes seuils que les autres pages, qui restent
+       empilees sous ~900px plutot qu'ecrasees en rangee. */
     .dashboard-hero .dashboard-kpis {
-        flex-direction: column;
-    }
-
-    .dashboard-hero .kpi-plaque {
-        flex: 1 1 100%;
-        min-width: 100%;
-    }
-
-    .dashboard-hero-card-img {
-        width: clamp(180px, 45vw, 200px);
-    }
-
-    .dashboard-hero-card-placeholder {
-        width: clamp(180px, 45vw, 200px);
+        grid-template-columns: 1fr;
+        width: 100%;
     }
 
     .dashboard-hero-pokeball {
@@ -9966,14 +9802,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .dashboard-hero,
     .dashboard-widget,
     .dashboard-widget-empty-compact i,
-    .dashboard-hero-card-img-wrap,
     .progression-atlas-hero {
         animation: none;
-    }
-
-    .dashboard-hero-card-img-clip::after {
-        transition: none;
-        display: none;
     }
 
     .dashboard-widget:hover,
@@ -9982,7 +9812,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .dashboard-todo-row:hover .dashboard-todo-icon,
     .dashboard-acquisition-card:hover,
     .dashboard-acquisition-card:hover img,
-    .dashboard-hero-card-stage:hover .dashboard-hero-card-img-wrap,
     .dashboard-btn-primary:hover,
     .dashboard-btn-secondary:hover,
     .dashboard-add-btn:hover,
