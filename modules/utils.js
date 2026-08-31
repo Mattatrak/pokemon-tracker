@@ -49,6 +49,18 @@ function handleTcgdexImgError(img, fallback) {
     else img.style.display = 'none';
 }
 
+// Handler onerror pour les sceaux de série (.modal-series-seal) : certains sets récents n'ont pas
+// encore leur logo généré en .webp sur le CDN TCGdex (ex. me05 "Nuit Noire") alors que le .png existe -
+// on retente une fois en .png avant d'abandonner.
+function handleSealLogoError(img) {
+    if (!img.dataset.formatRetried && img.src.endsWith('.webp')) {
+        img.dataset.formatRetried = '1';
+        img.src = img.src.replace(/\.webp$/, '.png');
+        return;
+    }
+    img.remove();
+}
+
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -500,6 +512,7 @@ window.formatPrice = formatPrice;
 window.preloadImages = preloadImages;
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
+window.handleSealLogoError = handleSealLogoError;
 window.escapeHtml = escapeHtml;
 window.showMessage = showMessage;
 window.MAX_UPLOAD_IMAGE_BYTES = MAX_UPLOAD_IMAGE_BYTES;

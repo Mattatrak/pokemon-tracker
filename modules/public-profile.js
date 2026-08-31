@@ -687,7 +687,7 @@ function renderPublicCardDetail(cardId) {
                             ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
                             : getGridNoImageHtml()
                         }
-                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="this.remove()">` : ''}
+                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
                     </div>
                 </div>
             </div>
@@ -893,7 +893,7 @@ function showPublicWishlistItemDetail(itemId) {
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
                             : getGridNoImageHtml()
                         }
-                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="this.remove()">` : ''}
+                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
                     </div>
                 </div>
             </div>

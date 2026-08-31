@@ -308,7 +308,7 @@ function buildWishlistDetailHtml(item) {
 
     const seriesLogoUrl = item.series_logo || getSeriesLogoUrl(item.tcgdex_id);
     const seriesSealHtml = seriesLogoUrl
-        ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="this.remove()">`
+        ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">`
         : '';
 
     const listHtml = list

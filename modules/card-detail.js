@@ -71,7 +71,7 @@ function renderCardDetail(cardId) {
                             ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
                             : getModalUploadPlaceholder(card.id)
                         }
-                        ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="this.remove()">` : ''}
+                        ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
                     </div>
                 </div>
                 ${card.tcgdex_id ? `

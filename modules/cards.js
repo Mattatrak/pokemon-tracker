@@ -267,7 +267,7 @@ function renderSearchResults(cards) {
                         <div class="search-result-set">${setName} - #${cardNumber}</div>
                         ${price > 0 ? `<div class="search-result-price">${formatPrice(price)}</div>` : ''}
                     </div>
-                    ${logoUrl ? `<img src="${logoUrl}" class="search-result-series-logo" alt="" onerror="this.remove()">` : ''}
+                    ${logoUrl ? `<img src="${logoUrl}" class="search-result-series-logo" alt="" onerror="handleSealLogoError(this)">` : ''}
                 </div>
             </div>
         `;
@@ -345,7 +345,7 @@ function applyCardToPreview(card) {
     // 2026-08-18 : "on a oublié d'appliquer le logo sur le modal d'ajout de carte").
     const previewSealLogoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
     const previewSealHtml = previewSealLogoUrl
-        ? `<img src="${previewSealLogoUrl}" class="modal-series-seal preview-image-seal" alt="" onerror="this.remove()">`
+        ? `<img src="${previewSealLogoUrl}" class="modal-series-seal preview-image-seal" alt="" onerror="handleSealLogoError(this)">`
         : '';
 
     document.getElementById('card-finish').innerHTML = buildFinishOptionsHtml(card, 'normal');
@@ -648,7 +648,7 @@ async function handlePreviewImageUpload(event) {
 
         const previewSealLogoUrl = selectedCard?.set?.logo ? `${selectedCard.set.logo}.webp` : '';
         const previewSealHtml = previewSealLogoUrl
-            ? `<img src="${previewSealLogoUrl}" class="modal-series-seal preview-image-seal" alt="" onerror="this.remove()">`
+            ? `<img src="${previewSealLogoUrl}" class="modal-series-seal preview-image-seal" alt="" onerror="handleSealLogoError(this)">`
             : '';
 
         previewImageContainer.innerHTML = `
