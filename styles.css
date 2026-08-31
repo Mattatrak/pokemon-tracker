@@ -2846,13 +2846,16 @@ button:disabled {
     position: absolute;
     top: 0;
     right: 0.7rem;
-    background: linear-gradient(180deg, #F3D9AC, var(--gold));
+    /* Degrade plus sature (etait #F3D9AC -> --gold, trop pale sur des arts de carte varies) : va
+       jusqu'a l'ambre #E8A93B deja utilise ailleurs pour les halos (kpi-plaque-icon, etc.), + un
+       halo dore en plus de l'ombre noire pour se detacher de n'importe quel fond de carte. */
+    background: linear-gradient(180deg, #F3D9AC 0%, #E8A93B 100%);
     color: #161B29;
     font-weight: 700;
     font-size: 0.7rem;
     padding: 0.3rem 0.55rem 0.55rem;
     clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 14px rgba(232,169,59,0.4);
 }
 
 /* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
