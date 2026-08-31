@@ -319,15 +319,19 @@ function renderDashboardKpis() {
         .reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
     const spentSub = spentThisMonth > 0 ? `+${formatPrice(spentThisMonth)} ce mois` : '';
 
-    document.getElementById('dashboard-kpi-cards').innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection', '', cardsSub);
-    document.getElementById('dashboard-kpi-series').innerHTML = dashboardKpiHtml('ti-stack-2', seriesCount, 'séries différentes');
-    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', formatPrice(totalSpent), 'investis', '', spentSub);
-    document.getElementById('dashboard-kpi-wishlist').innerHTML = dashboardKpiHtml('ti-star', wishlistCount, 'cartes en wishlist');
+    document.getElementById('dashboard-kpi-cards').innerHTML = dashboardKpiHtml('ti-cards', totalCards, 'cartes dans ma collection', '', cardsSub, 'c1');
+    document.getElementById('dashboard-kpi-series').innerHTML = dashboardKpiHtml('ti-stack-2', seriesCount, 'séries différentes', '', '', 'c2');
+    document.getElementById('dashboard-kpi-spent').innerHTML = dashboardKpiHtml('ti-wallet', formatPrice(totalSpent), 'investis', '', spentSub, 'c3');
+    document.getElementById('dashboard-kpi-wishlist').innerHTML = dashboardKpiHtml('ti-star', wishlistCount, 'cartes en wishlist', '', '', 'c4');
 }
 
-function dashboardKpiHtml(icon, value, label, extraClass = '', sub = '') {
+// chipClass (passe premium 2026-09) : une teinte de puce par KPI (dashboard uniquement), pour
+// distinguer les 4 KPI au coin de l'oeil sans avoir a lire le libelle - cf .kpi-plaque-icon.c2/c3/c4
+// dans styles.css, scope a #dashboard-kpis pour ne pas affecter les .kpi-plaque partagees ailleurs
+// (Collection/Stats/Progression restent toutes dorees).
+function dashboardKpiHtml(icon, value, label, extraClass = '', sub = '', chipClass = '') {
     return `
-        <span class="kpi-plaque-icon"><i class="ti ${icon}" aria-hidden="true"></i></span>
+        <span class="kpi-plaque-icon ${chipClass}"><i class="ti ${icon}" aria-hidden="true"></i></span>
         <div class="kpi-plaque-text">
             <div class="kpi-plaque-label">${label}</div>
             <div class="kpi-plaque-value ${extraClass}">${value}</div>
@@ -476,10 +480,12 @@ function renderDashboardObjective() {
 
     el.innerHTML = `
         <div class="dashboard-objective-row">
-            ${best.logoUrl ? `<img src="${best.logoUrl}" alt="" class="dashboard-objective-logo" onerror="this.remove()">` : ''}
-            <div class="dashboard-objective-name">${escapeHtml(best.setName)}</div>
+            ${progressRingSvg(pctDisplay)}
+            <div class="dashboard-objective-row-text">
+                ${best.logoUrl ? `<img src="${best.logoUrl}" alt="" class="dashboard-objective-logo" onerror="this.remove()">` : ''}
+                <div class="dashboard-objective-name">${escapeHtml(best.setName)}</div>
+            </div>
         </div>
-        <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pctDisplay}%"></div></div>
         <div class="dashboard-objective-count">${best.owned} / ${best.total} cartes · ${pctDisplay}%</div>
         <div class="dashboard-objective-extra" id="dashboard-objective-budget"></div>
         ${lowPriceLine}

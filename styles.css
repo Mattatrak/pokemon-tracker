@@ -1594,6 +1594,12 @@ body::before {
     z-index: 1;
 }
 
+/* Puces colorees (passe premium 2026-09), Dashboard uniquement - cf dashboardKpiHtml (dashboard.js).
+   Les autres pages partagent .kpi-plaque-icon sans ce scope et restent toutes dorees. */
+#dashboard-kpis .kpi-plaque-icon.c2 { border-color: rgba(167,155,220,0.35); background: rgba(167,155,220,0.1); color: var(--chip-series, #A79BDC); }
+#dashboard-kpis .kpi-plaque-icon.c3 { border-color: rgba(110,212,196,0.35); background: rgba(110,212,196,0.1); color: #6ED4C4; }
+#dashboard-kpis .kpi-plaque-icon.c4 { border-color: rgba(227,160,190,0.35); background: rgba(227,160,190,0.1); color: #E3A0BE; }
+
 .kpi-plaque-text {
     display: flex;
     flex-direction: column;
@@ -2700,6 +2706,8 @@ button:disabled {
     position: absolute;
     inset: 0;
     background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(232,169,59,0.35) 55%, transparent 70%);
+    background-size: 260% 100%;
+    background-position: 130% 0;
     mix-blend-mode: overlay;
     opacity: 0;
     /* Alignee sur --motion-duration-fast (comme .collection-card et .collection-card img juste en
@@ -2713,8 +2721,20 @@ button:disabled {
     border-radius: inherit;
 }
 
+/* Passe premium 2026-09 : le reflet ne se contente plus d'un fondu sur place, il balaie la carte de
+   droite a gauche au survol (background-position anime plutot qu'une bande fixe) - jamais en boucle
+   ambiante ici (contrairement a .dashboard-hero-card-img-clip::after, une seule carte) : sur une
+   grille de plusieurs dizaines de cartes, une animation permanente par carte serait trop chargee et
+   couteuse. Repart de 130% a chaque nouveau survol (pas de transition sur background-position),
+   seule l'opacite est encore transitionnee pour une apparition douce. */
 .collection-card:hover::after {
     opacity: 1;
+    animation: collection-card-sheen var(--motion-duration-normal) ease-out;
+}
+
+@keyframes collection-card-sheen {
+    from { background-position: 130% 0; }
+    to { background-position: -30% 0; }
 }
 
 .collection-card img {
@@ -2837,17 +2857,21 @@ button:disabled {
     color: var(--gold);
 }
 
+/* Fanion plutot que pastille (passe premium 2026-09) : encoche en V decoupee au clip-path, plus
+   distinctif qu'une pillule ronde identique a tous les autres badges de la carte. Touche le bord
+   superieur (top:0, pas 0.5rem) pour lire comme une etiquette accrochee au coin, pas un badge
+   flottant au milieu de rien. */
 .price-badge {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: var(--gold);
+    top: 0;
+    right: 0.7rem;
+    background: linear-gradient(180deg, #F3D9AC, var(--gold));
     color: #161B29;
     font-weight: 700;
     font-size: 0.7rem;
-    padding: 0.25rem 0.55rem;
-    border-radius: 20px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    padding: 0.3rem 0.55rem 0.55rem;
+    clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 /* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
@@ -9043,6 +9067,19 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         radial-gradient(160% 90% at 55% 100%, rgba(0,0,0,0.04), transparent 50%);
 }
 
+/* Passe premium (2026-09) : lueur doree + grain de points, en plus de la photo existante (pas a sa
+   place - cf decision utilisateur de garder dashboard.png). Le grain est masque vers le coin
+   superieur gauche (zone texte) pour ne jamais passer sur la carte showcase a droite. */
+.dashboard-hero-background::before {
+    background:
+        radial-gradient(115% 140% at 8% -10%, rgba(232,169,59,0.14), transparent 55%),
+        linear-gradient(90deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.09) 26%, rgba(0,0,0,0.04) 42%, transparent 62%),
+        radial-gradient(circle, rgba(232,169,59,0.35) 1px, transparent 1px);
+    background-size: auto, auto, 24px 24px;
+    -webkit-mask-image: radial-gradient(60% 70% at 20% 15%, black, transparent);
+    mask-image: radial-gradient(60% 70% at 20% 15%, black, transparent);
+}
+
 
 /* Poké Ball et étoiles retirées à cette étape (fond uniquement, cf. Sprint Hero - Etape 1) */
 .dashboard-hero-pokeball {
@@ -9213,15 +9250,25 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: 14px;
 }
 
-/* Reflet holographique : quasi invisible au repos (hors champ), révélé au survol */
+/* Reflet holographique en boucle lente (passe premium 2026-09) : la version precedente
+   (transform: translateX(-120%), revele au survol) n'avait jamais eu son trigger :hover ecrit -
+   le reflet restait donc hors champ en permanence. Remplace par un balayage anime en continu,
+   adapte a une seule carte mise en avant (contrairement a la grille Collection, ou une animation
+   ambiante sur chaque carte serait trop chargee - cf .collection-card::after, reste hover-only). */
 .dashboard-hero-card-img-clip::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.28) 40%, transparent 55%);
-    transform: translateX(-120%);
-    transition: transform 0.7s ease;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.26) 50%, rgba(255,255,255,0.16) 55%, transparent 70%);
+    background-size: 260% 100%;
+    animation: dashboard-hero-card-sheen 6s ease-in-out infinite;
     pointer-events: none;
+}
+
+@keyframes dashboard-hero-card-sheen {
+    0% { background-position: 130% 0; }
+    50% { background-position: -30% 0; }
+    100% { background-position: -30% 0; }
 }
 
 
@@ -9549,8 +9596,23 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-objective-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.85rem;
     margin-bottom: 0.6rem;
+}
+
+/* Anneau de progression (progressRingSvg, utils.js) reutilise ici sans le wrapper 60px de
+   .progression-set-logo-wrap (Progression) : dimensionne par ses propres attributs width/height,
+   seule la rotation -90deg (depart a midi) doit etre rappelee explicitement hors de ce contexte. */
+.dashboard-objective-row .progress-ring {
+    flex-shrink: 0;
+    transform: rotate(-90deg);
+}
+
+.dashboard-objective-row-text {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
 }
 
 .dashboard-objective-logo {
