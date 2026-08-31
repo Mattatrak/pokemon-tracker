@@ -9076,6 +9076,9 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* Centre verticalement dans le hero (retour utilisateur 2026-09), independamment des KPI a
+       droite qui restent alignes en bas (align-items:flex-end sur .dashboard-hero, cf plus haut). */
+    align-self: center;
     max-width: 520px;
 }
 
