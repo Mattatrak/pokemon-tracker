@@ -25,50 +25,170 @@ async function renderDashboard() {
 
     dashboardRenderSafe('dashboard-hero', renderDashboardHero);
     dashboardRenderSafe('dashboard-kpis', renderDashboardKpis);
-    dashboardRenderSafe('dashboard-activity-body', renderDashboardActivity);
-    dashboardRenderSafe('dashboard-objective-body', renderDashboardObjective);
     dashboardRenderSafe('dashboard-movers-body', renderDashboardTopMovers);
-    dashboardRenderSafe('dashboard-acquisitions-body', renderDashboardAcquisitions);
-    dashboardRenderSafe('dashboard-todo-body', renderDashboardTodo);
-    dashboardRenderSafe('dashboard-wishlist-body', renderDashboardWishlist);
-    dashboardRenderSafe('dashboard-collectors-body', renderDashboardCollectorsSearch);
+
+    // Chaque section reordonnable/masquable rend seulement si dashboardBuildSkeleton lui a construit
+    // un conteneur (cf. filtre "hidden" ci-dessus) - sinon document.getElementById(bodyId) est null.
+    const widgetRenderers = {
+        activity: renderDashboardActivity,
+        objective: renderDashboardObjective,
+        acquisitions: renderDashboardAcquisitions,
+        todo: renderDashboardTodo,
+        wishlist: renderDashboardWishlist,
+        collectors: renderDashboardCollectorsSearch
+    };
+    Object.entries(widgetRenderers).forEach(([key, renderFn]) => {
+        if (document.getElementById(DASHBOARD_WIDGET_DEFS[key].bodyId)) {
+            dashboardRenderSafe(DASHBOARD_WIDGET_DEFS[key].bodyId, renderFn);
+        }
+    });
 
     dashboardNeedsRefresh = false;
 }
 
+// Sections reordonnables (passe "personnalisation" 2026-09) : "Top hausses" en est volontairement
+// exclue (widget pleine largeur, affiche seulement si des mouvements de prix existent, cf.
+// renderDashboardTopMovers) - jamais pertinent de le repositionner au milieu des autres.
+// size 'large' (retour utilisateur 2026-09) : occupe 2 lignes de la grille au lieu d'une - reserve
+// aux 2 sections dont le contenu est structurellement le plus long (jusqu'a 6 lignes/cartes), pour
+// que .dashboard-main-grid { grid-auto-flow: dense } puisse faire remonter 2 sections "small"
+// suivantes a cote plutot que laisser un vide sous des sections courtes (cf. .dashboard-widget-size-
+// large dans styles.css). Pas configurable par l'utilisateur : une propriete du type de section, pas
+// de son contenu du moment.
+const DASHBOARD_WIDGET_DEFS = {
+    activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body', size: 'large' },
+    objective: { title: 'Objectif actuel', extraClass: 'dashboard-widget-objective', bodyId: 'dashboard-objective-body' },
+    wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' }, size: 'large' },
+    acquisitions: { title: 'Dernières acquisitions', extraClass: '', bodyId: 'dashboard-acquisitions-body', link: { label: 'Voir tout', tab: 'tab-collection' } },
+    todo: { title: "À faire aujourd'hui", extraClass: '', bodyId: 'dashboard-todo-body' },
+    collectors: { title: 'Trouver un collectionneur', extraClass: '', bodyId: 'dashboard-collectors-body', link: { label: 'Voir tout', tab: 'tab-collectors' } }
+};
+const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'wishlist', 'acquisitions', 'todo', 'collectors'];
+const DASHBOARD_WIDGET_ORDER_KEY = 'dashboardWidgetOrder';
+
+// Ordre choisi par l'utilisateur (localStorage, jamais synchronise entre appareils - meme
+// convention que les autres preferences du Dashboard/Progression dans cette app). Repli sur l'ordre
+// par defaut si la valeur stockee est absente/corrompue/desynchronisee d'une future section
+// ajoutee ou retiree (comparaison stricte des clefs, pas juste de la longueur).
+function getDashboardWidgetOrder() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_WIDGET_ORDER_KEY) || 'null');
+        if (Array.isArray(stored) && stored.length === DASHBOARD_DEFAULT_WIDGET_ORDER.length
+            && DASHBOARD_DEFAULT_WIDGET_ORDER.every(key => stored.includes(key))) {
+            return stored;
+        }
+    } catch (e) { /* stockage corrompu, repli sur l'ordre par defaut */ }
+    return [...DASHBOARD_DEFAULT_WIDGET_ORDER];
+}
+
+function saveDashboardWidgetOrder(order) {
+    localStorage.setItem(DASHBOARD_WIDGET_ORDER_KEY, JSON.stringify(order));
+}
+
+const DASHBOARD_HIDDEN_WIDGETS_KEY = 'dashboardHiddenWidgets';
+
+// Sections masquees par l'utilisateur (localStorage, meme convention que l'ordre ci-dessus). Ignore
+// toute clef qui ne correspond plus a une section existante (widget retire depuis).
+function getDashboardHiddenWidgets() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_HIDDEN_WIDGETS_KEY) || '[]');
+        if (Array.isArray(stored)) return stored.filter(key => DASHBOARD_WIDGET_DEFS[key]);
+    } catch (e) { /* stockage corrompu, repli sur aucune section masquee */ }
+    return [];
+}
+
+function saveDashboardHiddenWidgets(hidden) {
+    localStorage.setItem(DASHBOARD_HIDDEN_WIDGETS_KEY, JSON.stringify(hidden));
+}
+
+function toggleDashboardWidgetVisibility(key) {
+    const hidden = getDashboardHiddenWidgets();
+    const i = hidden.indexOf(key);
+    if (i === -1) hidden.push(key); else hidden.splice(i, 1);
+    saveDashboardHiddenWidgets(hidden);
+    renderDashboardCustomizeList();
+    markDashboardDirty();
+}
+
 // Structure fixe des 3 zones (header/hero à part, KPI, grille principale, grille basse) : construite une
-// seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne
+// seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne.
+// L'ordre des 6 premieres vient de getDashboardWidgetOrder() (personnalisable, cf.
+// openDashboardCustomizeModal) ; "Top hausses" reste toujours en dernier, hors reordonnancement.
 function dashboardBuildSkeleton() {
+    const hidden = getDashboardHiddenWidgets();
+    const widgetsHtml = getDashboardWidgetOrder().filter(key => !hidden.includes(key)).map(key => {
+        const def = DASHBOARD_WIDGET_DEFS[key];
+        const linkHtml = def.link ? `<button class="dashboard-widget-link" onclick="navigateToTab('${def.link.tab}')">${def.link.label}</button>` : '';
+        const sizeClass = def.size === 'large' ? 'dashboard-widget-size-large' : '';
+        return `
+            <div class="dashboard-widget ${def.extraClass} ${sizeClass}">
+                <div class="dashboard-widget-header"><h3>${def.title}</h3>${linkHtml}</div>
+                <div id="${def.bodyId}"></div>
+            </div>
+        `;
+    }).join('');
+
     document.getElementById('dashboard-main-grid').innerHTML = `
-        <div class="dashboard-widget dashboard-widget-activity">
-            <div class="dashboard-widget-header"><h3>Activité récente</h3></div>
-            <div id="dashboard-activity-body"></div>
-        </div>
-        <div class="dashboard-widget dashboard-widget-objective">
-            <div class="dashboard-widget-header"><h3>Objectif actuel</h3></div>
-            <div id="dashboard-objective-body"></div>
-        </div>
-        <div class="dashboard-widget dashboard-widget-tall">
-            <div class="dashboard-widget-header"><h3>Wishlist à surveiller</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-wishlist')">Voir tout</button></div>
-            <div id="dashboard-wishlist-body"></div>
-        </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>Dernières acquisitions</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-collection')">Voir tout</button></div>
-            <div id="dashboard-acquisitions-body"></div>
-        </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>À faire aujourd'hui</h3></div>
-            <div id="dashboard-todo-body"></div>
-        </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>Trouver un collectionneur</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-collectors')">Voir tout</button></div>
-            <div id="dashboard-collectors-body"></div>
-        </div>
-        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" style="display:none;">
+        ${widgetsHtml}
+        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers">
             <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
             <div id="dashboard-movers-body"></div>
         </div>
     `;
+}
+
+// ===== PERSONNALISATION (reordonnancement) =====
+
+function openDashboardCustomizeModal() {
+    renderDashboardCustomizeList();
+    document.getElementById('dashboard-customize-overlay').classList.add('active');
+}
+
+function closeDashboardCustomizeModal() {
+    document.getElementById('dashboard-customize-overlay').classList.remove('active');
+}
+
+function renderDashboardCustomizeList() {
+    const order = getDashboardWidgetOrder();
+    const hidden = getDashboardHiddenWidgets();
+    const content = document.getElementById('dashboard-customize-content');
+
+    const rowsHtml = order.map((key, i) => {
+        const isHidden = hidden.includes(key);
+        return `
+        <div class="dashboard-customize-row ${isHidden ? 'dashboard-customize-row--hidden' : ''}">
+            <span class="dashboard-customize-name">${DASHBOARD_WIDGET_DEFS[key].title}</span>
+            <div class="dashboard-customize-actions">
+                <button type="button" onclick="toggleDashboardWidgetVisibility('${key}')" aria-label="${isHidden ? 'Afficher' : 'Masquer'}" title="${isHidden ? 'Afficher cette section' : 'Masquer cette section'}"><i class="ti ${isHidden ? 'ti-eye-off' : 'ti-eye'}" aria-hidden="true"></i></button>
+                <button type="button" ${i === 0 ? 'disabled' : ''} onclick="moveDashboardWidget('${key}', -1)" aria-label="Monter"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>
+                <button type="button" ${i === order.length - 1 ? 'disabled' : ''} onclick="moveDashboardWidget('${key}', 1)" aria-label="Descendre"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+            </div>
+        </div>
+    `;
+    }).join('');
+
+    content.innerHTML = `
+        <button class="modal-close" onclick="closeDashboardCustomizeModal()">✕</button>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 0.4rem;">Réorganiser l'accueil</div>
+            <p style="color: var(--slate); font-size: 0.82rem; margin-bottom: 1rem;">Change l'ordre avec les flèches, masque une section avec l'œil. "Top hausses" reste toujours en dernier.</p>
+            <div class="dashboard-customize-list">${rowsHtml}</div>
+        </div>
+    `;
+}
+
+// Applique immediatement (pas de bouton "Enregistrer" separe) : chaque clic reordonne, sauvegarde
+// et re-rend la liste + le vrai Dashboard derriere la modale, pour un retour visuel instantane.
+function moveDashboardWidget(key, direction) {
+    const order = getDashboardWidgetOrder();
+    const index = order.indexOf(key);
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= order.length) return;
+
+    [order[index], order[newIndex]] = [order[newIndex], order[index]];
+    saveDashboardWidgetOrder(order);
+    renderDashboardCustomizeList();
+    markDashboardDirty();
 }
 
 function dashboardGoToProgressionSet(setId, setName, logoUrl) {
@@ -129,6 +249,8 @@ function renderDashboardHero() {
             <span class="dashboard-hero-pokeball"></span>
             <span class="dashboard-hero-stars"></span>
         </div>
+
+        <button class="dashboard-hero-customize-btn" onclick="openDashboardCustomizeModal()" title="Réorganiser les sections" aria-label="Réorganiser les sections"><i class="ti ti-layout-grid-add" aria-hidden="true"></i></button>
 
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
@@ -229,7 +351,7 @@ function dashboardRelativeTime(dateInput) {
 function renderDashboardActivity() {
     const el = document.getElementById('dashboard-activity-body');
 
-    const recentAdds = allCollectionCards.slice(0, 3).map(c => ({
+    const recentAdds = allCollectionCards.slice(0, 10).map(c => ({
         type: 'add',
         id: c.id,
         name: c.name,
@@ -244,7 +366,7 @@ function renderDashboardActivity() {
 
     const items = [...recentAdds];
     for (const m of movers) {
-        if (items.length >= 4) break;
+        if (items.length >= 10) break;
         items.push({ type: 'mover', name: m.name, number: m.number, delta: m.delta });
     }
 
@@ -253,7 +375,10 @@ function renderDashboardActivity() {
         return;
     }
 
-    el.innerHTML = items.slice(0, 4).map(item => {
+    // Timeline (passe premium 2026-09, cf mockup) : ligne verticale + puce par entree, gold pour un
+    // ajout, verte/rouge pour une variation de prix - meme info qu'avant, juste un repere visuel en
+    // plus (dashboard-activity-row--up/--down pilotent la couleur de la puce, cf styles.css).
+    const rowsHtml = items.slice(0, 10).map(item => {
         if (item.type === 'add') {
             return `
                 <div class="dashboard-activity-row" ${item.id != null ? `data-card-id="${item.id}" onclick="showCardDetail(${item.id}, event)"` : ''}>
@@ -268,8 +393,9 @@ function renderDashboardActivity() {
             `;
         }
         const cls = item.delta > 0 ? 'dashboard-positive' : 'dashboard-negative';
+        const rowCls = item.delta > 0 ? 'dashboard-activity-row--up' : 'dashboard-activity-row--down';
         return `
-            <div class="dashboard-activity-row">
+            <div class="dashboard-activity-row ${rowCls}">
                 <div class="dashboard-activity-text">
                     <div class="dashboard-activity-name">${escapeHtml(item.name)}</div>
                     <div class="dashboard-activity-sub">#${escapeHtml(String(item.number))} · Prix ${item.delta > 0 ? 'en hausse' : 'en baisse'}</div>
@@ -280,6 +406,8 @@ function renderDashboardActivity() {
             </div>
         `;
     }).join('');
+
+    el.innerHTML = `<div class="dashboard-activity-timeline">${rowsHtml}</div>`;
 }
 
 // ===== OBJECTIF ACTUEL =====
@@ -437,17 +565,21 @@ async function dashboardEnrichObjectiveBudget(best, myToken) {
 // ===== TOP HAUSSES =====
 
 function renderDashboardTopMovers() {
-    const widget = document.getElementById('dashboard-widget-movers');
     const el = document.getElementById('dashboard-movers-body');
     const movers = dashboardGetLastMovers();
     const gainers = movers.filter(m => m.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 3);
 
-    // Pas de hausse : le widget entier disparaît (pas d'emplacement vide dans la grille)
+    // Pas de hausse : etat neutre plutot que de faire disparaitre la section (evite l'impression
+    // que le Dashboard est casse - meme logique que le remplisseur de Wishlist, retour 2026-09).
     if (gainers.length === 0) {
-        if (widget) widget.style.display = 'none';
+        el.innerHTML = `
+            <div class="dashboard-widget-empty-compact dashboard-widget-empty-inline">
+                <i class="ti ti-trending-up" aria-hidden="true"></i>
+                <p class="dashboard-empty-text" style="padding:0;">Aucune hausse notable ces 7 derniers jours</p>
+            </div>
+        `;
         return;
     }
-    if (widget) widget.style.display = '';
 
     el.innerHTML = gainers.map(m => `
         <div class="dashboard-mover-row">
@@ -548,7 +680,7 @@ function renderDashboardWishlist() {
         return;
     }
 
-    el.innerHTML = items.map(item => {
+    const rowsHtml = items.map(item => {
         const price = (typeof wishlistPriceMap !== 'undefined' && item.tcgdex_id && wishlistPriceMap[item.tcgdex_id])
             ? Number(wishlistPriceMap[item.tcgdex_id])
             : Number(item.market_value || 0);
@@ -572,6 +704,22 @@ function renderDashboardWishlist() {
         </div>
     `;
     }).join('');
+
+    // Section "large" (2x la hauteur d'une section normale, cf. DASHBOARD_WIDGET_DEFS) : en dessous
+    // du plafond d'affichage (6), le nombre de cartes vient de l'utilisateur lui-meme (pas juste une
+    // limite d'affichage comme Activite recente, qui peut toujours puiser plus loin dans toute la
+    // collection) - impossible de "juste afficher plus" s'il n'y a rien de plus a montrer. Un
+    // remplisseur flex:1 comble l'espace avec une invitation plutot que du vide brut (retour
+    // utilisateur 2026-09).
+    const fillerHtml = items.length < 6 ? `
+        <div class="dashboard-widget-empty-compact dashboard-wishlist-filler">
+            <i class="ti ti-star" aria-hidden="true"></i>
+            <p class="dashboard-empty-text" style="padding:0;">Ajoute d'autres cartes à ta wishlist pour les suivre ici</p>
+            <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-add')">Trouver des cartes</button>
+        </div>
+    ` : '';
+
+    el.innerHTML = rowsHtml + fillerHtml;
 
     dashboardUpdateWishlistTrends(items.filter(i => i.tcgdex_id));
 }
@@ -648,6 +796,10 @@ async function dashboardUpdateWishlistTrends(items) {
 window.dashboardRenderSafe = dashboardRenderSafe;
 window.renderDashboard = renderDashboard;
 window.dashboardBuildSkeleton = dashboardBuildSkeleton;
+window.openDashboardCustomizeModal = openDashboardCustomizeModal;
+window.closeDashboardCustomizeModal = closeDashboardCustomizeModal;
+window.moveDashboardWidget = moveDashboardWidget;
+window.toggleDashboardWidgetVisibility = toggleDashboardWidgetVisibility;
 window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
 window.renderDashboardHeader = renderDashboardHeader;
 window.dashboardGetLastMovers = dashboardGetLastMovers;

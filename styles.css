@@ -9147,6 +9147,40 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-top: 0.5rem;
 }
 
+/* Bouton "Reorganiser" (passe personnalisation 2026-09) : place ici plutot que dans
+   .dashboard-header-actions, qui est masque en CSS sur cette page (body.page-dashboard
+   .dashboard-header { display:none !important } - vestige d'une ancienne version du hero, jamais
+   visible). Coin superieur droit du hero, discret, hors du flux du texte/KPI. */
+.dashboard-hero-customize-btn {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.1rem;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    /* padding:0 indispensable : le reset generique "button { padding:0.75rem 1.5rem }" (styles.css)
+       n'est jamais annule par un width explicite sur un <button> - constate en direct, le bouton
+       restait bloque a 50px (= padding 48px + bordure 2px) malgre width:34px. Meme fix que
+       .modal-close, qui a le meme padding:0 pour la meme raison. */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 50%;
+    color: #F7F3EA;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
+}
+
+.dashboard-hero-customize-btn:hover {
+    background: rgba(232,169,59,0.16);
+    border-color: rgba(232,169,59,0.35);
+    color: var(--gold);
+}
+
 .dashboard-btn-primary,
 .dashboard-btn-secondary {
     padding: 0.7rem 1.1rem;
@@ -9219,9 +9253,33 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-main-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
+    /* start (etait stretch) : Activite recente affiche desormais jusqu'a 6 entrees et peut devenir
+       nettement plus haute qu'Objectif actuel - en stretch, ce dernier s'etirait pour suivre, avec
+       son contenu recentre au milieu d'un grand vide (retour utilisateur 2026-09, "trop grande").
+       Chaque carte garde maintenant sa hauteur naturelle. */
+    align-items: start;
+    /* dense (retour utilisateur 2026-09) : avec 2 sections "large" (span 2 lignes,
+       .dashboard-widget-size-large) et 4 "small" (1 ligne), le flux normal laisserait un vide sous
+       une "large" si l'ordre choisi place les "small" ailleurs. "dense" fait remonter les sections
+       suivantes pour combler tout trou disponible, quel que soit l'ordre reorganise par l'utilisateur -
+       change l'ordre visuel, jamais l'ordre DOM (accessibilite/lecteurs d'ecran inchanges). */
+    grid-auto-flow: dense;
     gap: 1.25rem;
     margin-bottom: 2rem;
+}
+
+/* 2x la hauteur d'une section normale (retour utilisateur 2026-09) : reservee aux sections dont le
+   contenu est structurellement le plus long (cf. DASHBOARD_WIDGET_DEFS, dashboard.js). Combinee a
+   grid-auto-flow:dense ci-dessus, 2 sections "small" consecutives viennent naturellement se loger a
+   cote d'une "large" plutot que de laisser un vide. */
+.dashboard-widget-size-large {
+    grid-row: span 2;
+    /* align-self:stretch (le grid reste align-items:start par defaut) : une "large" doit remplir
+       reellement ses 2 lignes, sinon la carte flotte en haut d'une cellule 2x plus grande que son
+       propre contenu - meme probleme que l'ancien Objectif actuel "trop grand", mais cette fois
+       A L'INTERIEUR de la carte plutot que cause par une autre colonne. Verifie en direct : sans
+       cette regle, Activite recente/Wishlist ne remplissaient que ~400px sur ~590px disponibles. */
+    align-self: stretch;
 }
 
 .dashboard-widget-activity,
@@ -9234,17 +9292,20 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-widget-activity > div:last-child,
 .dashboard-widget-objective > div:last-child,
 .dashboard-widget-tall > div:last-child {
-    flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-.dashboard-widget-objective > div:last-child {
-    justify-content: center;
+/* flex:1 uniquement sur Wishlist (pas Activite/Objectif, qui n'ont pas de "remplisseur" a faire
+   grandir) : laisse #dashboard-wishlist-body absorber l'espace stretch de sa carte "large" pour que
+   .dashboard-wishlist-filler ci-dessous puisse s'y centrer. */
+.dashboard-widget-tall > div:last-child {
+    flex: 1;
 }
 
-.dashboard-widget-tall {
-    grid-row: span 2;
+.dashboard-wishlist-filler {
+    flex: 1;
+    justify-content: center;
 }
 
 .dashboard-widget {
@@ -9296,6 +9357,69 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-bottom: 1rem;
 }
 
+/* ----- Personnalisation (reordonnancement) ----- */
+
+.dashboard-customize-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dashboard-customize-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.dashboard-customize-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.dashboard-customize-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.dashboard-customize-actions button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--slate);
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+}
+
+.dashboard-customize-actions button:hover:not(:disabled) {
+    background: rgba(232,169,59,0.12);
+    color: var(--gold);
+}
+
+.dashboard-customize-actions button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.dashboard-customize-row--hidden {
+    opacity: 0.5;
+}
+
+.dashboard-customize-row--hidden .dashboard-customize-actions button[aria-label="Afficher"] {
+    color: var(--gold);
+    border-color: rgba(232,169,59,0.35);
+}
+
 .dashboard-widget-header h3 {
     font-size: 1.05rem;
     font-weight: 700;
@@ -9319,7 +9443,16 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* ----- Activite recente ----- */
 
+/* Fil chronologique (passe premium 2026-09, cf mockup) : ligne verticale continue + puce par entree,
+   dans la gouttiere ajoutee a gauche (padding-left) - jamais chevauchee par le fond de survol des
+   lignes (leur marge negative -0.5rem reste bien en-deca de la puce a -0.85rem). */
+.dashboard-activity-timeline {
+    position: relative;
+    padding-left: 0.9rem;
+}
+
 .dashboard-activity-row {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -9327,17 +9460,55 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0.65rem 0.5rem;
     margin: 0 -0.5rem;
     border-radius: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    /* Pas de separateur horizontal (etait border-bottom) : le mockup source espace les entrees par
+       du vide, pas des lignes - la ligne verticale seule porte la continuite. */
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease;
 }
 
-.dashboard-activity-row:hover {
-    background: rgba(255,255,255,0.035);
+.dashboard-activity-row::before {
+    content: '';
+    position: absolute;
+    left: -0.28rem;
+    /* Alignee sur la 1ere ligne (nom), pas centree entre nom+sous-titre (etait top:50%) : idem
+       mockup source, .t-row::before est ancree en haut de chaque entree. */
+    top: 1.1rem;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 3px rgba(232,169,59,0.15);
 }
 
-.dashboard-activity-row:last-child {
-    border-bottom: none;
+/* Segment par ligne plutot qu'un seul trait sur tout le wrapper (etait .dashboard-activity-timeline
+   ::before, cf commit precedent) : les lignes n'ont pas toutes la meme hauteur (le nom passe sur 2
+   lignes selon la carte), un seul trait avec des insets fixes finissait donc decale de la derniere
+   puce. Chaque ligne dessine son propre tronçon, de SA puce (top:1.1rem) jusqu'a celle de la
+   suivante (bottom:-1.1rem, colle a la ligne d'apres quel que soit sa propre hauteur) - jamais sur la
+   derniere ligne, qui n'a personne a rejoindre. */
+.dashboard-activity-row:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -0.98px;
+    top: 1.1rem;
+    bottom: -1.1rem;
+    width: 1px;
+    background: rgba(255,255,255,0.16);
+}
+
+.dashboard-activity-row--up::before {
+    background: #7ED9A7;
+    box-shadow: 0 0 0 3px rgba(126,217,167,0.15);
+}
+
+.dashboard-activity-row--down::before {
+    background: #FF6B6B;
+    box-shadow: 0 0 0 3px rgba(255,107,107,0.15);
+}
+
+.dashboard-activity-row:hover {
+    background: rgba(255,255,255,0.035);
 }
 
 .dashboard-activity-name {
@@ -9705,6 +9876,27 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     z-index: -1;
 }
 
+/* Variante horizontale compacte pour une bande pleine largeur (ex: "Top hausses" sans donnee) :
+   pas de gros cercle vertical, juste une ligne icone + texte au format d'une rangee normale. */
+.dashboard-widget-empty-inline {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0.55rem 0.5rem;
+}
+
+.dashboard-widget-empty-inline i {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    animation: none;
+}
+
+.dashboard-widget-empty-inline i::after {
+    display: none;
+}
+
 /* ----- Responsive ----- */
 
 @media (max-width: 1024px) {
@@ -9718,10 +9910,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
     .dashboard-widget-full {
         grid-column: span 2;
-    }
-
-    .dashboard-widget-tall {
-        grid-row: auto;
     }
 }
 
@@ -9772,6 +9960,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
     .dashboard-main-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Colonne unique : un span sur 2 lignes n'a plus de sens (rien a caser a cote), ca laisserait
+       juste une 2e ligne vide sous le contenu reel de la section. */
+    .dashboard-widget-size-large {
+        grid-row: auto;
     }
 
     .dashboard-widget-full {
