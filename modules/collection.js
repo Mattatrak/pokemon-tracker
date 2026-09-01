@@ -961,7 +961,6 @@ function renderCollectionHeaderKpis(filtered) {
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
     const totalSpent = allCollectionCards.reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
     const uniqueCards = allCollectionCards.length;
-    const gain = totalValue - totalSpent;
     // Prix moyen calculé uniquement sur les cartes achetées (acquisition_type !== 'pack') : une
     // carte sortie d'un booster n'a pas de vrai "prix d'achat" individuel, l'inclure dilue la
     // moyenne à tort.
