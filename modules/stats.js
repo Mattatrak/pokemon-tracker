@@ -23,11 +23,15 @@ async function recordValueSnapshot() {
     }]);
     if (error) console.error('Erreur enregistrement historique valeur:', error);
 
-    // On ne recalcule les graphiques (coûteux : plusieurs requêtes + Chart.js) que si l'onglet est réellement affiché
+    // On ne recalcule les graphiques (coûteux : plusieurs requêtes + Chart.js) que si l'onglet est
+    // réellement affiché. renderHeroValueCard() rejoint ce garde-fou (perf, audit bundle 2026-09-01) :
+    // ses cibles (hero-total-value/hero-sparkline/hero-fluctuation) vivent exclusivement dans le hero
+    // Statistiques, la calculer/dessiner sur un onglet invisible (ex: apres l'ajout d'une carte depuis
+    // le Dashboard) ne servait a rien d'autre qu'a charger Chart.js pour de bon.
     if (document.getElementById('tab-stats').classList.contains('active')) {
         renderStatsCharts();
+        renderHeroValueCard();
     }
-    renderHeroValueCard();
 }
 
 const heroSparklineCharts = {};
