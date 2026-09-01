@@ -9276,9 +9276,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex-direction: column;
 }
 
-.dashboard-widget-tall {
-    grid-row: span 2;
-}
+/* Etait grid-row:span 2 : avec la reorganisation des sections (localStorage, cf.
+   openDashboardCustomizeModal), Wishlist peut atterrir n'importe ou et son contenu (jusqu'a 6
+   cartes avec vignettes) est bien plus haut que ses voisines - un span 2 lignes fixe la faisait
+   dicter la hauteur de 2 lignes entieres, laissant un grand vide sous les sections plus courtes de
+   l'autre colonne (retour utilisateur 2026-09). Chaque section occupe maintenant une seule cellule,
+   comme les autres. */
 
 .dashboard-widget {
     position: relative;
@@ -9852,10 +9855,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
     .dashboard-widget-full {
         grid-column: span 2;
-    }
-
-    .dashboard-widget-tall {
-        grid-row: auto;
     }
 }
 
