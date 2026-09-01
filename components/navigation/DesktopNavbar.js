@@ -50,7 +50,7 @@ function generateDesktopNavigation(activeTabId) {
         <div class="dashboard-integrated-nav-inner">
             <div class="dashboard-integrated-nav-left">
                 <a href="#${TAB_ROUTES['tab-dashboard']}" class="dashboard-integrated-nav-logo">
-                    <img src="images/poke-tracker.png" alt="PokéTracker" class="dashboard-integrated-nav-logo-img">
+                    <img src="images/poke-tracker.webp" alt="PokéTracker" class="dashboard-integrated-nav-logo-img">
                     <span>PokéTracker</span>
                 </a>
             </div>
