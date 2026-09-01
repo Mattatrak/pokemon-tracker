@@ -9219,7 +9219,11 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-main-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
+    /* start (etait stretch) : Activite recente affiche desormais jusqu'a 6 entrees et peut devenir
+       nettement plus haute qu'Objectif actuel - en stretch, ce dernier s'etirait pour suivre, avec
+       son contenu recentre au milieu d'un grand vide (retour utilisateur 2026-09, "trop grande").
+       Chaque carte garde maintenant sa hauteur naturelle. */
+    align-items: start;
     gap: 1.25rem;
     margin-bottom: 2rem;
 }
@@ -9234,13 +9238,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-widget-activity > div:last-child,
 .dashboard-widget-objective > div:last-child,
 .dashboard-widget-tall > div:last-child {
-    flex: 1;
     display: flex;
     flex-direction: column;
-}
-
-.dashboard-widget-objective > div:last-child {
-    justify-content: center;
 }
 
 .dashboard-widget-tall {
