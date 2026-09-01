@@ -9296,6 +9296,18 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex-direction: column;
 }
 
+/* flex:1 uniquement sur Wishlist (pas Activite/Objectif, qui n'ont pas de "remplisseur" a faire
+   grandir) : laisse #dashboard-wishlist-body absorber l'espace stretch de sa carte "large" pour que
+   .dashboard-wishlist-filler ci-dessous puisse s'y centrer. */
+.dashboard-widget-tall > div:last-child {
+    flex: 1;
+}
+
+.dashboard-wishlist-filler {
+    flex: 1;
+    justify-content: center;
+}
+
 .dashboard-widget {
     position: relative;
     overflow: hidden;

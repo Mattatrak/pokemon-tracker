@@ -635,7 +635,7 @@ function renderDashboardWishlist() {
         return;
     }
 
-    el.innerHTML = items.map(item => {
+    const rowsHtml = items.map(item => {
         const price = (typeof wishlistPriceMap !== 'undefined' && item.tcgdex_id && wishlistPriceMap[item.tcgdex_id])
             ? Number(wishlistPriceMap[item.tcgdex_id])
             : Number(item.market_value || 0);
@@ -659,6 +659,22 @@ function renderDashboardWishlist() {
         </div>
     `;
     }).join('');
+
+    // Section "large" (2x la hauteur d'une section normale, cf. DASHBOARD_WIDGET_DEFS) : en dessous
+    // du plafond d'affichage (6), le nombre de cartes vient de l'utilisateur lui-meme (pas juste une
+    // limite d'affichage comme Activite recente, qui peut toujours puiser plus loin dans toute la
+    // collection) - impossible de "juste afficher plus" s'il n'y a rien de plus a montrer. Un
+    // remplisseur flex:1 comble l'espace avec une invitation plutot que du vide brut (retour
+    // utilisateur 2026-09).
+    const fillerHtml = items.length < 6 ? `
+        <div class="dashboard-widget-empty-compact dashboard-wishlist-filler">
+            <i class="ti ti-star" aria-hidden="true"></i>
+            <p class="dashboard-empty-text" style="padding:0;">Ajoute d'autres cartes à ta wishlist pour les suivre ici</p>
+            <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-add')">Trouver des cartes</button>
+        </div>
+    ` : '';
+
+    el.innerHTML = rowsHtml + fillerHtml;
 
     dashboardUpdateWishlistTrends(items.filter(i => i.tcgdex_id));
 }
