@@ -1322,7 +1322,7 @@ body::before {
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(90deg, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.58) 40%, rgba(10,12,20,0.38) 62%, rgba(10,12,20,0.64) 100%),
-        url('images/catalogue.png');
+        url('images/catalogue.webp');
     background-size: cover, 100% auto, 100% auto;
     background-position: center center;
     background-repeat: no-repeat;
@@ -3966,7 +3966,7 @@ tbody tr:hover {
    (photo + dégradé) - partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué,
    les deux pages utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles.
    Navbar desktop globale (NAV1) : plus de container nav dédié dans ce hero, la nav persistante vit
-   hors de .container (index.html). background-color sert de repli si jamais images/collectors.png
+   hors de .container (index.html). background-color sert de repli si jamais images/collectors.webp
    venait à manquer : un background-image 404 ne casse rien, juste pas de photo. */
 .collectors-hero {
     position: relative;
@@ -3978,7 +3978,7 @@ tbody tr:hover {
     overflow: hidden;
     background-image:
         linear-gradient(rgba(10,10,16,0.45), rgba(10,10,16,0.45)),
-        url('images/collectors.png');
+        url('images/collectors.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8415,7 +8415,7 @@ body.page-progression .progression-atlas-hero {
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/atlas.png');
+        url('images/atlas.webp');
     background-size: cover;
     background-position: center 35%;
     background-repeat: no-repeat;
@@ -8485,7 +8485,7 @@ body.page-collection .collection-atlas-hero {
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/collection.png');
+        url('images/collection.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8646,7 +8646,7 @@ body.page-statistics .stats-hero {
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/stats.png');
+        url('images/stats.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8732,7 +8732,7 @@ body.page-wishlist .wishlist-hero {
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/wishlist.png');
+        url('images/wishlist.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8974,7 +8974,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     overflow: hidden;
     background-image:
         linear-gradient(90deg, rgba(5,8,15,0.94) 0%, rgba(5,8,15,0.84) 24%, rgba(5,8,15,0.42) 43%, rgba(5,8,15,0.08) 62%, transparent 78%),
-        url('images/dashboard.png');
+        url('images/dashboard.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
