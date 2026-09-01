@@ -243,9 +243,19 @@ function toggleCardPriceChart(tcgdexId) {
 let cardPriceChartInstance = null;
 let cardPriceChartData = null;
 
+// Garde anti-concurrence (audit 2026-08-15, catégorie B) : renderCardPriceChart() est async et jamais
+// attendue par ses appelants (requestAnimationFrame côté desktop, toggle mobile) - ouvrir la carte A
+// puis vite la carte B avant que la réponse de A soit revenue pouvait faire écraser le graphique de B
+// par les données de A à l'arrivée tardive de sa réponse. myToken capture le compteur au moment de
+// l'appel ; si un appel plus récent a eu lieu entre-temps (compteur déjà incrémenté), cette réponse est
+// jetée silencieusement au lieu d'écraser ce qui est déjà affiché.
+let cardPriceChartRequestToken = 0;
+
 async function renderCardPriceChart(tcgdexId) {
     const canvas = document.getElementById('card-price-chart');
     if (!canvas || typeof Chart === 'undefined') return;
+
+    const myToken = ++cardPriceChartRequestToken;
 
     // .not(...'is', null) : une ligne avec recorded_at absent (ancien point mal formé, ex. tout
     // premier insert avant l'ajout de cette colonne) trierait en dernier même en ordre croissant
@@ -258,6 +268,8 @@ async function renderCardPriceChart(tcgdexId) {
         .not('recorded_at', 'is', null)
         .order('recorded_at', { ascending: true })
         .limit(100);
+
+    if (myToken !== cardPriceChartRequestToken) return;
 
     cardPriceChartData = (!error && data) ? data : [];
     renderCardPriceChartForPeriod(30);
