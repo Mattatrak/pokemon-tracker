@@ -9258,8 +9258,28 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
        son contenu recentre au milieu d'un grand vide (retour utilisateur 2026-09, "trop grande").
        Chaque carte garde maintenant sa hauteur naturelle. */
     align-items: start;
+    /* dense (retour utilisateur 2026-09) : avec 2 sections "large" (span 2 lignes,
+       .dashboard-widget-size-large) et 4 "small" (1 ligne), le flux normal laisserait un vide sous
+       une "large" si l'ordre choisi place les "small" ailleurs. "dense" fait remonter les sections
+       suivantes pour combler tout trou disponible, quel que soit l'ordre reorganise par l'utilisateur -
+       change l'ordre visuel, jamais l'ordre DOM (accessibilite/lecteurs d'ecran inchanges). */
+    grid-auto-flow: dense;
     gap: 1.25rem;
     margin-bottom: 2rem;
+}
+
+/* 2x la hauteur d'une section normale (retour utilisateur 2026-09) : reservee aux sections dont le
+   contenu est structurellement le plus long (cf. DASHBOARD_WIDGET_DEFS, dashboard.js). Combinee a
+   grid-auto-flow:dense ci-dessus, 2 sections "small" consecutives viennent naturellement se loger a
+   cote d'une "large" plutot que de laisser un vide. */
+.dashboard-widget-size-large {
+    grid-row: span 2;
+    /* align-self:stretch (le grid reste align-items:start par defaut) : une "large" doit remplir
+       reellement ses 2 lignes, sinon la carte flotte en haut d'une cellule 2x plus grande que son
+       propre contenu - meme probleme que l'ancien Objectif actuel "trop grand", mais cette fois
+       A L'INTERIEUR de la carte plutot que cause par une autre colonne. Verifie en direct : sans
+       cette regle, Activite recente/Wishlist ne remplissaient que ~400px sur ~590px disponibles. */
+    align-self: stretch;
 }
 
 .dashboard-widget-activity,
@@ -9275,13 +9295,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     display: flex;
     flex-direction: column;
 }
-
-/* Etait grid-row:span 2 : avec la reorganisation des sections (localStorage, cf.
-   openDashboardCustomizeModal), Wishlist peut atterrir n'importe ou et son contenu (jusqu'a 6
-   cartes avec vignettes) est bien plus haut que ses voisines - un span 2 lignes fixe la faisait
-   dicter la hauteur de 2 lignes entieres, laissant un grand vide sous les sections plus courtes de
-   l'autre colonne (retour utilisateur 2026-09). Chaque section occupe maintenant une seule cellule,
-   comme les autres. */
 
 .dashboard-widget {
     position: relative;
@@ -9905,6 +9918,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
     .dashboard-main-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Colonne unique : un span sur 2 lignes n'a plus de sens (rien a caser a cote), ca laisserait
+       juste une 2e ligne vide sous le contenu reel de la section. */
+    .dashboard-widget-size-large {
+        grid-row: auto;
     }
 
     .dashboard-widget-full {

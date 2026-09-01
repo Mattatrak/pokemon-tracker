@@ -39,10 +39,16 @@ async function renderDashboard() {
 // Sections reordonnables (passe "personnalisation" 2026-09) : "Top hausses" en est volontairement
 // exclue (widget pleine largeur, affiche seulement si des mouvements de prix existent, cf.
 // renderDashboardTopMovers) - jamais pertinent de le repositionner au milieu des autres.
+// size 'large' (retour utilisateur 2026-09) : occupe 2 lignes de la grille au lieu d'une - reserve
+// aux 2 sections dont le contenu est structurellement le plus long (jusqu'a 6 lignes/cartes), pour
+// que .dashboard-main-grid { grid-auto-flow: dense } puisse faire remonter 2 sections "small"
+// suivantes a cote plutot que laisser un vide sous des sections courtes (cf. .dashboard-widget-size-
+// large dans styles.css). Pas configurable par l'utilisateur : une propriete du type de section, pas
+// de son contenu du moment.
 const DASHBOARD_WIDGET_DEFS = {
-    activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body' },
+    activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body', size: 'large' },
     objective: { title: 'Objectif actuel', extraClass: 'dashboard-widget-objective', bodyId: 'dashboard-objective-body' },
-    wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' } },
+    wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' }, size: 'large' },
     acquisitions: { title: 'Dernières acquisitions', extraClass: '', bodyId: 'dashboard-acquisitions-body', link: { label: 'Voir tout', tab: 'tab-collection' } },
     todo: { title: "À faire aujourd'hui", extraClass: '', bodyId: 'dashboard-todo-body' },
     collectors: { title: 'Trouver un collectionneur', extraClass: '', bodyId: 'dashboard-collectors-body', link: { label: 'Voir tout', tab: 'tab-collectors' } }
@@ -77,8 +83,9 @@ function dashboardBuildSkeleton() {
     const widgetsHtml = getDashboardWidgetOrder().map(key => {
         const def = DASHBOARD_WIDGET_DEFS[key];
         const linkHtml = def.link ? `<button class="dashboard-widget-link" onclick="navigateToTab('${def.link.tab}')">${def.link.label}</button>` : '';
+        const sizeClass = def.size === 'large' ? 'dashboard-widget-size-large' : '';
         return `
-            <div class="dashboard-widget ${def.extraClass}">
+            <div class="dashboard-widget ${def.extraClass} ${sizeClass}">
                 <div class="dashboard-widget-header"><h3>${def.title}</h3>${linkHtml}</div>
                 <div id="${def.bodyId}"></div>
             </div>
