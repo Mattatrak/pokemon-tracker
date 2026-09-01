@@ -39,17 +39,21 @@ async function init() {
     if (document.getElementById('dashboard-hero')) renderDashboardHero();
 
     await loadWishlists();
-    await renderStatsCharts();
-    await renderHeroValueCard();
     await renderDashboard();
     appReady = true; // autorise markDashboardDirty() à re-rendre immédiatement à partir de maintenant
+    // renderStatsCharts()/renderHeroValueCard() vivaient ici avant, appelees sans condition a CHAQUE
+    // connexion quel que soit l'onglet de depart - deplacees dans activateTabContent('tab-stats')
+    // (tracker.js, perf - audit bundle 2026-09-01) : renderTab() juste en dessous les declenche
+    // desormais seulement si l'onglet de depart est reellement Statistiques, au lieu de calculer 4
+    // graphiques Chart.js dans un onglet invisible a chaque login.
     renderTab(getTabIdFromHash()); // ré-applique l'onglet du hash une fois les données chargées (wishlists/stats/progression dépendent de allCollectionCards)
     // rebuild:true : premier moment où currentUserProfile/currentUserIsAdmin sont connus avec certitude
     // (loadUserProfile a été attendu au tout début de init()) - la navbar globale (NAV1) construite plus
     // tôt (tracker.js#initDesktopNavigation, avant que le profil charge) affichait encore l'icône par
     // défaut/pas d'entrée Administration jusqu'ici.
     updateDesktopNavigation(getTabIdFromHash(), { rebuild: true });
-    initDatePicker('#card-date-added');
+    // initDatePicker('#card-date-added') vivait ici avant (meme raison que renderStatsCharts/
+    // renderHeroValueCard ci-dessus) - deplace dans activateTabContent('tab-add') (tracker.js).
     // getTabIdFromHash() (pas 'tab-dashboard' en dur) : si l'utilisateur a change d'onglet pendant que
     // ces await plus haut chargeaient encore (ex. tap sur Collection juste apres une installation
     // fraiche, chargement reseau plus long), renderTab() (ligne 46) a deja mis a jour la nav avec le

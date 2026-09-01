@@ -1178,11 +1178,11 @@
     <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
 
+    <!-- Chart.js/Flatpickr/Papaparse retires d'ici (audit bundle 2026-09-01) : charges a la demande
+         via ensureChartLoaded/ensureFlatpickrLoaded/ensurePapaLoaded (modules/utils.js), seulement
+         quand la fonctionnalite qui en depend est reellement utilisee (graphique de prix, selecteur
+         de date, import CSV) - ~92 Ko en moins sur chaque page qui ne les declenche pas. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.6.0/papaparse.min.js"></script>
     <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" crossorigin="anonymous"></script>
     <script type="module" src="modules/error-tracking.js"></script>
     <script type="module" src="data/changelog.js"></script>

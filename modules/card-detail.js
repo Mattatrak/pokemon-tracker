@@ -253,7 +253,8 @@ let cardPriceChartRequestToken = 0;
 
 async function renderCardPriceChart(tcgdexId) {
     const canvas = document.getElementById('card-price-chart');
-    if (!canvas || typeof Chart === 'undefined') return;
+    if (!canvas) return;
+    await ensureChartLoaded();
 
     const myToken = ++cardPriceChartRequestToken;
 

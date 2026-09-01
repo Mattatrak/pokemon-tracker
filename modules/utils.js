@@ -13,6 +13,46 @@ function preloadImages(urls) {
     });
 }
 
+// ===== Chargement differe des librairies CDN lourdes (perf, cf audit bundle 2026-09-01) =====
+// Chart.js/Flatpickr/Papaparse n'etaient utilisees que par une fonctionnalite precise (graphique de
+// prix, selecteur de date, import CSV) mais chargees via <script> bloquant sur CHAQUE page, meme
+// Dashboard/Wishlist qui n'en ont jamais besoin. Injectees maintenant a la demande, au premier appel
+// reel - la promesse est memorisee pour qu'un deuxieme appel (autre carte ouverte, autre champ date...)
+// reutilise le meme chargement au lieu d'injecter le script une deuxieme fois.
+function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Echec de chargement du script : ${src}`));
+        document.head.appendChild(script);
+    });
+}
+
+let chartLoadPromise = null;
+function ensureChartLoaded() {
+    if (typeof Chart !== 'undefined') return Promise.resolve();
+    if (!chartLoadPromise) chartLoadPromise = loadScriptOnce('https://cdn.jsdelivr.net/npm/chart.js@4.5.1');
+    return chartLoadPromise;
+}
+
+let flatpickrLoadPromise = null;
+function ensureFlatpickrLoaded() {
+    if (typeof flatpickr !== 'undefined') return Promise.resolve();
+    if (!flatpickrLoadPromise) {
+        flatpickrLoadPromise = loadScriptOnce('https://cdn.jsdelivr.net/npm/flatpickr@4.6.13')
+            .then(() => loadScriptOnce('https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js'));
+    }
+    return flatpickrLoadPromise;
+}
+
+let papaLoadPromise = null;
+function ensurePapaLoaded() {
+    if (typeof Papa !== 'undefined') return Promise.resolve();
+    if (!papaLoadPromise) papaLoadPromise = loadScriptOnce('https://cdn.jsdelivr.net/npm/papaparse@5.6.0/papaparse.min.js');
+    return papaLoadPromise;
+}
+
 // Formate un prix en euros au format français (virgule décimale) - remplace les ~70 toFixed(2)
 // dupliqués à travers le code, dont une partie affichait un point (incohérent avec le reste de
 // l'app, entièrement en français). value peut être undefined/null/NaN (traité comme 0).
@@ -505,8 +545,8 @@ function parseCsvDate(str) {
 }
 
 // Initialise Flatpickr avec le thème et la locale de l'app sur un champ de date donné
-function initDatePicker(selector, presetValue) {
-    if (typeof flatpickr === 'undefined') return;
+async function initDatePicker(selector, presetValue) {
+    await ensureFlatpickrLoaded();
     flatpickr(selector, {
         locale: 'fr',
         dateFormat: 'Y-m-d',
@@ -542,6 +582,9 @@ window.sanitizeForPath = sanitizeForPath;
 window.getTcgdexImagePath = getTcgdexImagePath;
 window.getSeriesLogoPath = getSeriesLogoPath;
 window.resizeImageToWebpBlob = resizeImageToWebpBlob;
+window.ensureChartLoaded = ensureChartLoaded;
+window.ensureFlatpickrLoaded = ensureFlatpickrLoaded;
+window.ensurePapaLoaded = ensurePapaLoaded;
 window.getSeriesSymbolPath = getSeriesSymbolPath;
 window.getSetIdFromTcgdexId = getSetIdFromTcgdexId;
 window.normalizeForMatch = normalizeForMatch;

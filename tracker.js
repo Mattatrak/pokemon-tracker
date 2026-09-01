@@ -806,9 +806,14 @@ function activateTabContent(tabId) {
         renderDashboard();
     }
 
-    // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture
+    // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture.
+    // renderHeroValueCard() (sparkline/valeur/fluctuation du hero Stats) vivait avant dans init()
+    // (auth.js), appelee sans condition a CHAQUE connexion quel que soit l'onglet de depart - deplacee
+    // ici (perf, audit bundle 2026-09-01) pour ne s'executer qu'a la premiere vraie visite de cet
+    // onglet, et charger Chart.js seulement si necessaire (cf ensureChartLoaded, utils.js).
     if (tabId === 'tab-stats') {
         renderStatsCharts();
+        renderHeroValueCard();
     }
 
     if (tabId === 'tab-progression') {
@@ -843,6 +848,19 @@ function activateTabContent(tabId) {
 
     if (tabId === 'tab-changelog') {
         renderChangelogPage();
+    }
+
+    // #card-date-added est un champ statique d'index.html (pas reconstruit a chaque visite, contrairement
+    // aux champs de date dans des modales) : initDatePicker() (flatpickr) ne doit tourner qu'une seule
+    // fois sur ce noeud, sinon chaque revisite de l'onglet empile une nouvelle instance flatpickr par
+    // dessus les precedentes. Deplace ici depuis init() (auth.js, perf - audit bundle 2026-09-01) pour ne
+    // charger Flatpickr qu'a la premiere visite reelle de cet onglet, pas a chaque connexion.
+    if (tabId === 'tab-add') {
+        const dateInput = document.getElementById('card-date-added');
+        if (dateInput && !dateInput.dataset.datepickerInit) {
+            dateInput.dataset.datepickerInit = 'true';
+            initDatePicker('#card-date-added');
+        }
     }
 }
 

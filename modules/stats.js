@@ -23,11 +23,15 @@ async function recordValueSnapshot() {
     }]);
     if (error) console.error('Erreur enregistrement historique valeur:', error);
 
-    // On ne recalcule les graphiques (coûteux : plusieurs requêtes + Chart.js) que si l'onglet est réellement affiché
+    // On ne recalcule les graphiques (coûteux : plusieurs requêtes + Chart.js) que si l'onglet est
+    // réellement affiché. renderHeroValueCard() rejoint ce garde-fou (perf, audit bundle 2026-09-01) :
+    // ses cibles (hero-total-value/hero-sparkline/hero-fluctuation) vivent exclusivement dans le hero
+    // Statistiques, la calculer/dessiner sur un onglet invisible (ex: apres l'ajout d'une carte depuis
+    // le Dashboard) ne servait a rien d'autre qu'a charger Chart.js pour de bon.
     if (document.getElementById('tab-stats').classList.contains('active')) {
         renderStatsCharts();
+        renderHeroValueCard();
     }
-    renderHeroValueCard();
 }
 
 const heroSparklineCharts = {};
@@ -111,10 +115,17 @@ async function renderHeroValueCard() {
 
     const data = recentDesc.slice().reverse(); // remis en ordre chronologique (ascendant)
 
-    // Mini-graphique en fond (sparkline) — dupliqué sur chaque page qui affiche la carte valeur
-    ['hero-sparkline', 'collection-hero-sparkline'].forEach(canvasId => {
+    // Mini-graphique en fond (sparkline) — dupliqué sur chaque page qui affiche la carte valeur.
+    // Note perf (audit 2026-09-01) : ces canvas vivent dans le hero de l'onglet Statistiques, et
+    // renderHeroValueCard() est appelee sans condition des le login (auth.js) - Chart.js se charge
+    // donc quasi systematiquement a la connexion, quel que soit l'onglet actif. Comportement de
+    // dessin inchange ici (pas touche, deja ainsi avant le chargement a la demande) : seul le
+    // chargement du SCRIPT Chart.js devient asynchrone/non bloquant au lieu d'un <script> bloquant.
+    const sparklineCanvasIds = ['hero-sparkline', 'collection-hero-sparkline'].filter(id => document.getElementById(id));
+    if (sparklineCanvasIds.length > 0) await ensureChartLoaded();
+
+    sparklineCanvasIds.forEach(canvasId => {
         const canvas = document.getElementById(canvasId);
-        if (!canvas || typeof Chart === 'undefined') return;
 
         const values = data.map(d => Number(d.total_value));
         const trendUp = values[values.length - 1] >= values[0];

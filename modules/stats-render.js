@@ -76,9 +76,11 @@ async function renderStatsCharts() {
     // fonction) : statsRenderInProgress est le vrai verrou anti-réentrance, empêchant un second appel
     // concurrent de démarrer un second rendu (ex: double clic rapide sur l'onglet Statistiques).
     if (!statsNeedsRefresh || statsRenderInProgress) return;
-    if (typeof Chart === 'undefined') return; // Chart.js pas encore chargé
-
+    // Verrou pose AVANT l'await (pas apres) : ensureChartLoaded() peut prendre plusieurs centaines de
+    // ms au premier appel (chargement Chart.js a la demande, cf utils.js) - sans ca, un second appel
+    // concurrent pendant ce chargement passerait le garde-fou ci-dessus avant que ce verrou soit pose.
     statsRenderInProgress = true;
+    await ensureChartLoaded();
     // Capturée avant le rendu, comparée après : si une mutation a appelé markStatsDirty() pendant que
     // ce rendu tournait (ex: ajout d'une carte dans un autre onglet resté ouvert), la version aura
     // avancé et ce rendu ne doit pas se marquer propre avec des données déjà périmées.
@@ -771,9 +773,14 @@ function setValueHistoryRange(event, days) {
     renderValueHistoryChart();
 }
 
-function renderValueHistoryChart() {
+async function renderValueHistoryChart() {
     const canvas = document.getElementById('value-history-chart');
     if (!canvas || valueHistoryRawData.length === 0) return;
+    // Garde propre (contrairement a renderRarityChart/renderSeriesValueChart) : accessible aussi via
+    // setValueHistoryRange (boutons 7j/30j/Tout), en dehors du chemin renderStatsCharts qui a deja
+    // attendu ensureChartLoaded() plus haut - un clic rapide juste apres la premiere ouverture de
+    // l'onglet Statistiques pourrait sinon tomber avant la fin du chargement de Chart.js.
+    await ensureChartLoaded();
 
     let data = valueHistoryRawData;
     if (currentValueHistoryRange > 0) {
