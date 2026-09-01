@@ -345,9 +345,11 @@ async function findTcgdexMatch(nom, serie, numero) {
     return [...new Map(matches.map(m => [m.id, m])).values()];
 }
 
-function handleCsvImport(event) {
+async function handleCsvImport(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    await ensurePapaLoaded(); // Papaparse charge a la demande (cf ensurePapaLoaded, utils.js)
 
     Papa.parse(file, {
         header: true,
