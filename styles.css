@@ -9330,13 +9330,15 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-activity-timeline::before {
     content: '';
     position: absolute;
-    left: 2px;
-    top: 8px;
-    bottom: 8px;
+    /* left:5.5px (etait 2px) : la puce (.dashboard-activity-row::before) est positionnee par son
+       bord gauche, pas son centre - la ligne doit viser bord+largeur/2 (7px de puce), sinon elle
+       passe a cote du centre (retour utilisateur 2026-09). top/bottom:1.7rem (etait 8px) : la moitie
+       exacte de la hauteur d'une ligne (mesuree en direct), pour que le trait s'arrete au centre de
+       la 1ere/derniere puce au lieu de deborder au-dela. */
+    left: 5.5px;
+    top: 1.7rem;
+    bottom: 1.7rem;
     width: 1px;
-    /* Teinte doree, plus opaque (etait rgba(255,255,255,0.1) puis 0.3, encore trop discrete sur le
-       fond semi-transparent du panneau - retour utilisateur 2026-09) : reprend la couleur des puces
-       plutot qu'un gris neutre. */
     background: rgba(232,169,59,0.5);
 }
 
