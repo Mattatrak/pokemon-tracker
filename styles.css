@@ -9867,6 +9867,27 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     z-index: -1;
 }
 
+/* Variante horizontale compacte pour une bande pleine largeur (ex: "Top hausses" sans donnee) :
+   pas de gros cercle vertical, juste une ligne icone + texte au format d'une rangee normale. */
+.dashboard-widget-empty-inline {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0.55rem 0.5rem;
+}
+
+.dashboard-widget-empty-inline i {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    animation: none;
+}
+
+.dashboard-widget-empty-inline i::after {
+    display: none;
+}
+
 /* ----- Responsive ----- */
 
 @media (max-width: 1024px) {

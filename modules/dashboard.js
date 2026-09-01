@@ -94,7 +94,7 @@ function dashboardBuildSkeleton() {
 
     document.getElementById('dashboard-main-grid').innerHTML = `
         ${widgetsHtml}
-        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" style="display:none;">
+        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers">
             <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
             <div id="dashboard-movers-body"></div>
         </div>
@@ -524,17 +524,21 @@ async function dashboardEnrichObjectiveBudget(best, myToken) {
 // ===== TOP HAUSSES =====
 
 function renderDashboardTopMovers() {
-    const widget = document.getElementById('dashboard-widget-movers');
     const el = document.getElementById('dashboard-movers-body');
     const movers = dashboardGetLastMovers();
     const gainers = movers.filter(m => m.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 3);
 
-    // Pas de hausse : le widget entier disparaît (pas d'emplacement vide dans la grille)
+    // Pas de hausse : etat neutre plutot que de faire disparaitre la section (evite l'impression
+    // que le Dashboard est casse - meme logique que le remplisseur de Wishlist, retour 2026-09).
     if (gainers.length === 0) {
-        if (widget) widget.style.display = 'none';
+        el.innerHTML = `
+            <div class="dashboard-widget-empty-compact dashboard-widget-empty-inline">
+                <i class="ti ti-trending-up" aria-hidden="true"></i>
+                <p class="dashboard-empty-text" style="padding:0;">Aucune hausse notable ces 7 derniers jours</p>
+            </div>
+        `;
         return;
     }
-    if (widget) widget.style.display = '';
 
     el.innerHTML = gainers.map(m => `
         <div class="dashboard-mover-row">
