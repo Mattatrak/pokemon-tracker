@@ -6065,68 +6065,66 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 /* Navigation carte precedente/suivante dans la fiche detail (retour d'audit concurrence 2026-09-01).
-   Absolute dans .modal-card (comme .modal-close juste au-dessus), PAS fixed dans le fond sombre autour
-   - premiere version testee ainsi, mais invisible des que la fenetre etait plus etroite que le seuil
-   choisi meme en plein mode desktop (retour utilisateur). Superposees sur la fiche elle-meme, elles
-   restent visibles a n'importe quelle largeur ou la fiche s'affiche. Comme .modal-close, en dehors de
-   .modal-scroll (la zone qui defile reellement) : ne bougent donc pas au scroll du contenu. Masquee par
-   defaut (opacity/visibility, pas display) - .visible est posee/retiree par updateCardDetailNavButtons()
-   (card-detail.js) selon qu'une origine de navigation existe. */
+   v2 (retour utilisateur sur la v1, superposee a toute .modal-card) : ancrees sur .modal-image-frame
+   (juste l'image, pas tout le panneau texte a cote) - style "macOS Quick Look"/carrousel Instagram,
+   l'oeil associe la fleche a l'objet qu'on feuillette plutot qu'au cadre entier. Meme langage visuel
+   que .dashboard-hero-customize-btn (bouton "Reorganiser" du Dashboard) : cercle verre sombre, accent
+   dore au survol - coherent avec le reste de l'app plutot qu'un style de lightbox generique. */
 .modal-nav-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 2;
-    width: 40px;
-    height: 40px;
+    z-index: 3;
+    width: 36px;
+    height: 36px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(20,20,24,0.55);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 50%;
-    color: var(--text-primary);
-    font-size: 1.2rem;
+    color: #F7F3EA;
+    font-size: 1.05rem;
     opacity: 0;
-    visibility: hidden;
     pointer-events: none;
-    transition: opacity var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+    transition: opacity var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
 }
 
-.modal-nav-btn.visible {
+/* Apparition au survol de la zone image (pas des le rendu) : garde l'illustration de la carte nette,
+   les fleches ne se revelent que quand l'intention de naviguer est probable. Le focus clavier (Tab)
+   les revele aussi, sinon un utilisateur clavier ne les verrait jamais avant de les activer. */
+.modal-stand:hover .modal-nav-btn.visible,
+.modal-nav-btn.visible:focus-visible {
     opacity: 1;
-    visibility: visible;
     pointer-events: auto;
 }
 
-/* Case desactivee (premiere/derniere carte) : reste visible pour ne pas faire "sauter" la mise en
-   page en alternance premiere/derniere carte, juste grisee et non cliquable. */
+/* Case desactivee (premiere/derniere carte) : reste dans le DOM (pas de saut de mise en page) mais
+   jamais interactive ni reveleable au survol - grisee plutot que masquee pour rester previsible. */
 .modal-nav-btn.visible:disabled {
-    opacity: 0.25;
-    pointer-events: none;
+    opacity: 0.2 !important;
+    pointer-events: none !important;
 }
 
 .modal-nav-btn:hover:not(:disabled) {
-    background: rgba(232,169,59,0.14);
-    border-color: rgba(232,169,59,0.4);
+    background: rgba(232,169,59,0.16);
+    border-color: rgba(232,169,59,0.35);
     color: var(--gold);
 }
 
 .modal-nav-prev {
-    left: 0.75rem;
+    left: 0.5rem;
 }
 
 .modal-nav-next {
-    right: 0.75rem;
+    right: 0.5rem;
 }
 
 /* Meme seuil que le reste de l'app (nav desktop/mobile, cf navigation.css) plutot qu'un seuil dedie
-   arbitraire : sous 768px la fiche carte est deja en layout mobile (image en haut, infos en dessous,
-   peu de marge de part et d'autre) - le swipe-pour-fermer existant reste la seule interaction
-   gestuelle, pas de swipe-pour-naviguer ajoute ici. */
+   arbitraire : sous 768px la fiche carte est deja en layout mobile (image en haut, infos en dessous),
+   et le survol n'existe pas vraiment au toucher - le swipe-pour-fermer existant reste la seule
+   interaction gestuelle, pas de swipe-pour-naviguer ajoute ici. */
 @media (max-width: 768px) {
     .modal-nav-btn {
         display: none;

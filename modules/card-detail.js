@@ -103,15 +103,6 @@ function renderCardDetail(cardId) {
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
         <button class="modal-close" onclick="closeCardDetail()"><i class="ti ti-x" aria-hidden="true"></i></button>
-        <!-- Navigation carte precedente/suivante (retour d'audit concurrence 2026-09-01) : superposees
-             sur la fiche elle-meme (comme .modal-close), pas dans le fond sombre autour - visibles a
-             n'importe quelle largeur ou la fiche s'affiche, jamais dependantes d'assez de place de part
-             et d'autre. Recreees a chaque rendu (comme tout ce template) : aucun etat propre a
-             preserver, juste affichees/desactivees ensuite par updateCardDetailNavButtons(). Absentes
-             du template d'edition (showCardEditForm) - pas de verification "en cours d'edition" a faire
-             ici, l'absence du noeud suffit. -->
-        <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-        <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         <div class="modal-scroll">
         <div class="modal-body">
             <div class="modal-image-wrap">
@@ -122,6 +113,18 @@ function renderCardDetail(cardId) {
                             : getModalUploadPlaceholder(card.id)
                         }
                         ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        <!-- Navigation carte precedente/suivante (retour d'audit concurrence 2026-09-01,
+                             v2 apres retour utilisateur sur la 1ere version) : superposees sur L'IMAGE
+                             elle-meme (.modal-image-frame, pas .modal-card) - style "macOS Quick Look" /
+                             carrousel Instagram, l'oeil associe naturellement la fleche a l'objet qu'on
+                             feuillette plutot qu'au cadre entier. Apparition au survol de .modal-stand
+                             (cf CSS) pour rester discretes. Recreees a chaque rendu (comme tout ce
+                             template) : aucun etat propre a preserver, juste affichees/desactivees
+                             ensuite par updateCardDetailNavButtons(). Absentes du template d'edition
+                             (showCardEditForm) - pas de verification "en cours d'edition" a faire ici,
+                             l'absence du noeud suffit. -->
+                        <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                        <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
                     </div>
                 </div>
                 ${card.tcgdex_id ? `
