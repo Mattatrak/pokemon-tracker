@@ -6112,10 +6112,20 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     pointer-events: none !important;
 }
 
+/* transform reaffirme ici (pas juste dans la regle de base) : la regle globale "button:hover" plus
+   bas dans ce fichier pose aussi un transform (translateY(-1px), effet de "lift" generique sur tous
+   les boutons) avec une specificite superieure a .modal-nav-btn seule - sans cette reaffirmation, le
+   survol ecrasait le translateY(-50%) de centrage vertical et le bouton "sautait" vers le bas
+   (retour utilisateur : "la fleche se decale vers le bas"). */
 .modal-nav-btn:hover:not(:disabled) {
     background: rgba(232,169,59,0.16);
     border-color: rgba(232,169,59,0.35);
     color: var(--gold);
+    transform: translateY(-50%);
+}
+
+.modal-nav-btn:active:not(:disabled) {
+    transform: translateY(-50%) scale(var(--motion-scale-pressed));
 }
 
 .modal-nav-prev {
