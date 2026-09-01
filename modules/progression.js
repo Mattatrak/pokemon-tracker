@@ -1,8 +1,9 @@
 // Progression par série + ajout rapide - Pokémon Tracker
 // Dépend de: supabaseClient/API_BASE/API_EN/allCollectionCards/performCardAdd/refreshCollection/recordValueSnapshot (tracker.js),
 // sanitizeForPath/getSetIdFromTcgdexId/sortRaritiesByTier/buildRarityFilterRowHtml/getFoilIconHtml/buildFinishOptionsHtml/
-// getRarityIconHtml/initDatePicker (utils.js), getStoredImageFilenames/uploadImageToStorage/uploadSeriesLogoManually (storage.js),
-// showCardDetail/closeCardDetail (card-detail.js), getGridNoImageHtml (card-grid-renderer.js), showMessage (utils.js)
+// getRarityIconHtml/initDatePicker/getCardmarketUrl (utils.js), getStoredImageFilenames/uploadImageToStorage/uploadSeriesLogoManually (storage.js),
+// showCardDetail/closeCardDetail (card-detail.js), getGridNoImageHtml (card-grid-renderer.js), showMessage (utils.js),
+// openWishlistPicker/allWishlistItems (wishlist.js)
 // Le HTML de renderProgressionCardsGrid appelle showAddCardModal/quickInstantAdd en onclick : ces deux sous-features
 // sont couplées via le DOM, d'où leur regroupement dans un seul module.
 // Etat possédé : customQuickAddImage, QUICKADD_DEFAULTS_KEY, allTcgdexSeries, currentProgressionSetId,
@@ -930,6 +931,25 @@ async function handleQuickAddImageUpload(event, tcgdexId) {
     }
 }
 
+// Ouvre le picker de listes (modules/wishlist.js) avec cette carte TCGdex brute (jamais possedee,
+// showAddCardModal n'est appelee que pour ce cas - cf le onclick conditionnel dans
+// renderProgressionCardsGrid). Normalise vers la forme deja attendue par openWishlistPicker/
+// addPublicCardToWishlistInternal - meme principe que openWishlistPickerForPublicCard
+// (modules/public-profile.js), juste une forme source differente (TCGdex brut : card.set.name/
+// card.localId/card.pricing... au lieu du gabarit deja plat cote profil public).
+function openWishlistPickerForProgressionCard(card) {
+    openWishlistPicker({
+        tcgdex_id: card.id || null,
+        name: card.name,
+        series: card.set?.name || 'N/A',
+        number: card.localId || '?',
+        rarity: card.rarity || 'N/A',
+        image: card.image ? `${card.image}/high.webp` : '',
+        series_logo: card.set?.logo ? `${card.set.logo}.webp` : null,
+        cardmarket_id: card.pricing?.cardmarket?.idProduct || null
+    });
+}
+
 function showAddCardModal(card) {
     customQuickAddImage = null;
     const qaDefaults = getQuickAddDefaults();
@@ -940,6 +960,9 @@ function showAddCardModal(card) {
     } else if (card.pricing?.cardmarket?.['avg-holo']) {
         marketPrice = card.pricing.cardmarket['avg-holo'];
     }
+
+    const cardmarketUrl = getCardmarketUrl(card.pricing?.cardmarket?.idProduct, card.name);
+    const alreadyInWishlist = !!(card.id && typeof allWishlistItems !== 'undefined' && allWishlistItems.some(i => i.tcgdex_id === card.id));
 
     const imageUrl = card.image ? `${card.image}/high.webp` : '';
 
@@ -1007,6 +1030,25 @@ function showAddCardModal(card) {
                 </div>
 
                 <button class="modal-save-btn full-width" id="quickadd-submit-btn" onclick="submitQuickAdd(${JSON.stringify(card).replace(/"/g, '&quot;')})"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
+
+                <div class="modal-actions-col" style="margin-top: 0.75rem;">
+                    <button type="button" class="modal-action-row" ${alreadyInWishlist ? 'disabled' : `onclick="openWishlistPickerForProgressionCard(${JSON.stringify(card).replace(/"/g, '&quot;')})"`}>
+                        <span class="modal-action-icon" style="color: #E8A93B;"><i class="ti ${alreadyInWishlist ? 'ti-check' : 'ti-star'}" aria-hidden="true"></i></span>
+                        <span class="modal-action-text">
+                            <span class="modal-action-title" style="color: #E8A93B;">${alreadyInWishlist ? 'Déjà dans ma wishlist' : 'Ajouter à ma wishlist'}</span>
+                            ${!alreadyInWishlist ? '<span class="modal-action-subtitle">L\'ajouter à une de tes listes</span>' : ''}
+                        </span>
+                        ${!alreadyInWishlist ? '<i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>' : ''}
+                    </button>
+                    <a href="${cardmarketUrl}" target="_blank" rel="noopener noreferrer" class="modal-action-row">
+                        <span class="modal-action-icon" style="color: #6bcbff;"><i class="ti ti-external-link" aria-hidden="true"></i></span>
+                        <span class="modal-action-text">
+                            <span class="modal-action-title" style="color: #6bcbff;">${card.pricing?.cardmarket?.idProduct ? 'Ouvrir sur Cardmarket' : 'Chercher sur Cardmarket'}</span>
+                            <span class="modal-action-subtitle">Voir l'annonce correspondante</span>
+                        </span>
+                        <i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
             </div>
         </div>
         </div>
@@ -1124,5 +1166,6 @@ window.quickInstantAdd = quickInstantAdd;
 window.getQuickAddUploadPlaceholderHtml = getQuickAddUploadPlaceholderHtml;
 window.handleQuickAddImageUpload = handleQuickAddImageUpload;
 window.showAddCardModal = showAddCardModal;
+window.openWishlistPickerForProgressionCard = openWishlistPickerForProgressionCard;
 window.toggleQuickAddPurchasePriceField = toggleQuickAddPurchasePriceField;
 window.submitQuickAdd = submitQuickAdd;
