@@ -9,7 +9,7 @@
 .login-background {
     position: fixed;
     inset: 0;
-    background-image: url('images/login/background.webp');
+    background-image: url('/images/login/background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
