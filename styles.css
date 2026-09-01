@@ -9334,7 +9334,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     top: 8px;
     bottom: 8px;
     width: 1px;
-    background: rgba(255,255,255,0.1);
+    /* Teinte doree, plus opaque (etait rgba(255,255,255,0.1) puis 0.3, encore trop discrete sur le
+       fond semi-transparent du panneau - retour utilisateur 2026-09) : reprend la couleur des puces
+       plutot qu'un gris neutre. */
+    background: rgba(232,169,59,0.5);
 }
 
 .dashboard-activity-row {
