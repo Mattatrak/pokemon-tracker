@@ -6064,6 +6064,69 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     border-radius: 50%;
 }
 
+/* Navigation carte precedente/suivante dans la fiche detail (retour d'audit concurrence 2026-09-01).
+   Fixed (pas absolute dans .modal-card) : reste ancree aux bords du VIEWPORT, dans le fond sombre a
+   cote de la carte, jamais a l'interieur de la zone scrollable .modal-scroll. Masquee par defaut
+   (opacity/visibility, pas display) - .visible est posee/retiree par updateCardDetailNavButtons()
+   (card-detail.js) selon qu'une origine de navigation existe et qu'on n'est pas en cours d'edition. */
+.modal-nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+}
+
+.modal-nav-btn.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Case desactivee (premiere/derniere carte) : reste visible pour ne pas faire "sauter" la mise en
+   page en alternance premiere/derniere carte, juste grisee et non cliquable. */
+.modal-nav-btn.visible:disabled {
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+.modal-nav-btn:hover:not(:disabled) {
+    background: rgba(232,169,59,0.14);
+    border-color: rgba(232,169,59,0.4);
+    color: var(--gold);
+}
+
+.modal-nav-prev {
+    left: clamp(0.5rem, 3vw, 2rem);
+}
+
+.modal-nav-next {
+    right: clamp(0.5rem, 3vw, 2rem);
+}
+
+/* Masques sous 900px : pas assez de place entre le bord de l'ecran et la carte (qui occupe alors
+   quasiment toute la largeur) pour les afficher sans chevaucher le contenu - le swipe-pour-fermer
+   existant reste la seule interaction gestuelle sur mobile, pas de swipe-pour-naviguer ajoute ici. */
+@media (max-width: 900px) {
+    .modal-nav-btn {
+        display: none;
+    }
+}
+
 .modal-close:hover::before {
     border-color: var(--gold);
     background: rgba(19,19,19,0.9);

@@ -1197,6 +1197,19 @@ function initEventListeners() {
             closePublicCardDetail();
             closeCsvDropdown();
         }
+
+        // Navigation clavier carte precedente/suivante (retour d'audit concurrence 2026-09-01) : ne se
+        // declenche que si la fiche carte est active ET que le focus n'est pas dans un champ de saisie
+        // (formulaire d'edition, recherche...) - sinon les fleches gauche/droite deplaceraient le
+        // curseur de texte au lieu de changer de carte. navigateCardDetail() est lui-meme un no-op sans
+        // origine de navigation ou en bout de liste (cf card-detail.js), pas besoin de re-verifier ici.
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            const overlayActive = document.getElementById('card-detail-overlay')?.classList.contains('active');
+            const typingInField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+            if (overlayActive && !typingInField) {
+                navigateCardDetail(e.key === 'ArrowLeft' ? -1 : 1);
+            }
+        }
     });
 
     document.getElementById('card-acquisition').addEventListener('change', (e) => {
