@@ -60,22 +60,19 @@ function cardDetailGetSiblingId(direction) {
     return (targetIndex >= 0 && targetIndex < ids.length) ? ids[targetIndex] : null;
 }
 
-// Affiche/masque/active les boutons prev/next selon la position actuelle - jamais pendant l'edition
-// (le champ #edit-date-added n'existe que dans ce mode-la) pour ne pas perdre une modification en
-// cours sur un clic malencontreux. Appelee a chaque (re)rendu de la fiche, jamais recreee elle-meme.
+// Affiche/active les boutons prev/next selon la position actuelle dans le conteneur d'origine.
+// Rien a faire ici pour le cas "en cours d'edition" : le template de showCardEditForm ne contient
+// tout simplement pas ces boutons (getElementById renvoie null, sortie immediate ci-dessous).
 function updateCardDetailNavButtons() {
     const prevBtn = document.getElementById('card-detail-nav-prev');
     const nextBtn = document.getElementById('card-detail-nav-next');
     if (!prevBtn || !nextBtn) return;
 
-    const isEditing = !!document.getElementById('edit-date-added');
-    const hasPrev = !isEditing && cardDetailGetSiblingId(-1) != null;
-    const hasNext = !isEditing && cardDetailGetSiblingId(1) != null;
-
-    prevBtn.classList.toggle('visible', !isEditing && !!cardDetailOrigin);
-    nextBtn.classList.toggle('visible', !isEditing && !!cardDetailOrigin);
-    prevBtn.disabled = !hasPrev;
-    nextBtn.disabled = !hasNext;
+    const hasOrigin = !!cardDetailOrigin;
+    prevBtn.classList.toggle('visible', hasOrigin);
+    nextBtn.classList.toggle('visible', hasOrigin);
+    prevBtn.disabled = cardDetailGetSiblingId(-1) == null;
+    nextBtn.disabled = cardDetailGetSiblingId(1) == null;
 }
 
 function navigateCardDetail(direction) {
@@ -106,6 +103,15 @@ function renderCardDetail(cardId) {
     const modalCard = document.getElementById('card-detail-card');
     modalCard.innerHTML = `
         <button class="modal-close" onclick="closeCardDetail()"><i class="ti ti-x" aria-hidden="true"></i></button>
+        <!-- Navigation carte precedente/suivante (retour d'audit concurrence 2026-09-01) : superposees
+             sur la fiche elle-meme (comme .modal-close), pas dans le fond sombre autour - visibles a
+             n'importe quelle largeur ou la fiche s'affiche, jamais dependantes d'assez de place de part
+             et d'autre. Recreees a chaque rendu (comme tout ce template) : aucun etat propre a
+             preserver, juste affichees/desactivees ensuite par updateCardDetailNavButtons(). Absentes
+             du template d'edition (showCardEditForm) - pas de verification "en cours d'edition" a faire
+             ici, l'absence du noeud suffit. -->
+        <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+        <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         <div class="modal-scroll">
         <div class="modal-body">
             <div class="modal-image-wrap">
@@ -579,7 +585,6 @@ async function showCardEditForm(cardId) {
 
     document.getElementById('card-detail-overlay').classList.add('active');
     initDatePicker('#edit-date-added');
-    updateCardDetailNavButtons(); // masque prev/next pendant l'edition (cf commentaire de la fonction)
 }
 
 function toggleEditPurchasePriceField() {

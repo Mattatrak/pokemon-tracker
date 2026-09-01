@@ -1152,12 +1152,6 @@
 
     <!-- MODALE DETAIL CARTE -->
     <div class="modal-overlay" id="card-detail-overlay" onclick="if(event.target===this) closeCardDetail()">
-        <!-- Navigation carte precedente/suivante (perf/UX, retour d'audit concurrence 2026-09-01) :
-             boutons hors de #card-detail-card (jamais recrees par renderCardDetail(), juste
-             affiches/masques/actives par updateCardDetailNavButtons()) pour ne pas re-flasher a
-             chaque changement de carte. -->
-        <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-        <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         <div class="modal-card" id="card-detail-card"></div>
     </div>
 
