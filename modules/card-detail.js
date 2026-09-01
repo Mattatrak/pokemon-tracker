@@ -41,6 +41,47 @@ function showCardDetail(cardId, event) {
     runCardDetailMorphTransition(event, () => renderCardDetail(cardId));
 }
 
+// ===== NAVIGATION CARTE PRECEDENTE/SUIVANTE =====
+// S'appuie sur cardDetailOrigin (containerId) plutot que sur une liste dediee : la liste de
+// reference est directement le DOM du conteneur d'origine, dans son ordre visuel ACTUEL - reste
+// donc automatiquement cohérente avec le tri/filtre en vigueur au moment ou la fiche a ete ouverte,
+// sans dupliquer cette logique ici. Retourne null si aucune origine connue (fiche ouverte sans event,
+// cf showCardDetail) ou si la carte est en premiere/derniere position.
+function cardDetailGetSiblingId(direction) {
+    if (!cardDetailOrigin) return null;
+    const container = document.getElementById(cardDetailOrigin.containerId);
+    if (!container) return null;
+
+    const ids = [...container.querySelectorAll('[data-card-id]')].map(el => Number(el.dataset.cardId));
+    const currentIndex = ids.indexOf(cardDetailOrigin.cardId);
+    if (currentIndex === -1) return null;
+
+    const targetIndex = currentIndex + direction;
+    return (targetIndex >= 0 && targetIndex < ids.length) ? ids[targetIndex] : null;
+}
+
+// Affiche/active les boutons prev/next selon la position actuelle dans le conteneur d'origine.
+// Rien a faire ici pour le cas "en cours d'edition" : le template de showCardEditForm ne contient
+// tout simplement pas ces boutons (getElementById renvoie null, sortie immediate ci-dessous).
+function updateCardDetailNavButtons() {
+    const prevBtn = document.getElementById('card-detail-nav-prev');
+    const nextBtn = document.getElementById('card-detail-nav-next');
+    if (!prevBtn || !nextBtn) return;
+
+    const hasOrigin = !!cardDetailOrigin;
+    prevBtn.classList.toggle('visible', hasOrigin);
+    nextBtn.classList.toggle('visible', hasOrigin);
+    prevBtn.disabled = cardDetailGetSiblingId(-1) == null;
+    nextBtn.disabled = cardDetailGetSiblingId(1) == null;
+}
+
+function navigateCardDetail(direction) {
+    const targetId = cardDetailGetSiblingId(direction);
+    if (targetId == null) return;
+    cardDetailOrigin = { cardId: targetId, containerId: cardDetailOrigin.containerId };
+    renderCardDetail(targetId);
+}
+
 function renderCardDetail(cardId) {
     const card = allCollectionCards.find(c => c.id === cardId);
     if (!card) return;
@@ -72,6 +113,18 @@ function renderCardDetail(cardId) {
                             : getModalUploadPlaceholder(card.id)
                         }
                         ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        <!-- Navigation carte precedente/suivante (retour d'audit concurrence 2026-09-01,
+                             v2 apres retour utilisateur sur la 1ere version) : superposees sur L'IMAGE
+                             elle-meme (.modal-image-frame, pas .modal-card) - style "macOS Quick Look" /
+                             carrousel Instagram, l'oeil associe naturellement la fleche a l'objet qu'on
+                             feuillette plutot qu'au cadre entier. Apparition au survol de .modal-stand
+                             (cf CSS) pour rester discretes. Recreees a chaque rendu (comme tout ce
+                             template) : aucun etat propre a preserver, juste affichees/desactivees
+                             ensuite par updateCardDetailNavButtons(). Absentes du template d'edition
+                             (showCardEditForm) - pas de verification "en cours d'edition" a faire ici,
+                             l'absence du noeud suffit. -->
+                        <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                        <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
                     </div>
                 </div>
                 ${card.tcgdex_id ? `
@@ -191,6 +244,7 @@ function renderCardDetail(cardId) {
     `;
 
     document.getElementById('card-detail-overlay').classList.add('active');
+    updateCardDetailNavButtons();
 
     if (card.tcgdex_id) {
         if (window.matchMedia('(max-width: 768px)').matches) {
@@ -630,6 +684,7 @@ function closeCardDetail() {
 
     const origin = cardDetailOrigin;
     cardDetailOrigin = null;
+    updateCardDetailNavButtons();
 
     const sourceEl = origin ? findVisibleCardDetailSource(origin.containerId, origin.cardId) : null;
     const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
@@ -754,6 +809,7 @@ async function handleCollectionImageUpload(event, cardId) {
 // (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.showCardDetail = showCardDetail;
+window.navigateCardDetail = navigateCardDetail;
 window.cardPriceChartInstance = cardPriceChartInstance;
 window.cardPriceChartData = cardPriceChartData;
 window.renderCardPriceChart = renderCardPriceChart;

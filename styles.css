@@ -6064,6 +6064,114 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     border-radius: 50%;
 }
 
+/* Navigation carte precedente/suivante dans la fiche detail (retour d'audit concurrence 2026-09-01).
+   v2 : ancrees sur .modal-image-frame (juste l'image, pas tout le panneau texte a cote) - style "macOS
+   Quick Look"/carrousel Instagram, l'oeil associe la fleche a l'objet qu'on feuillette plutot qu'au
+   cadre entier. v3 (retour utilisateur : quasi invisibles) : le fond verre clair de
+   .dashboard-hero-customize-btn (rgba blanc 8%) marche sur un fond sombre uniforme, mais se noie sur
+   un art de carte variable derriere - repris le fond sombre opaque + ombre de .qty-badge/.price-badge
+   (meme constat deja fait pour ces badges, "trop pale sur des arts de carte varies") pour se detacher
+   de n'importe quel visuel de carte. */
+.modal-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(22,27,41,0.88);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 50%;
+    color: #F7F3EA;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+}
+
+/* Apparition au survol de la zone image (pas des le rendu) : garde l'illustration de la carte nette,
+   les fleches ne se revelent que quand l'intention de naviguer est probable. Le focus clavier (Tab)
+   les revele aussi, sinon un utilisateur clavier ne les verrait jamais avant de les activer. */
+.modal-stand:hover .modal-nav-btn.visible,
+.modal-nav-btn.visible:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Case desactivee (premiere/derniere carte) : reste dans le DOM (pas de saut de mise en page) mais
+   jamais interactive ni reveleable au survol - grisee plutot que masquee pour rester previsible.
+   0.45 (pas 0.2) : au-dela le fond sombre opaque perd son contraste contre l'art de carte et le
+   bouton redevient aussi invisible que la v3 initiale, juste dans un autre etat. */
+.modal-nav-btn.visible:disabled {
+    opacity: 0.45 !important;
+    pointer-events: none !important;
+}
+
+/* transform reaffirme ici (pas juste dans la regle de base) : la regle globale "button:hover" plus
+   bas dans ce fichier pose aussi un transform (translateY(-1px), effet de "lift" generique sur tous
+   les boutons) avec une specificite superieure a .modal-nav-btn seule - sans cette reaffirmation, le
+   survol ecrasait le translateY(-50%) de centrage vertical et le bouton "sautait" vers le bas
+   (retour utilisateur : "la fleche se decale vers le bas"). */
+.modal-nav-btn:hover:not(:disabled) {
+    background: rgba(232,169,59,0.16);
+    border-color: rgba(232,169,59,0.35);
+    color: var(--gold);
+    transform: translateY(-50%);
+}
+
+.modal-nav-btn:active:not(:disabled) {
+    transform: translateY(-50%) scale(var(--motion-scale-pressed));
+}
+
+.modal-nav-prev {
+    left: 0.5rem;
+}
+
+.modal-nav-next {
+    right: 0.5rem;
+}
+
+/* Meme seuil que le reste de l'app (nav desktop/mobile, cf navigation.css). Le swipe horizontal
+   (tracker.js) couvre la navigation sur mobile, mais rien ne signalait qu'il existait - masquer
+   entierement les fleches (comme la toute premiere version) laissait le geste totalement invisible
+   (retour utilisateur). Le survol n'existant pas au toucher, .visible seul (sans le prefixe
+   ".modal-stand:hover" requis plus haut) suffit a les rendre visibles en permanence, a faible
+   opacite : servent a la fois d'indice ("cette fiche se feuillette") et de repli tapable si le
+   swipe est rate ou pas tente. Agrandies a 44px (cible tactile, meme raison que .modal-close
+   juste en dessous). */
+@media (max-width: 768px) {
+    .modal-nav-btn.visible {
+        opacity: 0.55;
+        pointer-events: auto;
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+
+    .modal-nav-btn.visible:active:not(:disabled) {
+        opacity: 1;
+    }
+
+    /* Sur les cotes de l'image, pas dessus (retour utilisateur) : sous 768px, .modal-image-frame est
+       plafonnee a 220px et centree dans .modal-stand qui reste a 316px (cf regle plus bas dans ce
+       fichier, deja en place pour d'autres raisons) - une vraie marge d'env. 48px existe donc de
+       chaque cote, contrairement au desktop ou la fleche devait forcement chevaucher l'image faute
+       de place. -46px : bouton de 44px centre dans cette marge (48px), ni colle a l'image ni colle
+       au bord de la feuille mobile. */
+    .modal-nav-prev {
+        left: -58px;
+    }
+
+    .modal-nav-next {
+        right: -58px;
+    }
+}
+
 .modal-close:hover::before {
     border-color: var(--gold);
     background: rgba(19,19,19,0.9);

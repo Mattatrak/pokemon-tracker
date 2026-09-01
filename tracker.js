@@ -1197,6 +1197,19 @@ function initEventListeners() {
             closePublicCardDetail();
             closeCsvDropdown();
         }
+
+        // Navigation clavier carte precedente/suivante (retour d'audit concurrence 2026-09-01) : ne se
+        // declenche que si la fiche carte est active ET que le focus n'est pas dans un champ de saisie
+        // (formulaire d'edition, recherche...) - sinon les fleches gauche/droite deplaceraient le
+        // curseur de texte au lieu de changer de carte. navigateCardDetail() est lui-meme un no-op sans
+        // origine de navigation ou en bout de liste (cf card-detail.js), pas besoin de re-verifier ici.
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            const overlayActive = document.getElementById('card-detail-overlay')?.classList.contains('active');
+            const typingInField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+            if (overlayActive && !typingInField) {
+                navigateCardDetail(e.key === 'ArrowLeft' ? -1 : 1);
+            }
+        }
     });
 
     document.getElementById('card-acquisition').addEventListener('change', (e) => {
@@ -1375,6 +1388,45 @@ document.addEventListener('touchend', () => {
         card.style.transform = '';
     }
     swipeDismissDeltaY = 0;
+});
+
+// ===== Swipe horizontal : carte precedente/suivante sur mobile (retour utilisateur 2026-09-01) =====
+// Scope volontairement etroit (.modal-image-frame, pas toute .modal-card) : le geste de fermeture
+// ci-dessus ne demarre que dans une petite poignee en haut de la carte (isInSwipeDismissHandle),
+// aucun chevauchement possible avec l'image plus bas - mais reste volontairement hors de
+// .modal-scroll (defilement vertical du reste de la fiche) pour ne jamais transformer un scroll en
+// navigation accidentelle. Pas de suivi visuel du doigt (contrairement au swipe de fermeture) : juste
+// une detection au relachement, plus simple et suffisant pour un premier jet.
+const SWIPE_NAV_THRESHOLD = 50;
+
+let swipeNavActive = false;
+let swipeNavStartX = 0;
+let swipeNavStartY = 0;
+
+document.addEventListener('touchstart', (event) => {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    if (!event.target.closest('#card-detail-card .modal-image-frame')) return;
+
+    swipeNavActive = true;
+    swipeNavStartX = event.touches[0].clientX;
+    swipeNavStartY = event.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (event) => {
+    if (!swipeNavActive) return;
+    swipeNavActive = false;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - swipeNavStartX;
+    const deltaY = touch.clientY - swipeNavStartY;
+
+    // Horizontal dominant + seuil franchi : un scroll vertical ou un simple tap ne doit jamais
+    // declencher de navigation. navigateCardDetail() est deja un no-op silencieux sans origine ou en
+    // bout de liste (card-detail.js), pas besoin de reverifier l'etat des boutons ici (masques sur
+    // mobile de toute facon).
+    if (Math.abs(deltaX) > SWIPE_NAV_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+        navigateCardDetail(deltaX < 0 ? 1 : -1);
+    }
 });
 
 // ===== Exports window (ticket V2 Vite, type="module") =====
