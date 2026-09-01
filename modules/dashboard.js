@@ -253,7 +253,10 @@ function renderDashboardActivity() {
         return;
     }
 
-    el.innerHTML = items.slice(0, 4).map(item => {
+    // Timeline (passe premium 2026-09, cf mockup) : ligne verticale + puce par entree, gold pour un
+    // ajout, verte/rouge pour une variation de prix - meme info qu'avant, juste un repere visuel en
+    // plus (dashboard-activity-row--up/--down pilotent la couleur de la puce, cf styles.css).
+    const rowsHtml = items.slice(0, 4).map(item => {
         if (item.type === 'add') {
             return `
                 <div class="dashboard-activity-row" ${item.id != null ? `data-card-id="${item.id}" onclick="showCardDetail(${item.id}, event)"` : ''}>
@@ -268,8 +271,9 @@ function renderDashboardActivity() {
             `;
         }
         const cls = item.delta > 0 ? 'dashboard-positive' : 'dashboard-negative';
+        const rowCls = item.delta > 0 ? 'dashboard-activity-row--up' : 'dashboard-activity-row--down';
         return `
-            <div class="dashboard-activity-row">
+            <div class="dashboard-activity-row ${rowCls}">
                 <div class="dashboard-activity-text">
                     <div class="dashboard-activity-name">${escapeHtml(item.name)}</div>
                     <div class="dashboard-activity-sub">#${escapeHtml(String(item.number))} · Prix ${item.delta > 0 ? 'en hausse' : 'en baisse'}</div>
@@ -280,6 +284,8 @@ function renderDashboardActivity() {
             </div>
         `;
     }).join('');
+
+    el.innerHTML = `<div class="dashboard-activity-timeline">${rowsHtml}</div>`;
 }
 
 // ===== OBJECTIF ACTUEL =====

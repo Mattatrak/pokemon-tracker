@@ -9319,7 +9319,26 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* ----- Activite recente ----- */
 
+/* Fil chronologique (passe premium 2026-09, cf mockup) : ligne verticale continue + puce par entree,
+   dans la gouttiere ajoutee a gauche (padding-left) - jamais chevauchee par le fond de survol des
+   lignes (leur marge negative -0.5rem reste bien en-deca de la puce a -0.85rem). */
+.dashboard-activity-timeline {
+    position: relative;
+    padding-left: 0.9rem;
+}
+
+.dashboard-activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: rgba(255,255,255,0.1);
+}
+
 .dashboard-activity-row {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -9330,6 +9349,29 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-bottom: 1px solid rgba(255,255,255,0.08);
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease;
+}
+
+.dashboard-activity-row::before {
+    content: '';
+    position: absolute;
+    left: -0.28rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 3px rgba(232,169,59,0.15);
+}
+
+.dashboard-activity-row--up::before {
+    background: #7ED9A7;
+    box-shadow: 0 0 0 3px rgba(126,217,167,0.15);
+}
+
+.dashboard-activity-row--down::before {
+    background: #FF6B6B;
+    box-shadow: 0 0 0 3px rgba(255,107,107,0.15);
 }
 
 .dashboard-activity-row:hover {
