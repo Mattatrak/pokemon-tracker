@@ -6065,11 +6065,13 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 /* Navigation carte precedente/suivante dans la fiche detail (retour d'audit concurrence 2026-09-01).
-   v2 (retour utilisateur sur la v1, superposee a toute .modal-card) : ancrees sur .modal-image-frame
-   (juste l'image, pas tout le panneau texte a cote) - style "macOS Quick Look"/carrousel Instagram,
-   l'oeil associe la fleche a l'objet qu'on feuillette plutot qu'au cadre entier. Meme langage visuel
-   que .dashboard-hero-customize-btn (bouton "Reorganiser" du Dashboard) : cercle verre sombre, accent
-   dore au survol - coherent avec le reste de l'app plutot qu'un style de lightbox generique. */
+   v2 : ancrees sur .modal-image-frame (juste l'image, pas tout le panneau texte a cote) - style "macOS
+   Quick Look"/carrousel Instagram, l'oeil associe la fleche a l'objet qu'on feuillette plutot qu'au
+   cadre entier. v3 (retour utilisateur : quasi invisibles) : le fond verre clair de
+   .dashboard-hero-customize-btn (rgba blanc 8%) marche sur un fond sombre uniforme, mais se noie sur
+   un art de carte variable derriere - repris le fond sombre opaque + ombre de .qty-badge/.price-badge
+   (meme constat deja fait pour ces badges, "trop pale sur des arts de carte varies") pour se detacher
+   de n'importe quel visuel de carte. */
 .modal-nav-btn {
     position: absolute;
     top: 50%;
@@ -6081,11 +6083,12 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(22,27,41,0.88);
+    border: 1px solid rgba(255,255,255,0.22);
     border-radius: 50%;
     color: #F7F3EA;
     font-size: 1.05rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
@@ -6101,9 +6104,11 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 /* Case desactivee (premiere/derniere carte) : reste dans le DOM (pas de saut de mise en page) mais
-   jamais interactive ni reveleable au survol - grisee plutot que masquee pour rester previsible. */
+   jamais interactive ni reveleable au survol - grisee plutot que masquee pour rester previsible.
+   0.45 (pas 0.2) : au-dela le fond sombre opaque perd son contraste contre l'art de carte et le
+   bouton redevient aussi invisible que la v3 initiale, juste dans un autre etat. */
 .modal-nav-btn.visible:disabled {
-    opacity: 0.2 !important;
+    opacity: 0.45 !important;
     pointer-events: none !important;
 }
 
