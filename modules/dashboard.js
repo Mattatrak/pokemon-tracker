@@ -229,7 +229,7 @@ function dashboardRelativeTime(dateInput) {
 function renderDashboardActivity() {
     const el = document.getElementById('dashboard-activity-body');
 
-    const recentAdds = allCollectionCards.slice(0, 3).map(c => ({
+    const recentAdds = allCollectionCards.slice(0, 6).map(c => ({
         type: 'add',
         id: c.id,
         name: c.name,
@@ -244,7 +244,7 @@ function renderDashboardActivity() {
 
     const items = [...recentAdds];
     for (const m of movers) {
-        if (items.length >= 4) break;
+        if (items.length >= 6) break;
         items.push({ type: 'mover', name: m.name, number: m.number, delta: m.delta });
     }
 
@@ -256,7 +256,7 @@ function renderDashboardActivity() {
     // Timeline (passe premium 2026-09, cf mockup) : ligne verticale + puce par entree, gold pour un
     // ajout, verte/rouge pour une variation de prix - meme info qu'avant, juste un repere visuel en
     // plus (dashboard-activity-row--up/--down pilotent la couleur de la puce, cf styles.css).
-    const rowsHtml = items.slice(0, 4).map(item => {
+    const rowsHtml = items.slice(0, 6).map(item => {
         if (item.type === 'add') {
             return `
                 <div class="dashboard-activity-row" ${item.id != null ? `data-card-id="${item.id}" onclick="showCardDetail(${item.id}, event)"` : ''}>
