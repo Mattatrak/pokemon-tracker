@@ -6157,12 +6157,18 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         opacity: 1;
     }
 
+    /* Sur les cotes de l'image, pas dessus (retour utilisateur) : sous 768px, .modal-image-frame est
+       plafonnee a 220px et centree dans .modal-stand qui reste a 316px (cf regle plus bas dans ce
+       fichier, deja en place pour d'autres raisons) - une vraie marge d'env. 48px existe donc de
+       chaque cote, contrairement au desktop ou la fleche devait forcement chevaucher l'image faute
+       de place. -46px : bouton de 44px centre dans cette marge (48px), ni colle a l'image ni colle
+       au bord de la feuille mobile. */
     .modal-nav-prev {
-        left: 0.35rem;
+        left: -58px;
     }
 
     .modal-nav-next {
-        right: 0.35rem;
+        right: -58px;
     }
 }
 
