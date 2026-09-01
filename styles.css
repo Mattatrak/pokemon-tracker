@@ -9411,6 +9411,15 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     cursor: default;
 }
 
+.dashboard-customize-row--hidden {
+    opacity: 0.5;
+}
+
+.dashboard-customize-row--hidden .dashboard-customize-actions button[aria-label="Afficher"] {
+    color: var(--gold);
+    border-color: rgba(232,169,59,0.35);
+}
+
 .dashboard-widget-header h3 {
     font-size: 1.05rem;
     font-weight: 700;

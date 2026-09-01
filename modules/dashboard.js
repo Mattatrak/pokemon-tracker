@@ -25,13 +25,23 @@ async function renderDashboard() {
 
     dashboardRenderSafe('dashboard-hero', renderDashboardHero);
     dashboardRenderSafe('dashboard-kpis', renderDashboardKpis);
-    dashboardRenderSafe('dashboard-activity-body', renderDashboardActivity);
-    dashboardRenderSafe('dashboard-objective-body', renderDashboardObjective);
     dashboardRenderSafe('dashboard-movers-body', renderDashboardTopMovers);
-    dashboardRenderSafe('dashboard-acquisitions-body', renderDashboardAcquisitions);
-    dashboardRenderSafe('dashboard-todo-body', renderDashboardTodo);
-    dashboardRenderSafe('dashboard-wishlist-body', renderDashboardWishlist);
-    dashboardRenderSafe('dashboard-collectors-body', renderDashboardCollectorsSearch);
+
+    // Chaque section reordonnable/masquable rend seulement si dashboardBuildSkeleton lui a construit
+    // un conteneur (cf. filtre "hidden" ci-dessus) - sinon document.getElementById(bodyId) est null.
+    const widgetRenderers = {
+        activity: renderDashboardActivity,
+        objective: renderDashboardObjective,
+        acquisitions: renderDashboardAcquisitions,
+        todo: renderDashboardTodo,
+        wishlist: renderDashboardWishlist,
+        collectors: renderDashboardCollectorsSearch
+    };
+    Object.entries(widgetRenderers).forEach(([key, renderFn]) => {
+        if (document.getElementById(DASHBOARD_WIDGET_DEFS[key].bodyId)) {
+            dashboardRenderSafe(DASHBOARD_WIDGET_DEFS[key].bodyId, renderFn);
+        }
+    });
 
     dashboardNeedsRefresh = false;
 }
@@ -75,12 +85,38 @@ function saveDashboardWidgetOrder(order) {
     localStorage.setItem(DASHBOARD_WIDGET_ORDER_KEY, JSON.stringify(order));
 }
 
+const DASHBOARD_HIDDEN_WIDGETS_KEY = 'dashboardHiddenWidgets';
+
+// Sections masquees par l'utilisateur (localStorage, meme convention que l'ordre ci-dessus). Ignore
+// toute clef qui ne correspond plus a une section existante (widget retire depuis).
+function getDashboardHiddenWidgets() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_HIDDEN_WIDGETS_KEY) || '[]');
+        if (Array.isArray(stored)) return stored.filter(key => DASHBOARD_WIDGET_DEFS[key]);
+    } catch (e) { /* stockage corrompu, repli sur aucune section masquee */ }
+    return [];
+}
+
+function saveDashboardHiddenWidgets(hidden) {
+    localStorage.setItem(DASHBOARD_HIDDEN_WIDGETS_KEY, JSON.stringify(hidden));
+}
+
+function toggleDashboardWidgetVisibility(key) {
+    const hidden = getDashboardHiddenWidgets();
+    const i = hidden.indexOf(key);
+    if (i === -1) hidden.push(key); else hidden.splice(i, 1);
+    saveDashboardHiddenWidgets(hidden);
+    renderDashboardCustomizeList();
+    markDashboardDirty();
+}
+
 // Structure fixe des 3 zones (header/hero à part, KPI, grille principale, grille basse) : construite une
 // seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne.
 // L'ordre des 6 premieres vient de getDashboardWidgetOrder() (personnalisable, cf.
 // openDashboardCustomizeModal) ; "Top hausses" reste toujours en dernier, hors reordonnancement.
 function dashboardBuildSkeleton() {
-    const widgetsHtml = getDashboardWidgetOrder().map(key => {
+    const hidden = getDashboardHiddenWidgets();
+    const widgetsHtml = getDashboardWidgetOrder().filter(key => !hidden.includes(key)).map(key => {
         const def = DASHBOARD_WIDGET_DEFS[key];
         const linkHtml = def.link ? `<button class="dashboard-widget-link" onclick="navigateToTab('${def.link.tab}')">${def.link.label}</button>` : '';
         const sizeClass = def.size === 'large' ? 'dashboard-widget-size-large' : '';
@@ -114,23 +150,28 @@ function closeDashboardCustomizeModal() {
 
 function renderDashboardCustomizeList() {
     const order = getDashboardWidgetOrder();
+    const hidden = getDashboardHiddenWidgets();
     const content = document.getElementById('dashboard-customize-content');
 
-    const rowsHtml = order.map((key, i) => `
-        <div class="dashboard-customize-row">
+    const rowsHtml = order.map((key, i) => {
+        const isHidden = hidden.includes(key);
+        return `
+        <div class="dashboard-customize-row ${isHidden ? 'dashboard-customize-row--hidden' : ''}">
             <span class="dashboard-customize-name">${DASHBOARD_WIDGET_DEFS[key].title}</span>
             <div class="dashboard-customize-actions">
+                <button type="button" onclick="toggleDashboardWidgetVisibility('${key}')" aria-label="${isHidden ? 'Afficher' : 'Masquer'}" title="${isHidden ? 'Afficher cette section' : 'Masquer cette section'}"><i class="ti ${isHidden ? 'ti-eye-off' : 'ti-eye'}" aria-hidden="true"></i></button>
                 <button type="button" ${i === 0 ? 'disabled' : ''} onclick="moveDashboardWidget('${key}', -1)" aria-label="Monter"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>
                 <button type="button" ${i === order.length - 1 ? 'disabled' : ''} onclick="moveDashboardWidget('${key}', 1)" aria-label="Descendre"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     content.innerHTML = `
         <button class="modal-close" onclick="closeDashboardCustomizeModal()">✕</button>
         <div class="modal-scroll">
             <div class="modal-title" style="margin-bottom: 0.4rem;">Réorganiser l'accueil</div>
-            <p style="color: var(--slate); font-size: 0.82rem; margin-bottom: 1rem;">Change l'ordre des sections avec les flèches. "Top hausses" reste toujours en dernier.</p>
+            <p style="color: var(--slate); font-size: 0.82rem; margin-bottom: 1rem;">Change l'ordre avec les flèches, masque une section avec l'œil. "Top hausses" reste toujours en dernier.</p>
             <div class="dashboard-customize-list">${rowsHtml}</div>
         </div>
     `;
@@ -758,6 +799,7 @@ window.dashboardBuildSkeleton = dashboardBuildSkeleton;
 window.openDashboardCustomizeModal = openDashboardCustomizeModal;
 window.closeDashboardCustomizeModal = closeDashboardCustomizeModal;
 window.moveDashboardWidget = moveDashboardWidget;
+window.toggleDashboardWidgetVisibility = toggleDashboardWidgetVisibility;
 window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
 window.renderDashboardHeader = renderDashboardHeader;
 window.dashboardGetLastMovers = dashboardGetLastMovers;
