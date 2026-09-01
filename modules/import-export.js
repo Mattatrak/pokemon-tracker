@@ -385,47 +385,81 @@ async function processCsvImportRows(rows) {
     let successCount = 0;
     const failures = [];
 
-    for (let i = 0; i < validRows.length; i++) {
-        const row = validRows[i];
+    // Phase 1 : resolution TCGdex (2-3 requetes reseau par ligne : recherche FR+EN puis detail) en
+    // parallele par lots de 5 (meme pattern que tracker.js/wishlist.js/progression.js) - c'est le vrai
+    // goulot d'etranglement de l'import (audit 2026-08-15, categorie B), et purement en lecture donc
+    // sans risque a paralleliser (aucun etat partage entre les lignes a ce stade).
+    const resolved = new Array(validRows.length);
+    const batchSize = 5;
+    for (let i = 0; i < validRows.length; i += batchSize) {
+        const batch = validRows.slice(i, i + batchSize);
         content.innerHTML = `
             <div class="modal-scroll">
-                <div class="modal-title" style="margin-bottom: 1rem;">Import en cours...</div>
-                <p style="color: var(--slate);">${i + 1} / ${total} — ${escapeHtml(row.Nom)}</p>
+                <div class="modal-title" style="margin-bottom: 1rem;">Recherche des cartes...</div>
+                <p style="color: var(--slate);">${Math.min(i + batchSize, total)} / ${total}</p>
             </div>
         `;
 
-        try {
-            const matches = await findTcgdexMatch(row.Nom, row.Serie, row.Numero);
-
-            if (matches.length !== 1) {
-                failures.push({
-                    nom: row.Nom,
-                    raison: matches.length === 0 ? 'Aucune correspondance trouvée' : `${matches.length} correspondances possibles (ambigu)`
-                });
-                continue;
-            }
-
-            // Récupérer les détails complets (prix, image...) pour un ajout fidèle
-            let detail = null;
+        await Promise.all(batch.map(async (row, j) => {
             try {
-                let r = await fetch(`${API_BASE}/cards/${matches[0].id}`);
-                let d = await r.json();
-                if (!d || d.status) {
-                    const r2 = await fetch(`${API_EN}/cards/${matches[0].id}`);
-                    d = await r2.json();
+                const matches = await findTcgdexMatch(row.Nom, row.Serie, row.Numero);
+
+                if (matches.length !== 1) {
+                    resolved[i + j] = {
+                        row,
+                        error: matches.length === 0 ? 'Aucune correspondance trouvée' : `${matches.length} correspondances possibles (ambigu)`
+                    };
+                    return;
                 }
-                if (d && !d.status) detail = d;
-            } catch (e) { /* on utilisera le filet de sécurité ci-dessous */ }
 
-            if (!detail) detail = matches[0];
+                // Récupérer les détails complets (prix, image...) pour un ajout fidèle
+                let detail = null;
+                try {
+                    let r = await fetch(`${API_BASE}/cards/${matches[0].id}`);
+                    let d = await r.json();
+                    if (!d || d.status) {
+                        const r2 = await fetch(`${API_EN}/cards/${matches[0].id}`);
+                        d = await r2.json();
+                    }
+                    if (d && !d.status) detail = d;
+                } catch (e) { /* on utilisera le filet de sécurité ci-dessous */ }
 
+                resolved[i + j] = { row, detail: detail || matches[0] };
+            } catch (error) {
+                resolved[i + j] = { row, error: 'Erreur inattendue' };
+                console.error(error);
+            }
+        }));
+    }
+
+    // Phase 2 : ecriture Supabase strictement sequentielle (contrairement a la phase 1) - performCardAdd
+    // fait un lire-puis-ecrire sur monthly_summary (recordMonthlyStats) et une deduplication par ligne
+    // existante (findExistingCardRow) : paralleliser cette phase perdrait des increments (deux lignes du
+    // meme mois qui lisent le meme total avant que l'une des deux ecrive) ou creerait des doublons (deux
+    // lignes identiques du CSV qui se voient toutes les deux "pas encore presente").
+    for (let i = 0; i < resolved.length; i++) {
+        const item = resolved[i];
+        content.innerHTML = `
+            <div class="modal-scroll">
+                <div class="modal-title" style="margin-bottom: 1rem;">Import en cours...</div>
+                <p style="color: var(--slate);">${i + 1} / ${total} — ${escapeHtml(item.row.Nom)}</p>
+            </div>
+        `;
+
+        if (item.error) {
+            failures.push({ nom: item.row.Nom, raison: item.error });
+            continue;
+        }
+
+        const row = item.row;
+        try {
             const condition = (row.Etat || 'NM').trim().toUpperCase();
             const quantity = parseInt(row.Quantite) || 1;
             const purchasePrice = parseFloat((row.Prix || '0').replace(',', '.')) || 0;
             const acquisitionType = normalizeForMatch(row.Obtention) === 'booster' ? 'pack' : 'achat';
             const customDate = parseCsvDate(row.Date);
 
-            await performCardAdd(detail, {
+            await performCardAdd(item.detail, {
                 condition: ['NM', 'LP', 'MP', 'HP'].includes(condition) ? condition : 'NM',
                 quantity,
                 acquisitionType,
