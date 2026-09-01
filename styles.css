@@ -9147,6 +9147,40 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-top: 0.5rem;
 }
 
+/* Bouton "Reorganiser" (passe personnalisation 2026-09) : place ici plutot que dans
+   .dashboard-header-actions, qui est masque en CSS sur cette page (body.page-dashboard
+   .dashboard-header { display:none !important } - vestige d'une ancienne version du hero, jamais
+   visible). Coin superieur droit du hero, discret, hors du flux du texte/KPI. */
+.dashboard-hero-customize-btn {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.1rem;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    /* padding:0 indispensable : le reset generique "button { padding:0.75rem 1.5rem }" (styles.css)
+       n'est jamais annule par un width explicite sur un <button> - constate en direct, le bouton
+       restait bloque a 50px (= padding 48px + bordure 2px) malgre width:34px. Meme fix que
+       .modal-close, qui a le meme padding:0 pour la meme raison. */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 50%;
+    color: #F7F3EA;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
+}
+
+.dashboard-hero-customize-btn:hover {
+    background: rgba(232,169,59,0.16);
+    border-color: rgba(232,169,59,0.35);
+    color: var(--gold);
+}
+
 .dashboard-btn-primary,
 .dashboard-btn-secondary {
     padding: 0.7rem 1.1rem;

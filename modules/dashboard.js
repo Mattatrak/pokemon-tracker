@@ -164,7 +164,6 @@ function renderDashboardHeader() {
         </div>
         <div class="dashboard-header-actions">
             ${lastRefreshHtml}
-            <button class="filter-toggle-btn" onclick="openDashboardCustomizeModal()" title="Réorganiser les sections"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Réorganiser</button>
             <button class="dashboard-add-btn" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
         </div>
     `;
@@ -202,6 +201,8 @@ function renderDashboardHero() {
             <span class="dashboard-hero-pokeball"></span>
             <span class="dashboard-hero-stars"></span>
         </div>
+
+        <button class="dashboard-hero-customize-btn" onclick="openDashboardCustomizeModal()" title="Réorganiser les sections" aria-label="Réorganiser les sections"><i class="ti ti-layout-grid-add" aria-hidden="true"></i></button>
 
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
