@@ -646,10 +646,24 @@ async function renderProgressionCardsGrid() {
     const grid = document.getElementById('progression-cards-grid');
     const searchTerm = document.getElementById('progression-search').value.toLowerCase();
 
+    // Index cartes possedees par tcgdex_id (audit 2026-08-15, categorie B) : construit une seule fois
+    // par rendu (O(collection)) plutot que de laisser isOwnedInMode/ownedCardRow/ownedQuantity
+    // rescanner allCollectionCards en entier a chaque carte du set (O(set*collection) - lag ressenti
+    // sur un gros set avec une grosse collection). Cle = tcgdex_id, valeur = toutes les lignes
+    // possedees pour cet id (generalement 1, plusieurs si differentes finitions/etats).
+    const ownedRowsByTcgdexId = new Map();
+    allCollectionCards.forEach(c => {
+        if (!c.tcgdex_id) return;
+        if (!ownedRowsByTcgdexId.has(c.tcgdex_id)) ownedRowsByTcgdexId.set(c.tcgdex_id, []);
+        ownedRowsByTcgdexId.get(c.tcgdex_id).push(c);
+    });
+
     // Une carte est "possédée" dans un mode donné si on en a une ligne avec cette finition précise
     // (les cartes sans finish renseigné - ajoutées avant cette fonctionnalité - comptent comme "normal")
-    const isOwnedInMode = (tcgdexId, mode) =>
-        allCollectionCards.some(c => c.tcgdex_id === tcgdexId && (c.finish || 'normal') === mode);
+    const isOwnedInMode = (tcgdexId, mode) => {
+        const rows = ownedRowsByTcgdexId.get(tcgdexId);
+        return !!rows && rows.some(c => (c.finish || 'normal') === mode);
+    };
 
     let baseCards = currentProgressionCards;
     if (progressionFinishMode !== 'normal') {
@@ -703,14 +717,11 @@ async function renderProgressionCardsGrid() {
 
     grid.innerHTML = cards.map(card => {
         const owned = isOwnedInMode(card.id, progressionFinishMode);
-        const ownedCardRow = owned
-            ? allCollectionCards.find(c => c.tcgdex_id === card.id && (c.finish || 'normal') === progressionFinishMode)
-            : null;
-        const ownedQuantity = owned
-            ? allCollectionCards
-                .filter(c => c.tcgdex_id === card.id && (c.finish || 'normal') === progressionFinishMode)
-                .reduce((sum, c) => sum + Number(c.quantity || 1), 0)
-            : 0;
+        const ownedRowsForCard = owned
+            ? (ownedRowsByTcgdexId.get(card.id) || []).filter(c => (c.finish || 'normal') === progressionFinishMode)
+            : [];
+        const ownedCardRow = ownedRowsForCard[0] || null;
+        const ownedQuantity = ownedRowsForCard.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
 
         let imageUrl = '';
         if (ownedCardRow && ownedCardRow.image) {
