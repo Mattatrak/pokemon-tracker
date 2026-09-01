@@ -16,7 +16,18 @@
    impossible via 1fr sur mobile). */
 
 :root {
-    --binder-slot-w: clamp(120px, min(15.5vw, 26vh), 230px);
+    /* 15.5vw -> 12.5vw (bug reproduit et corrige 2026-09-02) : la formule ne comptait que la largeur des
+       cases elles-memes, pas les ~335px de marges/paddings/gaps fixes ou quasi-fixes autour d'elles
+       (padding .binder-scene 2x3.25rem, .binder-book, .binder-page x2, gaps .binder-spread/.binder-page-grid,
+       spine) - a 1400px de large (fenetre desktop courante, pas un cas extreme), la double-page calculee
+       (~1640px) depassait le viewport de ~250px. Comme .binder-scene est en position:relative (pas
+       overflow:hidden), ce debordement etait invisible au premier coup d'oeil mais le moindre focus sur
+       le bouton "page suivante" (au clic, comportement natif du navigateur) scrollait toute la page pour
+       le reveler - signale par l'utilisateur comme "toute la page saute au clic sur page suivante".
+       12.5vw : verifie ne plus deborder a 1400px (double-page ~1390px, tient dans le conteneur), le
+       plafond de 230px (deja atteint des ~1840px avec l'ancien comme le nouveau coefficient) reste
+       inchange sur grand ecran. */
+    --binder-slot-w: clamp(120px, min(11.5vw, 26vh), 230px);
 }
 
 .binder-page-indicator {
