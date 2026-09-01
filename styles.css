@@ -9295,6 +9295,60 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-bottom: 1rem;
 }
 
+/* ----- Personnalisation (reordonnancement) ----- */
+
+.dashboard-customize-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dashboard-customize-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.dashboard-customize-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.dashboard-customize-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.dashboard-customize-actions button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--slate);
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+}
+
+.dashboard-customize-actions button:hover:not(:disabled) {
+    background: rgba(232,169,59,0.12);
+    color: var(--gold);
+}
+
+.dashboard-customize-actions button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
 .dashboard-widget-header h3 {
     font-size: 1.05rem;
     font-weight: 700;

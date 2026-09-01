@@ -36,39 +36,111 @@ async function renderDashboard() {
     dashboardNeedsRefresh = false;
 }
 
+// Sections reordonnables (passe "personnalisation" 2026-09) : "Top hausses" en est volontairement
+// exclue (widget pleine largeur, affiche seulement si des mouvements de prix existent, cf.
+// renderDashboardTopMovers) - jamais pertinent de le repositionner au milieu des autres.
+const DASHBOARD_WIDGET_DEFS = {
+    activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body' },
+    objective: { title: 'Objectif actuel', extraClass: 'dashboard-widget-objective', bodyId: 'dashboard-objective-body' },
+    wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' } },
+    acquisitions: { title: 'Dernières acquisitions', extraClass: '', bodyId: 'dashboard-acquisitions-body', link: { label: 'Voir tout', tab: 'tab-collection' } },
+    todo: { title: "À faire aujourd'hui", extraClass: '', bodyId: 'dashboard-todo-body' },
+    collectors: { title: 'Trouver un collectionneur', extraClass: '', bodyId: 'dashboard-collectors-body', link: { label: 'Voir tout', tab: 'tab-collectors' } }
+};
+const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'wishlist', 'acquisitions', 'todo', 'collectors'];
+const DASHBOARD_WIDGET_ORDER_KEY = 'dashboardWidgetOrder';
+
+// Ordre choisi par l'utilisateur (localStorage, jamais synchronise entre appareils - meme
+// convention que les autres preferences du Dashboard/Progression dans cette app). Repli sur l'ordre
+// par defaut si la valeur stockee est absente/corrompue/desynchronisee d'une future section
+// ajoutee ou retiree (comparaison stricte des clefs, pas juste de la longueur).
+function getDashboardWidgetOrder() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_WIDGET_ORDER_KEY) || 'null');
+        if (Array.isArray(stored) && stored.length === DASHBOARD_DEFAULT_WIDGET_ORDER.length
+            && DASHBOARD_DEFAULT_WIDGET_ORDER.every(key => stored.includes(key))) {
+            return stored;
+        }
+    } catch (e) { /* stockage corrompu, repli sur l'ordre par defaut */ }
+    return [...DASHBOARD_DEFAULT_WIDGET_ORDER];
+}
+
+function saveDashboardWidgetOrder(order) {
+    localStorage.setItem(DASHBOARD_WIDGET_ORDER_KEY, JSON.stringify(order));
+}
+
 // Structure fixe des 3 zones (header/hero à part, KPI, grille principale, grille basse) : construite une
-// seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne
+// seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne.
+// L'ordre des 6 premieres vient de getDashboardWidgetOrder() (personnalisable, cf.
+// openDashboardCustomizeModal) ; "Top hausses" reste toujours en dernier, hors reordonnancement.
 function dashboardBuildSkeleton() {
+    const widgetsHtml = getDashboardWidgetOrder().map(key => {
+        const def = DASHBOARD_WIDGET_DEFS[key];
+        const linkHtml = def.link ? `<button class="dashboard-widget-link" onclick="navigateToTab('${def.link.tab}')">${def.link.label}</button>` : '';
+        return `
+            <div class="dashboard-widget ${def.extraClass}">
+                <div class="dashboard-widget-header"><h3>${def.title}</h3>${linkHtml}</div>
+                <div id="${def.bodyId}"></div>
+            </div>
+        `;
+    }).join('');
+
     document.getElementById('dashboard-main-grid').innerHTML = `
-        <div class="dashboard-widget dashboard-widget-activity">
-            <div class="dashboard-widget-header"><h3>Activité récente</h3></div>
-            <div id="dashboard-activity-body"></div>
-        </div>
-        <div class="dashboard-widget dashboard-widget-objective">
-            <div class="dashboard-widget-header"><h3>Objectif actuel</h3></div>
-            <div id="dashboard-objective-body"></div>
-        </div>
-        <div class="dashboard-widget dashboard-widget-tall">
-            <div class="dashboard-widget-header"><h3>Wishlist à surveiller</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-wishlist')">Voir tout</button></div>
-            <div id="dashboard-wishlist-body"></div>
-        </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>Dernières acquisitions</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-collection')">Voir tout</button></div>
-            <div id="dashboard-acquisitions-body"></div>
-        </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>À faire aujourd'hui</h3></div>
-            <div id="dashboard-todo-body"></div>
-        </div>
-        <div class="dashboard-widget">
-            <div class="dashboard-widget-header"><h3>Trouver un collectionneur</h3><button class="dashboard-widget-link" onclick="navigateToTab('tab-collectors')">Voir tout</button></div>
-            <div id="dashboard-collectors-body"></div>
-        </div>
+        ${widgetsHtml}
         <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" style="display:none;">
             <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
             <div id="dashboard-movers-body"></div>
         </div>
     `;
+}
+
+// ===== PERSONNALISATION (reordonnancement) =====
+
+function openDashboardCustomizeModal() {
+    renderDashboardCustomizeList();
+    document.getElementById('dashboard-customize-overlay').classList.add('active');
+}
+
+function closeDashboardCustomizeModal() {
+    document.getElementById('dashboard-customize-overlay').classList.remove('active');
+}
+
+function renderDashboardCustomizeList() {
+    const order = getDashboardWidgetOrder();
+    const content = document.getElementById('dashboard-customize-content');
+
+    const rowsHtml = order.map((key, i) => `
+        <div class="dashboard-customize-row">
+            <span class="dashboard-customize-name">${DASHBOARD_WIDGET_DEFS[key].title}</span>
+            <div class="dashboard-customize-actions">
+                <button type="button" ${i === 0 ? 'disabled' : ''} onclick="moveDashboardWidget('${key}', -1)" aria-label="Monter"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>
+                <button type="button" ${i === order.length - 1 ? 'disabled' : ''} onclick="moveDashboardWidget('${key}', 1)" aria-label="Descendre"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+            </div>
+        </div>
+    `).join('');
+
+    content.innerHTML = `
+        <button class="modal-close" onclick="closeDashboardCustomizeModal()">✕</button>
+        <div class="modal-scroll">
+            <div class="modal-title" style="margin-bottom: 0.4rem;">Réorganiser l'accueil</div>
+            <p style="color: var(--slate); font-size: 0.82rem; margin-bottom: 1rem;">Change l'ordre des sections avec les flèches. "Top hausses" reste toujours en dernier.</p>
+            <div class="dashboard-customize-list">${rowsHtml}</div>
+        </div>
+    `;
+}
+
+// Applique immediatement (pas de bouton "Enregistrer" separe) : chaque clic reordonne, sauvegarde
+// et re-rend la liste + le vrai Dashboard derriere la modale, pour un retour visuel instantane.
+function moveDashboardWidget(key, direction) {
+    const order = getDashboardWidgetOrder();
+    const index = order.indexOf(key);
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= order.length) return;
+
+    [order[index], order[newIndex]] = [order[newIndex], order[index]];
+    saveDashboardWidgetOrder(order);
+    renderDashboardCustomizeList();
+    markDashboardDirty();
 }
 
 function dashboardGoToProgressionSet(setId, setName, logoUrl) {
@@ -92,6 +164,7 @@ function renderDashboardHeader() {
         </div>
         <div class="dashboard-header-actions">
             ${lastRefreshHtml}
+            <button class="filter-toggle-btn" onclick="openDashboardCustomizeModal()" title="Réorganiser les sections"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Réorganiser</button>
             <button class="dashboard-add-btn" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
         </div>
     `;
@@ -654,6 +727,9 @@ async function dashboardUpdateWishlistTrends(items) {
 window.dashboardRenderSafe = dashboardRenderSafe;
 window.renderDashboard = renderDashboard;
 window.dashboardBuildSkeleton = dashboardBuildSkeleton;
+window.openDashboardCustomizeModal = openDashboardCustomizeModal;
+window.closeDashboardCustomizeModal = closeDashboardCustomizeModal;
+window.moveDashboardWidget = moveDashboardWidget;
 window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
 window.renderDashboardHeader = renderDashboardHeader;
 window.dashboardGetLastMovers = dashboardGetLastMovers;
