@@ -9330,16 +9330,17 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-activity-timeline::before {
     content: '';
     position: absolute;
-    /* left:5.5px (etait 2px) : la puce (.dashboard-activity-row::before) est positionnee par son
-       bord gauche, pas son centre - la ligne doit viser bord+largeur/2 (7px de puce), sinon elle
-       passe a cote du centre (retour utilisateur 2026-09). top/bottom:1.7rem (etait 8px) : la moitie
-       exacte de la hauteur d'une ligne (mesuree en direct), pour que le trait s'arrete au centre de
-       la 1ere/derniere puce au lieu de deborder au-dela. */
+    /* Valeurs realignees sur le mockup source (relu integralement, pas de memoire - cf .timeline/
+       .t-row de l'artifact) : ligne neutre (pas doree) et puce en haut de ligne (pas centree), donc
+       ces offsets sont recalcules pour ce nouveau positionnement plutot que repris tels quels. */
     left: 5.5px;
-    top: 1.7rem;
-    bottom: 1.7rem;
+    top: 1.1rem;
+    /* Pas symetrique avec top : la puce est ancree en haut de chaque ligne (top:1.1rem), donc pour la
+       DERNIERE ligne il reste tout le contenu en dessous (nom + sous-titre) avant la fin reelle du
+       wrapper - mesure en direct (hauteur de ligne - 1.1rem). */
+    bottom: 2.24rem;
     width: 1px;
-    background: rgba(232,169,59,0.5);
+    background: rgba(255,255,255,0.16);
 }
 
 .dashboard-activity-row {
@@ -9351,7 +9352,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0.65rem 0.5rem;
     margin: 0 -0.5rem;
     border-radius: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    /* Pas de separateur horizontal (etait border-bottom) : le mockup source espace les entrees par
+       du vide, pas des lignes - la ligne verticale seule porte la continuite. */
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease;
 }
@@ -9360,7 +9362,9 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     content: '';
     position: absolute;
     left: -0.28rem;
-    top: 50%;
+    /* Alignee sur la 1ere ligne (nom), pas centree entre nom+sous-titre (etait top:50%) : idem
+       mockup source, .t-row::before est ancree en haut de chaque entree. */
+    top: 1.1rem;
     transform: translateY(-50%);
     width: 7px;
     height: 7px;
@@ -9381,10 +9385,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .dashboard-activity-row:hover {
     background: rgba(255,255,255,0.035);
-}
-
-.dashboard-activity-row:last-child {
-    border-bottom: none;
 }
 
 .dashboard-activity-name {
