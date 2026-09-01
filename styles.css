@@ -6136,13 +6136,33 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     right: 0.5rem;
 }
 
-/* Meme seuil que le reste de l'app (nav desktop/mobile, cf navigation.css) plutot qu'un seuil dedie
-   arbitraire : sous 768px la fiche carte est deja en layout mobile (image en haut, infos en dessous),
-   et le survol n'existe pas vraiment au toucher - le swipe-pour-fermer existant reste la seule
-   interaction gestuelle, pas de swipe-pour-naviguer ajoute ici. */
+/* Meme seuil que le reste de l'app (nav desktop/mobile, cf navigation.css). Le swipe horizontal
+   (tracker.js) couvre la navigation sur mobile, mais rien ne signalait qu'il existait - masquer
+   entierement les fleches (comme la toute premiere version) laissait le geste totalement invisible
+   (retour utilisateur). Le survol n'existant pas au toucher, .visible seul (sans le prefixe
+   ".modal-stand:hover" requis plus haut) suffit a les rendre visibles en permanence, a faible
+   opacite : servent a la fois d'indice ("cette fiche se feuillette") et de repli tapable si le
+   swipe est rate ou pas tente. Agrandies a 44px (cible tactile, meme raison que .modal-close
+   juste en dessous). */
 @media (max-width: 768px) {
-    .modal-nav-btn {
-        display: none;
+    .modal-nav-btn.visible {
+        opacity: 0.55;
+        pointer-events: auto;
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+
+    .modal-nav-btn.visible:active:not(:disabled) {
+        opacity: 1;
+    }
+
+    .modal-nav-prev {
+        left: 0.35rem;
+    }
+
+    .modal-nav-next {
+        right: 0.35rem;
     }
 }
 
