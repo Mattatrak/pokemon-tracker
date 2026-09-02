@@ -629,11 +629,21 @@ body::before {
     white-space: nowrap;
 }
 
+/* Masquee par defaut, reapparait seulement quand de vrais resultats existent (retour utilisateur
+   design 2026-09, "le controle de tri s'affiche avant qu'il y ait quoi que ce soit a trier") - vue
+   grille/liste, tri et filtres avances n'ont aucun objet sur le panneau "pret a chercher"/skeleton/
+   "aucun resultat". :has() plutot qu'une classe geree en JS : deja deux call sites (displaySearchResults,
+   handleCsvImport n'y touche pas) qui font apparaitre .search-result-item, pas besoin d'un 3e point
+   de synchronisation. */
 .catalogue-toolbar-actions {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 0.6rem;
     flex-shrink: 0;
+}
+
+.catalogue-grid-col:has(.search-result-item) .catalogue-toolbar-actions {
+    display: flex;
 }
 
 /* Sous 768px, le libellé (nowrap + overflow:hidden) perd son min-width auto — flex-shrink:1 par défaut
