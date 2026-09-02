@@ -2725,7 +2725,13 @@ button:disabled {
     /* Pas de z-index : un empilement explicite passerait au-dessus de .price-badge/.qty-badge (tous
        deux en z-index:auto) malgré l'ordre naturel - l'ordre DOM (::before peint avant ses frères)
        suffit à le garder sous l'image et les badges. */
-    background: radial-gradient(ellipse 90% 40% at 50% 0%, rgba(255,255,255,0.14), transparent 70%);
+    /* Retour utilisateur (2026-09-02) : la première version (0.14 en simple alpha) était trop
+       discrète pour se voir sur la plupart des arts de carte. Éclaircie (0.14 -> 0.32) et resserrée
+       (60% -> 45% de hauteur), + mix-blend-mode:overlay (même technique que le balayage au survol
+       juste en dessous) pour que le reflet interagisse avec les couleurs de la carte au lieu de
+       simplement les délaver en blanc plat. */
+    background: radial-gradient(ellipse 90% 45% at 50% 0%, rgba(255,255,255,0.32), transparent 70%);
+    mix-blend-mode: overlay;
     pointer-events: none;
     border-radius: inherit;
 }
