@@ -196,6 +196,14 @@ async function renderStxTimeline() {
     const canvas = document.getElementById('stx-timeline-chart');
     if (!container) return;
 
+    container.innerHTML = Array.from({ length: 3 }).map(() => `
+        <div class="stx-month-card">
+            <div class="skeleton" style="height:12px; width:70%; margin-bottom:8px;"></div>
+            <div class="skeleton" style="height:14px; width:50%; margin-bottom:6px;"></div>
+            <div class="skeleton" style="height:10px; width:60%;"></div>
+        </div>
+    `).join('');
+
     const { data, error } = await supabaseClient
         .from('monthly_summary')
         .select('*')
