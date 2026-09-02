@@ -635,9 +635,12 @@ function renderDashboardTodo() {
     const el = document.getElementById('dashboard-todo-body');
     const items = [];
 
+    // Heure incluse (pas seulement la date) : reprend l'info qui vivait dans le hero avant la piste
+    // "fiche d'expertise" (2026-09-02, ne gardait qu'une date courte JJ/MM dans le tampon) - demandée
+    // par l'utilisateur pour ne pas perdre l'heure exacte du dernier rafraîchissement.
     const lastRefresh = localStorage.getItem('lastPriceRefresh');
     const lastRefreshText = lastRefresh
-        ? `Dernière mise à jour : ${new Date(lastRefresh).toLocaleDateString('fr-FR')}`
+        ? `Dernière mise à jour : ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
         : 'Jamais rafraîchi';
     items.push(`
         <div class="dashboard-todo-row" onclick="refreshAllMarketPrices()">
