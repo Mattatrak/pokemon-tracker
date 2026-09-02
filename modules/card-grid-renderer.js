@@ -128,10 +128,11 @@ const GRID_STAGGER_CAP = 24;
 //                       Classeur sans decision explicite pour elles.
 //   holoEffect        - false par defaut. true ajoute la classe + les calques du survol holographique
 //                       (retour utilisateur 2026-09, cf initHoloGridEffect plus bas) - opt-in explicite
-//                       par appelant, comme staggerIndex : seule la Galerie Collection l'active
-//                       (renderCollectionGrid), jamais le Classeur (binder-view.js) ni les grilles
-//                       publiques (public-profile.js), deja denses/tierces, pas le lieu d'un effet
-//                       de mise en avant.
+//                       par appelant, comme staggerIndex. Actif sur la Galerie Collection
+//                       (renderCollectionGrid) et les grilles du profil public (renderPublicCollectionGrid/
+//                       renderPublicDuplicateCardsHtml, public-profile.js - retour utilisateur 2026-09).
+//                       Jamais le Classeur (binder-view.js), deja dense, pas le lieu d'un effet de mise
+//                       en avant.
 function renderGridCardHtml(card, options) {
     const { detailFn, badgeMode = 'quantity', imageFallback = 'static', showAcquisitionIcon = false, staggerIndex = null, holoEffect = false } = options;
 

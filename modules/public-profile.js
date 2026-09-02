@@ -413,6 +413,12 @@ function renderPublicProfileShell(container, profile) {
         ` : ''}
     `;
 
+    // Survol holographique (retour utilisateur 2026-09, meme mecanique que la Galerie Collection
+    // personnelle, card-grid-renderer.js) : un seul point d'ecoute delegue sur tout le conteneur du
+    // profil, couvre a la fois la grille de collection et celle des doublons a l'echange sans
+    // rattachement separe pour chacune.
+    initHoloGridEffect(container);
+
     if (profile.collection_visible) {
         populatePublicCollectionSeriesFilter();
         renderPublicCollectionRarityRow();
@@ -595,7 +601,8 @@ function getFilteredSortedPublicCollection() {
 function renderPublicDuplicateCardsHtml() {
     return viewedPublicDuplicateCards.map(card => renderGridCardHtml(card, {
         detailFn: 'showPublicCardDetail',
-        badgeMode: 'duplicate'
+        badgeMode: 'duplicate',
+        holoEffect: true
     })).join('');
 }
 
@@ -617,7 +624,8 @@ function renderPublicCollectionGrid() {
     }
 
     grid.innerHTML = page.map(card => renderGridCardHtml(card, {
-        detailFn: 'showPublicCardDetail'
+        detailFn: 'showPublicCardDetail',
+        holoEffect: true
     })).join('');
     updatePublicCollectionLoadMoreRow(filtered.length, page.length);
 }
