@@ -1125,14 +1125,14 @@ function renderCollectionTableRowHtml(card) {
         <tr data-card-id="${card.id}">
             <td class="select-col"><input type="checkbox" class="row-select-checkbox" data-id="${card.id}" ${selectedCardIds.has(card.id) ? 'checked' : ''} onchange="toggleCardSelection(${card.id})"></td>
             <td>${card.image
-                ? `<img src="${card.image}" alt="${card.name}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id})">`
+                ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id})">`
                 : getCollectionUploadPlaceholder(card.id)
             }</td>
-            <td><strong class="row-name-link" onclick="showCardDetail(${card.id})">${card.name}</strong></td>
-            <td>${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-table" alt="" onerror="this.remove()">` : ''}${card.series}</td>
-            <td>${card.number}</td>
+            <td><strong class="row-name-link" onclick="showCardDetail(${card.id})">${escapeHtml(card.name)}</strong></td>
+            <td>${card.series_logo ? `<img src="${escapeHtml(card.series_logo)}" class="series-logo-table" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)}</td>
+            <td>${escapeHtml(card.number)}</td>
             <td>
-                <span class="badge ${(card.condition || '').toLowerCase()}">${card.condition}</span>
+                <span class="badge ${escapeHtml((card.condition || '').toLowerCase())}">${escapeHtml(card.condition)}</span>
                 ${renderFinishBadge(card.finish, 'badge finish-badge', 12)}
                 <span title="${acquisitionTitle}" class="acquisition-icon">${acquisitionIcon}</span>
             </td>

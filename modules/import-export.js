@@ -90,15 +90,20 @@ async function exportFullBackupJson() {
             supabaseClient.from('monthly_summary').select('*')
         ]);
 
+        // user_id retire de chaque ligne : ce fichier peut etre partage/stocke par l'utilisateur, et
+        // n'a de toute facon aucune utilite a la restauration (confirmAndProcessJsonRestore le retire
+        // deja avant insertion - autant ne jamais l'exposer dans le fichier telecharge).
+        const stripUserId = (rows) => (rows || []).map(({ user_id, ...rest }) => rest);
+
         const backup = {
             exportedAt: new Date().toISOString(),
             version: 1,
-            cards: cardsRes.data || [],
-            wishlists: wishlistsRes.data || [],
-            wishlistItems: wishlistItemsRes.data || [],
-            valueHistory: valueHistoryRes.data || [],
-            cardPriceHistory: priceHistoryRes.data || [],
-            monthlySummary: monthlySummaryRes.data || []
+            cards: stripUserId(cardsRes.data),
+            wishlists: stripUserId(wishlistsRes.data),
+            wishlistItems: stripUserId(wishlistItemsRes.data),
+            valueHistory: stripUserId(valueHistoryRes.data),
+            cardPriceHistory: stripUserId(priceHistoryRes.data),
+            monthlySummary: stripUserId(monthlySummaryRes.data)
         };
 
         const jsonContent = JSON.stringify(backup, null, 2);
@@ -171,7 +176,11 @@ async function confirmAndProcessJsonRestore(data) {
                     wishlistIdMap[w.id] = existing.id;
                     wishlistsReused++;
                 } else {
-                    const { id: oldId, ...rest } = w;
+                    // user_id retire comme id (cf plus bas pour cards/wishlist) : une sauvegarde peut
+                    // etre restauree sur un AUTRE compte (nouveau compte, reinstall) - conserver le
+                    // user_id d'origine fait rejeter l'insertion par la policy RLS "WITH CHECK",
+                    // laissant le defaut de la colonne (auth.uid() du compte qui restaure) le remplir.
+                    const { id: oldId, user_id, ...rest } = w;
                     const { data: inserted, error } = await supabaseClient.from('wishlists').insert([rest]).select().single();
                     if (!error && inserted) {
                         wishlistIdMap[oldId] = inserted.id;
@@ -201,7 +210,7 @@ async function confirmAndProcessJsonRestore(data) {
                     continue;
                 }
 
-                const { id, ...rest } = item;
+                const { id, user_id, ...rest } = item;
                 rowsToInsert.push({ ...rest, wishlist_id: newWishlistId });
             }
             if (rowsToInsert.length > 0) {
@@ -230,14 +239,20 @@ async function confirmAndProcessJsonRestore(data) {
                     cardsSkipped++;
                     continue;
                 }
-                const { id, ...rest } = card;
+                // user_id retire comme id : cf commentaire sur les listes de souhaits plus haut, meme
+                // raison (restauration possible sur un compte different de celui qui a exporte).
+                const { id, user_id, ...rest } = card;
                 rowsToInsert.push(rest);
             }
+            // cardsInserted incremente par lot reussi (pas d'un coup a la fin) : si un lot echoue en
+            // cours de route (throw plus bas, capte par le catch englobant), les lots precedents deja
+            // inseres restent comptabilises au lieu de laisser croire que rien n'a ete importe.
             for (let i = 0; i < rowsToInsert.length; i += 100) {
-                const { error } = await supabaseClient.from('cards').insert(rowsToInsert.slice(i, i + 100));
+                const batch = rowsToInsert.slice(i, i + 100);
+                const { error } = await supabaseClient.from('cards').insert(batch);
                 if (error) throw error;
+                cardsInserted += batch.length;
             }
-            cardsInserted = rowsToInsert.length;
         }
     } catch (error) {
         errors.push('collection de cartes');
@@ -247,7 +262,7 @@ async function confirmAndProcessJsonRestore(data) {
     // 4. Historiques de valeur/prix : simples journaux, pas de notion de doublon à vérifier
     try {
         if (data.valueHistory && data.valueHistory.length > 0) {
-            const rows = data.valueHistory.map(({ id, ...rest }) => rest);
+            const rows = data.valueHistory.map(({ id, user_id, ...rest }) => rest);
             for (let i = 0; i < rows.length; i += 200) {
                 await supabaseClient.from('value_history').insert(rows.slice(i, i + 200));
             }
@@ -259,7 +274,7 @@ async function confirmAndProcessJsonRestore(data) {
 
     try {
         if (data.cardPriceHistory && data.cardPriceHistory.length > 0) {
-            const rows = data.cardPriceHistory.map(({ id, ...rest }) => rest);
+            const rows = data.cardPriceHistory.map(({ id, user_id, ...rest }) => rest);
             for (let i = 0; i < rows.length; i += 200) {
                 await supabaseClient.from('card_price_history').insert(rows.slice(i, i + 200));
             }
@@ -276,7 +291,7 @@ async function confirmAndProcessJsonRestore(data) {
             const existingMonths = new Set((existingMonthsData || []).map(m => m.month));
             const rows = data.monthlySummary
                 .filter(m => !existingMonths.has(m.month))
-                .map(({ id, ...rest }) => rest);
+                .map(({ id, user_id, ...rest }) => rest);
             if (rows.length > 0) {
                 const { error } = await supabaseClient.from('monthly_summary').insert(rows);
                 if (error) throw error;

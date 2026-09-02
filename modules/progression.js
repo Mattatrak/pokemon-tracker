@@ -745,13 +745,13 @@ async function renderProgressionCardsGrid() {
         return `
             <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''} ${isMostExpensiveMissing ? 'most-expensive-missing' : ''}" ${owned && ownedCardRow ? `data-card-id="${ownedCardRow.id}" onclick="showCardDetail(${ownedCardRow.id}, event)"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
-                    ? `<img src="${imageUrl}" alt="${card.name}" loading="lazy" onerror="handleTcgdexImgError(this)">`
+                    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="handleTcgdexImgError(this)">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
                 ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${formatPrice(setBudget.mostExpensive.price)}</div>` : ''}
                 <button class="progression-add-badge" onclick="event.stopPropagation(); quickInstantAdd('${card.id}', this)">+</button>
-                <div class="progression-card-label">#${card.localId} ${card.name}</div>
+                <div class="progression-card-label">#${escapeHtml(card.localId)} ${escapeHtml(card.name)}</div>
             </div>
         `;
     }).join('');
@@ -988,7 +988,7 @@ function showAddCardModal(card) {
                 <div class="modal-stand">
                     <div id="quickadd-image-slot" class="modal-image-frame">
                         ${imageUrl
-                            ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
+                            ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
                             : getQuickAddUploadPlaceholderHtml(card.id)
                         }
                     </div>
@@ -996,12 +996,12 @@ function showAddCardModal(card) {
             </div>
             <div class="modal-info">
                 <div class="modal-title-row">
-                    <div class="modal-title">${card.name}</div>
+                    <div class="modal-title">${escapeHtml(card.name)}</div>
                 </div>
-                <div class="modal-subtitle">${card.set?.name || 'N/A'} · #${card.localId || '?'}</div>
+                <div class="modal-subtitle">${escapeHtml(card.set?.name || 'N/A')} · #${escapeHtml(card.localId || '?')}</div>
 
                 <div class="modal-badges">
-                    <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
+                    <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${escapeHtml(card.rarity || 'N/A')}</span>
                     ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${formatPrice(marketPrice)} (marché)</span>` : ''}
                 </div>
 
