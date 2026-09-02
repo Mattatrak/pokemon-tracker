@@ -466,7 +466,16 @@ function renderWishlistsUI() {
                 </div>
             </div>
         `;
-    }).join('');
+    }).join('') + `
+        <div class="app-empty-state wishlist-discover-more">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <path d="M50 82 C 20 60, 10 40, 25 25 C 35 15, 48 20, 50 32 C 52 20, 65 15, 75 25 C 90 40, 80 60, 50 82 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+            </svg>
+            <div class="app-empty-title">Une liste par occasion</div>
+            <p class="app-empty-text">Séparez vos envies par set, par budget ou pour un cadeau à venir.</p>
+            <button class="filter-toggle-btn app-empty-cta" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+        </div>
+    `;
 
     refreshWishlistThumbPlaceholders();
     playWishlistContainerFadeIn(container);

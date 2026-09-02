@@ -361,6 +361,24 @@ function renderProgressionSeriesList() {
         return;
     }
 
+    // "Decouvrir d'autres series" (retour utilisateur design 2026-09) : sur un compte avec peu de
+    // series entamees, seriesWithOwnedSets ne rend que 1-2 blocs et la page s'arretait la, laissant
+    // un grand vide sous le contenu - se lisait comme un bug de chargement plutot qu'un etat normal.
+    // Reutilise .app-empty-state (deja partage Collection/Progression/Collecteurs) plutot qu'un
+    // nouveau composant, avec un CTA vers une action deja existante (onglet Ajouter).
+    const discoverMoreHtml = `
+        <div class="app-empty-state progression-discover-more">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+                <polygon points="50,28 58,50 50,72 42,50" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                <circle cx="50" cy="50" r="3" fill="currentColor"/>
+            </svg>
+            <div class="app-empty-title">D'autres séries vous attendent</div>
+            <p class="app-empty-text">Ajoutez une carte d'une nouvelle série pour commencer à suivre sa progression ici.</p>
+            <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+        </div>
+    `;
+
     container.innerHTML = seriesWithOwnedSets.map(({ series, sets }) => {
         const setsHtml = sets.map(set => {
             const officialCount = set.cardCount?.official || 0;
@@ -428,7 +446,7 @@ function renderProgressionSeriesList() {
                 <div class="progression-sets-list">${setsHtml}</div>
             </div>
         `;
-    }).join('');
+    }).join('') + discoverMoreHtml;
 }
 
 async function handleProgressionSeriesLogoUpload(event, setId) {

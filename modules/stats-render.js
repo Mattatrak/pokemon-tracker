@@ -699,10 +699,14 @@ function renderStatsRecords() {
     const withPaidPrice = allCollectionCards.filter(c => Number(c.purchase_price) > 0);
     if (withPaidPrice.length > 0) {
         const mostExpensivePaid = [...withPaidPrice].sort((a, b) => Number(b.purchase_price) - Number(a.purchase_price))[0];
-        document.getElementById('stx-record-paid-name').textContent = mostExpensivePaid.name;
+        const paidNameEl = document.getElementById('stx-record-paid-name');
+        const paidPriceEl = document.getElementById('stx-record-paid-price');
+        paidNameEl.textContent = mostExpensivePaid.name;
+        paidNameEl.classList.remove('stx-trophy-empty');
         const paidSeriesEl = document.getElementById('stx-record-paid-series');
         if (paidSeriesEl) paidSeriesEl.textContent = (mostExpensivePaid.series && mostExpensivePaid.series !== 'N/A') ? mostExpensivePaid.series : '';
-        document.getElementById('stx-record-paid-price').textContent = formatPrice(mostExpensivePaid.purchase_price);
+        paidPriceEl.textContent = formatPrice(mostExpensivePaid.purchase_price);
+        paidPriceEl.classList.remove('stx-trophy-empty', 'stx-trophy-value-sm');
         const img = document.getElementById('stx-record-paid-img');
         if (img) {
             if (mostExpensivePaid.image) { img.src = mostExpensivePaid.image; img.style.display = ''; }
@@ -735,10 +739,14 @@ function renderStatsRecords() {
         const biggestLoss = byAmount[byAmount.length - 1];
 
         if (biggestGain && biggestGain.gainAmount > 0) {
-            document.getElementById('stx-record-gain-name').textContent = biggestGain.name;
+            const gainNameEl = document.getElementById('stx-record-gain-name');
+            const gainAmountEl = document.getElementById('stx-record-gain-amount');
+            gainNameEl.textContent = biggestGain.name;
+            gainNameEl.classList.remove('stx-trophy-empty');
             const gainSeriesEl = document.getElementById('stx-record-gain-series');
             if (gainSeriesEl) gainSeriesEl.textContent = (biggestGain.series && biggestGain.series !== 'N/A') ? biggestGain.series : `#${biggestGain.number}`;
-            document.getElementById('stx-record-gain-amount').textContent = `+${formatPrice(biggestGain.gainAmount)}`;
+            gainAmountEl.textContent = `+${formatPrice(biggestGain.gainAmount)}`;
+            gainAmountEl.classList.remove('stx-trophy-empty', 'stx-trophy-value-sm');
             const gainPctEl = document.getElementById('stx-record-gain-pct');
             if (gainPctEl) gainPctEl.textContent = `+${biggestGain.gainPercent.toFixed(0)}%`;
             const img = document.getElementById('stx-record-gain-img');
@@ -746,10 +754,14 @@ function renderStatsRecords() {
             stxMakeCardClickable('stx-record-gain-card', biggestGain.id);
         }
         if (biggestLoss && biggestLoss.gainAmount < 0) {
-            document.getElementById('stx-record-loss-name').textContent = biggestLoss.name;
+            const lossNameEl = document.getElementById('stx-record-loss-name');
+            const lossAmountEl = document.getElementById('stx-record-loss-amount');
+            lossNameEl.textContent = biggestLoss.name;
+            lossNameEl.classList.remove('stx-trophy-empty');
             const lossSeriesEl = document.getElementById('stx-record-loss-series');
             if (lossSeriesEl) lossSeriesEl.textContent = (biggestLoss.series && biggestLoss.series !== 'N/A') ? biggestLoss.series : `#${biggestLoss.number}`;
-            document.getElementById('stx-record-loss-amount').textContent = formatPrice(biggestLoss.gainAmount);
+            lossAmountEl.textContent = formatPrice(biggestLoss.gainAmount);
+            lossAmountEl.classList.remove('stx-trophy-empty', 'stx-trophy-value-sm');
             const lossPctEl = document.getElementById('stx-record-loss-pct');
             if (lossPctEl) lossPctEl.textContent = `${biggestLoss.gainPercent.toFixed(0)}%`;
             const img = document.getElementById('stx-record-loss-img');

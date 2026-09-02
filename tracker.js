@@ -1289,7 +1289,7 @@ function initEventListeners() {
 
         if (value.length < 2) {
             document.getElementById('search-results').classList.remove('active');
-            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-results').innerHTML = catalogueSearchReadyHtml();
             return;
         }
 

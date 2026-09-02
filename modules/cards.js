@@ -38,6 +38,53 @@ function showSearchResultsSkeleton() {
 
 let searchRequestId = 0;
 
+// Suggestions cliquables de l'etat "avant recherche" (audit design 2026-09, cf app-empty-state dans
+// index.html) : simple raccourci, remplit le champ et relance la meme recherche que si l'utilisateur
+// l'avait tapee lui-meme.
+function runSuggestedCatalogueSearch(term) {
+    document.getElementById('card-search').value = term;
+    searchCards();
+}
+
+// Markup identique au bloc statique d'index.html (#search-results) - reutilise ici pour y revenir
+// apres une recherche effacee (input vide, cf tracker.js), plutot que de dupliquer une 3e fois ce
+// HTML ou de laisser un panneau vide sans le message/les suggestions.
+function catalogueSearchReadyHtml() {
+    return `
+        <div class="app-empty-state catalogue-search-empty">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="44" cy="44" r="28" fill="none" stroke="currentColor" stroke-width="3"/>
+                <line x1="64" y1="64" x2="86" y2="86" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="app-empty-title">Prêt à chercher</div>
+            <p class="app-empty-text">Un nom, une série ou un numéro suffisent.</p>
+            <div class="catalogue-search-suggestions">
+                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('Pikachu')">Pikachu</button>
+                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('Dracaufeu-ex')">Dracaufeu-ex</button>
+                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('151')">151</button>
+                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('Nuit Noire')">Nuit Noire</button>
+            </div>
+        </div>
+    `;
+}
+
+// Etat "recherche sans resultat" (audit design 2026-09) : distinct de catalogueSearchReadyHtml
+// ci-dessus - ne doit jamais laisser croire qu'aucune recherche n'a encore ete lancee alors qu'une
+// vraie recherche vient d'echouer.
+function catalogueSearchNoResultsHtml(search) {
+    return `
+        <div class="app-empty-state catalogue-search-empty">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="44" cy="44" r="28" fill="none" stroke="currentColor" stroke-width="3"/>
+                <line x1="64" y1="64" x2="86" y2="86" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                <line x1="34" y1="44" x2="54" y2="44" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="app-empty-title">Aucune carte trouvée</div>
+            <p class="app-empty-text">Rien ne correspond à « ${escapeHtml(search)} ». Vérifiez l'orthographe ou essayez un autre terme.</p>
+        </div>
+    `;
+}
+
 async function searchCards() {
     const search = document.getElementById('card-search').value.trim();
     if (!search) {
@@ -88,7 +135,7 @@ async function searchCards() {
 
         if (merged.length === 0) {
             showMessage('Aucune carte trouvée', 'error');
-            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-results').innerHTML = catalogueSearchNoResultsHtml(search);
             return;
         }
 
@@ -934,6 +981,9 @@ window.catalogueViewUserSet = catalogueViewUserSet;
 window.showSearchResultsSkeleton = showSearchResultsSkeleton;
 window.searchRequestId = searchRequestId;
 window.searchCards = searchCards;
+window.runSuggestedCatalogueSearch = runSuggestedCatalogueSearch;
+window.catalogueSearchReadyHtml = catalogueSearchReadyHtml;
+window.catalogueSearchNoResultsHtml = catalogueSearchNoResultsHtml;
 window.searchByIllustrator = searchByIllustrator;
 window.displaySearchResults = displaySearchResults;
 window.populateSearchFilters = populateSearchFilters;
