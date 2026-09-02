@@ -126,8 +126,14 @@ const GRID_STAGGER_CAP = 24;
 //                       Absent par defaut - opt-in par appelant (Galerie Collection uniquement pour
 //                       l'instant, cf renderCollectionGrid), pas applique aux grilles publiques/
 //                       Classeur sans decision explicite pour elles.
+//   holoEffect        - false par defaut. true ajoute la classe + les calques du survol holographique
+//                       (retour utilisateur 2026-09, cf initHoloGridEffect plus bas) - opt-in explicite
+//                       par appelant, comme staggerIndex : seule la Galerie Collection l'active
+//                       (renderCollectionGrid), jamais le Classeur (binder-view.js) ni les grilles
+//                       publiques (public-profile.js), deja denses/tierces, pas le lieu d'un effet
+//                       de mise en avant.
 function renderGridCardHtml(card, options) {
-    const { detailFn, badgeMode = 'quantity', imageFallback = 'static', showAcquisitionIcon = false, staggerIndex = null } = options;
+    const { detailFn, badgeMode = 'quantity', imageFallback = 'static', showAcquisitionIcon = false, staggerIndex = null, holoEffect = false } = options;
 
     const qty = Number(card.quantity || 1);
     const lineTotal = Number(card.market_value || 0) * qty;
@@ -151,12 +157,18 @@ function renderGridCardHtml(card, options) {
         acquisitionHtml = `<span class="acquisition-icon" title="${title}">${icon}</span>`;
     }
 
+    const holoClass = holoEffect ? ' collection-card-holo' : '';
+    const holoLayersHtml = holoEffect
+        ? '<div class="collection-card-holo-sheen"></div><div class="collection-card-holo-glare"></div>'
+        : '';
+
     return `
-        <div class="collection-card${staggerClass}" data-card-id="${card.id}"${staggerStyle} onclick="${detailFn}(${card.id}, event)">
+        <div class="collection-card${staggerClass}${holoClass}" data-card-id="${card.id}"${staggerStyle} onclick="${detailFn}(${card.id}, event)">
             ${card.image
                 ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=${fallbackCall}">`
                 : fallbackHtml
             }
+            ${holoLayersHtml}
             ${renderGridCardBadge(card, badgeMode)}
             <div class="price-badge">${formatPrice(lineTotal)}</div>
             <div class="set-rarity-badge-row">
@@ -174,6 +186,59 @@ function renderGridCardHtml(card, options) {
     `;
 }
 
+// Survol holographique (retour utilisateur 2026-09, mockup "Carte Holographique" valide) : incline
+// la carte et fait suivre un reflet prismatique au curseur, comme un vrai film holo qu'on incline
+// entre les mains - remplace deux tentatives precedentes (halo dore, reflet de vitrine) restees trop
+// plates pour se voir sur une vignette de 190px, celle-ci reagit en temps reel au lieu d'etre un
+// calque statique.
+//
+// Delegation sur le CONTENEUR de grille (pas un listener par carte) : une grille peut afficher
+// jusqu'a 60 cartes + "Charger plus" en ajoute d'autres - un mousemove global, un closest() par
+// evenement, est negligeable comparé a 60+ listeners recrees a chaque re-rendu. Attache UNE seule
+// fois par conteneur (dataset.holoBound), le mousemove reevalue closest() a chaque appel donc suit
+// les re-rendus (insertAdjacentHTML/innerHTML) sans jamais avoir besoin d'etre reattache.
+//
+// mouseout (bubbles) plutot que mouseleave (ne bubble pas) pour detecter la sortie d'UNE carte
+// precise tout en restant delegue sur le conteneur - mouseleave sur le conteneur ne se declencherait
+// qu'en quittant la grille entiere, pas en passant d'une carte a l'autre.
+//
+// Desactive entierement sur tactile (hover:none, pas de curseur a suivre en continu) et sous
+// prefers-reduced-motion - la carte garde alors sa seule elevation au survol deja existante
+// (.collection-card:hover, styles.css).
+function initHoloGridEffect(container) {
+    if (!container || container.dataset.holoBound) return;
+    if (!window.matchMedia('(hover: hover)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    container.dataset.holoBound = 'true';
+
+    const TILT_MAX_DEG = 10; // plus discret que le mockup (22°) : ces cartes restent cliquables au milieu d'une grille dense, un tilt trop marque genererait la lecture du nom/prix au survol
+
+    container.addEventListener('mousemove', (e) => {
+        const card = e.target.closest('.collection-card-holo');
+        if (!card) return;
+        const rect = card.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        const rotateY = (x - 0.5) * TILT_MAX_DEG;
+        const rotateX = (0.5 - y) * TILT_MAX_DEG;
+        // translateY(-3px) reprend la meme elevation que .collection-card:hover (styles.css) - sans
+        // elle, cet inline style (qui gagne toujours sur la regle :hover) supprimerait l'elevation
+        // existante des que la souris bouge, pas seulement l'angle.
+        card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px) scale(1.03)`;
+        card.style.setProperty('--holo-x', `${x * 100}%`);
+        card.style.setProperty('--holo-y', `${y * 100}%`);
+        card.style.setProperty('--holo-glare', `${x * 100}%`);
+        card.classList.add('is-holo-active');
+    });
+
+    container.addEventListener('mouseout', (e) => {
+        const card = e.target.closest('.collection-card-holo');
+        if (!card || card.contains(e.relatedTarget)) return;
+        card.style.transform = '';
+        card.classList.remove('is-holo-active');
+    });
+}
+
 window.getGridNoImageHtml = getGridNoImageHtml;
+window.initHoloGridEffect = initHoloGridEffect;
 window.renderGridCardHtml = renderGridCardHtml;
 window.runCardDetailMorphTransition = runCardDetailMorphTransition;

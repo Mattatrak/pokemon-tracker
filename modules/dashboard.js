@@ -216,9 +216,34 @@ function dashboardGetLastMovers() {
     }
 }
 
+// Compte depuis 0 une seule fois par session (retour utilisateur 2026-09, mockup "Carte
+// Holographique" valide) - pas a chaque re-rendu du Dashboard (markDashboardDirty peut se
+// declencher plusieurs fois par session, ex. apres l'ajout d'une carte dans un autre onglet reste
+// ouvert) : rejouer l'animation a chaque fois deviendrait vite agacant plutot que marquant. Variable
+// module (pas localStorage) : reinitialisee a chaque vrai rechargement de page, ce qui EST la
+// definition voulue de "session" ici.
+let dashboardHeroCounterPlayed = false;
+
+function animateDashboardHeroValue(target) {
+    const el = document.getElementById('dashboard-hero-value');
+    if (!el) return;
+    const duration = 900;
+    let start = null;
+    function step(ts) {
+        if (!start) start = ts;
+        const progress = Math.min((ts - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = formatPrice(target * eased);
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
 function renderDashboardHero() {
     const el = document.getElementById('dashboard-hero');
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldAnimateHero = !dashboardHeroCounterPlayed && !reduceMotion;
     // Même calcul que dashboard-kpi-cards (renderDashboardKpis) - le nombre cité dans le
     // "tampon d'estimation" doit toujours correspondre à celui du KPI juste en dessous.
     const totalCards = allCollectionCards.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
@@ -254,7 +279,7 @@ function renderDashboardHero() {
             <div class="dashboard-hero-row">
                 <div>
                     <div class="dashboard-hero-label">Estimation actuelle</div>
-                    <div class="dashboard-hero-value">${formatPrice(totalValue)}</div>
+                    <div class="dashboard-hero-value" id="dashboard-hero-value">${formatPrice(shouldAnimateHero ? 0 : totalValue)}</div>
                 </div>
                 ${stampHtml}
             </div>
@@ -272,6 +297,11 @@ function renderDashboardHero() {
 
     dashboardUpdateHeroVariation();
     renderDashboardKpis();
+
+    if (shouldAnimateHero) {
+        dashboardHeroCounterPlayed = true;
+        animateDashboardHeroValue(totalValue);
+    }
 }
 
 // Remplit après coup le placeholder de variation 7j (nécessite un appel réseau à computeMarketFluctuation)
