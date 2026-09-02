@@ -169,14 +169,25 @@ function goToBinderSpread(delta) {
 //
 // BINDER_SLIDE_DISTANCE : aucun token --motion-distance-* existant n'est calibré pour ce cas (ils
 // servent des micro-interactions hover de quelques px) - valeur minimale dédiée, volontairement petite.
-// Durée/easing réutilisent tels quels les tokens motion-tokens.css existants pour le mobile ; le
-// desktop a sa propre durée (BINDER_TURN_DURATION), une rotation ayant besoin de plus de temps pour se
-// lire comme "la page tourne" (retour utilisateur sur un premier essai à 260ms, jugé trop rapide).
+// Durée/easing du mobile (B8) lisent directement --motion-duration-normal/--motion-ease-standard (cf
+// readMotionDurationMs/readMotionEasing ci-dessous) plutôt que de dupliquer leur valeur en dur - un
+// audit a trouvé un ancien duplicata (260ms) qui avait divergé du token (450ms) sans que rien ne le
+// signale. Le desktop garde sa propre durée dédiée (BINDER_TURN_DURATION), une rotation ayant besoin
+// de plus de temps pour se lire comme "la page tourne" (retour utilisateur sur un premier essai à
+// 260ms, jugé trop rapide) - volontairement indépendante du token, donc laissée en dur.
+function readMotionDurationMs(varName, fallbackMs) {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    const ms = raw.endsWith('ms') ? parseFloat(raw) : raw.endsWith('s') ? parseFloat(raw) * 1000 : NaN;
+    return Number.isFinite(ms) ? ms : fallbackMs;
+}
+function readMotionEasing(varName, fallback) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
+}
 const BINDER_SLIDE_DISTANCE = 22; // px - mobile uniquement (B8)
 const BINDER_ROTATE_ANGLE = 90; // deg - desktop uniquement (B9)
-const BINDER_ANIM_DURATION = 260; // ms, reprend --motion-duration-normal - mobile (B8) uniquement
-const BINDER_TURN_DURATION = 420; // ms - desktop uniquement (B9)
-const BINDER_ANIM_EASING = 'cubic-bezier(0.2, 0, 0, 1)'; // reprend --motion-ease-standard
+const BINDER_ANIM_DURATION = readMotionDurationMs('--motion-duration-normal', 450); // mobile (B8) uniquement
+const BINDER_TURN_DURATION = 420; // ms - desktop uniquement (B9), délibérément indépendante du token
+const BINDER_ANIM_EASING = readMotionEasing('--motion-ease-standard', 'cubic-bezier(0.2, 0, 0, 1)');
 
 let binderAnimating = false;
 // Token de génération : incrémenté à chaque animation démarrée ET à chaque teardown. Le .finally()
