@@ -42,6 +42,22 @@ async function uploadSeriesLogoManually(file, setId) {
     return logoUrl;
 }
 
+// Reconstruit l'URL publique déterministe d'un logo de série à partir du tcgdex_id d'une carte, sans
+// requête réseau (getPublicUrl ne fait que construire l'URL). Sert de filet de secours quand
+// card.series_logo est null en base : ce champ n'est renseigné que sur LES CARTES DÉJÀ PRÉSENTES en
+// base au moment de l'upload manuel (uploadSeriesLogoManually ci-dessus, .update().like() scopé par RLS
+// aux lignes du propriétaire) — un logo déjà uploadé par un autre collectionneur pour le même set reste
+// dans ce même bucket partagé `card-images`, à ce même chemin déterministe, mais n'apparaissait jamais
+// sur les cartes d'un profil public qui n'avait pas elle-même déclenché l'upload (retour utilisateur,
+// 2026-08-18 : "il manque le logo sur certaines cards dans le profil public"). onerror="this.remove()"
+// côté appelant gère déjà le cas où ce chemin ne correspond à aucun fichier réel.
+function getSeriesLogoUrl(tcgdexId) {
+    const setId = getSetIdFromTcgdexId(tcgdexId);
+    if (!setId) return null;
+    const { data } = supabaseClient.storage.from('card-images').getPublicUrl(getSeriesLogoPath(setId));
+    return data.publicUrl;
+}
+
 // Essaie l'URL telle quelle (généralement /fr/) puis, si absente sur le CDN TCGdex, retente en /en/
 // (certains sets récents n'ont pas leurs assets fr, le fetch échoue alors avec une erreur CORS opaque)
 async function fetchWithLocaleFallback(url) {
@@ -211,3 +227,4 @@ window.fetchAndUploadExternalImage = fetchAndUploadExternalImage;
 window.uploadImageToStorage = uploadImageToStorage;
 window.getStoredImageFilenames = getStoredImageFilenames;
 window.findExistingCardRow = findExistingCardRow;
+window.getSeriesLogoUrl = getSeriesLogoUrl;

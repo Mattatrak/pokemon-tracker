@@ -606,6 +606,11 @@ function getFilteredSortedCollection() {
 
 const COLLECTION_PAGE_SIZE = 60;
 let collectionDisplayLimit = COLLECTION_PAGE_SIZE;
+// "Charger plus" ne doit ajouter que les nouvelles cartes, jamais rejouer l'entrée sur les cartes déjà
+// affichées (cf replayEntrance) : ça faisait clignoter toute la grille/le tableau en noir à chaque clic
+// (le conteneur entier repassait par opacity:0 avant de refondre). Positionné juste avant l'appel à
+// renderFilteredCollection() puis consommé et remis à false dans la même passe synchrone.
+let isLoadMoreRender = false;
 
 // Sélection multiple (édition en masse, vue Tableau)
 let selectedCardIds = new Set();
@@ -885,6 +890,7 @@ function filterAndDisplayReorder() {
 
 function loadMoreCollectionCards() {
     collectionDisplayLimit += COLLECTION_PAGE_SIZE;
+    isLoadMoreRender = true;
     renderFilteredCollection();
 }
 
@@ -961,7 +967,6 @@ function renderCollectionHeaderKpis(filtered) {
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
     const totalSpent = allCollectionCards.reduce((sum, c) => sum + Number(c.purchase_price || 0) * Number(c.quantity || 1), 0);
     const uniqueCards = allCollectionCards.length;
-    const gain = totalValue - totalSpent;
     // Prix moyen calculé uniquement sur les cartes achetées (acquisition_type !== 'pack') : une
     // carte sortie d'un booster n'a pas de vrai "prix d'achat" individuel, l'inclure dilue la
     // moyenne à tort.
@@ -971,14 +976,14 @@ function renderCollectionHeaderKpis(filtered) {
     const avgPrice = purchasedCards > 0 ? totalSpent / purchasedCards : 0;
 
     totalEl.textContent = totalCards;
-    valueEl.textContent = totalValue.toFixed(2) + '€';
-    spentEl.textContent = totalSpent.toFixed(2) + '€';
+    valueEl.textContent = formatPrice(totalValue);
+    spentEl.textContent = formatPrice(totalSpent);
 
     const totalSubEl = document.getElementById('collection-kpi-total-sub');
     const valueSubEl = document.getElementById('collection-kpi-value-sub');
     const spentSubEl = document.getElementById('collection-kpi-spent-sub');
     if (totalSubEl) totalSubEl.textContent = uniqueCards + ' cartes uniques';
-    if (spentSubEl) spentSubEl.textContent = avgPrice.toFixed(2) + '€ / carte en moyenne';
+    if (spentSubEl) spentSubEl.textContent = formatPrice(avgPrice) + ' / carte en moyenne';
 
     // Fluctuation du marché sur 24h (prix uniquement, cf. computeMarketFluctuation dans stats.js) —
     // remplace l'ancien "vs achat" qui ne reflétait pas un vrai mouvement de marché récent.
@@ -991,15 +996,23 @@ function renderCollectionHeaderKpis(filtered) {
                 return;
             }
             const sign = fluctuation.delta > 0 ? '+' : '';
-            valueSubEl.textContent = `${sign}${fluctuation.delta.toFixed(2)}€ sur 24h`;
+            valueSubEl.textContent = `${sign}${formatPrice(fluctuation.delta)} sur 24h`;
             valueSubEl.className = 'kpi-plaque-sub ' + (fluctuation.delta > 0 ? 'positive' : fluctuation.delta < 0 ? 'negative' : '');
         });
     }
 }
 
 function renderFilteredCollection() {
+    // Consommé immédiatement : ne doit s'appliquer qu'à cette passe de rendu, jamais à un appel suivant.
+    const isLoadMore = isLoadMoreRender;
+    isLoadMoreRender = false;
+
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
+    // Anticipe le "Charger plus" : précharge les images de la page suivante pendant que celle-ci
+    // s'affiche, pour qu'elles soient déjà en cache navigateur au clic (Galerie/Tableau uniquement -
+    // le Classeur gère sa propre pagination indépendante, cf commentaire plus bas).
+    preloadImages(filtered.slice(collectionDisplayLimit, collectionDisplayLimit + COLLECTION_PAGE_SIZE).map(c => c.image));
     // On ne rend que la vue actuellement visible (gain de perf notable sur une grosse collection)
     const effectiveMode = getEffectiveCollectionViewMode();
 
@@ -1014,7 +1027,7 @@ function renderFilteredCollection() {
     updateCollectionSummary(filtered, page);
 
     if (effectiveMode === 'table') {
-        renderCollectionTable(page);
+        renderCollectionTable(page, isLoadMore);
     } else if (effectiveMode === 'binder') {
         // Le classeur reçoit filtered en entier (pas page/collectionDisplayLimit) : sa pagination par
         // double-page (binder-view.js) est indépendante du "Charger plus" de Galerie/Tableau.
@@ -1026,7 +1039,7 @@ function renderFilteredCollection() {
         // ce n'est pas exploité ici.
         renderCollectionRecap(filtered);
     } else {
-        renderCollectionGrid(page);
+        renderCollectionGrid(page, isLoadMore);
     }
 
     // Le classeur gère sa propre pagination (précédent/suivant), le Récap n'affiche pas de liste de
@@ -1045,7 +1058,7 @@ function renderFilteredCollection() {
     }
 }
 
-function renderCollectionTable(filtered) {
+function renderCollectionTable(filtered, isLoadMore) {
     const tbody = document.getElementById('cards-list');
     const tableWrapper = document.getElementById('collection-table-wrapper');
 
@@ -1053,9 +1066,11 @@ function renderCollectionTable(filtered) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="10" style="text-align: center; padding: 2rem;">
-                    <div class="empty-state">
-                        <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
-                    </div>
+                    ${allCollectionCards.length === 0 ? getCollectionEmptyStateHtml() : `
+                        <div class="empty-state">
+                            <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
+                        </div>
+                    `}
                 </td>
             </tr>
         `;
@@ -1064,7 +1079,24 @@ function renderCollectionTable(filtered) {
         return;
     }
 
-    tbody.innerHTML = filtered.map(card => {
+    // "Charger plus" : les lignes déjà affichées restent en place (pas de rebuild, pas de replayEntrance
+    // sur tout le tableau - même flash noir que la Galerie sinon). Seules les lignes nouvellement
+    // révélées sont ajoutées.
+    if (isLoadMore) {
+        const alreadyRendered = tbody.children.length;
+        const newCards = filtered.slice(alreadyRendered);
+        tbody.insertAdjacentHTML('beforeend', newCards.map(renderCollectionTableRowHtml).join(''));
+        updateSelectAllCheckboxState();
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(renderCollectionTableRowHtml).join('');
+
+    updateSelectAllCheckboxState();
+    replayEntrance(tableWrapper);
+}
+
+function renderCollectionTableRowHtml(card) {
         const qty = Number(card.quantity || 1);
         const lineTotal = Number(card.market_value || 0) * qty;
         const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
@@ -1092,16 +1124,30 @@ function renderCollectionTable(filtered) {
                     <button onclick="changeQuantity(${card.id}, 1, this)"><i class="ti ti-plus" aria-hidden="true"></i></button>
                 </div>
             </td>
-            <td style="text-align: right;"><strong>${lineTotal.toFixed(2)}€</strong></td>
+            <td style="text-align: right;"><strong>${formatPrice(lineTotal)}</strong></td>
             <td style="text-align: center;">
                 <button class="delete-btn" onclick="deleteCard(${card.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
             </td>
         </tr>
     `;
-    }).join('');
+}
 
-    updateSelectAllCheckboxState();
-    replayEntrance(tableWrapper);
+// État "vraiment vide" partagé Galerie/Tableau (aucune carte en collection, pas un filtre sans
+// résultat) - même composant que la Wishlist/Progression (.app-empty-*, cf styles.css).
+function getCollectionEmptyStateHtml() {
+    return `
+        <div class="app-empty-state">
+            <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+                <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="4" fill="currentColor"/>
+            </svg>
+            <div class="app-empty-title">Ta collection est vide</div>
+            <p class="app-empty-text">Ajoute ta première carte pour commencer à suivre ta collection.</p>
+            <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+        </div>
+    `;
 }
 
 // Rejoue l'entrée douce du Motion System (.motion-enter) sur un conteneur dont le contenu vient
@@ -1113,20 +1159,39 @@ function replayEntrance(el) {
     el.classList.add('motion-enter');
 }
 
-function renderCollectionGrid(filtered) {
+function renderCollectionGrid(filtered, isLoadMore) {
     const grid = document.getElementById('collection-grid');
     if (!grid) return;
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
+        // Vraiment aucune carte en collection (nouvel utilisateur) -> état illustré ; un filtre/une
+        // recherche qui ne remonte rien reste un texte simple, ne mérite pas la même mise en avant.
+        grid.innerHTML = allCollectionCards.length === 0 ? getCollectionEmptyStateHtml() :
+            '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
         replayEntrance(grid);
         return;
     }
 
-    grid.innerHTML = filtered.map(card => renderGridCardHtml(card, {
+    // "Charger plus" : les cartes déjà affichées restent en place (pas de rebuild, pas de replayEntrance
+    // sur tout le conteneur - ça faisait passer toute la grille par opacity:0, d'où le flash noir signalé).
+    // Seules les cartes nouvellement révélées sont ajoutées, avec leur propre entrée en cascade.
+    if (isLoadMore) {
+        const alreadyRendered = grid.children.length;
+        const newCards = filtered.slice(alreadyRendered);
+        grid.insertAdjacentHTML('beforeend', newCards.map((card, i) => renderGridCardHtml(card, {
+            detailFn: 'showCardDetail',
+            imageFallback: 'upload',
+            showAcquisitionIcon: true,
+            staggerIndex: i
+        })).join(''));
+        return;
+    }
+
+    grid.innerHTML = filtered.map((card, i) => renderGridCardHtml(card, {
         detailFn: 'showCardDetail',
         imageFallback: 'upload',
-        showAcquisitionIcon: true
+        showAcquisitionIcon: true,
+        staggerIndex: i
     })).join('');
 
     replayEntrance(grid);
@@ -1284,6 +1349,7 @@ window.renderCollectionHeaderKpis = renderCollectionHeaderKpis;
 window.renderFilteredCollection = renderFilteredCollection;
 window.renderCollectionTable = renderCollectionTable;
 window.replayEntrance = replayEntrance;
+window.getCollectionEmptyStateHtml = getCollectionEmptyStateHtml;
 window.renderCollectionGrid = renderCollectionGrid;
 window.isCollectionMobileViewport = isCollectionMobileViewport;
 window.getEffectiveCollectionViewMode = getEffectiveCollectionViewMode;

@@ -41,6 +41,47 @@ function showCardDetail(cardId, event) {
     runCardDetailMorphTransition(event, () => renderCardDetail(cardId));
 }
 
+// ===== NAVIGATION CARTE PRECEDENTE/SUIVANTE =====
+// S'appuie sur cardDetailOrigin (containerId) plutot que sur une liste dediee : la liste de
+// reference est directement le DOM du conteneur d'origine, dans son ordre visuel ACTUEL - reste
+// donc automatiquement cohérente avec le tri/filtre en vigueur au moment ou la fiche a ete ouverte,
+// sans dupliquer cette logique ici. Retourne null si aucune origine connue (fiche ouverte sans event,
+// cf showCardDetail) ou si la carte est en premiere/derniere position.
+function cardDetailGetSiblingId(direction) {
+    if (!cardDetailOrigin) return null;
+    const container = document.getElementById(cardDetailOrigin.containerId);
+    if (!container) return null;
+
+    const ids = [...container.querySelectorAll('[data-card-id]')].map(el => Number(el.dataset.cardId));
+    const currentIndex = ids.indexOf(cardDetailOrigin.cardId);
+    if (currentIndex === -1) return null;
+
+    const targetIndex = currentIndex + direction;
+    return (targetIndex >= 0 && targetIndex < ids.length) ? ids[targetIndex] : null;
+}
+
+// Affiche/active les boutons prev/next selon la position actuelle dans le conteneur d'origine.
+// Rien a faire ici pour le cas "en cours d'edition" : le template de showCardEditForm ne contient
+// tout simplement pas ces boutons (getElementById renvoie null, sortie immediate ci-dessous).
+function updateCardDetailNavButtons() {
+    const prevBtn = document.getElementById('card-detail-nav-prev');
+    const nextBtn = document.getElementById('card-detail-nav-next');
+    if (!prevBtn || !nextBtn) return;
+
+    const hasOrigin = !!cardDetailOrigin;
+    prevBtn.classList.toggle('visible', hasOrigin);
+    nextBtn.classList.toggle('visible', hasOrigin);
+    prevBtn.disabled = cardDetailGetSiblingId(-1) == null;
+    nextBtn.disabled = cardDetailGetSiblingId(1) == null;
+}
+
+function navigateCardDetail(direction) {
+    const targetId = cardDetailGetSiblingId(direction);
+    if (targetId == null) return;
+    cardDetailOrigin = { cardId: targetId, containerId: cardDetailOrigin.containerId };
+    renderCardDetail(targetId);
+}
+
 function renderCardDetail(cardId) {
     const card = allCollectionCards.find(c => c.id === cardId);
     if (!card) return;
@@ -66,20 +107,36 @@ function renderCardDetail(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
-                    ${card.image
-                        ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
-                        : getModalUploadPlaceholder(card.id)
-                    }
+                    <div class="modal-image-frame">
+                        ${card.image
+                            ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                            : getModalUploadPlaceholder(card.id)
+                        }
+                        ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        <!-- Navigation carte precedente/suivante (retour d'audit concurrence 2026-09-01,
+                             v2 apres retour utilisateur sur la 1ere version) : superposees sur L'IMAGE
+                             elle-meme (.modal-image-frame, pas .modal-card) - style "macOS Quick Look" /
+                             carrousel Instagram, l'oeil associe naturellement la fleche a l'objet qu'on
+                             feuillette plutot qu'au cadre entier. Apparition au survol de .modal-stand
+                             (cf CSS) pour rester discretes. Recreees a chaque rendu (comme tout ce
+                             template) : aucun etat propre a preserver, juste affichees/desactivees
+                             ensuite par updateCardDetailNavButtons(). Absentes du template d'edition
+                             (showCardEditForm) - pas de verification "en cours d'edition" a faire ici,
+                             l'absence du noeud suffit. -->
+                        <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                        <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                    </div>
                 </div>
                 ${card.tcgdex_id ? `
-                    <div class="card-price-chart-wrap">
-                        <div class="card-price-chart-header">
+                    <div class="card-price-chart-wrap" id="card-price-chart-wrap">
+                        <div class="card-price-chart-header" onclick="toggleCardPriceChart('${card.tcgdex_id}')">
                             <div class="card-price-chart-title">Historique des prix</div>
-                            <div class="card-price-chart-periods" id="card-price-chart-periods">
+                            <div class="card-price-chart-periods" id="card-price-chart-periods" onclick="event.stopPropagation()">
                                 <button class="chart-period-btn" data-days="1" onclick="setCardPriceChartPeriod(1, this)">1J</button>
                                 <button class="chart-period-btn" data-days="7" onclick="setCardPriceChartPeriod(7, this)">7J</button>
                                 <button class="chart-period-btn active" data-days="30" onclick="setCardPriceChartPeriod(30, this)">30J</button>
                             </div>
+                            <i class="ti ti-chevron-down card-price-chart-toggle" aria-hidden="true"></i>
                         </div>
                         <div class="card-price-chart-body">
                             <div class="card-price-chart-plot">
@@ -98,15 +155,12 @@ function renderCardDetail(cardId) {
                         <div class="modal-title">${card.name}</div>
                         ${card.tcgdex_id ? favoriteStarHtml(card.tcgdex_id) : ''}
                     </div>
-                    ${card.series_logo
-                        ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">`
-                        : (card.tcgdex_id ? `
-                            <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
-                                <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
-                            </div>
-                            <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
-                        ` : '')
-                    }
+                    ${!card.series_logo && card.tcgdex_id ? `
+                        <div class="modal-logo-upload" onclick="document.getElementById('modal-logo-upload-input').click()">
+                            <i class="ti ti-tag" aria-hidden="true"></i> Ajouter un logo de série
+                        </div>
+                        <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
+                    ` : ''}
                     <div class="modal-subtitle">${card.series} · #${card.number}</div>
 
                     <div class="modal-badges">
@@ -125,15 +179,15 @@ function renderCardDetail(cardId) {
                     <div class="modal-value-block">
                         <div class="modal-value-label">Valeur estimée</div>
                         <div class="modal-value-row">
-                            <span class="modal-price">${marketValue.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-price">${formatPrice(marketValue)}</span>
                             <span class="modal-trend-dot"><i class="ti ti-chart-line" aria-hidden="true"></i></span>
                         </div>
                         ${!isPack ? `
                         <div class="modal-price-line">
                             <span class="modal-price-label">Prix payé</span>
-                            <span class="modal-price-secondary">${purchasePrice.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-price-secondary">${formatPrice(purchasePrice)}</span>
                         </div>` : ''}
-                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2).replace('.', ',')}€ (×${qty})</div>` : ''}
+                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${formatPrice(lineTotal)} (×${qty})</div>` : ''}
                     </div>
 
                     <div class="modal-meta-actions-row">
@@ -190,24 +244,73 @@ function renderCardDetail(cardId) {
     `;
 
     document.getElementById('card-detail-overlay').classList.add('active');
+    updateCardDetailNavButtons();
 
     if (card.tcgdex_id) {
-        // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations premium) :
-        // renderCardPriceChart() est déjà async (attend Supabase avant de dessiner), donc rarement en
-        // concurrence avec l'animation en pratique, mais sur connexion rapide/réponse déjà en cache
-        // navigateur, l'initialisation Chart.js pouvait tomber pile pendant les toutes premières
-        // frames du morph - requestAnimationFrame garantit qu'elle ne démarre jamais avant que le
-        // navigateur ait eu l'occasion de peindre au moins une frame.
-        requestAnimationFrame(() => renderCardPriceChart(card.tcgdex_id));
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            // Replié par défaut sur mobile (allégement fiche carte, 2026-08-18) : Chart.js n'est
+            // initialisé qu'à la première ouverture du volet (toggleCardPriceChart ci-dessous), jamais
+            // pendant qu'il est masqué - un canvas cache CSS (display:none) a des dimensions nulles,
+            // Chart.js s'y dessinerait de façon cassée. Desktop inchangé (toujours déplié d'office).
+
+            // Deplacement DOM reel (pas juste visuel via CSS order) : le graphique reste imbrique dans
+            // .modal-image-wrap (colonne image desktop, cf CSS ::before/bleed dedie a cette largeur-la)
+            // - impossible a repositionner en CSS pur sans casser cette mise en page desktop, jamais
+            // touchee ici. Sur mobile uniquement, deplace apres le bloc prix (retour utilisateur : voir
+            // la carte + le nom d'abord, le graphique vient ensuite) - le noeud (canvas, id, listeners)
+            // n'est pas recree, juste reancre : le repli/depli et le chargement paresseux plus bas
+            // continuent de fonctionner normalement.
+            const chartWrap = document.getElementById('card-price-chart-wrap');
+            const valueBlock = modalCard.querySelector('.modal-value-block');
+            if (chartWrap && valueBlock) {
+                valueBlock.insertAdjacentElement('afterend', chartWrap);
+            }
+        } else {
+            // Décalé après la frame courante (fluidité mobile, cf roadmap technique animations
+            // premium) : renderCardPriceChart() est déjà async (attend Supabase avant de dessiner),
+            // donc rarement en concurrence avec l'animation en pratique, mais sur connexion
+            // rapide/réponse déjà en cache navigateur, l'initialisation Chart.js pouvait tomber pile
+            // pendant les toutes premières frames du morph - requestAnimationFrame garantit qu'elle ne
+            // démarre jamais avant que le navigateur ait eu l'occasion de peindre au moins une frame.
+            requestAnimationFrame(() => renderCardPriceChart(card.tcgdex_id));
+        }
+    }
+}
+
+// Volet repliable du graphique de prix sur mobile (allégement fiche carte, 2026-08-18) : desktop garde
+// le graphique toujours déplié (cf renderCardDetail), cette fonction n'a d'effet visuel qu'en dessous
+// de 768px (règles CSS scopées, styles.css). Chargement paresseux : Chart.js n'est initialisé qu'au
+// premier dépli (dataset.loaded), jamais en amont sur un canvas encore masqué.
+function toggleCardPriceChart(tcgdexId) {
+    const wrap = document.getElementById('card-price-chart-wrap');
+    if (!wrap) return;
+
+    const expanding = !wrap.classList.contains('expanded');
+    wrap.classList.toggle('expanded', expanding);
+
+    if (expanding && wrap.dataset.loaded !== 'true') {
+        wrap.dataset.loaded = 'true';
+        renderCardPriceChart(tcgdexId);
     }
 }
 
 let cardPriceChartInstance = null;
 let cardPriceChartData = null;
 
+// Garde anti-concurrence (audit 2026-08-15, catégorie B) : renderCardPriceChart() est async et jamais
+// attendue par ses appelants (requestAnimationFrame côté desktop, toggle mobile) - ouvrir la carte A
+// puis vite la carte B avant que la réponse de A soit revenue pouvait faire écraser le graphique de B
+// par les données de A à l'arrivée tardive de sa réponse. myToken capture le compteur au moment de
+// l'appel ; si un appel plus récent a eu lieu entre-temps (compteur déjà incrémenté), cette réponse est
+// jetée silencieusement au lieu d'écraser ce qui est déjà affiché.
+let cardPriceChartRequestToken = 0;
+
 async function renderCardPriceChart(tcgdexId) {
     const canvas = document.getElementById('card-price-chart');
-    if (!canvas || typeof Chart === 'undefined') return;
+    if (!canvas) return;
+    await ensureChartLoaded();
+
+    const myToken = ++cardPriceChartRequestToken;
 
     // .not(...'is', null) : une ligne avec recorded_at absent (ancien point mal formé, ex. tout
     // premier insert avant l'ajout de cette colonne) trierait en dernier même en ordre croissant
@@ -220,6 +323,8 @@ async function renderCardPriceChart(tcgdexId) {
         .not('recorded_at', 'is', null)
         .order('recorded_at', { ascending: true })
         .limit(100);
+
+    if (myToken !== cardPriceChartRequestToken) return;
 
     cardPriceChartData = (!error && data) ? data : [];
     renderCardPriceChartForPeriod(30);
@@ -265,8 +370,8 @@ function renderCardPriceChartForPeriod(days) {
     if (rangeLabel) {
         rangeLabel.style.display = 'flex';
         rangeLabel.innerHTML = minVal === maxVal
-            ? `<span>Stable à ${minVal.toFixed(2)}€</span>`
-            : `<span>Min ${minVal.toFixed(2)}€</span><span>Max ${maxVal.toFixed(2)}€</span>`;
+            ? `<span>Stable à ${formatPrice(minVal)}</span>`
+            : `<span>Min ${formatPrice(minVal)}</span><span>Max ${formatPrice(maxVal)}</span>`;
     }
 
     if (statBlock) {
@@ -288,7 +393,7 @@ function renderCardPriceChartForPeriod(days) {
             statBlock.style.display = 'flex';
             statBlock.innerHTML = `
                 <span class="card-price-stat-pct ${cls}">${sign}${pct.toFixed(0)}%</span>
-                <span class="card-price-stat-abs ${cls}">(${sign}${delta.toFixed(2).replace('.', ',')}€)</span>
+                <span class="card-price-stat-abs ${cls}">(${sign}${formatPrice(delta)})</span>
                 <span class="card-price-stat-caption">${periodLabel}</span>
             `;
         }
@@ -316,13 +421,17 @@ function renderCardPriceChartForPeriod(days) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // Chart.js anime ce tracé sur <canvas>, hors de portée du filet CSS prefers-reduced-motion
+            // qui protège le reste du site (motion-components.css) - garde explicite ici comme pour les
+            // autres orchestrateurs d'animation du projet.
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : true,
             layout: {
                 padding: { top: 6, right: 2, bottom: 2, left: 2 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: '#161B29',
+                    backgroundColor: '#1A1A1E',
                     titleColor: '#8A93A6',
                     bodyColor: '#F7F3EA',
                     borderColor: 'rgba(255,255,255,0.1)',
@@ -331,7 +440,7 @@ function renderCardPriceChartForPeriod(days) {
                     displayColors: false,
                     titleFont: { size: 11 },
                     bodyFont: { size: 13, weight: 'bold' },
-                    callbacks: { label: (ctx) => `${ctx.parsed.y.toFixed(2)}€` }
+                    callbacks: { label: (ctx) => formatPrice(ctx.parsed.y) }
                 }
             },
             scales: {
@@ -579,12 +688,17 @@ function closeCardDetail() {
 
     const origin = cardDetailOrigin;
     cardDetailOrigin = null;
+    updateCardDetailNavButtons();
 
     const sourceEl = origin ? findVisibleCardDetailSource(origin.containerId, origin.cardId) : null;
     const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
     const modalImg = overlay.querySelector('.modal-image');
+    // Desactive sur mobile, symetrique a runCardDetailMorphTransition (card-grid-renderer.js) : sans
+    // ce garde-fou, la fermeture (swipe ou croix) gardait le morph inverse alors que l'ouverture ne
+    // l'a plus - signale par l'utilisateur ("la carte qui retourne a son emplacement" au swipe).
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function') {
+    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function' || isMobile) {
         overlay.classList.remove('active');
         return;
     }
@@ -699,9 +813,11 @@ async function handleCollectionImageUpload(event, cardId) {
 // (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.showCardDetail = showCardDetail;
+window.navigateCardDetail = navigateCardDetail;
 window.cardPriceChartInstance = cardPriceChartInstance;
 window.cardPriceChartData = cardPriceChartData;
 window.renderCardPriceChart = renderCardPriceChart;
+window.toggleCardPriceChart = toggleCardPriceChart;
 window.renderCardPriceChartForPeriod = renderCardPriceChartForPeriod;
 window.setCardPriceChartPeriod = setCardPriceChartPeriod;
 window.showCardEditForm = showCardEditForm;

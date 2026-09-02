@@ -562,7 +562,13 @@ function renderTab(tabId, { activateContent = true } = {}) {
     const targetTab = document.getElementById(tabId);
     if (!targetTab) return; // tabId inconnu ou DOM pas prêt : on ignore plutôt que planter sur classList
 
-    document.body.className = TAB_PAGE_MAP[tabId] || '';
+    // classList.remove/add cible (pas document.body.className = ..., un remplacement complet) : ce
+    // dernier effaçait au passage toute classe posée ailleurs sur <body> independamment du routing -
+    // notamment .pwa-installable (modules/pwa.js), qui disparaissait des la premiere navigation apres
+    // le declenchement de beforeinstallprompt (bouton "Installer l'app" invisible ensuite, signale par
+    // l'utilisateur, 2026-08-18).
+    document.body.classList.remove(...[...document.body.classList].filter(c => c.startsWith('page-')));
+    if (TAB_PAGE_MAP[tabId]) document.body.classList.add(TAB_PAGE_MAP[tabId]);
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     targetTab.classList.add('active');
 
@@ -800,9 +806,14 @@ function activateTabContent(tabId) {
         renderDashboard();
     }
 
-    // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture
+    // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture.
+    // renderHeroValueCard() (sparkline/valeur/fluctuation du hero Stats) vivait avant dans init()
+    // (auth.js), appelee sans condition a CHAQUE connexion quel que soit l'onglet de depart - deplacee
+    // ici (perf, audit bundle 2026-09-01) pour ne s'executer qu'a la premiere vraie visite de cet
+    // onglet, et charger Chart.js seulement si necessaire (cf ensureChartLoaded, utils.js).
     if (tabId === 'tab-stats') {
         renderStatsCharts();
+        renderHeroValueCard();
     }
 
     if (tabId === 'tab-progression') {
@@ -837,6 +848,19 @@ function activateTabContent(tabId) {
 
     if (tabId === 'tab-changelog') {
         renderChangelogPage();
+    }
+
+    // #card-date-added est un champ statique d'index.html (pas reconstruit a chaque visite, contrairement
+    // aux champs de date dans des modales) : initDatePicker() (flatpickr) ne doit tourner qu'une seule
+    // fois sur ce noeud, sinon chaque revisite de l'onglet empile une nouvelle instance flatpickr par
+    // dessus les precedentes. Deplace ici depuis init() (auth.js, perf - audit bundle 2026-09-01) pour ne
+    // charger Flatpickr qu'a la premiere visite reelle de cet onglet, pas a chaque connexion.
+    if (tabId === 'tab-add') {
+        const dateInput = document.getElementById('card-date-added');
+        if (dateInput && !dateInput.dataset.datepickerInit) {
+            dateInput.dataset.datepickerInit = 'true';
+            initDatePicker('#card-date-added');
+        }
     }
 }
 
@@ -1077,7 +1101,7 @@ function renderPriceMovers() {
             return `
             <div class="mover-row${clickClass}"${clickAttr}>
                 <span class="mover-name">${m.name} <span class="mover-number">#${m.number}</span></span>
-                <span class="mover-delta ${positive ? 'positive' : 'negative'}">${positive ? '+' : ''}${m.delta.toFixed(2)}€</span>
+                <span class="mover-delta ${positive ? 'positive' : 'negative'}">${positive ? '+' : ''}${formatPrice(m.delta)}</span>
             </div>
         `;
         }).join('');
@@ -1144,6 +1168,47 @@ function initEventListeners() {
             } else {
                 closeMobileAddPanel();
             }
+
+            // Modales/menus qui n'avaient encore aucun handler Échap (audit du 2026-08-15, catégorie B).
+            // Toutes sans risque à appeler même fermées : chacune se contente de retirer .active (et de
+            // résoudre une Promise en attente à null/false si besoin), sans effet si l'overlay ne l'a pas.
+            // acknowledgeChangelogPopup() plutôt que le simple closeChangelogPopup() : même comportement
+            // que le clic sur le fond de cette popup precise (marque la version comme vue avant de fermer,
+            // cf modules/changelog.js), pour ne pas la faire réapparaître différemment selon Échap ou clic.
+            // Gardé par un test .active (contrairement aux autres ci-dessous) : acknowledgeChangelogPopup
+            // écrit dans localStorage à chaque appel, contrairement aux simples closeXxx() qui ne font que
+            // retirer .active sans effet si déjà fermé - un appel inconditionnel marquerait la version
+            // comme vue à CHAQUE Échap, même pour fermer une tout autre modale, sans que la popup ait
+            // jamais été montrée.
+            // La modale de progression/rapport d'import CSV (#csv-import-overlay) n'a volontairement pas
+            // de handler Échap ni de clic-sur-le-fond : un import peut être en cours, elle ne doit pas
+            // pouvoir se fermer accidentellement.
+            closeWishlistEditModal();
+            closeAdminImageUploadModal();
+            if (document.getElementById('changelog-popup-overlay')?.classList.contains('active')) {
+                acknowledgeChangelogPopup();
+            }
+            closeTextPrompt();
+            closeConfirmModal(false);
+            closeQuickAddSettingsModal();
+            closeProfileModal();
+            closeProfileMenu();
+            closeTopMoversModal();
+            closePublicCardDetail();
+            closeCsvDropdown();
+        }
+
+        // Navigation clavier carte precedente/suivante (retour d'audit concurrence 2026-09-01) : ne se
+        // declenche que si la fiche carte est active ET que le focus n'est pas dans un champ de saisie
+        // (formulaire d'edition, recherche...) - sinon les fleches gauche/droite deplaceraient le
+        // curseur de texte au lieu de changer de carte. navigateCardDetail() est lui-meme un no-op sans
+        // origine de navigation ou en bout de liste (cf card-detail.js), pas besoin de re-verifier ici.
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            const overlayActive = document.getElementById('card-detail-overlay')?.classList.contains('active');
+            const typingInField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+            if (overlayActive && !typingInField) {
+                navigateCardDetail(e.key === 'ArrowLeft' ? -1 : 1);
+            }
         }
     });
 
@@ -1192,11 +1257,28 @@ function initEventListeners() {
             searchCards();
         }, 350);
     });
-    document.getElementById('filter-rarity').addEventListener('change', applySearchFilters);
-    document.getElementById('filter-series').addEventListener('change', applySearchFilters);
+    // Wrappees en fleches (pas la reference directe) : passer la fonction elle-meme oblige a ce
+    // qu'elle existe DEJA au moment ou cette ligne s'execute (initEventListeners tourne au chargement
+    // de tracker.js), alors que ces 4 fonctions sont definies dans d'autres modules (cards.js,
+    // progression.js, stats-render.js) - l'ordre de chargement <script> est respecte en dev, mais pas
+    // garanti une fois tous les modules concatenes en un seul bundle par Vite en prod (cause du
+    // ReferenceError "applySearchFilters is not defined" remonte par Sentry, 2026-08-18). Une fleche ne
+    // resout le nom qu'au moment ou l'evenement se declenche reellement (clic/saisie utilisateur), bien
+    // apres que tous les modules aient fini de charger - plus aucune dependance a l'ordre.
+    document.getElementById('filter-rarity').addEventListener('change', () => applySearchFilters());
+    document.getElementById('filter-series').addEventListener('change', () => applySearchFilters());
 
-    document.getElementById('progression-search').addEventListener('input', renderProgressionCardsGrid);
-    document.getElementById('month-summary-select').addEventListener('change', renderMonthlySummary);
+    // debounce() vient de utils.js (autre module) : initialisation paresseuse au premier evenement
+    // plutot qu'un appel direct ici, meme precaution que les fleches ci-dessus (ordre de chargement des
+    // modules pas garanti en prod, cf commentaire juste au-dessus).
+    let debouncedRenderProgressionCardsGrid = null;
+    document.getElementById('progression-search').addEventListener('input', () => {
+        if (!debouncedRenderProgressionCardsGrid) {
+            debouncedRenderProgressionCardsGrid = debounce(() => renderProgressionCardsGrid(), 250);
+        }
+        debouncedRenderProgressionCardsGrid();
+    });
+    document.getElementById('month-summary-select').addEventListener('change', () => renderMonthlySummary());
 }
 
 if (document.getElementById('search-collection')) initEventListeners();
@@ -1238,6 +1320,113 @@ function syncModalScrollLock() {
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
     new MutationObserver(syncModalScrollLock).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+});
+
+// ===== SWIPE-TO-DISMISS DU BOTTOM SHEET (MOBILE) =====
+// Générique, même esprit que le verrou de scroll ci-dessus : aucune des ~14 modales n'a besoin d'être
+// touchée individuellement. Zone de detection volontairement étroite et centrée (bande de
+// SWIPE_HANDLE_WIDTH au-dessus de la carte, sur les SWIPE_HANDLE_HEIGHT premiers pixels) - coïncide
+// avec la pastille dessinée en ::after sur .modal-card (styles.css, @media max-width:768px). Évite
+// toute collision avec .modal-close (coin supérieur droit) et avec le scroll interne de .modal-scroll
+// (qui commence plus bas, sous le padding de la carte) : glisser à l'intérieur du contenu scrolle la
+// modale normalement, glisser depuis la poignée referme la feuille.
+// overlay.click() réutilise la fermeture déjà câblée de chaque modale (onclick="if(event.target===this)
+// close...()", index.html) plutôt qu'une table id -> fonction de fermeture dupliquée ici : un clic
+// simulé sur l'overlay a bien target===overlay, exactement la condition attendue par ces handlers. Les
+// modales sans ce onclick (ex. csv-import, fermeture volontairement bloquée pendant un import) ignorent
+// alors aussi le swipe, cohérent avec leur tap-outside déjà désactivé.
+const SWIPE_DISMISS_HANDLE_HEIGHT = 24;
+const SWIPE_DISMISS_HANDLE_WIDTH = 80;
+const SWIPE_DISMISS_CLOSE_THRESHOLD = 90;
+
+let swipeDismissCard = null;
+let swipeDismissStartY = 0;
+let swipeDismissDeltaY = 0;
+
+function isInSwipeDismissHandle(card, touch) {
+    const rect = card.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    return y >= 0 && y <= SWIPE_DISMISS_HANDLE_HEIGHT &&
+        x >= (rect.width / 2 - SWIPE_DISMISS_HANDLE_WIDTH / 2) &&
+        x <= (rect.width / 2 + SWIPE_DISMISS_HANDLE_WIDTH / 2);
+}
+
+document.addEventListener('touchstart', (event) => {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    const card = event.target.closest('.modal-overlay.active .modal-card');
+    if (!card || !isInSwipeDismissHandle(card, event.touches[0])) return;
+
+    swipeDismissCard = card;
+    swipeDismissStartY = event.touches[0].clientY;
+    swipeDismissDeltaY = 0;
+    card.style.transition = 'none';
+}, { passive: true });
+
+document.addEventListener('touchmove', (event) => {
+    if (!swipeDismissCard) return;
+    swipeDismissDeltaY = Math.max(0, event.touches[0].clientY - swipeDismissStartY);
+    swipeDismissCard.style.transform = `translateY(${swipeDismissDeltaY}px)`;
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+    if (!swipeDismissCard) return;
+    const card = swipeDismissCard;
+    swipeDismissCard = null;
+
+    if (swipeDismissDeltaY > SWIPE_DISMISS_CLOSE_THRESHOLD) {
+        // Styles inline nettoyés après coup (filet de sécurité, même pattern que
+        // runNavIndicatorTransition ci-dessus) : le fondu de fermeture (.modal-overlay, pas la carte -
+        // sa propre transition reste désactivée ici) masque la carte pendant ce délai, aucun flash.
+        card.closest('.modal-overlay')?.click();
+        setTimeout(() => {
+            card.style.transition = '';
+            card.style.transform = '';
+        }, 450);
+    } else {
+        card.style.transition = '';
+        card.style.transform = '';
+    }
+    swipeDismissDeltaY = 0;
+});
+
+// ===== Swipe horizontal : carte precedente/suivante sur mobile (retour utilisateur 2026-09-01) =====
+// Scope volontairement etroit (.modal-image-frame, pas toute .modal-card) : le geste de fermeture
+// ci-dessus ne demarre que dans une petite poignee en haut de la carte (isInSwipeDismissHandle),
+// aucun chevauchement possible avec l'image plus bas - mais reste volontairement hors de
+// .modal-scroll (defilement vertical du reste de la fiche) pour ne jamais transformer un scroll en
+// navigation accidentelle. Pas de suivi visuel du doigt (contrairement au swipe de fermeture) : juste
+// une detection au relachement, plus simple et suffisant pour un premier jet.
+const SWIPE_NAV_THRESHOLD = 50;
+
+let swipeNavActive = false;
+let swipeNavStartX = 0;
+let swipeNavStartY = 0;
+
+document.addEventListener('touchstart', (event) => {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    if (!event.target.closest('#card-detail-card .modal-image-frame')) return;
+
+    swipeNavActive = true;
+    swipeNavStartX = event.touches[0].clientX;
+    swipeNavStartY = event.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (event) => {
+    if (!swipeNavActive) return;
+    swipeNavActive = false;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - swipeNavStartX;
+    const deltaY = touch.clientY - swipeNavStartY;
+
+    // Horizontal dominant + seuil franchi : un scroll vertical ou un simple tap ne doit jamais
+    // declencher de navigation. navigateCardDetail() est deja un no-op silencieux sans origine ou en
+    // bout de liste (card-detail.js), pas besoin de reverifier l'etat des boutons ici (masques sur
+    // mobile de toute facon).
+    if (Math.abs(deltaX) > SWIPE_NAV_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+        navigateCardDetail(deltaX < 0 ? 1 : -1);
+    }
 });
 
 // ===== Exports window (ticket V2 Vite, type="module") =====

@@ -111,8 +111,12 @@ function closeWishlistItemDetail() {
     const sourceEl = origin ? findVisibleWishlistDetailSource(origin.containerId, origin.itemId) : null;
     const sourceImg = sourceEl ? sourceEl.querySelector('img') : null;
     const modalImg = overlay.querySelector('.wishlist-detail-image');
+    // Desactive sur mobile, symetrique a runCardDetailMorphTransition (card-grid-renderer.js) : sans
+    // ce garde-fou, la fermeture (swipe ou croix) gardait le morph inverse alors que l'ouverture ne
+    // l'a plus - signale par l'utilisateur ("la carte qui retourne a son emplacement" au swipe).
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function') {
+    if (!sourceImg || !modalImg || typeof document.startViewTransition !== 'function' || isMobile) {
         overlay.classList.remove('active');
         finishClose();
         return;
@@ -302,9 +306,10 @@ function buildWishlistDetailHtml(item) {
         ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="wishlist-detail-image" onerror="this.outerHTML='<div class=&quot;no-image-placeholder modal-size&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
         : `<div class="no-image-placeholder modal-size"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`;
 
-    const seriesLogoHtml = item.series_logo
-        ? `<img src="${item.series_logo}" class="wishlist-detail-series-logo" alt="" onerror="this.parentElement.classList.add('no-logo')">`
-        : `<span class="wishlist-detail-series-logo-fallback"><i class="ti ti-tag" aria-hidden="true"></i></span>`;
+    const seriesLogoUrl = item.series_logo || getSeriesLogoUrl(item.tcgdex_id);
+    const seriesSealHtml = seriesLogoUrl
+        ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">`
+        : '';
 
     const listHtml = list
         ? `<span class="modal-pill wishlist-detail-list-pill" style="border-color:${list.color || '#8A93A6'}66; color:${list.color || '#8A93A6'};">${list.icon || '⭐'} ${escapeHtml(list.name)}</span>`
@@ -405,6 +410,7 @@ function buildWishlistDetailHtml(item) {
             <div class="wishlist-detail-image-col">
                 <div class="wishlist-detail-image-frame">
                     ${imageHtml}
+                    ${seriesSealHtml}
                     ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag wishlist-detail-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Déjà possédée</div>' : ''}
                 </div>
             </div>
@@ -415,7 +421,6 @@ function buildWishlistDetailHtml(item) {
                         <div class="modal-title">${escapeHtml(item.name)}</div>
                     </div>
                     <div class="wishlist-detail-series-row">
-                        ${seriesLogoHtml}
                         <span class="wishlist-detail-series-text">${escapeHtml(item.series)} · #${escapeHtml(item.number)}</span>
                     </div>
                     <div class="modal-badges">
@@ -442,7 +447,7 @@ function buildWishlistDetailHtml(item) {
                 <div class="wishlist-detail-section wishlist-detail-value-actions">
                     <div class="wishlist-detail-price-block">
                         <div class="modal-value-label">Prix marché</div>
-                        <div class="wishlist-detail-price">${price > 0 ? price.toFixed(2).replace('.', ',') + '€' : 'Non disponible'}</div>
+                        <div class="wishlist-detail-price">${price > 0 ? formatPrice(price) : 'Non disponible'}</div>
                         ${priceSignal ? `<div class="wishlist-detail-price-signal price-signal-${priceSignal.type}"><i class="ti ti-arrow-${priceSignal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i> ${escapeHtml(priceSignal.wording)}</div>` : ''}
                     </div>
 

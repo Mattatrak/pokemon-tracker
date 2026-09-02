@@ -1,8 +1,9 @@
 // Progression par série + ajout rapide - Pokémon Tracker
 // Dépend de: supabaseClient/API_BASE/API_EN/allCollectionCards/performCardAdd/refreshCollection/recordValueSnapshot (tracker.js),
 // sanitizeForPath/getSetIdFromTcgdexId/sortRaritiesByTier/buildRarityFilterRowHtml/getFoilIconHtml/buildFinishOptionsHtml/
-// getRarityIconHtml/initDatePicker (utils.js), getStoredImageFilenames/uploadImageToStorage/uploadSeriesLogoManually (storage.js),
-// showCardDetail/closeCardDetail (card-detail.js), getGridNoImageHtml (card-grid-renderer.js), showMessage (utils.js)
+// getRarityIconHtml/initDatePicker/getCardmarketUrl (utils.js), getStoredImageFilenames/uploadImageToStorage/uploadSeriesLogoManually (storage.js),
+// showCardDetail/closeCardDetail (card-detail.js), getGridNoImageHtml (card-grid-renderer.js), showMessage (utils.js),
+// openWishlistPicker/allWishlistItems (wishlist.js)
 // Le HTML de renderProgressionCardsGrid appelle showAddCardModal/quickInstantAdd en onclick : ces deux sous-features
 // sont couplées via le DOM, d'où leur regroupement dans un seul module.
 // Etat possédé : customQuickAddImage, QUICKADD_DEFAULTS_KEY, allTcgdexSeries, currentProgressionSetId,
@@ -343,10 +344,16 @@ function renderProgressionSeriesList() {
     // déjà "Aucun set commencé".
     if (seriesWithOwnedSets.length === 0) {
         container.innerHTML = `
-            <div class="progression-empty-state">
-                <p class="progression-empty-state-title">Aucune série commencée</p>
-                <p class="progression-empty-state-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
-                <button class="dashboard-add-btn" style="margin-top:0.75rem;" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+            <div class="app-empty-state">
+                <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+                    <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="4" fill="currentColor"/>
+                </svg>
+                <div class="app-empty-title">Aucune série commencée</div>
+                <p class="app-empty-text">Ajoute ta première carte pour commencer à suivre ta progression.</p>
+                <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
             </div>
         `;
         return;
@@ -386,14 +393,13 @@ function renderProgressionSeriesList() {
             return `
                 <div class="progression-set-row ${rowStateClass}" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
                     <span class="progression-set-pct-badge ${badgeClass}">${pct}%</span>
-                    <div class="progression-set-logo-wrap">${logoHtml}</div>
+                    <div class="progression-set-logo-wrap">${logoHtml}${progressRingSvg(pct)}</div>
                     <div class="progression-set-info">
                         <div class="progression-set-name">${set.name}</div>
                         <div class="progression-set-count">
                             ${subtitleHtml}
                             ${secretCount > 0 ? `<span class="progression-secret-badge">+${secretCount} secrètes</span>` : ''}
                         </div>
-                        <div class="progression-progress-bar"><div class="progression-progress-fill" style="width:${pct}%"></div></div>
                     </div>
                 </div>
             `;
@@ -480,6 +486,37 @@ async function fetchSetCardsDetailed(setId, onProgress) {
     return detailed.sort((a, b) => (parseInt(a.localId) || 0) - (parseInt(b.localId) || 0));
 }
 
+// Repere sticky (nom du set + progression, cf progression-set-sticky-bar dans index.html) : revele
+// une fois que .progression-set-title-row (le vrai titre, en haut) sort de l'ecran - utile sur un
+// set dense (200+ cartes, cf Heros Transcendants) ou on perd de vue le nom/pourcentage en scrollant.
+// IntersectionObserver plutot qu'un scroll listener : aucun recalcul a chaque frame de scroll, le
+// navigateur ne notifie que sur le changement d'etat (visible <-> invisible).
+let progressionStickyObserver = null;
+
+function setupProgressionStickyBar() {
+    if (progressionStickyObserver) progressionStickyObserver.disconnect();
+
+    const titleRow = document.querySelector('#progression-set-view .progression-set-title-row');
+    const stickyBar = document.getElementById('progression-set-sticky-bar');
+    if (!titleRow || !stickyBar) return;
+
+    progressionStickyObserver = new IntersectionObserver(([entry]) => {
+        stickyBar.classList.toggle('visible', !entry.isIntersecting);
+    });
+    progressionStickyObserver.observe(titleRow);
+}
+
+// Deconnecte l'observer en quittant la vue detail d'un set (backToSeriesProgress) : sans ca, un
+// observer reste actif par-dessus un titre qui n'est plus affiche (display:none), potentiellement
+// un par aller-retour set -> liste -> set si jamais recree sans etre nettoye avant.
+function teardownProgressionStickyBar() {
+    if (progressionStickyObserver) {
+        progressionStickyObserver.disconnect();
+        progressionStickyObserver = null;
+    }
+    document.getElementById('progression-set-sticky-bar')?.classList.remove('visible');
+}
+
 async function openSetProgression(setId, setName, logoUrl) {
     currentProgressionSetId = setId;
     progressionFilter = 'all';
@@ -492,15 +529,23 @@ async function openSetProgression(setId, setName, logoUrl) {
     document.getElementById('progression-series-view').style.display = 'none';
     document.getElementById('progression-set-view').style.display = 'block';
     document.getElementById('progression-set-title').textContent = setName;
+    document.getElementById('progression-sticky-title').textContent = setName;
 
     const logoImg = document.getElementById('progression-set-logo');
+    const stickyLogo = document.getElementById('progression-sticky-logo');
     if (logoUrl) {
         logoImg.src = logoUrl;
         logoImg.style.display = 'inline-block';
         logoImg.onerror = () => { logoImg.style.display = 'none'; };
+        stickyLogo.src = logoUrl;
+        stickyLogo.style.display = 'inline-block';
+        stickyLogo.onerror = () => { stickyLogo.style.display = 'none'; };
     } else {
         logoImg.style.display = 'none';
+        stickyLogo.style.display = 'none';
     }
+
+    setupProgressionStickyBar();
 
     const grid = document.getElementById('progression-cards-grid');
     const progressText = document.getElementById('progression-set-progress-text');
@@ -592,7 +637,7 @@ function renderProgressionSetBudgetText(missingCount, budget) {
         return;
     }
 
-    const amount = `<span class="budget-amount">≈ ${totalKnown.toFixed(2)} €</span>`;
+    const amount = `<span class="budget-amount">≈ ${formatPrice(totalKnown)}</span>`;
     el.innerHTML = countUnknown === 0
         ? `${amount} pour compléter ce set (${countKnown} carte${countKnown > 1 ? 's' : ''})`
         : `${amount} pour les ${countKnown} carte${countKnown > 1 ? 's' : ''} manquante${countKnown > 1 ? 's' : ''} dont le prix est connu — ${countUnknown} sans estimation`;
@@ -602,10 +647,24 @@ async function renderProgressionCardsGrid() {
     const grid = document.getElementById('progression-cards-grid');
     const searchTerm = document.getElementById('progression-search').value.toLowerCase();
 
+    // Index cartes possedees par tcgdex_id (audit 2026-08-15, categorie B) : construit une seule fois
+    // par rendu (O(collection)) plutot que de laisser isOwnedInMode/ownedCardRow/ownedQuantity
+    // rescanner allCollectionCards en entier a chaque carte du set (O(set*collection) - lag ressenti
+    // sur un gros set avec une grosse collection). Cle = tcgdex_id, valeur = toutes les lignes
+    // possedees pour cet id (generalement 1, plusieurs si differentes finitions/etats).
+    const ownedRowsByTcgdexId = new Map();
+    allCollectionCards.forEach(c => {
+        if (!c.tcgdex_id) return;
+        if (!ownedRowsByTcgdexId.has(c.tcgdex_id)) ownedRowsByTcgdexId.set(c.tcgdex_id, []);
+        ownedRowsByTcgdexId.get(c.tcgdex_id).push(c);
+    });
+
     // Une carte est "possédée" dans un mode donné si on en a une ligne avec cette finition précise
     // (les cartes sans finish renseigné - ajoutées avant cette fonctionnalité - comptent comme "normal")
-    const isOwnedInMode = (tcgdexId, mode) =>
-        allCollectionCards.some(c => c.tcgdex_id === tcgdexId && (c.finish || 'normal') === mode);
+    const isOwnedInMode = (tcgdexId, mode) => {
+        const rows = ownedRowsByTcgdexId.get(tcgdexId);
+        return !!rows && rows.some(c => (c.finish || 'normal') === mode);
+    };
 
     let baseCards = currentProgressionCards;
     if (progressionFinishMode !== 'normal') {
@@ -616,7 +675,12 @@ async function renderProgressionCardsGrid() {
     const ownedCount = baseCards.filter(c => isOwnedInMode(c.id, progressionFinishMode)).length;
     const totalCount = baseCards.length;
     const pct = totalCount > 0 ? Math.round((ownedCount / totalCount) * 100) : 0;
-    document.getElementById('progression-set-progress-text').textContent = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
+    const progressLabel = `${ownedCount} / ${totalCount} cartes possédées · ${pct}%`;
+    document.getElementById('progression-set-progress-text').textContent = progressLabel;
+    // Miroir compact pour la barre sticky (progression-set-sticky-bar, index.html) - meme source,
+    // mis a jour au meme endroit pour ne jamais desynchroniser les deux affichages.
+    const stickyProgress = document.getElementById('progression-sticky-progress');
+    if (stickyProgress) stickyProgress.textContent = `${pct}%`;
 
     // Un seul calcul pour le budget (P2-1) et la carte manquante la plus chère (P2-2) — même passe,
     // pas de logique dupliquée. Portée à toutes les cartes manquantes du set, indépendamment du
@@ -654,14 +718,11 @@ async function renderProgressionCardsGrid() {
 
     grid.innerHTML = cards.map(card => {
         const owned = isOwnedInMode(card.id, progressionFinishMode);
-        const ownedCardRow = owned
-            ? allCollectionCards.find(c => c.tcgdex_id === card.id && (c.finish || 'normal') === progressionFinishMode)
-            : null;
-        const ownedQuantity = owned
-            ? allCollectionCards
-                .filter(c => c.tcgdex_id === card.id && (c.finish || 'normal') === progressionFinishMode)
-                .reduce((sum, c) => sum + Number(c.quantity || 1), 0)
-            : 0;
+        const ownedRowsForCard = owned
+            ? (ownedRowsByTcgdexId.get(card.id) || []).filter(c => (c.finish || 'normal') === progressionFinishMode)
+            : [];
+        const ownedCardRow = ownedRowsForCard[0] || null;
+        const ownedQuantity = ownedRowsForCard.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
 
         let imageUrl = '';
         if (ownedCardRow && ownedCardRow.image) {
@@ -686,7 +747,7 @@ async function renderProgressionCardsGrid() {
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
-                ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${setBudget.mostExpensive.price.toFixed(2)} €</div>` : ''}
+                ${isMostExpensiveMissing ? `<div class="most-expensive-badge" title="Carte manquante la plus chère de ce set">≈ ${formatPrice(setBudget.mostExpensive.price)}</div>` : ''}
                 <button class="progression-add-badge" onclick="event.stopPropagation(); quickInstantAdd('${card.id}', this)">+</button>
                 <div class="progression-card-label">#${card.localId} ${card.name}</div>
             </div>
@@ -767,6 +828,7 @@ function backToSeriesProgress() {
     document.getElementById('progression-series-view').style.display = 'block';
     document.getElementById('progression-set-view').style.display = 'none';
     currentProgressionSetId = null;
+    teardownProgressionStickyBar();
     // Rafraîchir les compteurs de la liste (au cas où des cartes ont été ajoutées entre-temps)
     loadSeriesProgress();
 }
@@ -880,6 +942,25 @@ async function handleQuickAddImageUpload(event, tcgdexId) {
     }
 }
 
+// Ouvre le picker de listes (modules/wishlist.js) avec cette carte TCGdex brute (jamais possedee,
+// showAddCardModal n'est appelee que pour ce cas - cf le onclick conditionnel dans
+// renderProgressionCardsGrid). Normalise vers la forme deja attendue par openWishlistPicker/
+// addPublicCardToWishlistInternal - meme principe que openWishlistPickerForPublicCard
+// (modules/public-profile.js), juste une forme source differente (TCGdex brut : card.set.name/
+// card.localId/card.pricing... au lieu du gabarit deja plat cote profil public).
+function openWishlistPickerForProgressionCard(card) {
+    openWishlistPicker({
+        tcgdex_id: card.id || null,
+        name: card.name,
+        series: card.set?.name || 'N/A',
+        number: card.localId || '?',
+        rarity: card.rarity || 'N/A',
+        image: card.image ? `${card.image}/high.webp` : '',
+        series_logo: card.set?.logo ? `${card.set.logo}.webp` : null,
+        cardmarket_id: card.pricing?.cardmarket?.idProduct || null
+    });
+}
+
 function showAddCardModal(card) {
     customQuickAddImage = null;
     const qaDefaults = getQuickAddDefaults();
@@ -891,6 +972,9 @@ function showAddCardModal(card) {
         marketPrice = card.pricing.cardmarket['avg-holo'];
     }
 
+    const cardmarketUrl = getCardmarketUrl(card.pricing?.cardmarket?.idProduct, card.name);
+    const alreadyInWishlist = !!(card.id && typeof allWishlistItems !== 'undefined' && allWishlistItems.some(i => i.tcgdex_id === card.id));
+
     const imageUrl = card.image ? `${card.image}/high.webp` : '';
 
     const modalCard = document.getElementById('card-detail-card');
@@ -899,20 +983,24 @@ function showAddCardModal(card) {
         <div class="modal-scroll">
         <div class="modal-body">
             <div class="modal-image-wrap">
-                <div id="quickadd-image-slot">
-                    ${imageUrl
-                        ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
-                        : getQuickAddUploadPlaceholderHtml(card.id)
-                    }
+                <div class="modal-stand">
+                    <div id="quickadd-image-slot" class="modal-image-frame">
+                        ${imageUrl
+                            ? `<img src="${imageUrl}" alt="${card.name}" class="modal-image" onerror="handleTcgdexImgError(this, () => this.outerHTML=getGridNoImageHtml())">`
+                            : getQuickAddUploadPlaceholderHtml(card.id)
+                        }
+                    </div>
                 </div>
             </div>
             <div class="modal-info">
-                <div class="modal-title">${card.name}</div>
+                <div class="modal-title-row">
+                    <div class="modal-title">${card.name}</div>
+                </div>
                 <div class="modal-subtitle">${card.set?.name || 'N/A'} · #${card.localId || '?'}</div>
 
                 <div class="modal-badges">
                     <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
-                    ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${marketPrice.toFixed(2)}€ (marché)</span>` : ''}
+                    ${marketPrice > 0 ? `<span class="modal-pill acquisition-pill"><i class="ti ti-currency-euro" aria-hidden="true"></i> ${formatPrice(marketPrice)} (marché)</span>` : ''}
                 </div>
 
                 <div class="edit-form-grid">
@@ -953,6 +1041,25 @@ function showAddCardModal(card) {
                 </div>
 
                 <button class="modal-save-btn full-width" id="quickadd-submit-btn" onclick="submitQuickAdd(${JSON.stringify(card).replace(/"/g, '&quot;')})"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter à ma collection</button>
+
+                <div class="modal-actions-col" style="margin-top: 0.75rem;">
+                    <button type="button" class="modal-action-row" ${alreadyInWishlist ? 'disabled' : `onclick="openWishlistPickerForProgressionCard(${JSON.stringify(card).replace(/"/g, '&quot;')})"`}>
+                        <span class="modal-action-icon" style="color: #E8A93B;"><i class="ti ${alreadyInWishlist ? 'ti-check' : 'ti-star'}" aria-hidden="true"></i></span>
+                        <span class="modal-action-text">
+                            <span class="modal-action-title" style="color: #E8A93B;">${alreadyInWishlist ? 'Déjà dans ma wishlist' : 'Ajouter à ma wishlist'}</span>
+                            ${!alreadyInWishlist ? '<span class="modal-action-subtitle">L\'ajouter à une de tes listes</span>' : ''}
+                        </span>
+                        ${!alreadyInWishlist ? '<i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>' : ''}
+                    </button>
+                    <a href="${cardmarketUrl}" target="_blank" rel="noopener noreferrer" class="modal-action-row">
+                        <span class="modal-action-icon" style="color: #6bcbff;"><i class="ti ti-external-link" aria-hidden="true"></i></span>
+                        <span class="modal-action-text">
+                            <span class="modal-action-title" style="color: #6bcbff;">${card.pricing?.cardmarket?.idProduct ? 'Ouvrir sur Cardmarket' : 'Chercher sur Cardmarket'}</span>
+                            <span class="modal-action-subtitle">Voir l'annonce correspondante</span>
+                        </span>
+                        <i class="ti ti-chevron-right modal-action-chevron" aria-hidden="true"></i>
+                    </a>
+                </div>
             </div>
         </div>
         </div>
@@ -1050,6 +1157,8 @@ window.computeProgressionKpiData = computeProgressionKpiData;
 window.renderProgressionKpis = renderProgressionKpis;
 window.renderProgressionSeriesList = renderProgressionSeriesList;
 window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
+window.setupProgressionStickyBar = setupProgressionStickyBar;
+window.teardownProgressionStickyBar = teardownProgressionStickyBar;
 window.openSetProgression = openSetProgression;
 window.fetchSetCardsDetailed = fetchSetCardsDetailed;
 window.computeSetCompletionBudget = computeSetCompletionBudget;
@@ -1068,5 +1177,6 @@ window.quickInstantAdd = quickInstantAdd;
 window.getQuickAddUploadPlaceholderHtml = getQuickAddUploadPlaceholderHtml;
 window.handleQuickAddImageUpload = handleQuickAddImageUpload;
 window.showAddCardModal = showAddCardModal;
+window.openWishlistPickerForProgressionCard = openWishlistPickerForProgressionCard;
 window.toggleQuickAddPurchasePriceField = toggleQuickAddPurchasePriceField;
 window.submitQuickAdd = submitQuickAdd;

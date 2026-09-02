@@ -7,25 +7,32 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#161B29">
+    <meta name="theme-color" content="#121214">
 
     <!-- iOS (installation via le menu Partager de Safari) -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Poké Tracker">
     <link rel="apple-touch-icon" href="images/icon-180.png">
-    <link rel="icon" type="image/png" href="images/balle.png ">
+    <link rel="icon" type="image/png" href="images/balle.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260805-1">
-    <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
-    <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
-    <link rel="stylesheet" href="styles-login.css?v=20260805-1">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/motion-tokens.css">
+    <link rel="stylesheet" href="css/motion-components.css">
+    <link rel="stylesheet" href="styles-login.css">
 </head>
 <body class="login-page">
+    <!-- Banniere "nouvelle version disponible" (audit PWA 2026-08-18, modules/pwa.js) : masquee par
+         defaut, affichee uniquement quand un nouveau service worker reste en attente au lieu de
+         prendre la main silencieusement (self.skipWaiting() retire de sw.js). -->
+    <div id="sw-update-banner" class="sw-update-banner" aria-hidden="true">
+        <span>Nouvelle version disponible.</span>
+        <button type="button" id="sw-update-reload-btn">Recharger</button>
+    </div>
     <div class="login-background"></div>
 
     <div class="login-container">
@@ -35,7 +42,7 @@
             </div>
 
             <div class="login-header">
-                <img src="images/login/pokemonlogo.png" alt="Pokémon" class="pokemon-logo">
+                <img src="images/login/pokemonlogo.webp" alt="Pokémon" class="pokemon-logo">
                 <div class="login-tracker-wrapper">
                     <img src="images/login/greypokeball.png" alt="" class="grey-pokeball grey-pokeball-left">
                     <div class="login-subtitle">COLLECTION TRACKER</div>
@@ -85,7 +92,7 @@
                     </button>
 
                     <div class="login-pikachu">
-                        <img src="images/login/pikachu.png" alt="Pikachu">
+                        <img src="images/login/pikachu.webp" alt="Pikachu">
                     </div>
                 </form>
 
@@ -225,19 +232,18 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
     <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" crossorigin="anonymous"></script>
-    <script type="module" src="modules/error-tracking.js?v=20260813-2"></script>
-    <script type="module" src="modules/utils.js?v=20260805-1"></script>
-    <script type="module" src="modules/profile.js?v=20260805-1"></script>
-    <script type="module" src="tracker.js?v=20260805-1"></script>
-    <script type="module" src="modules/auth-login.js?v=20260805-1"></script>
+    <script type="module" src="modules/error-tracking.js"></script>
+    <script type="module" src="modules/utils.js"></script>
+    <script type="module" src="modules/profile.js"></script>
+    <script type="module" src="tracker.js"></script>
+    <script type="module" src="modules/auth-login.js"></script>
+    <script type="module" src="modules/pwa.js"></script>
     <script type="module">
         // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre
         // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
         // (`vite preview`) ou en production. Comportement de production inchangé.
         if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
-            });
+            window.addEventListener('load', registerServiceWorker);
         }
     </script>
 </body>

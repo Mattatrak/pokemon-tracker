@@ -14,7 +14,10 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
     );
-    self.skipWaiting();
+    // self.skipWaiting() retiré (audit PWA 2026-08-18) : une nouvelle version installée reste
+    // volontairement en attente (état "waiting") au lieu de prendre la main immédiatement sur tous
+    // les onglets ouverts - modules/pwa.js affiche une bannière ("Nouvelle version disponible") et
+    // n'envoie le message SKIP_WAITING ci-dessous qu'après un clic explicite de l'utilisateur.
 });
 
 self.addEventListener('activate', (event) => {
@@ -24,6 +27,10 @@ self.addEventListener('activate', (event) => {
         )
     );
     self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // Réseau d'abord : tente le réseau, met à jour le cache si la réponse est valide, ne retombe sur le

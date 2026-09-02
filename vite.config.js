@@ -15,8 +15,9 @@ module.exports = defineConfig({
 
     // Fichiers copiés tels quels, jamais hashés/traités : images/, manifest.json, sw.js (référencé par
     // nom exact via navigator.serviceWorker.register('sw.js'), ne doit jamais être renommé). Déplacement
-    // physique des fichiers vers public/ prévu au ticket V4, pas encore fait à ce stade — ce dossier
-    // n'existe pas encore, Vite ne trouvera donc simplement rien à copier pour l'instant.
+    // physique des fichiers vers public/ fait au ticket V4 — l'ancien images/ à la racine du repo (copie
+    // pré-Vite, jamais servie par ce publicDir) a été retiré le 2026-09-01, seul public/images/ existe
+    // désormais.
     publicDir: 'public',
 
     build: {

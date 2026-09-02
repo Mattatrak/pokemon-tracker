@@ -1,6 +1,95 @@
 // Helpers purs - Pokémon Tracker
 // Aucun état partagé, aucune dépendance à supabaseClient. Charge juste après config.js.
 
+// Précharge une liste d'URLs d'image en arrière-plan (sans les insérer dans le DOM) - anticipe le
+// chargement de la page suivante en pagination (Collection/Catalogue) pour un "Charger plus" plus
+// fluide. new Image() suffit à déclencher le fetch navigateur ; entrées vides ignorées, doublons/
+// déjà-en-cache dédupliqués par le navigateur lui-même via son cache HTTP normal.
+function preloadImages(urls) {
+    (urls || []).forEach(url => {
+        if (!url) return;
+        const img = new Image();
+        img.src = url;
+    });
+}
+
+// ===== Chargement differe des librairies CDN lourdes (perf, cf audit bundle 2026-09-01) =====
+// Chart.js/Flatpickr/Papaparse n'etaient utilisees que par une fonctionnalite precise (graphique de
+// prix, selecteur de date, import CSV) mais chargees via <script> bloquant sur CHAQUE page, meme
+// Dashboard/Wishlist qui n'en ont jamais besoin. Injectees maintenant a la demande, au premier appel
+// reel - la promesse est memorisee pour qu'un deuxieme appel (autre carte ouverte, autre champ date...)
+// reutilise le meme chargement au lieu d'injecter le script une deuxieme fois.
+function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Echec de chargement du script : ${src}`));
+        document.head.appendChild(script);
+    });
+}
+
+let chartLoadPromise = null;
+function ensureChartLoaded() {
+    if (typeof Chart !== 'undefined') return Promise.resolve();
+    if (!chartLoadPromise) chartLoadPromise = loadScriptOnce('https://cdn.jsdelivr.net/npm/chart.js@4.5.1');
+    return chartLoadPromise;
+}
+
+let flatpickrLoadPromise = null;
+function ensureFlatpickrLoaded() {
+    if (typeof flatpickr !== 'undefined') return Promise.resolve();
+    if (!flatpickrLoadPromise) {
+        flatpickrLoadPromise = loadScriptOnce('https://cdn.jsdelivr.net/npm/flatpickr@4.6.13')
+            .then(() => loadScriptOnce('https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js'));
+    }
+    return flatpickrLoadPromise;
+}
+
+let papaLoadPromise = null;
+function ensurePapaLoaded() {
+    if (typeof Papa !== 'undefined') return Promise.resolve();
+    if (!papaLoadPromise) papaLoadPromise = loadScriptOnce('https://cdn.jsdelivr.net/npm/papaparse@5.6.0/papaparse.min.js');
+    return papaLoadPromise;
+}
+
+// Formate un prix en euros au format français (virgule décimale) - remplace les ~70 toFixed(2)
+// dupliqués à travers le code, dont une partie affichait un point (incohérent avec le reste de
+// l'app, entièrement en français). value peut être undefined/null/NaN (traité comme 0).
+function formatPrice(value) {
+    return (Number(value) || 0).toFixed(2).replace('.', ',') + '€';
+}
+
+// Retarde l'exécution de fn jusqu'à ce que delayMs se soient écoulés sans nouvel appel - utilisé sur
+// les champs de recherche (Progression, Collection publique) pour éviter de relancer un filtrage/rendu
+// coûteux à chaque frappe (retour utilisateur, 2026-08-19 : lag clavier sur mobile, gros set/grosse
+// collection). N'affecte pas le coût du calcul lui-même, seulement la fréquence à laquelle il tourne.
+function debounce(fn, delayMs) {
+    let timeoutId = null;
+    return function debounced(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delayMs);
+    };
+}
+
+// Anneau de progression SVG (stroke-dashoffset animé au montage, cf .progress-ring dans styles.css) -
+// r=27/viewBox 60 dimensionné pour se superposer exactement à un cercle de logo de 60px
+// (.progression-set-logo-wrap, qui garde son overflow:hidden pour clipper l'image - l'anneau reste
+// donc à l'intérieur du cercle plutôt que de déborder, pour ne pas être coupé par ce même overflow).
+function progressRingSvg(pct) {
+    const clamped = Math.max(0, Math.min(100, pct));
+    const r = 27;
+    const circumference = 2 * Math.PI * r;
+    const offset = circumference * (1 - clamped / 100);
+    const fillClass = clamped >= 100 ? 'progress-ring-fill is-complete' : 'progress-ring-fill';
+    return `
+        <svg class="progress-ring" viewBox="0 0 60 60" width="60" height="60" aria-hidden="true">
+            <circle class="progress-ring-track" cx="30" cy="30" r="${r}"></circle>
+            <circle class="${fillClass}" cx="30" cy="30" r="${r}" style="--ring-circumference:${circumference.toFixed(2)}px;--ring-offset:${offset.toFixed(2)}px"></circle>
+        </svg>
+    `;
+}
+
 function toLocalDateInputValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -16,6 +105,18 @@ function handleTcgdexImgError(img, fallback) {
     if (typeof fallback === 'function') fallback(img);
     else if (fallback) img.outerHTML = fallback;
     else img.style.display = 'none';
+}
+
+// Handler onerror pour les sceaux de série (.modal-series-seal) : certains sets récents n'ont pas
+// encore leur logo généré en .webp sur le CDN TCGdex (ex. me05 "Nuit Noire") alors que le .png existe -
+// on retente une fois en .png avant d'abandonner.
+function handleSealLogoError(img) {
+    if (!img.dataset.formatRetried && img.src.endsWith('.webp')) {
+        img.dataset.formatRetried = '1';
+        img.src = img.src.replace(/\.webp$/, '.png');
+        return;
+    }
+    img.remove();
 }
 
 function escapeHtml(str) {
@@ -444,8 +545,8 @@ function parseCsvDate(str) {
 }
 
 // Initialise Flatpickr avec le thème et la locale de l'app sur un champ de date donné
-function initDatePicker(selector, presetValue) {
-    if (typeof flatpickr === 'undefined') return;
+async function initDatePicker(selector, presetValue) {
+    await ensureFlatpickrLoaded();
     flatpickr(selector, {
         locale: 'fr',
         dateFormat: 'Y-m-d',
@@ -465,8 +566,12 @@ function initDatePicker(selector, presetValue) {
 // inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
 // (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
+window.formatPrice = formatPrice;
+window.preloadImages = preloadImages;
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
+window.handleSealLogoError = handleSealLogoError;
+window.progressRingSvg = progressRingSvg;
 window.escapeHtml = escapeHtml;
 window.showMessage = showMessage;
 window.MAX_UPLOAD_IMAGE_BYTES = MAX_UPLOAD_IMAGE_BYTES;
@@ -477,6 +582,9 @@ window.sanitizeForPath = sanitizeForPath;
 window.getTcgdexImagePath = getTcgdexImagePath;
 window.getSeriesLogoPath = getSeriesLogoPath;
 window.resizeImageToWebpBlob = resizeImageToWebpBlob;
+window.ensureChartLoaded = ensureChartLoaded;
+window.ensureFlatpickrLoaded = ensureFlatpickrLoaded;
+window.ensurePapaLoaded = ensurePapaLoaded;
 window.getSeriesSymbolPath = getSeriesSymbolPath;
 window.getSetIdFromTcgdexId = getSetIdFromTcgdexId;
 window.normalizeForMatch = normalizeForMatch;
@@ -498,5 +606,6 @@ window.TYPE_ICON_BASE_URL = TYPE_ICON_BASE_URL;
 window.getTypeIconHtml = getTypeIconHtml;
 window.getTypesIconsHtml = getTypesIconsHtml;
 window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
+window.debounce = debounce;
 window.parseCsvDate = parseCsvDate;
 window.initDatePicker = initDatePicker;

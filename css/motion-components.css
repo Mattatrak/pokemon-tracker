@@ -45,6 +45,26 @@
 .motion-stagger > *:nth-child(5) { animation-delay: calc(var(--motion-stagger-normal) * 4); }
 .motion-stagger > *:nth-child(6) { animation-delay: calc(var(--motion-stagger-normal) * 5); }
 
+/* ===== CASCADE GRILLE DENSE (.collection-card) =====
+   Contrairement a .motion-stagger ci-dessus (nth-child, 6 enfants max), une grille peut compter des
+   centaines de cartes : le delai est pose en variable inline par JS plutot qu'en nth-child CSS
+   statique (renderGridCardHtml, card-grid-renderer.js - staggerIndex plafonne avant multiplication
+   par --motion-stagger-fast, pour qu'une carte tres loin dans la grille n'attende jamais plusieurs
+   secondes avant d'apparaitre). Duree fast + distance sm (pas normal/md comme .motion-enter) : une
+   carte individuelle est un element bien plus petit qu'une section de page, un mouvement aussi ample
+   parait exagere repete des dizaines de fois de suite. */
+.card-stagger-in {
+    --motion-enter-distance: var(--motion-distance-sm);
+    animation: motion-enter var(--motion-duration-fast) var(--motion-ease-enter) both;
+    animation-delay: var(--card-stagger-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card-stagger-in {
+        animation: none;
+    }
+}
+
 /* ===== SURFACES INTERACTIVES (utilitaire reutilisable - a appliquer aux elements reellement cliquables
    qui n'ont pas deja leur propre traitement hover dedie) ===== */
 

@@ -50,7 +50,13 @@ function defaultResolveModalImg() {
 // que ce qui lui est propre (quel élément nommer, quand nettoyer).
 function runCardDetailMorphTransition(event, renderFn, resolveModalImg = defaultResolveModalImg) {
     const sourceImg = event?.currentTarget?.querySelector('img');
-    if (typeof document.startViewTransition !== 'function' || !sourceImg) {
+    // Desactive sur mobile (retour utilisateur, essai bottom sheet 2026-08-18) : le morph d'image entre
+    // en concurrence avec le slide-up CSS du bottom sheet (styles.css, @media max-width:768px), jugee
+    // plus propre sans lui - deja le cas de facto pour showPublicWishlistItemDetail (public-profile.js),
+    // seul appelant qui n'a jamais utilise ce morph, prefere par l'utilisateur au comparatif. Desktop
+    // inchange (le morph grille -> fiche y reste l'effet voulu).
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (typeof document.startViewTransition !== 'function' || !sourceImg || isMobile) {
         renderFn();
         return;
     }
@@ -103,17 +109,33 @@ function renderGridCardBadge(card, badgeMode) {
 // réel, pour que closeCardDetail() (card-detail.js) puisse retrouver la carte source à la fermeture
 // (fermeture symétrique fiche -> grille) sans dépendre d'une référence DOM gardée pendant l'ouverture.
 //
+// Plafond du delai de cascade (.card-stagger-in, css/motion-components.css) : au-dela de cet index,
+// toutes les cartes partagent le meme delai maximal plutot que de continuer a grimper - sur une
+// collection dense (700+ cartes), sans plafond la dernière carte attendrait plusieurs secondes avant
+// meme de commencer son animation. Seules les premières lignes visibles à l'écran profitent vraiment
+// de la cascade, le reste apparaît en bloc juste après.
+const GRID_STAGGER_CAP = 24;
+
 // options :
 //   detailFn          - nom de la fonction globale appelée au clic ('showCardDetail' | 'showPublicCardDetail')
 //   badgeMode         - 'quantity' (défaut, ×N si qty>1) | 'duplicate' (↔N, toujours affiché)
 //   imageFallback     - 'static' (défaut, icône non cliquable) | 'upload' (placeholder cliquable, écriture possible)
 //   showAcquisitionIcon - true pour afficher l'icône booster/achat (absente des vues publiques, acquisition_type non exposé)
+//   staggerIndex      - position de la carte dans le rendu courant (0-based) : si fourni, ajoute
+//                       .card-stagger-in + le delai correspondant (plafonne a GRID_STAGGER_CAP).
+//                       Absent par defaut - opt-in par appelant (Galerie Collection uniquement pour
+//                       l'instant, cf renderCollectionGrid), pas applique aux grilles publiques/
+//                       Classeur sans decision explicite pour elles.
 function renderGridCardHtml(card, options) {
-    const { detailFn, badgeMode = 'quantity', imageFallback = 'static', showAcquisitionIcon = false } = options;
+    const { detailFn, badgeMode = 'quantity', imageFallback = 'static', showAcquisitionIcon = false, staggerIndex = null } = options;
 
     const qty = Number(card.quantity || 1);
     const lineTotal = Number(card.market_value || 0) * qty;
     const conditionClass = (card.condition || '').toLowerCase();
+    const staggerClass = staggerIndex === null ? '' : ' card-stagger-in';
+    const staggerStyle = staggerIndex === null
+        ? ''
+        : ` style="--card-stagger-delay: calc(var(--motion-stagger-fast) * ${Math.min(staggerIndex, GRID_STAGGER_CAP)})"`;
 
     const fallbackCall = imageFallback === 'upload'
         ? `getCollectionUploadPlaceholder(${card.id}, 'full')`
@@ -130,13 +152,13 @@ function renderGridCardHtml(card, options) {
     }
 
     return `
-        <div class="collection-card" data-card-id="${card.id}" onclick="${detailFn}(${card.id}, event)">
+        <div class="collection-card${staggerClass}" data-card-id="${card.id}"${staggerStyle} onclick="${detailFn}(${card.id}, event)">
             ${card.image
                 ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=${fallbackCall}">`
                 : fallbackHtml
             }
             ${renderGridCardBadge(card, badgeMode)}
-            <div class="price-badge">${lineTotal.toFixed(2)}€</div>
+            <div class="price-badge">${formatPrice(lineTotal)}</div>
             <div class="set-rarity-badge-row">
                 ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
                 ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}

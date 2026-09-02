@@ -9,8 +9,6 @@
     --text-primary: #F5F5F7;
     --gold: #e3bc84;
     --gold-hover: #cba672;
-    --teal: #3FA7A1;
-    --teal-hover: #358f8a;
     --slate: #A1A1AA;
     --light-line: #E6C07B;
     --positive: #7ED9A7;
@@ -156,7 +154,7 @@ body::before {
 
 .login-card {
     background: linear-gradient(135deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 2.5rem;
     max-width: 380px;
     width: 100%;
@@ -209,8 +207,8 @@ body::before {
 .tab-content.active {
     display: block;
     /* Fondu d'entrée (inspiré de duffus.fr, cf docs/inspiration-duffus-animations.md#3). Durée/easing
-       (300ms, ease-in-out) repris tels quels des deux appels Element.prototype.animate() interceptés
-       sur duffus.fr (opacity [1,0] puis [0,1], 300ms ease-in-out chacun) - chez eux c'est un vrai
+       (var(--motion-duration-normal), ease-in-out) repris tels quels des deux appels Element.prototype.animate() interceptés
+       sur duffus.fr (opacity [1,0] puis [0,1], var(--motion-duration-normal) ease-in-out chacun) - chez eux c'est un vrai
        crossfade (ancienne ET nouvelle page superposées, fondues simultanément), pas reproduit ici :
        notre changement d'onglet passe par une View Transition (VT2, runNavIndicatorTransition,
        tracker.js) qui suppose une mutation DOM synchrone - un crossfade demanderait de la rendre
@@ -222,7 +220,7 @@ body::before {
        body.page-X .X-hero) reçoivent le même fondu synchronisé, pour ne pas recréer le décalage de
        rythme (hero instantané vs contenu animé) qui avait fait abandonner cette idée une première
        fois. */
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -255,8 +253,8 @@ body::before {
 }
 
 .input-with-icon input:hover {
-    border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    border-color: rgba(232, 169, 59, 0.45);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
 /* SKELETON DE CHARGEMENT */
@@ -282,6 +280,25 @@ body::before {
 
 .skeleton-row:last-child {
     border-bottom: none;
+}
+
+/* Silhouettes du tout premier chargement de l'app (init(), modules/auth.js) : posées telles quelles
+   dans le HTML statique (index.html) comme contenu initial de #dashboard-main-grid/#collection-grid/
+   #progression-series-list, jamais gérées en JS - le rendu réel (innerHTML) les remplace de lui-même
+   une fois les données prêtes, aucune coordination de timing à écrire ni à pouvoir désynchroniser.
+   Formes calées sur les vrais composants qu'elles précèdent (.collection-card ratio 5/7,
+   .dashboard-widget hauteur ~200px) pour que l'apparition du vrai contenu ne "saute" pas. Un skeleton
+   contient ses propres tuiles .skeleton (empilables au pluriel dans un même conteneur). Pas de
+   silhouette sur #dashboard-hero (retiré, retour utilisateur 2026-08-19 : pas convaincant) - reste un
+   simple vide comme avant ce chantier, le temps de chargement y est de toute façon très court. */
+.skeleton-card {
+    aspect-ratio: 5 / 7;
+    border-radius: 8px;
+}
+
+.skeleton-widget {
+    height: 220px;
+    border-radius: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -325,13 +342,13 @@ body::before {
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.75rem;
     background: rgba(255,255,255,0.03);
     transition:
-        background 180ms ease,
-        border-color 180ms ease,
-        box-shadow 180ms ease,
-        transform 180ms ease;
+        background var(--motion-duration-fast) ease,
+        border-color var(--motion-duration-fast) ease,
+        box-shadow var(--motion-duration-fast) ease,
+        transform var(--motion-duration-fast) ease;
 }
 
 .catalogue-load-more-row {
@@ -345,7 +362,7 @@ body::before {
     color: var(--gold);
     border: 1px solid rgba(232, 169, 59, 0.35);
     padding: 0.7rem 1.75rem;
-    border-radius: 30px;
+    border-radius: 26px;
 }
 
 .catalogue-load-more-btn:hover {
@@ -370,7 +387,7 @@ body::before {
     object-fit: cover;
     border-radius: 8px;
     background: var(--ink-navy);
-    transition: transform 0.2s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .search-result-item:hover .search-result-img {
@@ -469,7 +486,7 @@ body::before {
     cursor: pointer;
     flex-direction: column;
     gap: 0.25rem;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background var(--motion-duration-fast), border-color var(--motion-duration-fast);
 }
 
 .upload-placeholder:hover {
@@ -657,7 +674,7 @@ body::before {
     right: 0;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     padding: 0.9rem;
     min-width: 240px;
@@ -692,7 +709,7 @@ body::before {
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
-    border-radius: 22px;
+    border-radius: 20px;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
     padding: 1.5rem;
 }
@@ -739,7 +756,7 @@ body::before {
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
-    border-radius: 22px;
+    border-radius: 20px;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
     padding: 1.5rem;
 }
@@ -750,8 +767,8 @@ body::before {
     background:
         linear-gradient(180deg, rgba(227, 188, 132, 0.14) 0%, transparent 60%),
         rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(227, 188, 132, 0.3);
-    border-radius: 18px;
+    border: 1px solid rgba(232, 169, 59, 0.3);
+    border-radius: 20px;
     padding: 0.5rem 1.25rem 1.25rem;
     overflow: hidden;
 }
@@ -765,7 +782,7 @@ body::before {
     padding: 0.75rem 1.25rem;
     background: transparent;
     border: none;
-    border-radius: 17px 17px 0 0;
+    border-radius: 14px 14px 0 0;
     text-align: left;
     cursor: pointer;
 }
@@ -827,7 +844,7 @@ body::before {
     display: grid;
     grid-template-rows: 0fr;
     opacity: 0;
-    transition: grid-template-rows 0.25s var(--motion-ease-standard), opacity 0.2s var(--motion-ease-standard);
+    transition: grid-template-rows var(--motion-duration-normal) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .catalogue-add-expand-inner {
@@ -877,7 +894,7 @@ body::before {
     gap: 0;
     background: var(--ink-navy);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0;
     width: fit-content;
     box-sizing: border-box;
@@ -892,7 +909,7 @@ body::before {
     background: transparent;
     color: var(--text-primary);
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 .add-panel-qty-stepper button:hover {
@@ -959,6 +976,126 @@ body::before {
 .add-panel-wishlist:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
+}
+
+/* Cartes liées (set/illustrateur), modules/cards.js#resetRelatedCardsBlock. Comble le vide constaté
+   sous la fiche "collante" (mesuré : jusqu'à ~2600px de vide sur un gros lot de résultats) sans faire
+   doublon avec la recherche en cours - "même set"/"même illustrateur" ne sont jamais des axes déjà
+   couverts par une recherche par nom, contrairement à "autres éditions du même Pokémon" (retour
+   utilisateur, écarté avant implémentation). */
+.related-cards-block {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.related-cards-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+}
+
+.related-cards-tab {
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0.35rem 0.7rem;
+    border-radius: 100px;
+    background: transparent;
+    color: var(--slate);
+    border: 1px solid var(--border);
+}
+
+.related-cards-tab.active {
+    background: rgba(232, 169, 59, 0.14);
+    border-color: rgba(232, 169, 59, 0.35);
+    color: var(--gold);
+}
+
+.related-cards-tab:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.related-cards-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--slate);
+    opacity: 0.75;
+    margin-bottom: 0.6rem;
+}
+
+.related-cards-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.related-card-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.3rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.related-card-row:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.related-card-thumb {
+    width: 34px;
+    aspect-ratio: 5 / 7;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--ink-navy);
+}
+
+.related-card-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate);
+    font-size: 0.7rem;
+}
+
+.related-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.related-card-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.related-card-set {
+    font-size: 0.72rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.related-card-price {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex-shrink: 0;
+}
+
+.related-cards-empty,
+.related-cards-loading {
+    font-size: 0.8rem;
+    color: var(--slate);
+    padding: 0.5rem 0.3rem;
+    text-align: center;
 }
 
 .preview-cardmarket-btn {
@@ -1047,19 +1184,29 @@ body::before {
     display: block;
 }
 
+/* align-items:stretch (au lieu de flex-start) : .preview-details (texte) est presque toujours plus
+   haute que .preview-image (plafonnée à 380px, cf .card-preview .preview-image) - en flex-start
+   l'image restait calée en haut, laissant un vide sous elle jusqu'au bas de la colonne texte (retour
+   utilisateur, 2026-08-19, capture d'écran à l'appui). stretch donne à .preview-image toute la hauteur
+   de la ligne ; son propre align-items:center/justify-content:center (déjà en place) centre alors
+   l'image dedans, comblant le vide au lieu de le laisser en dessous. */
 .preview-main {
     display: flex;
     gap: 1.5rem;
-    align-items: flex-start;
+    align-items: stretch;
     margin-bottom: 1.75rem;
 }
 
+/* overflow:visible (au lieu de hidden) : le sceau de série (.preview-image-seal, positionné en
+   bottom:-4px/-6px pour déborder sur le coin de l'image, cf .modal-series-seal) se faisait rogner par
+   ce conteneur - l'image elle-même reste de toute façon contenue par max-height/max-width, rien d'autre
+   ne dépendait du clip (retour utilisateur, 2026-08-18 : "le logo de la série est un peu coupé en bas"). */
 .card-preview .preview-image {
     flex: 0 0 36%;
     max-height: 380px;
     background: var(--ink-navy);
-    border-radius: 12px;
-    overflow: hidden;
+    border-radius: 14px;
+    overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1074,7 +1221,7 @@ body::before {
    (cf selectCard()/applyCardToPreview() dans modules/cards.js) :
    1) .card-swap-exit atténue l'ancien contenu (~90ms)
    2) une fois presque transparent, les données sont remplacées dans le DOM
-   3) .card-swap-enter fait entrer le nouveau contenu (~240ms)
+   3) .card-swap-enter fait entrer le nouveau contenu (~var(--motion-duration-normal))
    opacity/transform uniquement, aucun impact sur le layout. */
 .preview-image.card-swap-exit,
 .preview-details.card-swap-exit {
@@ -1093,11 +1240,11 @@ body::before {
 }
 
 .preview-image.card-swap-enter {
-    animation: preview-image-swap-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: preview-image-swap-enter var(--motion-duration-normal) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .preview-details.card-swap-enter {
-    animation: preview-details-swap-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: preview-details-swap-enter var(--motion-duration-normal) cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: 24ms;
 }
 
@@ -1133,7 +1280,7 @@ body::before {
     width: 100%;
     height: 320px;
     border: 2px dashed rgba(232, 169, 59, 0.35);
-    border-radius: 12px;
+    border-radius: 14px;
     position: relative;
     gap: 0.6rem;
     justify-content: flex-end;
@@ -1164,7 +1311,7 @@ body::before {
     font-weight: 600;
     font-size: 0.9rem;
     padding: 0.6rem 1.1rem;
-    border-radius: 30px;
+    border-radius: 26px;
 }
 
 /* ===== HERO CATALOGUE (Ajouter) ===== */
@@ -1175,12 +1322,12 @@ body::before {
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(90deg, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.58) 40%, rgba(10,12,20,0.38) 62%, rgba(10,12,20,0.64) 100%),
-        url('images/catalogue.png');
+        url('/images/catalogue.webp');
     background-size: cover, 100% auto, 100% auto;
     background-position: center center;
     background-repeat: no-repeat;
     background-color: var(--panel);
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
 }
 
@@ -1219,6 +1366,42 @@ body::before {
     background-repeat: repeat;
 }
 
+/* Parallax léger au scroll sur les 7 heroes illustrés (mêmes 6 que le grain ci-dessus + .collectors-hero,
+   partagé Collecteurs/profil public) : le fond dérive doucement vers le bas pendant que la carte défile
+   hors champ, le texte/les KPI (enfants positionnés, jamais affectés par background-position) restent
+   parfaitement immobiles. Anime background-position (paint, pas composité) plutôt qu'un transform sur le
+   conteneur - la seule option qui isole le mouvement au fond sans réorganiser le HTML de chaque hero ;
+   acceptable ici car un seul élément par page (jamais une liste), borné par overflow:hidden.
+   animation-timeline: scroll() est nativement lié au défilement (pas de listener JS) - @supports en
+   repli silencieux sur les navigateurs sans le support, prefers-reduced-motion explicite en plus du
+   filet global (une timeline liée au scroll n'a pas de "durée" classique que ce filet neutralise).
+   .dashboard-hero/.catalogue-hero/.collectors-hero n'ont pas d'animation d'entrée propre (contenues
+   dans un .tab-content qui fondu déjà en entier) : la liste seule suffit ici. Progression/Collection/
+   Statistiques/Wishlist, elles, superposent déjà tab-content-fade-in sur ce même hero (cf plus bas,
+   body.page-X .X-hero) - le parallax y est ajouté en 2e position de la même liste `animation`, jamais
+   en réécrivant cette règle plus spécifique. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        .dashboard-hero,
+        .catalogue-hero,
+        .collectors-hero {
+            animation: hero-parallax-center linear both;
+            animation-timeline: scroll(root block);
+            animation-range: cover 0% cover 65%;
+        }
+    }
+}
+
+@keyframes hero-parallax-center {
+    from { background-position: center 50%; }
+    to   { background-position: center 58%; }
+}
+
+@keyframes hero-parallax-progression {
+    from { background-position: center 35%; }
+    to   { background-position: center 43%; }
+}
+
 .catalogue-hero-stage {
     position: relative;
     z-index: 1;
@@ -1236,7 +1419,7 @@ body::before {
     bottom: -90px;
     width: 480px;
     height: 480px;
-    background: url('images/goldpokeball.png') center/contain no-repeat;
+    background: url('/images/goldpokeball.webp') center/contain no-repeat;
     opacity: 0.07;
     pointer-events: none;
     z-index: 0;
@@ -1377,32 +1560,15 @@ body::before {
         rgba(26,26,30,0.55);
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
-    border: 1px solid transparent;
-    border-radius: 16px;
+    /* Contour sobre (retour utilisateur 2026-09) : remplace l'ancien contour conic-gradient dore
+       (::before ci-dessous, retire) - jugee trop chargee sur un composant repete 4x par page. */
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
     padding: 16px 18px 18px;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5);
     transition:
         transform var(--motion-duration-fast) var(--motion-ease-standard),
         box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
-}
-
-.kpi-plaque::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from 200deg at 50% 50%,
-        rgba(230,192,123,0.15),
-        rgba(230,192,123,0.85) 12%,
-        rgba(230,192,123,0.15) 30%,
-        rgba(230,192,123,0.15) 60%,
-        rgba(230,192,123,0.75) 78%,
-        rgba(230,192,123,0.15));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
 }
 
 .kpi-plaque::after {
@@ -1411,9 +1577,8 @@ body::before {
     left: 18px;
     right: 18px;
     bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(230, 192, 123, 0.3);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14) 50%, transparent);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1447,13 +1612,19 @@ body::before {
     z-index: 1;
 }
 
+/* Puces colorees (passe premium 2026-09), Dashboard uniquement - cf dashboardKpiHtml (dashboard.js).
+   Les autres pages partagent .kpi-plaque-icon sans ce scope et restent toutes dorees. */
+#dashboard-kpis .kpi-plaque-icon.c2 { border-color: rgba(167,155,220,0.35); background: rgba(167,155,220,0.1); color: var(--chip-series, #A79BDC); }
+#dashboard-kpis .kpi-plaque-icon.c3 { border-color: rgba(110,212,196,0.35); background: rgba(110,212,196,0.1); color: #6ED4C4; }
+#dashboard-kpis .kpi-plaque-icon.c4 { border-color: rgba(227,160,190,0.35); background: rgba(227,160,190,0.1); color: #E3A0BE; }
+
 .kpi-plaque-text {
     display: flex;
     flex-direction: column;
     min-width: 0;
     position: relative;
     z-index: 1;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .kpi-plaque-label {
@@ -1488,23 +1659,6 @@ body::before {
     color: #ff6b6b;
 }
 
-.stat-card-value .hero-sparkline-canvas {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100% !important;
-    height: 70% !important;
-    opacity: 0.35;
-    pointer-events: none;
-}
-
-.stat-card-value .stat-icon-img,
-.stat-card-value .stat-icon-text {
-    position: relative;
-    z-index: 1;
-}
-
 .hero-fluctuation {
     font-size: 0.8rem;
     font-weight: 600;
@@ -1518,8 +1672,8 @@ body::before {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(63, 167, 161, 0.15);
-    color: var(--teal);
+    background: rgba(232, 169, 59, 0.15);
+    color: var(--gold);
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.4rem 0.75rem;
@@ -1539,19 +1693,31 @@ body::before {
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
+/* Wrapper local (injecté par cards.js à chaque rendu de l'image) qui n'entoure QUE l'image elle-même,
+   pas tout .preview-image (qui peut être plus large qu'elle - fond prévu pour la combler, cf règle
+   .mobile-add-overlay-card .preview-image plus bas) : inline-block se cale exactement sur les
+   dimensions réelles de l'image (max-width/max-height, pas de width:100% ici, donc pas d'ambiguïté de
+   taille), pour que le sceau ci-dessous se positionne sur son vrai coin plutôt que dans le vide. */
+.preview-image-frame {
+    position: relative;
+    display: inline-block;
+}
+
+/* .preview-image img (0,1,1 - élément+classe) écrase sinon la taille de .modal-series-seal (0,1,0 -
+   classe seule) puisque le sceau est lui-même un <img> à l'intérieur de .preview-image : height:auto/
+   max-width:100% héritées de cette règle plus spécifique remplaçaient les 58px/46px voulus, le logo
+   s'affichait à sa taille native (retour utilisateur, 2026-08-18). Sélecteur à deux classes (0,2,0) pour
+   regagner la priorité, valeurs identiques à .modal-series-seal (desktop/mobile, cf ~2660 et ~7590). */
+.preview-image-frame .modal-series-seal {
+    height: 58px;
+    max-width: 160px;
+}
+
 .preview-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     margin-bottom: 0.9rem;
-}
-
-.preview-breadcrumb-logo {
-    height: 56px;
-    width: auto;
-    max-width: 90px;
-    object-fit: contain;
-    flex-shrink: 0;
 }
 
 .preview-breadcrumb-text {
@@ -1590,7 +1756,7 @@ body::before {
     background:
         linear-gradient(180deg, rgba(227, 188, 132, 0.14) 0%, transparent 60%),
         rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(227, 188, 132, 0.3);
+    border: 1px solid rgba(232, 169, 59, 0.3);
     border-radius: 14px;
     padding: 1.1rem 1.25rem 1.5rem;
     margin-bottom: 1.5rem;
@@ -1703,7 +1869,7 @@ label {
 input, select, textarea {
     padding: 0.8rem 0.9rem;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
     background: var(--ink-navy);
@@ -1729,8 +1895,8 @@ select {
 
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    border-color: rgba(232, 169, 59, 0.45);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
 textarea {
@@ -1746,7 +1912,7 @@ button {
         rgba(255,255,255,0.04);
     color: #F4F1EB;
     border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
@@ -1767,7 +1933,7 @@ button:active {
 
 @media (prefers-reduced-motion: reduce) {
     button {
-        transition: background 0.2s;
+        transition: background var(--motion-duration-fast);
     }
     button:active {
         transform: none;
@@ -1775,8 +1941,8 @@ button:active {
 }
 
 button:hover {
-    border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    border-color: rgba(232, 169, 59, 0.45);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -1838,7 +2004,7 @@ button:disabled {
     padding: 0.45rem 0.9rem;
     font-size: 0.85rem;
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -1857,7 +2023,7 @@ button:disabled {
 .grid-sort-select {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     font-family: inherit;
 }
@@ -1875,7 +2041,7 @@ button:disabled {
     padding: 0.6rem 1rem;
     font-size: 0.85rem;
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -1899,7 +2065,7 @@ button:disabled {
         rgba(255,255,255,0.04);
     color: #F4F1EB;
     border: 1px solid rgba(255,255,255,0.14);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+    transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
 }
 
 .wishlist-toolbar .filter-toggle-btn i {
@@ -1910,8 +2076,8 @@ button:disabled {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
         rgba(255,255,255,0.05);
-    border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    border-color: rgba(232, 169, 59, 0.45);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
 }
 
@@ -1943,7 +2109,7 @@ button:disabled {
     align-items: center;
     gap: 0.6rem;
     padding: 0.6rem 0.7rem;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.85rem;
     color: var(--text-primary);
     cursor: pointer;
@@ -2016,7 +2182,7 @@ button:disabled {
     padding: 0.5rem 0.9rem;
     font-size: 0.8rem;
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -2034,7 +2200,7 @@ button:disabled {
 
 .summary-segment {
     display: inline-flex;
-    gap: 0.375rem;
+    gap: 0.4rem;
     align-items: center;
 }
 
@@ -2078,7 +2244,7 @@ button:disabled {
 .recap-section {
     background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 14px;
     min-height: 4rem;
 }
 
@@ -2350,7 +2516,7 @@ button:disabled {
     position: relative;
     width: 140px;
     cursor: pointer;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.5rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
@@ -2358,7 +2524,7 @@ button:disabled {
 
 .recap-top-card-image {
     position: relative;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 5 / 7;
     margin-bottom: 0.5rem;
@@ -2432,9 +2598,9 @@ button:disabled {
 .recap-dup-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     padding: 0.6rem;
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
     cursor: pointer;
@@ -2496,7 +2662,7 @@ button:disabled {
 
 .collection-card {
     position: relative;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 5 / 7;
     background: var(--ink-navy);
@@ -2517,7 +2683,7 @@ button:disabled {
         0 6px 14px rgba(0,0,0,0.5),
         0 0 0 1px rgba(232,169,59,0.05),
         0 0 16px rgba(232,169,59,0.12);
-    transition: transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out;
+    transition: transform var(--motion-duration-fast) ease-out, box-shadow var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
 }
 
 .collection-card:hover {
@@ -2540,16 +2706,35 @@ button:disabled {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(63,167,161,0.35) 55%, transparent 70%);
+    background: linear-gradient(115deg, transparent 30%, rgba(232,169,59,0.35) 45%, rgba(255,255,255,0.25) 50%, rgba(232,169,59,0.35) 55%, transparent 70%);
+    background-size: 260% 100%;
+    background-position: 130% 0;
     mix-blend-mode: overlay;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    /* Alignee sur --motion-duration-fast (comme .collection-card et .collection-card img juste en
+       dessous), pas -normal : ce sont 3 proprietes d'UNE MEME interaction de survol (carte + image +
+       reflet), elles doivent bouger ensemble. Un ecart de duree entre elles (etait -normal ici avant,
+       -fast sur la carte) donnait un effet de flottement/tremblement au survol - la carte finissait son
+       mouvement pendant que l'image continuait de zoomer, perceptible des que l'ecart entre -fast et
+       -normal s'est agrandi (2026-08-17, ralentissement des durees de transition). */
+    transition: opacity var(--motion-duration-fast) ease;
     pointer-events: none;
     border-radius: inherit;
 }
 
+/* Passe premium 2026-09 : le reflet ne se contente plus d'un fondu sur place, il balaie la carte de
+   droite a gauche au survol (background-position anime plutot qu'une bande fixe) - jamais en boucle
+   ambiante (une grille de plusieurs dizaines de cartes rendrait une animation permanente par carte
+   trop chargee et couteuse). Repart de 130% a chaque nouveau survol (pas de transition sur
+   background-position), seule l'opacite est encore transitionnee pour une apparition douce. */
 .collection-card:hover::after {
     opacity: 1;
+    animation: collection-card-sheen var(--motion-duration-normal) ease-out;
+}
+
+@keyframes collection-card-sheen {
+    from { background-position: 130% 0; }
+    to { background-position: -30% 0; }
 }
 
 .collection-card img {
@@ -2557,7 +2742,7 @@ button:disabled {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 220ms ease-out;
+    transition: transform var(--motion-duration-fast) ease-out;
 }
 
 .collection-card:hover img {
@@ -2593,7 +2778,7 @@ button:disabled {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 150ms ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .collection-card:hover .collection-card-name {
@@ -2627,27 +2812,44 @@ button:disabled {
     object-fit: contain;
 }
 
-.modal-series-logo {
-    display: block;
-    height: 40px;
+.modal-image-frame {
+    position: relative;
+    width: 100%;
+}
+
+/* Le sceau se pose avec un léger temps de retard après l'image (delay 180ms), plutôt que d'apparaître
+   d'un coup en même temps qu'elle - accentue l'idée d'un objet posé sur la carte plutôt qu'un élément
+   d'interface. `both` : reste invisible pendant le délai, garde l'état final une fois joué. */
+@keyframes series-seal-pop {
+    from { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+    to { opacity: 1; transform: scale(1) rotate(-8deg); }
+}
+
+.modal-series-seal {
+    position: absolute;
+    z-index: 2;
+    right: -18px;
+    bottom: -6px;
+    height: 58px;
     width: auto;
-    max-width: 200px;
+    max-width: 160px;
     object-fit: contain;
-    margin-top: 0.85rem;
-    margin-bottom: 0.5rem;
+    transform: rotate(-8deg);
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+    animation: series-seal-pop var(--motion-duration-fast) var(--motion-ease-enter) 180ms both;
 }
 
 .modal-logo-upload {
     display: inline-block;
     background: var(--panel-light);
     border: 1px dashed rgba(255,255,255,0.2);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.4rem 0.7rem;
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
     color: var(--slate);
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color var(--motion-duration-fast), color var(--motion-duration-fast);
 }
 
 .modal-logo-upload:hover {
@@ -2655,17 +2857,24 @@ button:disabled {
     color: var(--gold);
 }
 
+/* Fanion plutot que pastille (passe premium 2026-09) : encoche en V decoupee au clip-path, plus
+   distinctif qu'une pillule ronde identique a tous les autres badges de la carte. Touche le bord
+   superieur (top:0, pas 0.5rem) pour lire comme une etiquette accrochee au coin, pas un badge
+   flottant au milieu de rien. */
 .price-badge {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: var(--gold);
+    top: 0;
+    right: 0.7rem;
+    /* Degrade plus sature (etait #F3D9AC -> --gold, trop pale sur des arts de carte varies) : va
+       jusqu'a l'ambre #E8A93B deja utilise ailleurs pour les halos (kpi-plaque-icon, etc.), + un
+       halo dore en plus de l'ombre noire pour se detacher de n'importe quel fond de carte. */
+    background: linear-gradient(180deg, #F3D9AC 0%, #E8A93B 100%);
     color: #161B29;
     font-weight: 700;
     font-size: 0.7rem;
-    padding: 0.25rem 0.55rem;
-    border-radius: 20px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    padding: 0.3rem 0.55rem 0.55rem;
+    clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 14px rgba(232,169,59,0.4);
 }
 
 /* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
@@ -2745,7 +2954,7 @@ button:disabled {
     font-size: 0.6rem;
     font-weight: 700;
     padding: 0.15rem 0.5rem;
-    border-radius: 10px;
+    border-radius: 8px;
     letter-spacing: 0.03em;
 }
 
@@ -2806,7 +3015,7 @@ button:disabled {
 .table-wrapper {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.25);
     overflow-x: auto;
     /* overflow-y reste clippé (comportement identique à l'ancien overflow:hidden) : aucun scroll
@@ -2827,7 +3036,7 @@ button:disabled {
     flex-wrap: wrap;
     background: var(--panel-light);
     border: 1px solid var(--gold);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.75rem 1.25rem;
     margin-bottom: 1rem;
 }
@@ -2859,7 +3068,7 @@ th {
 th.sortable {
     cursor: pointer;
     user-select: none;
-    transition: color 0.2s;
+    transition: color var(--motion-duration-fast);
 }
 
 th.sortable:hover {
@@ -2980,7 +3189,7 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
-    border-radius: 16px;
+    border-radius: 14px;
     margin-bottom: 1rem;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
 }
@@ -2993,7 +3202,7 @@ tbody tr:hover {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
-    border-radius: 16px 16px 0 0;
+    border-radius: 14px 14px 0 0;
     cursor: pointer;
     transition: background var(--motion-duration-fast) var(--motion-ease-standard);
 }
@@ -3005,7 +3214,7 @@ tbody tr:hover {
 .wishlist-list-icon {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3055,7 +3264,7 @@ tbody tr:hover {
     color: var(--slate);
     padding: 0.4rem;
     font-size: 0.85rem;
-    border-radius: 6px;
+    border-radius: 8px;
     opacity: 0.75;
 }
 
@@ -3117,7 +3326,7 @@ tbody tr:hover {
         height: 44px;
         padding: 0;
         font-size: 0.95rem;
-        border-radius: 10px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3132,7 +3341,7 @@ tbody tr:hover {
 .wishlist-chevron {
     font-size: 0.9rem;
     color: var(--slate);
-    transition: transform 0.2s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .wishlist-chevron.expanded {
@@ -3143,12 +3352,16 @@ tbody tr:hover {
     padding: 0 1.25rem 1.25rem;
     border-top: 1px solid var(--border);
     padding-top: 1rem;
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 14px 14px;
 }
 
-/* État vide premium d'une liste sans carte — remplace la grille (pas de placeholders ici,
-   refreshWishlistThumbPlaceholders ne s'applique qu'aux grilles ayant déjà de vraies cartes). */
-.wishlist-empty-state {
+/* État vide "premium" partagé — pour un état VRAIMENT vide (rien ici pour l'instant : liste de
+   souhaits jamais remplie, aucune carte en collection, aucune série commencée...), jamais pour un
+   "aucun résultat de recherche/filtre" (qui reste un texte simple .empty-state, cf styles.css) -
+   illustrer chaque filtre sans résultat serait du bruit, pas un vrai traitement. Générique
+   (app-empty-*, ex-wishlist-empty-*) pour être réutilisé par Collection/Progression/Collectionneurs
+   sans dupliquer ces règles. */
+.app-empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3157,7 +3370,7 @@ tbody tr:hover {
     gap: 0.35rem;
 }
 
-.wishlist-empty-icon {
+.app-empty-icon {
     width: 48px;
     height: 48px;
     color: var(--gold);
@@ -3165,20 +3378,20 @@ tbody tr:hover {
     margin-bottom: 0.5rem;
 }
 
-.wishlist-empty-title {
+.app-empty-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 1.15rem;
     letter-spacing: 0.02em;
     color: var(--text-primary);
 }
 
-.wishlist-empty-text {
+.app-empty-text {
     font-size: 0.85rem;
     color: var(--slate);
     max-width: 320px;
 }
 
-.wishlist-empty-cta {
+.app-empty-cta {
     margin-top: 0.75rem;
 }
 
@@ -3215,7 +3428,7 @@ tbody tr:hover {
 .wishlist-thumb-card {
     cursor: pointer;
     box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-    transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+    transition: transform var(--motion-duration-fast) ease-out, box-shadow var(--motion-duration-fast) ease-out;
 }
 
 .wishlist-thumb-card:hover {
@@ -3251,7 +3464,7 @@ tbody tr:hover {
     text-align: center;
     aspect-ratio: 5 / 7;
     border: 2px dashed var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     color: var(--slate);
     font-size: 0.85rem;
     font-weight: 600;
@@ -3271,7 +3484,7 @@ tbody tr:hover {
 .wishlist-thumb-placeholder {
     aspect-ratio: 5 / 7;
     border: 1px dashed rgba(232, 169, 59, 0.32);
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(10, 8, 6, 0.35);
     position: relative;
     cursor: pointer;
@@ -3312,7 +3525,7 @@ tbody tr:hover {
     cursor: pointer;
     color: var(--text-primary);
     font-weight: 600;
-    transition: border-color 0.15s;
+    transition: border-color var(--motion-duration-fast);
     border: 1px solid var(--border);
 }
 
@@ -3366,7 +3579,7 @@ tbody tr:hover {
 
 .profile-avatar-fallback {
     background: rgba(227, 188, 132, 0.13);
-    border: 1px solid rgba(227, 188, 132, 0.4);
+    border: 1px solid rgba(232, 169, 59, 0.4);
     line-height: 1;
 }
 
@@ -3386,9 +3599,9 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 0.4rem;
-    box-shadow: 0 16px 32px -12px rgba(0,0,0,0.6), 0 0 14px rgba(227, 188, 132, 0.12);
+    box-shadow: 0 16px 32px -12px rgba(0,0,0,0.6), 0 0 14px rgba(232, 169, 59, 0.12);
     z-index: 20;
 }
 
@@ -3657,7 +3870,7 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 1rem 1.25rem;
     text-align: center;
 }
@@ -3685,7 +3898,7 @@ tbody tr:hover {
 .user-profile-section {
     flex: 1 1 260px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 1.25rem;
 }
 
@@ -3789,7 +4002,7 @@ tbody tr:hover {
    (photo + dégradé) - partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué,
    les deux pages utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles.
    Navbar desktop globale (NAV1) : plus de container nav dédié dans ce hero, la nav persistante vit
-   hors de .container (index.html). background-color sert de repli si jamais images/collectors.png
+   hors de .container (index.html). background-color sert de repli si jamais images/collectors.webp
    venait à manquer : un background-image 404 ne casse rien, juste pas de photo. */
 .collectors-hero {
     position: relative;
@@ -3797,11 +4010,11 @@ tbody tr:hover {
     align-items: flex-end;
     min-height: 320px;
     padding: 2rem 2.5rem;
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
     background-image:
         linear-gradient(rgba(10,10,16,0.45), rgba(10,10,16,0.45)),
-        url('images/collectors.png');
+        url('/images/collectors.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -3955,7 +4168,7 @@ tbody tr:hover {
     align-items: center;
     gap: 0.9rem;
     padding: 0.75rem 1rem;
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid var(--border);
     text-decoration: none;
     color: inherit;
@@ -4020,7 +4233,7 @@ tbody tr:hover {
 
 .collectors-signal-for-me {
     color: var(--gold);
-    border-color: rgba(227, 188, 132, 0.35);
+    border-color: rgba(232, 169, 59, 0.35);
 }
 
 .collectors-signal-for-them {
@@ -4126,7 +4339,7 @@ tbody tr:hover {
     padding: 0.35rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 .range-btn:hover {
@@ -4270,9 +4483,9 @@ tbody tr:hover {
     padding: 1rem 0.85rem 0.85rem;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
-    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease;
 }
 
 .progression-set-row:hover {
@@ -4290,6 +4503,7 @@ tbody tr:hover {
 }
 
 .progression-set-logo-wrap {
+    position: relative;
     width: 60px;
     height: 60px;
     margin-bottom: 0.65rem;
@@ -4302,6 +4516,43 @@ tbody tr:hover {
     flex-shrink: 0;
 }
 
+/* Anneau de progression (progressRingSvg, modules/utils.js) : superposé pile sur le cercle de logo
+   (même 60px, reste dans les limites de l'overflow:hidden du wrap), tourné -90deg pour demarrer le
+   trace a midi comme une jauge classique. */
+.progression-set-logo-wrap .progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+}
+
+.progress-ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.08);
+    stroke-width: 4;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: var(--ring-circumference);
+    stroke-dashoffset: var(--ring-circumference);
+    animation: progress-ring-draw var(--motion-duration-normal) var(--motion-ease-enter) 80ms both;
+}
+
+.progress-ring-fill.is-complete {
+    stroke: #7ED9A7;
+}
+
+@keyframes progress-ring-draw {
+    from { stroke-dashoffset: var(--ring-circumference); }
+    to { stroke-dashoffset: var(--ring-offset); }
+}
+
 .progression-set-logo {
     max-width: 78%;
     max-height: 78%;
@@ -4309,7 +4560,7 @@ tbody tr:hover {
     height: auto;
     object-fit: contain;
     opacity: 0.95;
-    transition: transform 0.16s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .progression-set-logo-wrap .progression-set-logo-upload {
@@ -4327,7 +4578,7 @@ tbody tr:hover {
     border: 1px dashed rgba(255,255,255,0.2);
     font-size: 0.9rem;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color var(--motion-duration-fast);
 }
 
 .progression-set-logo-upload:hover {
@@ -4348,22 +4599,22 @@ tbody tr:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 0.15s ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .progression-progress-bar {
     height: 4px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 2px;
+    border-radius: 4px;
     overflow: hidden;
 }
 
 .progression-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, rgba(199,164,116,0.92), rgba(227,188,132,0.92));
-    border-radius: 2px;
-    transition: width 0.3s ease;
+    border-radius: 4px;
+    transition: width var(--motion-duration-normal) ease;
 }
 
 .progression-set-count {
@@ -4433,6 +4684,58 @@ tbody tr:hover {
     margin: 1rem 0 1.5rem;
 }
 
+/* Repere sticky (nom du set + progression), cf commentaire index.html - masque par defaut
+   (translateY + opacity), revele via .visible pose par IntersectionObserver quand
+   .progression-set-title-row sort de l'ecran (setupProgressionStickyBar, progression.js).
+   top:64px = hauteur exacte de .dashboard-integrated-nav (navigation.css) sur desktop, pour ne
+   jamais chevaucher la navbar - 0 sous 768px, la nav mobile est en bas, pas en haut. */
+.progression-set-sticky-bar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1rem;
+    background: #120e0c;
+    border-bottom: 1px solid rgba(232, 169, 59, 0.14);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: transform var(--motion-duration-fast) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard);
+    pointer-events: none;
+}
+
+.progression-set-sticky-bar.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+#progression-sticky-logo {
+    height: 22px;
+    width: auto;
+    max-width: 80px;
+}
+
+#progression-sticky-progress {
+    color: var(--gold);
+}
+
+@media (max-width: 768px) {
+    /* padding-top supplementaire (env(safe-area-inset-top)) retire : c'etait un contournement du flou
+       de la barre de statut iOS en black-translucent, cause reelle corrigee a la source (meta
+       apple-mobile-web-app-status-bar-style: black, index.html/login.html) - plus besoin de pousser le
+       contenu de cette barre, ca ne faisait qu'ajouter un espace en trop en haut. */
+    .progression-set-sticky-bar {
+        top: 0;
+    }
+}
+
 #progression-set-logo {
     height: 40px;
     width: auto;
@@ -4479,10 +4782,10 @@ tbody tr:hover {
 .progression-goal-card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.9rem 1rem;
     cursor: pointer;
-    transition: transform 0.2s, border-color 0.2s;
+    transition: transform var(--motion-duration-fast), border-color var(--motion-duration-fast);
 }
 
 .progression-goal-card:hover {
@@ -4553,7 +4856,7 @@ tbody tr:hover {
 
 .progression-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 1rem;
 }
 
@@ -4563,7 +4866,7 @@ tbody tr:hover {
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
-    transition: transform 0.2s;
+    transition: transform var(--motion-duration-fast);
 }
 
 .progression-card-item.owned {
@@ -4571,7 +4874,7 @@ tbody tr:hover {
 }
 
 .progression-card-item.reverse-mode.owned {
-    border-color: var(--teal);
+    border-color: var(--gold);
 }
 
 .progression-card-item.owned:hover {
@@ -4582,13 +4885,13 @@ tbody tr:hover {
 .progression-card-item.missing {
     opacity: 0.55;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s, border-color 0.2s;
+    transition: opacity var(--motion-duration-fast), transform var(--motion-duration-fast), border-color var(--motion-duration-fast);
 }
 
 .progression-card-item.missing:hover {
     opacity: 0.9;
     transform: translateY(-3px);
-    border-color: var(--teal);
+    border-color: var(--gold);
 }
 
 /* Carte manquante la plus chère du set (Phase 2, P2-2) : sort du lot des cartes manquantes fanées
@@ -4773,7 +5076,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
 .modal-card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 1.75rem;
     max-width: 600px;
     width: 100%;
@@ -4796,21 +5099,26 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
    interne à cet élément lui-même (le cadre restait figé sur la zone visible pendant que le contenu
    défilait dessous, notamment sur mobile). Le scroll est déplacé sur .modal-scroll, un enfant
    interne : le cadre englobe alors toujours la carte entière, quel que soit le défilement. */
+/* Fond aligne sur #wishlist-detail-card (unification des fonds de modale, audit "look premium" du
+   2026-08-17) : base quasi-opaque (0.97, avant 0.6) plutot que de compter presque entierement sur le
+   backdrop-filter pour rester lisible - c'est precisement ce qui causait la fuite du fond de grille
+   pendant la transition d'ouverture (cf fix plus haut, html:active-view-transition-type(card-detail)
+   #card-detail-card) : #wishlist-detail-card n'a jamais eu ce bug, deja robuste par construction. */
 #card-detail-card {
     max-width: 1060px;
     padding: 2.5rem 0 1.5rem;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-radius: 26px;
+    border-radius: 20px;
     border: 1px solid transparent;
     background:
-        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
-        rgba(19,19,19,0.6);
-    -webkit-backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
-    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
-    box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 20px rgba(232,169,59,0.1);
+        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 35%),
+        rgba(15,15,17,0.97);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 #card-detail-card::before {
@@ -4898,8 +5206,8 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 #wishlist-picker-content::before,
@@ -4933,8 +5241,8 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 14px rgba(227, 188, 132, 0.12);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 14px rgba(232, 169, 59, 0.12);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 #top-movers-content::before {
@@ -4964,7 +5272,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     bottom: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--light-line) 50%, transparent);
-    box-shadow: 0 0 16px rgba(230, 192, 123, 0.3);
+    box-shadow: 0 0 16px rgba(232, 169, 59, 0.3);
 }
 
 .modal-overlay.active .modal-card {
@@ -4996,7 +5304,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
     display: flex;
     flex-direction: column;
     padding: 2.25rem 0 1.75rem;
-    border-radius: 22px;
+    border-radius: 20px;
     border: 1px solid transparent;
     background:
         radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
@@ -5041,21 +5349,21 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
 /* Fiche détail carte publique (modules/public-profile.js, showPublicCardDetail/showPublicWishlistItemDetail)
    : rejoint la même famille visuelle que #card-detail-card/#wishlist-detail-card (verre fumé, liseré or
    conique) au lieu de retomber sur le rectangle gris générique de .modal-card - demandé explicitement
-   après le correctif backdrop-filter (2026-08-14), les autres fiches carte l'avaient déjà. Mêmes valeurs
-   exactes que #card-detail-card (fond/flou/glow), seul border-radius aligné sur #wishlist-detail-card
-   (22px, cette fiche est plus étroite que #card-detail-card - cf max-width:800px plus bas dans le
-   fichier). Layout/max-width/paddings propres à cette fiche restent inchangés, seul l'habillage visuel
-   est ajouté ici. */
+   après le correctif backdrop-filter (2026-08-14), les autres fiches carte l'avaient déjà. Fond aligné
+   sur #wishlist-detail-card (unification des fonds de modale, 2026-08-17) : base quasi-opaque (0.97)
+   plutôt que de compter sur le backdrop-filter pour rester lisible, même raison que #card-detail-card
+   (cf son commentaire). Layout/max-width/paddings propres à cette fiche restent inchangés, seul
+   l'habillage visuel est ajouté ici. */
 #public-card-detail-card {
-    border-radius: 22px;
+    border-radius: 20px;
     border: 1px solid transparent;
     background:
-        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
-        rgba(19,19,19,0.6);
-    -webkit-backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
-    backdrop-filter: blur(28px) saturate(1.4) contrast(1.05);
-    box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 20px rgba(232,169,59,0.1);
+        radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 35%),
+        rgba(15,15,17,0.97);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    backdrop-filter: blur(24px) saturate(1.3) contrast(1.05);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 #public-card-detail-card::before {
@@ -5080,39 +5388,106 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
 /* Le flou (backdrop-filter) ne peut pas se recalculer correctement pendant une View Transition : le
    navigateur anime des snapshots figes (::view-transition-old/new), qui ne peuvent pas recomposer un
    flou en continu contre ce qu'il y a derriere - resultat, le contenu de la page reste net et visible
-   a travers le panneau pendant tout le morph (~260ms), puis le flou "saute" d'un coup une fois la
+   a travers le panneau pendant tout le morph, puis le flou "saute" d'un coup une fois la
    transition finie (constate par l'utilisateur, pas seulement sur mobile - la version precedente de
    ce correctif etait scopee a @media max-width:768px, hypothese initiale erronee que c'etait un
    probleme de cout GPU mobile uniquement). Retire le flou pendant la transition, repli sur le fond
-   degrade opaque (rgba(19,19,19,0.6)/(0.97)) seul le temps du mouvement - flou desactive puis
-   reactive d'un coup est bien moins visible qu'un flou absent puis soudainement present.
-   background-color ajoute ici (manquait) : sans lui, #card-detail-card/#public-card-detail-card
-   retombent sur leur rgba(19,19,19,0.6) de base (pense pour etre adouci PAR le blur, jamais vu seul)
-   - sans le flou pendant la transition, ce fond reste transparent a 40% et laisse la grille derriere
-   apparaitre nette a travers le panneau pendant tout le morph, un vrai "ancien fond" qui se voit avant
-   que le flou ne revienne d'un coup en fin de transition (signale par l'utilisateur avec une video :
-   "le vieux fond de modale qu'on avait avant apparait encore avant le nouveau"). #wishlist-detail-card
-   n'a jamais eu ce probleme, deja a 0.97 d'opacite de base - pas touche ici. */
+   degrade opaque seul le temps du mouvement - flou desactive puis reactive d'un coup est bien moins
+   visible qu'un flou absent puis soudainement present.
+   background-color n'est plus necessaire ici (l'etait quand #card-detail-card/#public-card-detail-card
+   avaient un fond de base a 0.6 d'opacite, pense pour etre adouci PAR le blur, jamais vu seul - sans le
+   flou pendant la transition, ce fond restait transparent et laissait la grille derriere apparaitre
+   nette a travers le panneau) : les trois fiches partagent maintenant le meme fond quasi-opaque (0.97,
+   unification des fonds de modale, 2026-08-17), leur base seule suffit deja sans le flou. */
 html:active-view-transition-type(card-detail) #card-detail-card,
-html:active-view-transition-type(card-detail) #public-card-detail-card {
-    background-color: rgba(19,19,19,0.97);
+html:active-view-transition-type(card-detail) #public-card-detail-card,
+html:active-view-transition-type(card-detail) #wishlist-detail-card {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }
 
-html:active-view-transition-type(card-detail) #wishlist-detail-card {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+/* Duree du morph carte -> fiche (VT1/VT3, card-grid-renderer.js) sur desktop : jamais fixee avant,
+   donc valeur par defaut du navigateur (~250ms, non liee a aucun token) utilisee jusqu'ici. Alignee
+   explicitement sur --motion-duration-normal a la demande de l'utilisateur (ressenti trop rapide) -
+   mobile garde sa propre duree raccourcie (--motion-duration-fast, cf media query juste en dessous),
+   toujours pour le cout GPU du flou pendant le mouvement, pas pour le ressenti. */
+html:active-view-transition-type(card-detail)::view-transition-group(card-detail-morph) {
+    animation-duration: var(--motion-duration-normal);
 }
 
 /* Allège en plus le coût GPU du panneau derrière le morph carte -> fiche (VT1/VT3,
    card-grid-renderer.js) sur mobile : le flou apparaît à pleine intensité dès la première frame de la
    transition (transition CSS neutralisée pour laisser la View Transition piloter, cf
    :active-view-transition-type(card-detail) plus haut) et reste recalculé à chaque frame pendant tout
-   le déplacement de l'image partagée (~260ms) - blur(24-28px) + saturate + contrast est l'une des
+   le déplacement de l'image partagée - blur(24-28px) + saturate + contrast est l'une des
    opérations les plus coûteuses pour un GPU mobile, cause identifiée de lag constaté en usage réel.
    Radius réduit et saturate/contrast retirés uniquement sous ce seuil - effet verre desktop inchangé. */
+/* Chevron du volet prix (allegement fiche carte, 2026-08-18) : masque par defaut ici (desktop garde le
+   graphique toujours deplie, aucune notion de volet a annoncer), reactive uniquement sous 768px (regle
+   mobile plus bas dans ce fichier - doit rester APRES cette regle en ordre source pour gagner la
+   cascade a specificite egale). */
+.card-price-chart-toggle {
+    display: none;
+}
+
+/* Bottom sheet mobile (essai, 2026-08-18, retour utilisateur "pas hyper satisfait des modales sur
+   mobile") : la carte flottante centree (comme sur desktop) devient une feuille ancree en bas, pleine
+   largeur, coins arrondis seulement en haut - pattern natif attendu sur iOS/Android, deja utilise pour
+   le panneau "Ajouter" (.mobile-add-overlay). Seul l'etat FERME change (translateY(100%) au lieu du
+   pop centre scale+translateY court) : l'etat OUVERT (.modal-overlay.active .modal-card, plus haut
+   dans ce fichier) est deja translateY(0) scale(1), valable tel quel ici. Swipe-to-dismiss ajoute
+   ensuite (tracker.js) : la pastille ::after ci-dessous sert d'affordance visuelle ET coincide avec la
+   zone de detection du geste (memes dimensions/position, SWIPE_DISMISS_HANDLE_* dans tracker.js). */
 @media (max-width: 768px) {
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: 85vh;
+        max-height: 85dvh;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%) scale(1);
+        padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+        padding-top: 1.5rem;
+    }
+
+    /* Pastille de poignee : ::after (pas ::before, deja pris par le lisere or conique de
+       #card-detail-card/#wishlist-detail-card/#public-card-detail-card, cf leurs regles plus haut dans
+       ce fichier) - seule exception : #top-movers-content utilise deja ::after pour son propre lisere
+       inferieur decoratif (ID plus specifique qu'une classe, gagne la cascade), cette modale n'affiche
+       donc pas la pastille visuelle mais le swipe y fonctionne quand meme (zone geometrique, pas liee
+       au pseudo-element). */
+    .modal-card::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.25);
+        pointer-events: none;
+    }
+
+    #card-detail-card,
+    #wishlist-detail-card,
+    #public-card-detail-card {
+        border-radius: 20px 20px 0 0;
+    }
+
+    #card-detail-card {
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    #wishlist-detail-card {
+        padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
     #card-detail-card,
     #public-card-detail-card {
         -webkit-backdrop-filter: blur(14px);
@@ -5124,13 +5499,55 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
         backdrop-filter: blur(12px);
     }
 
-    /* Durée raccourcie du morph lui-même sur mobile (jamais fixée avant, donc valeur par défaut du
-       navigateur ~250ms utilisée jusqu'ici) : une animation plus courte laisse moins de temps pour
-       qu'un à-coup soit perceptible, même si le frame rate sous-jacent reste imparfait sur mobile -
-       complète la neutralisation du flou ci-dessus, ne la remplace pas. Desktop non touché
-       (--motion-duration-normal, 260ms, inchangé). */
+    /* Durée raccourcie du morph lui-même sur mobile (--motion-duration-fast plutôt que -normal utilisé
+       sur desktop, cf règle juste au-dessus dans ce fichier) : une animation plus courte laisse moins
+       de temps pour qu'un à-coup soit perceptible, même si le frame rate sous-jacent reste imparfait
+       sur mobile - complète la neutralisation du flou ci-dessus, ne la remplace pas. */
     html:active-view-transition-type(card-detail)::view-transition-group(card-detail-morph) {
-        animation-duration: 180ms;
+        animation-duration: var(--motion-duration-fast);
+    }
+
+    /* Fiche carte allegee sur mobile (retour utilisateur, 2026-08-18) : le graphique de prix (canvas +
+       selecteur de periode + stat, le plus gros bloc de la fiche) reste replie par defaut, deplie au
+       tap sur son en-tete (toggleCardPriceChart, card-detail.js). Desktop inchange (toujours deplie
+       d'office, cf renderCardDetail). */
+    .card-price-chart-header {
+        cursor: pointer;
+    }
+
+    .card-price-chart-toggle {
+        display: block;
+        color: var(--slate);
+        font-size: 0.9rem;
+        transition: transform var(--motion-duration-fast) var(--motion-ease-standard);
+    }
+
+    /* Selecteur compose (pas .card-price-chart-body seul) : la regle de base (display:flex, plus bas
+       dans ce fichier, hors media query) a la meme specificite qu'un simple .card-price-chart-body et
+       la gagnait par ordre de source malgre cette regle mobile - un descendant a 2 classes augmente la
+       specificite pour gagner sans dependre de la position dans le fichier. La regle .expanded juste
+       en dessous (3 classes) doit rester PLUS specifique que celle-ci (2 classes) pour pouvoir la
+       reprendre au depli - jamais un id ici, qui l'emporterait aussi sur .expanded. */
+    .card-price-chart-wrap .card-price-chart-body {
+        display: none;
+    }
+
+    .card-price-chart-wrap.expanded .card-price-chart-body {
+        display: flex;
+    }
+
+    .card-price-chart-wrap.expanded .card-price-chart-toggle {
+        transform: rotate(180deg);
+    }
+
+    /* Boutons d'action compacts (Modifier / Cardmarket / Retirer) : le sous-titre descriptif prend de
+       la place pour une information deja portee par le libellé seul sur un petit ecran. */
+    .modal-action-row {
+        padding: 0.7rem 1rem;
+    }
+
+    .modal-action-subtitle {
+        display: none;
     }
 }
 
@@ -5159,7 +5576,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     width: 100%;
     max-height: 330px;
     object-fit: contain;
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
@@ -5191,32 +5608,12 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     margin: 1.35rem 0;
 }
 
-/* Ligne d'identité de série : logo à gauche, série + numéro à droite, alignement vertical propre. */
+/* Le logo de série s'affiche désormais en sceau incliné sur l'image (.modal-series-seal, partagé avec
+   les fiches Collection/publique) — cette ligne ne porte plus que le texte série/numéro. */
 .wishlist-detail-series-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-}
-
-.wishlist-detail-series-logo {
-    display: block;
-    height: 26px;
-    width: auto;
-    max-width: 120px;
-    object-fit: contain;
-}
-
-.wishlist-detail-series-logo-fallback {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.05);
-    color: var(--slate);
-    font-size: 0.75rem;
-    flex-shrink: 0;
 }
 
 .wishlist-detail-series-text {
@@ -5262,7 +5659,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .wishlist-detail-price {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 2.1rem;
     font-weight: 600;
     color: #e3af64;
@@ -5274,7 +5671,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .wishlist-detail-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.6rem;
 }
 
 /* Famille de boutons unifiée : Je l'ai !/Cardmarket/Déplacer partagent hauteur, rayon, bordure et
@@ -5288,14 +5685,14 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     height: 46px;
     background: rgba(255,255,255,0.055);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
+    border-radius: 14px;
     color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    transition: background 0.18s ease, border-color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-btn:hover {
@@ -5386,13 +5783,13 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     gap: 0.6rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.6rem 0.85rem;
     text-align: left;
     width: 100%;
     color: var(--text-primary);
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-move-option:hover {
@@ -5470,12 +5867,12 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     gap: 0.45rem;
     background: rgba(255,255,255,0.035);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.55rem 0.5rem;
     color: var(--text-primary);
     text-align: left;
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-acquisition-choice-btn i {
@@ -5551,14 +5948,14 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     max-width: 160px;
     background: var(--ink-navy);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0 0.9rem;
     transition: border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .wishlist-detail-acquisition-price-wrap:focus-within {
-    border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    border-color: rgba(232, 169, 59, 0.45);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
 }
 
 .wishlist-detail-acquisition-price-wrap input {
@@ -5602,14 +5999,14 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     gap: 0.4rem;
     background: rgba(255,255,255,0.035);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
+    border-radius: 14px;
     height: 46px;
     padding: 0 1rem;
     color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 .wishlist-detail-acquisition-back:hover {
@@ -5624,29 +6021,26 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 @media (max-width: 640px) {
-    #wishlist-detail-overlay {
-        padding: 0.75rem;
-    }
-
-    #wishlist-detail-card {
-        width: 100%;
-        max-width: 100%;
-        max-height: 94vh;
-        max-height: 94dvh;
-    }
-
+    /* padding d'overlay et gabarit de carte retires (2026-08-18) : datait d'avant le bottom sheet
+       generique (.modal-overlay/.modal-card, @media max-width:768px plus haut) et l'emportait dessus
+       via specificite ID > classe, sur un seuil different (640px, pas 768px) - la fiche souhait
+       n'avait donc ni le meme padding (flush aux bords) ni la meme hauteur max (94vh au lieu de 85vh)
+       que les autres modales, signale par l'utilisateur ("plus haut que les autres"). */
     .wishlist-detail-layout {
         grid-template-columns: 1fr;
         justify-items: center;
-        gap: 1.25rem;
+        gap: 0.5rem;
     }
 
+    /* 220px : même largeur que l'image carte des fiches Collection/publique sur mobile
+       (.modal-image-frame, cf styles.css ~7473), pour une taille cohérente entre tous les modals carte
+       (retour utilisateur, 2026-08-18 — était à 170px, plus petite que les autres). */
     .wishlist-detail-image-frame {
-        max-width: 170px;
+        max-width: 220px;
     }
 
     .wishlist-detail-image {
-        max-height: 240px;
+        max-height: 310px;
     }
 
     .wishlist-detail-info-col {
@@ -5704,6 +6098,114 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.15);
     border-radius: 50%;
+}
+
+/* Navigation carte precedente/suivante dans la fiche detail (retour d'audit concurrence 2026-09-01).
+   v2 : ancrees sur .modal-image-frame (juste l'image, pas tout le panneau texte a cote) - style "macOS
+   Quick Look"/carrousel Instagram, l'oeil associe la fleche a l'objet qu'on feuillette plutot qu'au
+   cadre entier. v3 (retour utilisateur : quasi invisibles) : le fond verre clair de
+   .dashboard-hero-customize-btn (rgba blanc 8%) marche sur un fond sombre uniforme, mais se noie sur
+   un art de carte variable derriere - repris le fond sombre opaque + ombre de .qty-badge/.price-badge
+   (meme constat deja fait pour ces badges, "trop pale sur des arts de carte varies") pour se detacher
+   de n'importe quel visuel de carte. */
+.modal-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(22,27,41,0.88);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 50%;
+    color: #F7F3EA;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+}
+
+/* Apparition au survol de la zone image (pas des le rendu) : garde l'illustration de la carte nette,
+   les fleches ne se revelent que quand l'intention de naviguer est probable. Le focus clavier (Tab)
+   les revele aussi, sinon un utilisateur clavier ne les verrait jamais avant de les activer. */
+.modal-stand:hover .modal-nav-btn.visible,
+.modal-nav-btn.visible:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Case desactivee (premiere/derniere carte) : reste dans le DOM (pas de saut de mise en page) mais
+   jamais interactive ni reveleable au survol - grisee plutot que masquee pour rester previsible.
+   0.45 (pas 0.2) : au-dela le fond sombre opaque perd son contraste contre l'art de carte et le
+   bouton redevient aussi invisible que la v3 initiale, juste dans un autre etat. */
+.modal-nav-btn.visible:disabled {
+    opacity: 0.45 !important;
+    pointer-events: none !important;
+}
+
+/* transform reaffirme ici (pas juste dans la regle de base) : la regle globale "button:hover" plus
+   bas dans ce fichier pose aussi un transform (translateY(-1px), effet de "lift" generique sur tous
+   les boutons) avec une specificite superieure a .modal-nav-btn seule - sans cette reaffirmation, le
+   survol ecrasait le translateY(-50%) de centrage vertical et le bouton "sautait" vers le bas
+   (retour utilisateur : "la fleche se decale vers le bas"). */
+.modal-nav-btn:hover:not(:disabled) {
+    background: rgba(232,169,59,0.16);
+    border-color: rgba(232,169,59,0.35);
+    color: var(--gold);
+    transform: translateY(-50%);
+}
+
+.modal-nav-btn:active:not(:disabled) {
+    transform: translateY(-50%) scale(var(--motion-scale-pressed));
+}
+
+.modal-nav-prev {
+    left: 0.5rem;
+}
+
+.modal-nav-next {
+    right: 0.5rem;
+}
+
+/* Meme seuil que le reste de l'app (nav desktop/mobile, cf navigation.css). Le swipe horizontal
+   (tracker.js) couvre la navigation sur mobile, mais rien ne signalait qu'il existait - masquer
+   entierement les fleches (comme la toute premiere version) laissait le geste totalement invisible
+   (retour utilisateur). Le survol n'existant pas au toucher, .visible seul (sans le prefixe
+   ".modal-stand:hover" requis plus haut) suffit a les rendre visibles en permanence, a faible
+   opacite : servent a la fois d'indice ("cette fiche se feuillette") et de repli tapable si le
+   swipe est rate ou pas tente. Agrandies a 44px (cible tactile, meme raison que .modal-close
+   juste en dessous). */
+@media (max-width: 768px) {
+    .modal-nav-btn.visible {
+        opacity: 0.55;
+        pointer-events: auto;
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+
+    .modal-nav-btn.visible:active:not(:disabled) {
+        opacity: 1;
+    }
+
+    /* Sur les cotes de l'image, pas dessus (retour utilisateur) : sous 768px, .modal-image-frame est
+       plafonnee a 220px et centree dans .modal-stand qui reste a 316px (cf regle plus bas dans ce
+       fichier, deja en place pour d'autres raisons) - une vraie marge d'env. 48px existe donc de
+       chaque cote, contrairement au desktop ou la fleche devait forcement chevaucher l'image faute
+       de place. -46px : bouton de 44px centre dans cette marge (48px), ni colle a l'image ni colle
+       au bord de la feuille mobile. */
+    .modal-nav-prev {
+        left: -58px;
+    }
+
+    .modal-nav-next {
+        right: -58px;
+    }
 }
 
 .modal-close:hover::before {
@@ -5853,16 +6355,23 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     .mobile-add-overlay-card .card-preview .preview-image {
         flex: none;
         width: 100%;
-        max-height: 240px;
+        max-height: 310px;
         padding: 0;
         background: transparent;
     }
 
-    /* Image plafonnée à 240px (au lieu de 380px hérité) : sur 360-390px de large, un visuel plus haut
-       laissait moins de place utile avant de devoir défiler pour atteindre le formulaire. Même valeur déjà
-       utilisée pour la fiche détail Wishlist mobile, pour rester cohérent. */
+    /* 220px de large : même largeur que l'image carte des autres fiches carte sur mobile
+       (.modal-image-frame, cf ~7473) - jusqu'ici cette fiche avait sa propre taille (plafonnée en
+       hauteur à 240px, ce qui la rendait plus petite que les autres), incohérent d'une fiche à l'autre
+       (retour utilisateur, 2026-08-18). max-height relevé à 310px (ratio carte ~5/7 à 220px de large)
+       pour que ce soit bien la largeur, pas la hauteur, qui plafonne l'image désormais. */
+    .mobile-add-overlay-card .preview-image-frame {
+        max-width: 220px;
+        margin: 0 auto;
+    }
+
     .mobile-add-overlay-card .preview-image img {
-        max-height: 240px;
+        max-height: 310px;
     }
 
     /* .preview-meta-box (Rareté/Type/Illustrateur/Cardmarket/Prix) n'a jamais eu besoin de minmax(0, 1fr) :
@@ -5887,7 +6396,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 .modal-image {
     width: 100%;
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
@@ -5948,7 +6457,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
+    border-radius: 14px;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
 
@@ -5972,7 +6481,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .card-price-chart-title {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.7rem;
     color: var(--slate);
     text-transform: uppercase;
@@ -5982,23 +6491,23 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 .card-price-chart-periods {
     display: flex;
-    gap: 2px;
+    gap: 0.15rem;
     padding: 2px;
     background: rgba(255,255,255,0.04);
     border-radius: 8px;
 }
 
 .chart-period-btn {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: none;
     border: none;
     padding: 0.22rem 0.55rem;
     font-size: 0.65rem;
     font-weight: 600;
     color: var(--slate);
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    transition: color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease;
 }
 
 .chart-period-btn:hover {
@@ -6059,7 +6568,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .card-price-stat-pct {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 1.4rem;
     font-weight: 800;
     letter-spacing: -0.01em;
@@ -6086,7 +6595,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .card-price-stat-caption {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.65rem;
     font-weight: 600;
     color: var(--slate);
@@ -6182,7 +6691,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 #card-detail-card .modal-title {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 2.4rem;
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -6230,6 +6739,20 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     color: var(--gold);
 }
 
+/* Petit rebond au clic (ajout ET retrait), plutôt que le switch instantané plein/vide d'avant - rejoué
+   à chaque clic via favorite-star-pop retiré/rajouté (modules/favorites.js toggleFavorite). */
+@keyframes favorite-star-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.35); }
+    60% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+.favorite-star.favorite-star-pop i {
+    display: inline-block;
+    animation: favorite-star-pop 380ms var(--motion-ease-enter);
+}
+
 .modal-subtitle {
     font-size: 0.85rem;
     color: var(--slate);
@@ -6258,7 +6781,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     color: var(--slate);
     border: 1px dashed rgba(255,255,255,0.2);
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color var(--motion-duration-fast), color var(--motion-duration-fast);
 }
 
 .symbol-upload-pill:hover {
@@ -6298,7 +6821,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color var(--motion-duration-fast), background var(--motion-duration-fast);
     color: var(--text-primary);
     position: relative;
 }
@@ -6318,11 +6841,11 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.35rem 0.65rem;
-    border-radius: 6px;
+    border-radius: 8px;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s ease;
+    transition: opacity var(--motion-duration-fast) ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.45);
     z-index: 30;
 }
@@ -6367,8 +6890,8 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 .finish-pill,
 .finish-badge {
-    background: rgba(63, 167, 161, 0.15) !important;
-    color: var(--teal) !important;
+    background: rgba(232, 169, 59, 0.15) !important;
+    color: var(--gold) !important;
     display: inline-flex !important;
     align-items: center;
     gap: 0.3rem;
@@ -6386,8 +6909,8 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .condition-pill.hp { color: #ff6b6b; }
 
 .acquisition-pill {
-    background: rgba(63, 167, 161, 0.15);
-    color: var(--teal);
+    background: rgba(232, 169, 59, 0.15);
+    color: var(--gold);
 }
 
 #card-detail-card .modal-pill {
@@ -6427,13 +6950,13 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 
 #card-detail-card .acquisition-pill {
     background: transparent;
-    color: #6bcbff;
-    border-color: rgba(107, 203, 255, 0.4);
+    color: var(--gold);
+    border-color: rgba(232, 169, 59, 0.4);
 }
 
 #card-detail-card .finish-pill {
     background: transparent !important;
-    border-color: rgba(63, 167, 161, 0.4);
+    border-color: rgba(232, 169, 59, 0.4);
 }
 
 .modal-value-block {
@@ -6443,7 +6966,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-value-label {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.7rem;
     color: var(--slate);
     text-transform: uppercase;
@@ -6478,7 +7001,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-price-label {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--slate);
@@ -6486,7 +7009,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-price {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 3.4rem;
     font-weight: 600;
     color: #e3af64;
@@ -6495,10 +7018,10 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-price-secondary {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 1.15rem;
     font-weight: 800;
-    color: var(--teal);
+    color: var(--gold);
     letter-spacing: -0.01em;
 }
 
@@ -6523,7 +7046,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-meta-key {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -6553,7 +7076,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-meta-val {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #F2EEE7;
     font-weight: 400;
     text-align: right;
@@ -6574,7 +7097,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     text-decoration: underline dotted;
     text-underline-offset: 3px;
     text-decoration-color: rgba(232, 169, 59, 0.55);
-    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+    transition: color var(--motion-duration-fast) ease, text-decoration-color var(--motion-duration-fast) ease;
 }
 
 .illustrator-link:hover {
@@ -6603,7 +7126,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     gap: 0.4rem;
     background: var(--gold);
     color: var(--ink-navy);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.35rem 0.5rem 0.35rem 0.7rem;
     font-size: 0.8rem;
     font-weight: 600;
@@ -6645,7 +7168,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: border-color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
 }
 
 .collection-add-filter-btn:hover:not(:disabled) {
@@ -6666,7 +7189,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     max-width: calc(100vw - 2rem);
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 12px 30px rgba(0,0,0,0.45);
     z-index: 60;
     overflow: hidden;
@@ -6705,7 +7228,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     justify-content: center;
     width: 28px;
     height: 28px;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
 }
 
@@ -6722,7 +7245,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     width: 100%;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.5rem 0.6rem;
     font-size: 0.85rem;
     color: var(--text-primary);
@@ -6748,7 +7271,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     padding: 0.65rem 0.7rem;
     font-size: 0.85rem;
     color: var(--text-primary);
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
 }
 
@@ -6816,7 +7339,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     gap: 0.5rem;
     background: rgba(232, 169, 59, 0.08);
     border-left: 3px solid var(--gold);
-    border-radius: 0 6px 6px 0;
+    border-radius: 0 8px 8px 0;
     padding: 0.6rem 0.75rem;
     margin: 0.5rem 0 0.75rem;
     font-size: 0.85rem;
@@ -6871,20 +7394,20 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 #card-detail-card .form-group select,
 #card-detail-card .form-group textarea {
     padding: 0.85rem 1rem;
-    border-radius: 12px;
+    border-radius: 14px;
     border-color: rgba(255,255,255,0.08);
 }
 
 #card-detail-card .modal-save-btn {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 500;
-    border-radius: 12px;
+    border-radius: 14px;
     background:
         linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 45%),
         rgba(255,255,255,0.04);
     color: #F4F1EB;
     border: 1px solid rgba(255,255,255,0.14);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+    transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
 }
 
 #card-detail-card .modal-save-btn i {
@@ -6892,8 +7415,8 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 #card-detail-card .modal-save-btn:hover {
-    border-color: rgba(227, 188, 132, 0.45);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.1);
+    border-color: rgba(232, 169, 59, 0.45);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -6905,12 +7428,12 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 #card-detail-card .modal-cancel-btn {
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.02);
     color: var(--slate);
     font-weight: 500;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
 }
 
 #card-detail-card .modal-cancel-btn:hover {
@@ -6924,7 +7447,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .edit-form-title {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 1.9rem;
     font-weight: 700;
     color: #F4F1EB;
@@ -6964,12 +7487,12 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .edit-info-box {
     display: flex;
     align-items: flex-start;
-    gap: 0.65rem;
+    gap: 0.6rem;
     margin-top: 1rem;
     padding: 0.85rem 1rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     color: #e3bc84;
     font-size: 1rem;
 }
@@ -7019,7 +7542,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -7101,7 +7624,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     cursor: pointer;
     text-align: left;
     width: 100%;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease;
 }
 
 .modal-action-row:disabled {
@@ -7135,14 +7658,14 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 }
 
 .modal-action-title {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .modal-action-subtitle {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.78rem;
     font-weight: 400;
     color: var(--slate);
@@ -7285,6 +7808,7 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
     .modal-body {
         align-items: stretch;
         text-align: left;
+        gap: 0.4rem;
     }
 
     .modal-badges {
@@ -7307,6 +7831,68 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
         margin-right: auto;
     }
 
+    /* Image de la carte reduite (retour utilisateur, 2026-08-18) : 316px (heritee de la regle
+       ci-dessus, partagee avec le graphique/disclaimer) prenait quasi toute la largeur du bottom
+       sheet - trop imposant pour une simple vignette d'identification en haut de fiche. Cible
+       .modal-image (pas .modal-image-wrap, qui contient AUSSI .card-price-chart-wrap en enfant direct -
+       reduire le wrap avait bride le graphique par la meme occasion, signale par l'utilisateur) : le
+       wrap garde sa largeur de 316px, seule l'image est recentree en dessous.
+       #public-card-detail-card ajoute (oubli initial) : meme fiche reutilisee pour la carte ET le
+       souhait d'un profil collectionneur public (showPublicCardDetail/showPublicWishlistItemDetail,
+       modules/public-profile.js) - sans elle, ces deux modales gardaient l'ancienne taille (316px),
+       differente du reste du site, signale par l'utilisateur. */
+    #card-detail-card .modal-stand .modal-image-frame,
+    #public-card-detail-card .modal-stand .modal-image-frame {
+        max-width: 220px;
+        margin: 0 auto;
+    }
+
+    /* .modal-stand garde 2.25rem de padding-bottom en desktop pour laisser respirer le reflet/glow
+       sous la carte (::before/::after) — cumulé au gap:1.5rem de .modal-body en colonne mobile, ça
+       créait ~60px de vide avant le nom du Pokémon (retour utilisateur, 2026-08-18). Réduit ici
+       uniquement, le glow reste visible avec moins de marge. */
+    .modal-stand {
+        padding-bottom: 0.15rem;
+    }
+
+    /* ::before (glow) / ::after (trait doré) sont positionnés en `bottom` depuis le bord de .modal-stand ;
+       avec le padding-bottom réduit, leurs valeurs desktop (0.75rem/1.1rem) dépassaient l'espace
+       restant et se retrouvaient sous l'image (masquées par le z-index:1 de .modal-image). Passés en
+       négatif pour les faire déborder sous .modal-stand, dans l'espace du gap de .modal-body — visibles
+       sans avoir à toucher au padding (qui, lui, déplace le nom du Pokémon). */
+    .modal-stand::before {
+        bottom: -0.2rem;
+    }
+
+    .modal-stand::after {
+        bottom: -0.15rem;
+    }
+
+    /* Nom de la carte : même traitement (police Inter, casse, taille) sur les 3 fiches carte mobile —
+       jusqu'ici seule #card-detail-card avait ce style, #public-card-detail-card et #wishlist-detail-card
+       restaient sur le style générique .modal-title (Bebas Neue, 1.7rem), incohérent d'une fiche à
+       l'autre (retour utilisateur, 2026-08-18). 1.9rem : réduit depuis les 2.4rem hérités du desktop
+       (large colonne), qui passaient presque sur 2 lignes dans la colonne resserrée mobile (316px). */
+    #card-detail-card .modal-title,
+    #public-card-detail-card .modal-title,
+    #wishlist-detail-card .modal-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+        color: #F4F1EB;
+    }
+
+    /* margin-top:1.5rem (règle desktop, #card-detail-card uniquement) ajoutait un écart au-dessus du nom
+       que les réglages précédents sur .modal-body/.modal-stand ne couvraient pas — vidé ici sur les 3
+       fiches pour un écart uniforme et cohérent avec le resserrement déjà fait au-dessus. */
+    #card-detail-card .modal-title-row,
+    #public-card-detail-card .modal-title-row,
+    #wishlist-detail-card .modal-title-row {
+        margin-top: 0.85rem;
+    }
+
     /* .card-price-chart-wrap déborde volontairement sa colonne de 20px de chaque côté en desktop
        (margin-left négatif, cf déclaration de base) pour un effet bord-à-bord dans la colonne image :
        sans ce reset, width:100% + margin-left:-20px l'aurait fait déborder de la colonne mobile. */
@@ -7314,7 +7900,8 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
         margin-left: auto;
     }
 
-    #card-detail-card .modal-info {
+    #card-detail-card .modal-info,
+    #public-card-detail-card .modal-info {
         margin-left: 0;
         max-width: 316px;
         margin-inline: auto;
@@ -7337,6 +7924,22 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
         margin-inline: auto;
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    /* Logo de série en sceau sur le coin de l'illustration (retour utilisateur, 2026-08-18) : légèrement
+       réduit sur mobile, l'image elle-même étant plus petite (220px, cf règle .modal-image ci-dessus). */
+    .modal-series-seal {
+        height: 46px;
+        max-width: 130px;
+        right: -12px;
+        bottom: -4px;
+    }
+
+    /* Même correctif de spécificité qu'en base (cf .preview-image-frame .modal-series-seal ~1557) pour
+       que la taille mobile gagne aussi sur .preview-image img. */
+    .preview-image-frame .modal-series-seal {
+        height: 46px;
+        max-width: 130px;
+    }
 }
 
 /* Sous 768px, le contenu de la Collection derrière la fiche détail restait trop lisible à travers
@@ -7348,6 +7951,53 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
             radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.08) 0%, transparent 55%),
             linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 35%),
             rgba(19,19,19,0.88);
+    }
+}
+
+/* Indicateur pull-to-refresh (mobile, Dashboard/Collection - modules/pull-to-refresh.js). Repose hors
+   champ (top:-60px) au repos ; translateY appliqué en JS pendant le tir suit le doigt 1:1 (freine par
+   PTR_PULL_RESISTANCE côté JS), .dragging désactive la transition pour ce suivi, réactivée au
+   relâchement pour l'animation de retour/tir. */
+.ptr-indicator {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate);
+    font-size: 1.1rem;
+    z-index: 150;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    transition: transform 0.25s ease, color 0.15s ease;
+    pointer-events: none;
+}
+
+.ptr-indicator.dragging {
+    transition: color 0.15s ease;
+}
+
+.ptr-indicator.active {
+    color: var(--gold);
+}
+
+.ptr-indicator.loading i {
+    animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ptr-indicator.loading i {
+        animation: none;
     }
 }
 
@@ -7375,9 +8025,9 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
 .message {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     padding: 0.9rem 1.1rem;
-    border-radius: 10px;
+    border-radius: 8px;
     margin-bottom: 1rem;
     background: #14171f;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -7477,14 +8127,6 @@ html:active-view-transition-type(card-detail) #wishlist-detail-card {
        classe déjà posée sur #tab-collection que pour l'exclusion #collection-grid-wrapper ci-dessus. */
     #tab-collection:not(.collection-view-recap) #grid-sort {
         display: inline-block !important;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .stats-kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
     }
 
     .stats-chart-header {
@@ -7672,7 +8314,7 @@ html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
     align-items: center;
     justify-content: center;
     top: 0.45rem !important;
-    transition: background 0.15s;
+    transition: background var(--motion-duration-fast);
 }
 
 .flatpickr-prev-month:hover,
@@ -7710,7 +8352,7 @@ span.flatpickr-weekday {
 }
 
 html body .flatpickr-calendar .dayContainer {
-    row-gap: 2px;
+    row-gap: 0.15rem;
     column-gap: 0;
 }
 
@@ -7850,7 +8492,7 @@ body.page-wishlist #wishlist-stats-bottom {
     width: 40px;
     height: 56px;
     object-fit: cover;
-    border-radius: 5px;
+    border-radius: 4px;
     flex-shrink: 0;
     transform: rotate(-8deg);
     box-shadow: 0 4px 10px rgba(0,0,0,0.35);
@@ -7910,14 +8552,14 @@ body.page-progression .progression-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/atlas.png');
+        url('/images/atlas.webp');
     background-size: cover;
     background-position: center 35%;
     background-repeat: no-repeat;
@@ -7927,6 +8569,18 @@ body.page-progression .progression-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
+}
+
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-progression .progression-atlas-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-progression linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
 }
 
 .progression-atlas-hero-content {
@@ -7980,14 +8634,14 @@ body.page-collection .collection-atlas-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/collection.png');
+        url('/images/collection.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -7997,6 +8651,18 @@ body.page-collection .collection-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
+}
+
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-collection .collection-atlas-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-center linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
 }
 
 .collection-atlas-hero-content {
@@ -8023,6 +8689,10 @@ body.page-collection .collection-atlas-hero {
     margin-bottom: 0.6rem;
 }
 
+/* text-shadow ajoute (manquait ici) : identique a .progression-atlas-hero-title (meme famille de
+   hero, meme texte blanc sur photo) - ecart trouve lors de l'audit "look premium" du 2026-08-17,
+   sans doute une divergence au fil des refontes plutot qu'un choix delibere puisque les 4 heroes
+   partagent la meme structure (photo + degrade sombre + titre blanc). */
 .collection-atlas-hero-title,
 .stats-hero-title,
 .wishlist-hero-title {
@@ -8032,6 +8702,7 @@ body.page-collection .collection-atlas-hero {
     line-height: 1.2;
     letter-spacing: -0.01em;
     margin-bottom: 0.6rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);
 }
 
 .collection-atlas-hero-subtitle,
@@ -8041,6 +8712,7 @@ body.page-collection .collection-atlas-hero {
     font-size: 0.95rem;
     line-height: 1.5;
     margin-bottom: 1.4rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 .collection-atlas-hero-search {
@@ -8135,14 +8807,14 @@ body.page-statistics .stats-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/stats.png');
+        url('/images/stats.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8152,6 +8824,18 @@ body.page-statistics .stats-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
+}
+
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-statistics .stats-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-center linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
 }
 
 .stats-hero-content {
@@ -8221,14 +8905,14 @@ body.page-wishlist .wishlist-hero {
     display: flex;
     align-items: flex-end;
     min-height: 340px;
-    animation: tab-content-fade-in 300ms ease-in-out;
+    animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
         linear-gradient(rgba(10,10,16,0.4), rgba(10,10,16,0.4)),
-        url('images/wishlist.png');
+        url('/images/wishlist.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8238,6 +8922,18 @@ body.page-wishlist .wishlist-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
+}
+
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-wishlist .wishlist-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-center linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
 }
 
 .wishlist-hero-content {
@@ -8308,30 +9004,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .wishlist-hero {
         animation: none;
     }
-}
-
-/* Etat vide générique de la page Progression (aucune série commencée) - ex-classes .followed-sets-*
-   (section "Mes sets suivis", jamais utilisée en pratique, retirée le 2026-08-16), renommées
-   génériquement puisque réutilisées ici hors de ce contexte. */
-.progression-empty-state {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    text-align: center;
-}
-
-.progression-empty-state-title {
-    color: var(--text-primary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.progression-empty-state-text {
-    color: var(--slate);
-    font-size: 0.76rem;
-    line-height: 1.4;
 }
 
 @media (max-width: 1199px) and (min-width: 641px) {
@@ -8432,8 +9104,40 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 0.35rem;
 }
 
+/* Style "primary" repris tel quel du bouton de connexion (.login-submit-btn, styles-login.css) :
+   degrade --gold -> --gold-hover, texte blanc, ombre doree - jusqu'ici seul le login avait un vrai
+   bouton d'action principale distinct, tout le reste de l'appli retombait sur le meme style "verre"
+   neutre que n'importe quel bouton secondaire/annuler (button{}, plus haut dans ce fichier). Audit
+   "look premium" du 2026-08-17, etendu (2e passe) au-dela du Dashboard :
+   - .btn-primary : classe generique a poser sur n'importe quel bouton d'action principale d'une page
+     qui n'a pas deja sa propre classe dediee (ex. #search-btn, "Nouvelle liste" sur Wishlist).
+   - .modal-save-btn (base, non scopee) : couvre "Valider"/"Enregistrer"/"Ajouter a ma collection" dans
+     la plupart des modales (wishlist edit, profil, admin, import CSV, quickadd...) - jamais les boutons
+     destructifs, qui utilisent .modal-delete-btn-v2, deja rouge, non touchee ici.
+     #card-detail-card .modal-save-btn (plus haut dans ce fichier, specificite ID) garde son propre
+     traitement verre dedie, deliberement distinct (deja a l'interieur d'un panneau verre) - non
+     modifiee, cette regle plus specifique continue de gagner la cascade. */
+.dashboard-add-btn,
+.dashboard-btn-primary,
+.modal-save-btn,
+.btn-primary {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(232, 169, 59, 0.3);
+}
+
+.dashboard-add-btn:hover,
+.dashboard-btn-primary:hover,
+.modal-save-btn:hover,
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--gold-hover) 0%, #b8956a 100%);
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba(232, 169, 59, 0.4);
+}
+
 .dashboard-add-btn {
-    border-radius: 30px;
+    border-radius: 26px;
     padding: 0.7rem 1.3rem;
     font-size: 0.85rem;
     min-height: 44px;
@@ -8446,26 +9150,23 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     50% { opacity: 1; }
 }
 
-@keyframes dashboard-hero-float {
-    0%, 100% { transform: rotate(-1.8deg) translateY(12px); }
-    50% { transform: rotate(-1.8deg) translateY(8px); }
-}
-
-
 .dashboard-hero {
     position: relative;
-    display: grid;
-    grid-template-columns: 55% 45%;
-    align-items: center;
-    column-gap: 2rem;
-    row-gap: 0.5rem;
+    /* Flex (etait grid 55%/45%) : meme pattern hero que Collection/Statistiques/Progression
+       (.stats-hero-content etc.) - texte a gauche, KPI en bloc compact a droite sur la meme ligne,
+       au lieu de repasser en dessous sur toute la largeur (retour utilisateur 2026-09, "comme sur
+       les autres pages"). */
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
     min-height: 340px;
     padding: 32px;
-    border-radius: 24px;
+    border-radius: 26px;
     overflow: hidden;
     background-image:
         linear-gradient(90deg, rgba(5,8,15,0.94) 0%, rgba(5,8,15,0.84) 24%, rgba(5,8,15,0.42) 43%, rgba(5,8,15,0.08) 62%, transparent 78%),
-        url('images/dashboard.png');
+        url('/images/dashboard.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -8514,6 +9215,19 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         radial-gradient(160% 90% at 55% 100%, rgba(0,0,0,0.04), transparent 50%);
 }
 
+/* Passe premium (2026-09) : lueur doree + grain de points, en plus de la photo existante (pas a sa
+   place - cf decision utilisateur de garder dashboard.png). Le grain est masque vers le coin
+   superieur gauche (zone texte) pour ne jamais passer sur la carte showcase a droite. */
+.dashboard-hero-background::before {
+    background:
+        radial-gradient(115% 140% at 8% -10%, rgba(232,169,59,0.14), transparent 55%),
+        linear-gradient(90deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.09) 26%, rgba(0,0,0,0.04) 42%, transparent 62%),
+        radial-gradient(circle, rgba(232,169,59,0.35) 1px, transparent 1px);
+    background-size: auto, auto, 24px 24px;
+    -webkit-mask-image: radial-gradient(60% 70% at 20% 15%, black, transparent);
+    mask-image: radial-gradient(60% 70% at 20% 15%, black, transparent);
+}
+
 
 /* Poké Ball et étoiles retirées à cette étape (fond uniquement, cf. Sprint Hero - Etape 1) */
 .dashboard-hero-pokeball {
@@ -8532,11 +9246,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* Centre verticalement dans le hero (retour utilisateur 2026-09), independamment des KPI a
+       droite qui restent alignes en bas (align-items:flex-end sur .dashboard-hero, cf plus haut). */
+    align-self: center;
     max-width: 520px;
 }
 
 .dashboard-hero-greeting {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
@@ -8556,16 +9273,19 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-bottom: 0.45rem;
 }
 
+/* Degrade blanc -> parchemin -> or (avant : blanc -> lavande -> violet, hors charte - le plus gros
+   chiffre du site, sur la page la plus visitee, ne devait pas utiliser une couleur absente du reste
+   de l'identite visuelle. cf audit "look premium" du 2026-08-17). */
 .dashboard-hero-value {
     font-size: clamp(3.4rem, 5vw, 4rem);
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.01em;
-    background: linear-gradient(135deg, #ffffff 0%, #f1ecff 55%, #cdbdff 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f7f0de 55%, #e3bc84 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 4px 28px rgba(139,92,246,0.28);
+    text-shadow: 0 4px 28px rgba(232,169,59,0.28);
     width: fit-content;
 }
 
@@ -8594,6 +9314,40 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-top: 0.5rem;
 }
 
+/* Bouton "Reorganiser" (passe personnalisation 2026-09) : place ici plutot que dans
+   .dashboard-header-actions, qui est masque en CSS sur cette page (body.page-dashboard
+   .dashboard-header { display:none !important } - vestige d'une ancienne version du hero, jamais
+   visible). Coin superieur droit du hero, discret, hors du flux du texte/KPI. */
+.dashboard-hero-customize-btn {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.1rem;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    /* padding:0 indispensable : le reset generique "button { padding:0.75rem 1.5rem }" (styles.css)
+       n'est jamais annule par un width explicite sur un <button> - constate en direct, le bouton
+       restait bloque a 50px (= padding 48px + bordure 2px) malgre width:34px. Meme fix que
+       .modal-close, qui a le meme padding:0 pour la meme raison. */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 50%;
+    color: #F7F3EA;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
+}
+
+.dashboard-hero-customize-btn:hover {
+    background: rgba(232,169,59,0.16);
+    border-color: rgba(232,169,59,0.35);
+    color: var(--gold);
+}
+
 .dashboard-btn-primary,
 .dashboard-btn-secondary {
     padding: 0.7rem 1.1rem;
@@ -8615,252 +9369,50 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 /* Navigation (desktop .dashboard-integrated-nav* + mobile .mobile-bottom-nav*) :
    voir components/navigation/navigation.css */
 
-/* ----- Zone droite : scène / showcase ----- */
-
-.dashboard-hero-showcase {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    height: 100%;
-}
-
-.dashboard-hero-card-stage {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: fit-content;
-    height: 100%;
-    min-height: 165px;
-    transform: translateY(12px);
-}
-
-
-/* Décharge électrique multicouche (SVG externe) : glow violet + jaune électrique + cœur blanc, aucune modif du path source */
-
-.dashboard-hero-card-media {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.dashboard-hero-card-img-wrap {
-    position: relative;
-    animation: dashboard-hero-float 6s ease-in-out infinite;
-    transform: rotate(-1.8deg) translateY(12px);
-    filter: drop-shadow(0 28px 45px rgba(0,0,0,0.42)) drop-shadow(0 8px 16px rgba(0,0,0,0.28)) drop-shadow(0 0 24px rgba(255,255,255,0.10));
-}
-
-.dashboard-hero-card-stage:hover .dashboard-hero-card-img-wrap,
-.dashboard-hero-card-img-wrap:hover {
-    animation: none !important;
-    transform: rotate(-1.8deg) translateY(12px) !important;
-    transition: none !important;
-    filter: drop-shadow(0 32px 56px rgba(0,0,0,0.50)) drop-shadow(0 12px 22px rgba(0,0,0,0.35)) drop-shadow(0 0 32px rgba(255,255,255,0.12)) !important;
-}
-
-.dashboard-hero-card-img-clip {
-    position: relative;
-    width: fit-content;
-    border-radius: 29px;
-    overflow: hidden;
-}
-
-.dashboard-hero-card-img {
-    display: block;
-    width: clamp(145px, 12vw, 175px);
-    max-height: 215px;
-    object-fit: contain;
-    border-radius: 12px;
-}
-
-/* Reflet holographique : quasi invisible au repos (hors champ), révélé au survol */
-.dashboard-hero-card-img-clip::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.28) 40%, transparent 55%);
-    transform: translateX(-120%);
-    transition: transform 0.7s ease;
-    pointer-events: none;
-}
-
-
-/* Etat "image absente" : silhouette de carte premium générique, halo/scène conservés */
-.dashboard-hero-card-placeholder {
-    position: relative;
-    z-index: 1;
-    width: clamp(190px, 16vw, 230px);
-    aspect-ratio: 5 / 7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    color: #B7C0D6;
-    font-size: 2.2rem;
-    transform: rotate(-1.8deg);
-}
-
-.dashboard-hero-card-meta {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    gap: 0.35rem;
-    max-width: 220px;
-    margin-left: 1.5rem;
-    transform: translateY(30px);
-    padding: 18px 20px;
-}
-
-.dashboard-hero-card-meta::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(12,18,28,0.66), rgba(12,18,28,0.38));
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    box-shadow: 0 16px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-    z-index: -1;
-}
-
-.dashboard-hero-card-label-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-label {
-    color: rgba(255,255,255,0.72);
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30);
-}
-
-.dashboard-hero-card-next {
-    appearance: none;
-    -webkit-appearance: none;
-    background: rgba(255,255,255,0.12);
-    border: none;
-    outline: none;
-    color: white;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-}
-
-.dashboard-hero-card-next:hover,
-.dashboard-hero-card-next:disabled {
-    background: rgba(255,255,255,0.22);
-}
-
-.dashboard-hero-card-name {
-    color: white;
-    font-weight: 700;
-    font-size: 1.4rem;
-    margin-top: 0.2rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30);
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-set {
-    color: rgba(255,255,255,0.75);
-    font-size: 0.85rem;
-    margin-top: 0.1rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30);
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-value {
-    color: var(--gold);
-    font-weight: 700;
-    font-size: 1.35rem;
-    margin-top: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.30), 0 0 20px rgba(232,169,59,0.25);
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-hero-card-value--empty {
-    color: #B7C0D6;
-    font-weight: 500;
-    font-size: 0.9rem;
-    text-shadow: none;
-}
-
-.dashboard-hero-card-delta {
-    font-size: 0.78rem;
-    font-weight: 600;
-    margin-top: 0.3rem;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.3rem;
-}
-
-.dashboard-hero-empty-text {
-    color: #B7C0D6;
-    font-size: 0.9rem;
-    max-width: 240px;
-    text-align: center;
-}
-
+/* En dessous de 1199px, texte + KPI n'ont plus la place cote a cote (meme seuil de principe que
+   .stats-hero-content/.progression-atlas-hero-content sur les autres pages, ~900px) : on repasse
+   en colonne, KPI en dessous plutot que compresses a droite. */
 @media (max-width: 1199px) and (min-width: 769px) {
     .dashboard-hero {
+        flex-direction: column;
+        align-items: stretch;
         min-height: 340px;
-        grid-template-columns: 52% 48%;
         padding: 32px;
+    }
+
+    .dashboard-hero .dashboard-kpis {
+        width: 100%;
     }
 }
 
 @media (max-width: 768px) and (min-width: 641px) {
     .dashboard-hero {
+        flex-direction: column;
+        align-items: stretch;
         min-height: 340px;
         padding: 32px;
+    }
+
+    /* Colonne unique (etait toujours 4 colonnes ici, juste etirees en largeur) : les autres pages
+       restent en 1 colonne empilee sous ~900px, une rangee de 4 a cette largeur les ecrasait. */
+    .dashboard-hero .dashboard-kpis {
+        grid-template-columns: 1fr;
+        width: 100%;
     }
 }
 
 /* ----- KPI ----- */
 
-/* Déplacés dans le Hero (comme les autres pages) : rangée en pied de Hero, plus un bloc séparé
-   sous la photo. Réutilise .kpi-plaque (PT-001, verre fumé) au lieu de l'ancien .dashboard-kpi-card. */
+/* Rangee unique a droite du hero (retour utilisateur 2026-09, "comme sur les autres pages") : meme
+   principe que .stats-bottom/.progression-atlas-hero-content (texte a gauche, KPI a droite sur la
+   meme ligne), une rangee de 4 plutot qu'un bloc 2x2. Reutilise .kpi-plaque (PT-001, verre fume). */
 .dashboard-hero .dashboard-kpis {
-    grid-column: 1 / -1;
-    align-self: end;
     position: relative;
     z-index: 1;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
     gap: 0.75rem;
-    margin-top: 0;
-}
-
-.dashboard-hero .kpi-plaque {
-    flex: 0 1 210px;
-    min-width: 160px;
+    flex-shrink: 0;
 }
 
 /* ----- Grilles principale / basse ----- */
@@ -8868,9 +9420,33 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-main-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
+    /* start (etait stretch) : Activite recente affiche desormais jusqu'a 6 entrees et peut devenir
+       nettement plus haute qu'Objectif actuel - en stretch, ce dernier s'etirait pour suivre, avec
+       son contenu recentre au milieu d'un grand vide (retour utilisateur 2026-09, "trop grande").
+       Chaque carte garde maintenant sa hauteur naturelle. */
+    align-items: start;
+    /* dense (retour utilisateur 2026-09) : avec 2 sections "large" (span 2 lignes,
+       .dashboard-widget-size-large) et 4 "small" (1 ligne), le flux normal laisserait un vide sous
+       une "large" si l'ordre choisi place les "small" ailleurs. "dense" fait remonter les sections
+       suivantes pour combler tout trou disponible, quel que soit l'ordre reorganise par l'utilisateur -
+       change l'ordre visuel, jamais l'ordre DOM (accessibilite/lecteurs d'ecran inchanges). */
+    grid-auto-flow: dense;
     gap: 1.25rem;
     margin-bottom: 2rem;
+}
+
+/* 2x la hauteur d'une section normale (retour utilisateur 2026-09) : reservee aux sections dont le
+   contenu est structurellement le plus long (cf. DASHBOARD_WIDGET_DEFS, dashboard.js). Combinee a
+   grid-auto-flow:dense ci-dessus, 2 sections "small" consecutives viennent naturellement se loger a
+   cote d'une "large" plutot que de laisser un vide. */
+.dashboard-widget-size-large {
+    grid-row: span 2;
+    /* align-self:stretch (le grid reste align-items:start par defaut) : une "large" doit remplir
+       reellement ses 2 lignes, sinon la carte flotte en haut d'une cellule 2x plus grande que son
+       propre contenu - meme probleme que l'ancien Objectif actuel "trop grand", mais cette fois
+       A L'INTERIEUR de la carte plutot que cause par une autre colonne. Verifie en direct : sans
+       cette regle, Activite recente/Wishlist ne remplissaient que ~400px sur ~590px disponibles. */
+    align-self: stretch;
 }
 
 .dashboard-widget-activity,
@@ -8883,17 +9459,20 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-widget-activity > div:last-child,
 .dashboard-widget-objective > div:last-child,
 .dashboard-widget-tall > div:last-child {
-    flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-.dashboard-widget-objective > div:last-child {
-    justify-content: center;
+/* flex:1 uniquement sur Wishlist (pas Activite/Objectif, qui n'ont pas de "remplisseur" a faire
+   grandir) : laisse #dashboard-wishlist-body absorber l'espace stretch de sa carte "large" pour que
+   .dashboard-wishlist-filler ci-dessous puisse s'y centrer. */
+.dashboard-widget-tall > div:last-child {
+    flex: 1;
 }
 
-.dashboard-widget-tall {
-    grid-row: span 2;
+.dashboard-wishlist-filler {
+    flex: 1;
+    justify-content: center;
 }
 
 .dashboard-widget {
@@ -8945,6 +9524,69 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-bottom: 1rem;
 }
 
+/* ----- Personnalisation (reordonnancement) ----- */
+
+.dashboard-customize-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dashboard-customize-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.dashboard-customize-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.dashboard-customize-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.dashboard-customize-actions button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--slate);
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
+}
+
+.dashboard-customize-actions button:hover:not(:disabled) {
+    background: rgba(232,169,59,0.12);
+    color: var(--gold);
+}
+
+.dashboard-customize-actions button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.dashboard-customize-row--hidden {
+    opacity: 0.5;
+}
+
+.dashboard-customize-row--hidden .dashboard-customize-actions button[aria-label="Afficher"] {
+    color: var(--gold);
+    border-color: rgba(232,169,59,0.35);
+}
+
 .dashboard-widget-header h3 {
     font-size: 1.05rem;
     font-weight: 700;
@@ -8968,7 +9610,16 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* ----- Activite recente ----- */
 
+/* Fil chronologique (passe premium 2026-09, cf mockup) : ligne verticale continue + puce par entree,
+   dans la gouttiere ajoutee a gauche (padding-left) - jamais chevauchee par le fond de survol des
+   lignes (leur marge negative -0.5rem reste bien en-deca de la puce a -0.85rem). */
+.dashboard-activity-timeline {
+    position: relative;
+    padding-left: 0.9rem;
+}
+
 .dashboard-activity-row {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -8976,17 +9627,55 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0.65rem 0.5rem;
     margin: 0 -0.5rem;
     border-radius: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    /* Pas de separateur horizontal (etait border-bottom) : le mockup source espace les entrees par
+       du vide, pas des lignes - la ligne verticale seule porte la continuite. */
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
+}
+
+.dashboard-activity-row::before {
+    content: '';
+    position: absolute;
+    left: -0.28rem;
+    /* Alignee sur la 1ere ligne (nom), pas centree entre nom+sous-titre (etait top:50%) : idem
+       mockup source, .t-row::before est ancree en haut de chaque entree. */
+    top: 1.1rem;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 3px rgba(232,169,59,0.15);
+}
+
+/* Segment par ligne plutot qu'un seul trait sur tout le wrapper (etait .dashboard-activity-timeline
+   ::before, cf commit precedent) : les lignes n'ont pas toutes la meme hauteur (le nom passe sur 2
+   lignes selon la carte), un seul trait avec des insets fixes finissait donc decale de la derniere
+   puce. Chaque ligne dessine son propre tronçon, de SA puce (top:1.1rem) jusqu'a celle de la
+   suivante (bottom:-1.1rem, colle a la ligne d'apres quel que soit sa propre hauteur) - jamais sur la
+   derniere ligne, qui n'a personne a rejoindre. */
+.dashboard-activity-row:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -0.98px;
+    top: 1.1rem;
+    bottom: -1.1rem;
+    width: 1px;
+    background: rgba(255,255,255,0.16);
+}
+
+.dashboard-activity-row--up::before {
+    background: #7ED9A7;
+    box-shadow: 0 0 0 3px rgba(126,217,167,0.15);
+}
+
+.dashboard-activity-row--down::before {
+    background: #FF6B6B;
+    box-shadow: 0 0 0 3px rgba(255,107,107,0.15);
 }
 
 .dashboard-activity-row:hover {
     background: rgba(255,255,255,0.035);
-}
-
-.dashboard-activity-row:last-child {
-    border-bottom: none;
 }
 
 .dashboard-activity-name {
@@ -9017,8 +9706,41 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-objective-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.85rem;
     margin-bottom: 0.6rem;
+}
+
+/* Anneau de progression (progressRingSvg, utils.js) reutilise ici sans le wrapper 60px de
+   .progression-set-logo-wrap (Progression) : dimensionne par ses propres attributs width/height,
+   seule la rotation -90deg (depart a midi) doit etre rappelee explicitement hors de ce contexte.
+   Le wrapper superpose le % au centre (retour utilisateur 2026-09), lu directement dans l'anneau
+   plutot que dans la ligne de texte en dessous (qui ne repete donc plus ce chiffre). */
+.dashboard-objective-ring-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dashboard-objective-ring-wrap .progress-ring {
+    transform: rotate(-90deg);
+}
+
+.dashboard-objective-ring-pct {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    color: #F7F3EA;
+}
+
+.dashboard-objective-row-text {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
 }
 
 .dashboard-objective-logo {
@@ -9060,7 +9782,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin: 0 -0.5rem;
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
 }
 
 .dashboard-mover-row:hover {
@@ -9098,14 +9820,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0.85rem 0.75rem 0.6rem;
     margin: 0 -0.75rem;
     background: rgba(255,255,255,0.02);
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .dashboard-acquisition-card {
     position: relative;
     cursor: pointer;
     text-align: center;
-    transition: transform 0.15s ease;
+    transition: transform var(--motion-duration-fast) ease;
     flex: 0 0 100px;
     width: 100px;
 }
@@ -9141,7 +9863,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     object-fit: cover;
     border-radius: 8px;
     display: block;
-    transition: transform 0.3s ease;
+    transition: transform var(--motion-duration-normal) ease;
 }
 
 .dashboard-acquisition-card:hover img {
@@ -9178,7 +9900,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
 }
 
 .dashboard-todo-row:hover {
@@ -9193,13 +9915,13 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: rgba(63,167,161,0.15);
-    color: var(--teal);
+    background: rgba(232,169,59,0.15);
+    color: var(--gold);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform 0.15s ease;
+    transition: transform var(--motion-duration-fast) ease;
 }
 
 .dashboard-todo-row:hover .dashboard-todo-icon {
@@ -9227,7 +9949,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin: 0 -0.5rem;
     border-radius: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.08);
-    transition: background 0.15s ease;
+    transition: background var(--motion-duration-fast) ease;
+    cursor: pointer;
 }
 
 .dashboard-wishlist-row:hover {
@@ -9243,7 +9966,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 42px;
     height: 58px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 8px;
     flex-shrink: 0;
     box-shadow: 0 4px 10px -6px rgba(0,0,0,0.5);
 }
@@ -9320,6 +10043,27 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     z-index: -1;
 }
 
+/* Variante horizontale compacte pour une bande pleine largeur (ex: "Top hausses" sans donnee) :
+   pas de gros cercle vertical, juste une ligne icone + texte au format d'une rangee normale. */
+.dashboard-widget-empty-inline {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0.55rem 0.5rem;
+}
+
+.dashboard-widget-empty-inline i {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    animation: none;
+}
+
+.dashboard-widget-empty-inline i::after {
+    display: none;
+}
+
 /* ----- Responsive ----- */
 
 @media (max-width: 1024px) {
@@ -9334,15 +10078,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .dashboard-widget-full {
         grid-column: span 2;
     }
-
-    .dashboard-widget-tall {
-        grid-row: auto;
-    }
 }
 
 @media (max-width: 640px) {
     .dashboard-hero {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
         min-height: 0;
         padding: 24px;
         border-radius: 20px;
@@ -9354,56 +10095,11 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         max-width: 100%;
     }
 
-    .dashboard-hero-showcase {
-        flex-direction: column;
-        height: auto;
-        margin-top: 0.5rem;
-    }
-
-    .dashboard-hero-card-stage {
-        height: auto;
-        min-height: 0;
-        transform: none;
-    }
-
-    .dashboard-hero-card-img-wrap {
-        animation: none;
-        transform: none;
-    }
-
-    .dashboard-hero-card-meta {
-        align-items: center;
-        text-align: center;
-        max-width: 100%;
-        margin-left: 0;
-        margin-top: 1rem;
-        padding: 12px 14px;
-        transform: none;
-    }
-
-    .dashboard-hero-card-meta::before {
-        backdrop-filter: none;
-    }
-
-    .dashboard-hero-card-delta {
-        justify-content: center;
-    }
-
+    /* Colonne unique (etait toujours 4 colonnes) : memes seuils que les autres pages, qui restent
+       empilees sous ~900px plutot qu'ecrasees en rangee. */
     .dashboard-hero .dashboard-kpis {
-        flex-direction: column;
-    }
-
-    .dashboard-hero .kpi-plaque {
-        flex: 1 1 100%;
-        min-width: 100%;
-    }
-
-    .dashboard-hero-card-img {
-        width: clamp(180px, 45vw, 200px);
-    }
-
-    .dashboard-hero-card-placeholder {
-        width: clamp(180px, 45vw, 200px);
+        grid-template-columns: 1fr;
+        width: 100%;
     }
 
     .dashboard-hero-pokeball {
@@ -9431,6 +10127,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
     .dashboard-main-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Colonne unique : un span sur 2 lignes n'a plus de sens (rien a caser a cote), ca laisserait
+       juste une 2e ligne vide sous le contenu reel de la section. */
+    .dashboard-widget-size-large {
+        grid-row: auto;
     }
 
     .dashboard-widget-full {
@@ -9461,14 +10163,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .dashboard-hero,
     .dashboard-widget,
     .dashboard-widget-empty-compact i,
-    .dashboard-hero-card-img-wrap,
     .progression-atlas-hero {
         animation: none;
-    }
-
-    .dashboard-hero-card-img-clip::after {
-        transition: none;
-        display: none;
     }
 
     .dashboard-widget:hover,
@@ -9477,7 +10173,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .dashboard-todo-row:hover .dashboard-todo-icon,
     .dashboard-acquisition-card:hover,
     .dashboard-acquisition-card:hover img,
-    .dashboard-hero-card-stage:hover .dashboard-hero-card-img-wrap,
     .dashboard-btn-primary:hover,
     .dashboard-btn-secondary:hover,
     .dashboard-add-btn:hover,
@@ -9512,14 +10207,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex-shrink: 0;
     border-radius: 50%;
     background: rgba(227, 188, 132, 0.1);
-    border: 1px solid rgba(227, 188, 132, 0.3);
+    border: 1px solid rgba(232, 169, 59, 0.3);
     color: var(--gold);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .stx-section-title {
@@ -9546,7 +10241,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 1.5rem;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
@@ -9623,7 +10318,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.5rem;
     font-size: 0.76rem;
     flex: 1;
     min-width: 0;
@@ -9694,7 +10389,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .stx-barlist {
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.75rem;
 }
 
 .stx-composition-grid .stx-barlist {
@@ -9737,14 +10432,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex: 1;
     min-width: 0;
     height: 18px;
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--panel-light);
     overflow: hidden;
 }
 
 #type-barlist .stx-type-fill {
     height: 100%;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 #type-barlist .stx-type-pct {
@@ -9784,14 +10479,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex: 1;
     min-width: 0;
     height: 18px;
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--panel-light);
     overflow: hidden;
 }
 
 #ext-barlist .stx-ext-fill {
     height: 100%;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 #ext-barlist .stx-ext-pct {
@@ -9915,7 +10610,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 1.75rem 1.5rem;
     min-width: 0;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
@@ -9991,10 +10686,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 1.75rem;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
-    transition: transform var(--motion-duration-fast, 150ms) ease, border-color var(--motion-duration-fast, 150ms) ease;
+    transition: transform var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 
 /* Ouvre la fiche carte (comme dans Collection) partout où une carte possédée est référencée
@@ -10217,7 +10912,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 0.9rem 1rem;
     text-align: center;
     opacity: 0.68;
@@ -10471,7 +11166,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .changelog-change--fixed .changelog-change-badge,
 .changelog-change--fix .changelog-change-badge {
     color: var(--gold);
-    border-color: rgba(227, 188, 132, 0.35);
+    border-color: rgba(232, 169, 59, 0.35);
     background: rgba(227, 188, 132, 0.1);
 }
 
@@ -10510,20 +11205,20 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 100%;
     margin-top: 1.25rem;
     padding: 0.7rem 1rem;
-    border-radius: 12px;
-    border: 1px solid rgba(227, 188, 132, 0.35);
+    border-radius: 14px;
+    border: 1px solid rgba(232, 169, 59, 0.35);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 45%),
         rgba(227, 188, 132, 0.12);
     color: #F4F1EB;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease;
 }
 
 .changelog-popup-confirm:hover {
-    border-color: rgba(227, 188, 132, 0.6);
-    box-shadow: 0 0 14px rgba(227, 188, 132, 0.15);
+    border-color: rgba(232, 169, 59, 0.6);
+    box-shadow: 0 0 14px rgba(232, 169, 59, 0.15);
     transform: translateY(-1px);
 }
 
@@ -10564,7 +11259,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 @media (max-width: 768px) {
     .collection-card {
         box-shadow: 0 8px 16px -6px rgba(0,0,0,0.6);
-        transition: transform 180ms ease-out, border-color 180ms ease-out;
+        transition: transform var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
     }
 
     .collection-card:hover {
@@ -10574,4 +11269,61 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .collection-card::after {
         display: none;
     }
+}
+
+/* ===================== PWA : BANNIERE MAJ + BOUTON INSTALLER (audit 2026-08-18) ===================== */
+
+/* Bandeau "nouvelle version disponible" (modules/pwa.js) : masque par defaut, .visible ajoutee au
+   premier service worker en attente. env(safe-area-inset-top) : meme pattern que .progression-set-sticky-bar
+   plus haut dans ce fichier, pour ne jamais chevaucher la barre de statut iOS en mode PWA installee. */
+.sw-update-banner {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    padding-top: calc(0.65rem + env(safe-area-inset-top, 0px));
+    background: #16120f;
+    border-bottom: 1px solid rgba(232, 169, 59, 0.25);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.sw-update-banner.visible {
+    display: flex;
+}
+
+#sw-update-reload-btn {
+    background: var(--gold);
+    color: var(--ink-navy);
+    border: none;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#sw-update-reload-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Entree "Installer l'app" (menu Plus mobile / menu profil desktop) : masquee par defaut, revelee
+   uniquement quand beforeinstallprompt s'est declenche (modules/pwa.js ajoute .pwa-installable sur
+   body) - jamais sur Safari/iOS, ou cette API n'existe pas. display:flex (pas block) : identique a
+   .mobile-more-panel-item/.profile-menu-item au repos (styles.css, plus haut), pour ne pas desaligner
+   l'icone du libelle une fois revele. */
+.pwa-install-item {
+    display: none;
+}
+
+body.pwa-installable .pwa-install-item {
+    display: flex;
 }

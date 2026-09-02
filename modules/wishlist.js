@@ -42,6 +42,15 @@ window.WISHLIST_RELOAD_STALE_MS = 15000;
 // a jour, seul l'appel automatique de renderTab decide de sauter ou non un chargement.
 window.wishlistLastLoadedAt = 0;
 
+// Signature du dernier contenu reellement rendu (JSON des donnees qui pilotent renderWishlistsUI) :
+// permet de sauter completement le rebuild+fondu quand une revisite d'onglet (apres expiration de
+// WISHLIST_RELOAD_STALE_MS) refetch des donnees strictement identiques - le cas le plus courant en
+// pratique (rien n'a change entre deux visites rapprochees). Le clignotement signale par l'utilisateur
+// (iPhone) persistait meme apres retrait du backdrop-filter et de l'auto-depliage : plutot que de
+// continuer a deviner quelle propriete CSS pose probleme, on evite ici de reconstruire le DOM du tout
+// quand ce n'est pas necessaire - zero rebuild = zero repaint possible, quelle qu'en soit la cause.
+let wishlistLastRenderedSignature = null;
+
 async function loadWishlists() {
     const [wishlistsRes, itemsRes] = await Promise.all([
         supabaseClient.from('wishlists').select('*').order('created_at', { ascending: true }),
@@ -60,7 +69,13 @@ async function loadWishlists() {
     }
 
     await loadWishlistPrices();
-    renderWishlistsUI();
+
+    const signature = JSON.stringify({ w: allWishlists, i: allWishlistItems, p: wishlistPriceMap, e: [...expandedWishlistIds] });
+    if (signature !== wishlistLastRenderedSignature) {
+        wishlistLastRenderedSignature = signature;
+        renderWishlistsUI();
+    }
+
     markDashboardDirty();
     window.wishlistLastLoadedAt = Date.now();
 }
@@ -382,7 +397,7 @@ function renderWishlistsUI() {
                         }
                         ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Obtenue</div>' : ''}
                         ${signal ? `<div class="price-signal-badge price-signal-${signal.type}" title="${escapeHtml(signal.wording)}"><i class="ti ti-arrow-${signal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i></div>` : ''}
-                        ${price > 0 ? `<div class="price-badge">${price.toFixed(2)}€</div>` : ''}
+                        ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
                             <div class="collection-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(item.series)} · #${escapeHtml(item.number)}</div>
@@ -399,7 +414,7 @@ function renderWishlistsUI() {
                     <div class="wishlist-list-card-title">
                         <span class="wishlist-list-name">${escapeHtml(list.name)}</span>
                         <span class="wishlist-count-badge">${allItemsInList.length} cartes</span>
-                        ${listValue > 0 ? `<span class="wishlist-list-value">${listValue.toFixed(2)}€</span>` : ''}
+                        ${listValue > 0 ? `<span class="wishlist-list-value">${formatPrice(listValue)}</span>` : ''}
                     </div>
                     <div class="wishlist-list-card-actions">
                         <button onclick="event.stopPropagation(); renameWishlist(${list.id})" title="Renommer"><i class="ti ti-edit" aria-hidden="true"></i></button>
@@ -414,16 +429,16 @@ function renderWishlistsUI() {
                         ? (query
                             ? '<p class="empty-state">Aucune carte ne correspond à ta recherche</p>'
                             : `
-                                <div class="wishlist-empty-state">
-                                    <svg class="wishlist-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                                <div class="app-empty-state">
+                                    <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
                                         <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
                                         <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-width="3"/>
                                         <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="3"/>
                                         <circle cx="50" cy="50" r="4" fill="currentColor"/>
                                     </svg>
-                                    <div class="wishlist-empty-title">Cette liste est vide</div>
-                                    <p class="wishlist-empty-text">Ajoutez les cartes que vous recherchez pour commencer cette liste.</p>
-                                    <button class="filter-toggle-btn wishlist-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
+                                    <div class="app-empty-title">Cette liste est vide</div>
+                                    <p class="app-empty-text">Ajoutez les cartes que vous recherchez pour commencer cette liste.</p>
+                                    <button class="filter-toggle-btn app-empty-cta" onclick="navigateToTab('tab-add')"><i class="ti ti-plus" aria-hidden="true"></i> Ajouter une carte</button>
                                 </div>
                             `)
                         : `<div class="wishlist-thumb-grid">${thumbsHtml}</div>`
@@ -437,13 +452,20 @@ function renderWishlistsUI() {
     playWishlistContainerFadeIn(container);
 }
 
-// Adoucit le pop du tout premier chargement (fetch reseau + reconstruction complete du innerHTML,
-// cf WISHLIST_RELOAD_STALE_MS plus haut - les visites suivantes reutilisent le DOM existant et ne
-// repassent jamais ici) : reutilise tab-content-fade-in (styles.css), meme duree/easing que le reste
-// du site. Reset explicite de l'animation avant de la relancer (animation:none + reflow forcee via
-// offsetWidth) car reappliquer la meme valeur de propriete animation ne relance pas une animation deja
-// terminee - necessaire ici puisque #wishlists-container est le meme noeud DOM a chaque appel, jamais
-// recree contrairement au contenu qu'il contient.
+// Adoucit le pop de chaque reconstruction complete du innerHTML (fetch reseau, cf
+// WISHLIST_RELOAD_STALE_MS plus haut) : reutilise tab-content-fade-in (styles.css), meme duree/easing
+// que le reste du site. Reset explicite de l'animation avant de la relancer (animation:none + reflow
+// forcee via offsetWidth) car reappliquer la meme valeur de propriete animation ne relance pas une
+// animation deja terminee - necessaire ici puisque #wishlists-container est le meme noeud DOM a chaque
+// appel, jamais recree contrairement au contenu qu'il contient.
+//
+// Tentative du 2026-08-18 de ne jouer ce fondu qu'une fois par session (wishlistFirstFadeDone) : revert
+// immediat, le scintillement rapporte par l'utilisateur etait en fait PIRE sans fondu (le swap instantane
+// du innerHTML, plus le temps de chargement reseau des images, devenait plus brutal/visible que le
+// fondu qui l'attenuait auparavant) - la cause reelle n'est donc pas le fondu lui-meme. A investiguer :
+// probablement les <img> recreees a chaque rebuild qui repartent de zero (pas de cache navigateur chaud
+// apres un moment sans visite), pas l'animation. wishlistFirstFadeDone laisse en place mais inutilise
+// pour l'instant (aucune raison de le retirer avant la vraie cause identifiee).
 function playWishlistContainerFadeIn(container) {
     container.style.animation = 'none';
     void container.offsetWidth;
@@ -516,9 +538,9 @@ function updateWishlistKpis() {
     const topPrice = topItem ? (wishlistPriceMap[topItem.tcgdex_id] || 0) : 0;
 
     countEl.textContent = allWishlistItems.length;
-    valueEl.textContent = totalValue.toFixed(2) + '€';
+    valueEl.textContent = formatPrice(totalValue);
     listsEl.textContent = allWishlists.length;
-    topPriceEl.textContent = topPrice.toFixed(2) + '€';
+    topPriceEl.textContent = formatPrice(topPrice);
 
     if (topItem && topPrice > 0) {
         topNameEl.textContent = topItem.name;

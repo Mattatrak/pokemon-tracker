@@ -7,29 +7,36 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#161B29">
+    <meta name="theme-color" content="#121214">
 
     <!-- iOS (installation via le menu Partager de Safari) -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Poké Tracker">
     <link rel="apple-touch-icon" href="images/icon-180.png">
-    <link rel="icon" type="image/png" href="images/balle.png ">
+    <link rel="icon" type="image/png" href="images/balle.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.min.css">
-    <link rel="stylesheet" href="styles.css?v=20260816-39">
-    <link rel="stylesheet" href="css/layout-tokens.css?v=20260811-4">
-    <link rel="stylesheet" href="css/motion-tokens.css?v=20260805-1">
-    <link rel="stylesheet" href="css/motion-components.css?v=20260805-1">
-    <link rel="stylesheet" href="components/navigation/navigation.css?v=20260817-1">
-    <link rel="stylesheet" href="css/binder.css?v=20260814-1">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/layout-tokens.css">
+    <link rel="stylesheet" href="css/motion-tokens.css">
+    <link rel="stylesheet" href="css/motion-components.css">
+    <link rel="stylesheet" href="components/navigation/navigation.css">
+    <link rel="stylesheet" href="css/binder.css">
 </head>
 <body>
+    <!-- Banniere "nouvelle version disponible" (audit PWA 2026-08-18, modules/pwa.js) : masquee par
+         defaut, affichee uniquement quand un nouveau service worker reste en attente au lieu de
+         prendre la main silencieusement (self.skipWaiting() retire de sw.js). -->
+    <div id="sw-update-banner" class="sw-update-banner" aria-hidden="true">
+        <span>Nouvelle version disponible.</span>
+        <button type="button" id="sw-update-reload-btn">Recharger</button>
+    </div>
     <!-- Navbar desktop globale et persistante (NAV1, cf audit navbar du 2026-08-16) : un seul DOM,
          hors de .container/des heroes/des tab-content, jamais recréé au changement d'onglet - seul
          updateDesktopNavigation (components/navigation/DesktopNavbar.js) y touche ensuite. Masquée en
@@ -192,11 +199,21 @@
 
         <div id="message-container" class="global-message-container"></div>
 
+        <!-- Indicateur pull-to-refresh (mobile, Dashboard/Collection uniquement, modules/pull-to-refresh.js) -->
+        <div id="ptr-indicator" class="ptr-indicator" aria-hidden="true"><i class="ti ti-refresh" aria-hidden="true"></i></div>
+
         <!-- ONGLET DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="dashboard-header" id="dashboard-header"></div>
             <div class="dashboard-hero" id="dashboard-hero"></div>
-            <div class="dashboard-main-grid" id="dashboard-main-grid"></div>
+            <div class="dashboard-main-grid" id="dashboard-main-grid">
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+                <div class="skeleton skeleton-widget"></div>
+            </div>
         </div>
 
         <!-- ONGLET AJOUTER -->
@@ -213,7 +230,7 @@
                                 <i class="ti ti-search" aria-hidden="true"></i>
                                 <input type="text" id="card-search" placeholder="Nom, série, numéro ou illustrateur...">
                             </div>
-                            <button onclick="searchCards()" id="search-btn"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
+                            <button onclick="searchCards()" id="search-btn" class="btn-primary"><i class="ti ti-search" aria-hidden="true"></i> Rechercher</button>
                         </div>
                     </div>
                 </div>
@@ -276,8 +293,9 @@
                                 </div>
 
                                 <div class="preview-details">
+                                    <div class="preview-heading" id="preview-name">-</div>
+
                                     <div class="preview-breadcrumb" id="preview-set">
-                                        <img id="preview-series-logo" src="" alt="" class="preview-breadcrumb-logo" style="display:none;">
                                         <div class="preview-breadcrumb-text">
                                             <span id="preview-set-text">-</span>
                                             <span class="preview-breadcrumb-number" id="preview-number">-</span>
@@ -287,7 +305,6 @@
                                         </button>
                                     </div>
 
-                                    <div class="preview-heading" id="preview-name">-</div>
                                     <div class="preview-rarity-badge" id="preview-rarity-badge"></div>
 
                                     <div class="preview-details-card">
@@ -402,6 +419,16 @@
                                   </div>
                                 </div>
                             </div>
+
+                            <!-- Cartes liées (set/illustrateur de la carte sélectionnée), modules/cards.js -->
+                            <div class="related-cards-block" id="related-cards-block" style="display:none;">
+                                <div class="related-cards-tabs">
+                                    <button type="button" class="related-cards-tab active" data-mode="set" onclick="setRelatedCardsMode('set')">Même set</button>
+                                    <button type="button" class="related-cards-tab" data-mode="illustrator" onclick="setRelatedCardsMode('illustrator')">Même illustrateur</button>
+                                </div>
+                                <div class="related-cards-title" id="related-cards-title"></div>
+                                <div class="related-cards-list" id="related-cards-list"></div>
+                            </div>
                         </div>
                       </div>
                     </aside>
@@ -464,7 +491,18 @@
             </div>
 
             <div class="collection-display-case" id="collection-grid-wrapper">
-                <div class="collection-grid" id="collection-grid"></div>
+                <!-- Silhouette de chargement initial (remplacée par renderCollectionGrid dès que
+                     allCollectionCards est prêt) -->
+                <div class="collection-grid" id="collection-grid">
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                </div>
             </div>
 
             <div id="collection-binder-wrapper" style="display: none;"></div>
@@ -533,12 +571,44 @@
         <div id="tab-progression" class="tab-content">
             <div id="progression-series-view">
                 <div id="progression-priority-goals"></div>
+                <!-- Silhouette de chargement initial (remplacée par loadSeriesProgress dès que
+                     allCollectionCards/allTcgdexSeries sont prêts) -->
                 <div id="progression-series-list">
-                    <p style="text-align: center; padding: 2rem; color: var(--slate);">Chargement des séries...</p>
+                    <div class="skeleton-row">
+                        <div class="skeleton" style="width:44px; height:44px; border-radius:8px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:35%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:11px; width:55%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-row">
+                        <div class="skeleton" style="width:44px; height:44px; border-radius:8px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:40%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:11px; width:50%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-row">
+                        <div class="skeleton" style="width:44px; height:44px; border-radius:8px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:30%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:11px; width:60%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div id="progression-set-view" style="display: none;">
+                <!-- Repere de contexte (nom du set + progression) qui apparait une fois que
+                     .progression-set-title-row a defile hors champ - utile sur un set dense (200+
+                     cartes) ou on perd de vue le nom/pourcentage en scrollant. Observe via
+                     IntersectionObserver (setupProgressionStickyBar, progression.js), jamais un
+                     scroll listener - pas de recalcul a chaque frame. -->
+                <div id="progression-set-sticky-bar" class="progression-set-sticky-bar" aria-hidden="true">
+                    <img id="progression-sticky-logo" src="" alt="" style="display:none;">
+                    <span id="progression-sticky-title"></span>
+                    <span id="progression-sticky-progress"></span>
+                </div>
                 <button class="back-btn" onclick="backToSeriesProgress()">← Retour aux séries</button>
                 <div class="progression-set-title-row">
                     <img id="progression-set-logo" src="" alt="" style="display:none;">
@@ -917,7 +987,7 @@
                             <option value="name-asc">Nom (A→Z)</option>
                             <option value="price-desc">Prix (plus cher d'abord)</option>
                         </select>
-                        <button class="filter-toggle-btn" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+                        <button class="filter-toggle-btn btn-primary" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
                     </div>
                 </div>
                 <div id="wishlists-container">
@@ -933,7 +1003,7 @@
              "utilitaire" sans photo, gardées cohérentes entre elles en les faisant évoluer ensemble.
              Texte générique volontairement (pas le pseudo du profil visité : le nom réel reste affiché
              juste en dessous dans #user-profile-content, pas de duplication). Image à fournir
-             (images/collectors.png, réutilisée pour les deux pages - fallback dégradé uni tant qu'elle
+             (images/collectors.webp, réutilisée pour les deux pages - fallback dégradé uni tant qu'elle
              n'existe pas, cf .collectors-hero). Navbar desktop globale (NAV1) : plus de container dédié
              par page, cette page affiche désormais la même nav persistante que toutes les autres. Le
              bouton "Retour à PokéTracker" retiré : redondant désormais avec le lien Accueil de la nav
@@ -1070,6 +1140,11 @@
         <div class="modal-card" id="quickadd-settings-content" style="max-width: 420px;"></div>
     </div>
 
+    <!-- MODALE REORGANISATION DES SECTIONS (Dashboard) -->
+    <div class="modal-overlay" id="dashboard-customize-overlay" onclick="if(event.target===this) closeDashboardCustomizeModal()">
+        <div class="modal-card" id="dashboard-customize-content" style="max-width: 420px;"></div>
+    </div>
+
     <!-- MODALE TOP VARIATIONS % (24H) -->
     <div class="modal-overlay" id="top-movers-overlay" onclick="if(event.target===this) closeTopMoversModal()">
         <div class="modal-card" id="top-movers-content" style="max-width: 420px;"></div>
@@ -1103,50 +1178,50 @@
     <!-- NAVIGATION MOBILE (Bottom Navigation, <=768px) -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav-container"></nav>
 
+    <!-- Chart.js/Flatpickr/Papaparse retires d'ici (audit bundle 2026-09-01) : charges a la demande
+         via ensureChartLoaded/ensureFlatpickrLoaded/ensurePapaLoaded (modules/utils.js), seulement
+         quand la fonctionnalite qui en depend est reellement utilisee (graphique de prix, selecteur
+         de date, import CSV) - ~92 Ko en moins sur chaque page qui ne les declenche pas. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.6.0/papaparse.min.js"></script>
     <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" crossorigin="anonymous"></script>
-    <script type="module" src="modules/error-tracking.js?v=20260813-2"></script>
-    <script type="module" src="data/changelog.js?v=20260812-7"></script>
-    <script type="module" src="modules/utils.js?v=20260805-1"></script>
-    <script type="module" src="components/navigation/DesktopNavbar.js?v=20260816-2"></script>
-    <script type="module" src="components/navigation/MobileBottomNavigation.js?v=20260811-1"></script>
-    <script type="module" src="modules/storage.js?v=20260805-1"></script>
-    <script type="module" src="modules/favorites.js?v=20260805-1"></script>
-    <script type="module" src="modules/cards.js?v=20260812-7"></script>
-    <script type="module" src="modules/stats.js?v=20260812-7"></script>
-    <script type="module" src="modules/view-transitions.js?v=20260815-1"></script>
-    <script type="module" src="modules/card-grid-renderer.js?v=20260814-1"></script>
-    <script type="module" src="modules/collection.js?v=20260812-8"></script>
-    <script type="module" src="modules/binder-view.js?v=20260814-1"></script>
-    <script type="module" src="modules/collection-recap.js?v=20260814-1"></script>
-    <script type="module" src="modules/import-export.js?v=20260812-7"></script>
-    <script type="module" src="modules/card-detail.js?v=20260805-1"></script>
-    <script type="module" src="modules/ui.js?v=20260812-7"></script>
-    <script type="module" src="modules/wishlist.js?v=20260817-3"></script>
-    <script type="module" src="modules/wishlist-detail.js?v=20260805-1"></script>
-    <script type="module" src="modules/stats-render.js?v=20260805-1"></script>
-    <script type="module" src="modules/progression.js?v=20260816-2"></script>
-    <script type="module" src="modules/dashboard.js?v=20260816-2"></script>
-    <script type="module" src="modules/profile.js?v=20260812-7"></script>
-    <script type="module" src="modules/collector-match.js?v=20260809-1"></script>
-    <script type="module" src="modules/public-profile.js?v=20260812-2"></script>
-    <script type="module" src="modules/collectors.js?v=20260805-1"></script>
-    <script type="module" src="modules/admin.js?v=20260812-8"></script>
-    <script type="module" src="modules/changelog.js?v=20260812-7"></script>
-    <script type="module" src="tracker.js?v=20260817-3"></script>
-    <script type="module" src="modules/auth.js?v=20260811-1"></script>
+    <script type="module" src="modules/error-tracking.js"></script>
+    <script type="module" src="data/changelog.js"></script>
+    <script type="module" src="modules/utils.js"></script>
+    <script type="module" src="components/navigation/DesktopNavbar.js"></script>
+    <script type="module" src="components/navigation/MobileBottomNavigation.js"></script>
+    <script type="module" src="modules/storage.js"></script>
+    <script type="module" src="modules/favorites.js"></script>
+    <script type="module" src="modules/cards.js"></script>
+    <script type="module" src="modules/stats.js"></script>
+    <script type="module" src="modules/view-transitions.js"></script>
+    <script type="module" src="modules/card-grid-renderer.js"></script>
+    <script type="module" src="modules/collection.js"></script>
+    <script type="module" src="modules/binder-view.js"></script>
+    <script type="module" src="modules/collection-recap.js"></script>
+    <script type="module" src="modules/import-export.js"></script>
+    <script type="module" src="modules/card-detail.js"></script>
+    <script type="module" src="modules/ui.js"></script>
+    <script type="module" src="modules/wishlist.js"></script>
+    <script type="module" src="modules/wishlist-detail.js"></script>
+    <script type="module" src="modules/stats-render.js"></script>
+    <script type="module" src="modules/progression.js"></script>
+    <script type="module" src="modules/dashboard.js"></script>
+    <script type="module" src="modules/profile.js"></script>
+    <script type="module" src="modules/collector-match.js"></script>
+    <script type="module" src="modules/public-profile.js"></script>
+    <script type="module" src="modules/collectors.js"></script>
+    <script type="module" src="modules/admin.js"></script>
+    <script type="module" src="modules/changelog.js"></script>
+    <script type="module" src="modules/pwa.js"></script>
+    <script type="module" src="tracker.js"></script>
+    <script type="module" src="modules/pull-to-refresh.js"></script>
+    <script type="module" src="modules/auth.js"></script>
     <script type="module">
         // import.meta.env.PROD (ticket V5 Vite) : jamais enregistré sous `vite dev`, pour ne pas mettre
         // en cache les fichiers du serveur de dev et fausser le débogage — uniquement sur un build
         // (`vite preview`) ou en production. Comportement de production inchangé.
         if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.error('Erreur Service Worker:', err));
-            });
+            window.addEventListener('load', registerServiceWorker);
         }
     </script>
 </body>

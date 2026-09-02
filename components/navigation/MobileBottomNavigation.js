@@ -67,6 +67,7 @@ function renderMobileMorePanel() {
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-collectors');"><i class="ti ti-users" aria-hidden="true"></i> Collectionneurs</button>
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); openProfileModal();"><i class="ti ti-user-circle" aria-hidden="true"></i> Mon profil</button>
             <button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-changelog');"><i class="ti ti-sparkles" aria-hidden="true"></i> Nouveautés</button>
+            <button type="button" class="mobile-more-panel-item pwa-install-item" role="menuitem" onclick="closeMobileMorePanel(); triggerPwaInstall();"><i class="ti ti-download" aria-hidden="true"></i> Installer l'app</button>
             ${typeof currentUserIsAdmin !== 'undefined' && currentUserIsAdmin ? `<button type="button" class="mobile-more-panel-item" role="menuitem" onclick="closeMobileMorePanel(); navigateToTab('tab-admin');"><i class="ti ti-shield-lock" aria-hidden="true"></i> Administration</button>` : ''}
             <button type="button" class="mobile-more-panel-item mobile-more-panel-item-danger" role="menuitem" onclick="closeMobileMorePanel(); handleLogout();"><i class="ti ti-logout" aria-hidden="true"></i> Se déconnecter</button>
         </div>

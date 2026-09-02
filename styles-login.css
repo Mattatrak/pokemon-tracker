@@ -9,7 +9,7 @@
 .login-background {
     position: fixed;
     inset: 0;
-    background-image: url('images/login/background.png');
+    background-image: url('/images/login/background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -34,11 +34,11 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    border-radius: 24px;
+    border-radius: 26px;
     padding: 2.5rem;
     max-width: 420px;
     width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 14px rgba(227, 188, 132, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 14px rgba(232, 169, 59, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     position: relative;
 }
 
@@ -155,12 +155,12 @@
     width: 100%;
     padding: 1rem 1rem 1rem 3rem;
     border: 2px solid #232B42;
-    border-radius: 12px;
+    border-radius: 14px;
     font-size: 1rem;
     font-family: inherit;
     background: #1B2233;
     color: #EDEFF5;
-    transition: all 0.2s ease;
+    transition: all var(--motion-duration-fast) ease;
 }
 
 .form-field input::placeholder {
@@ -171,7 +171,7 @@
     outline: none;
     border-color: #e3bc84;
     background: #232B42;
-    box-shadow: 0 0 0 3px rgba(227, 188, 132,0.2);
+    box-shadow: 0 0 0 3px rgba(232, 169, 59,0.2);
 }
 
 .form-footer {
@@ -207,7 +207,7 @@
     color: #e3bc84;
     font-size: 0.85rem;
     text-decoration: none;
-    transition: color 0.2s ease;
+    transition: color var(--motion-duration-fast) ease;
     white-space: nowrap;
 }
 
@@ -249,7 +249,7 @@
     color: white;
     border: none;
     padding: 1rem;
-    border-radius: 12px;
+    border-radius: 14px;
     font-size: 1.05rem;
     font-weight: 600;
     cursor: pointer;
@@ -257,14 +257,14 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(227, 188, 132,0.3);
+    transition: all var(--motion-duration-normal) ease;
+    box-shadow: 0 4px 12px rgba(232, 169, 59,0.3);
     margin-top: 0.5rem;
 }
 
 .login-submit-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(227, 188, 132,0.4);
+    box-shadow: 0 6px 20px rgba(232, 169, 59,0.4);
     background: linear-gradient(135deg, #cba672 0%, #b8956a 100%);
 }
 
@@ -281,7 +281,7 @@
     color: #e3bc84;
     text-decoration: none;
     font-size: 0.9rem;
-    transition: color 0.2s ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .login-link:hover {
@@ -332,7 +332,7 @@
     gap: 0.5rem;
     margin-top: 1rem;
     padding-top: 0.5rem;
-    border-top: 1px solid rgba(227, 188, 132,0.2);
+    border-top: 1px solid rgba(232, 169, 59,0.2);
     color: #8A93A6;
     font-size: 0.9rem;
 }
@@ -347,7 +347,7 @@
     color: #e3bc84;
     text-decoration: none;
     font-weight: 600;
-    transition: color 0.2s ease;
+    transition: color var(--motion-duration-fast) ease;
 }
 
 .signup-link:hover {
@@ -384,7 +384,7 @@
 
     .login-card {
         padding: 1.5rem;
-        border-radius: 16px;
+        border-radius: 14px;
     }
 
     .login-pokeball-top {

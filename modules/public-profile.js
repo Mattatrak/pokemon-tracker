@@ -339,7 +339,7 @@ function renderPublicProfileShell(container, profile) {
                     <div class="user-profile-stat-label">Cartes</div>
                 </div>
                 <div class="user-profile-stat">
-                    <div class="user-profile-stat-value">${profile.collectionValue.toFixed(2)} €</div>
+                    <div class="user-profile-stat-value">${formatPrice(profile.collectionValue)}</div>
                     <div class="user-profile-stat-label">Valeur collection</div>
                 </div>
             ` : ''}
@@ -390,7 +390,7 @@ function renderPublicProfileShell(container, profile) {
                 <div class="catalogue-toolbar">
                     <div class="input-with-icon">
                         <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="filterPublicCollectionAndDisplay()">
+                        <input type="text" id="public-collection-search" placeholder="Rechercher..." oninput="debouncedFilterPublicCollectionAndDisplay()">
                     </div>
                     <div class="catalogue-toolbar-actions">
                         <select id="public-collection-series-filter" onchange="filterPublicCollectionAndDisplay()">
@@ -533,6 +533,20 @@ function filterPublicCollectionAndDisplay() {
     renderPublicCollectionGrid();
 }
 
+// Wrapper stable (une seule instance debounce(), pas recréée à chaque frappe - sinon plus de mémoire du
+// timeoutId précédent, le debounce ne servirait à rien). Initialisation paresseuse au premier appel
+// plutôt qu'un `debounce(...)` direct au chargement du module : debounce() vient de utils.js (autre
+// script), et résoudre un nom cross-module au chargement (pas à l'appel) a déjà causé un ReferenceError
+// en prod par le passé (chunking Vite non déterministe, cf commit dd1ae64/applySearchFilters) - même
+// précaution ici.
+let _debouncedFilterPublicCollectionAndDisplay = null;
+function debouncedFilterPublicCollectionAndDisplay() {
+    if (!_debouncedFilterPublicCollectionAndDisplay) {
+        _debouncedFilterPublicCollectionAndDisplay = debounce(filterPublicCollectionAndDisplay, 250);
+    }
+    _debouncedFilterPublicCollectionAndDisplay();
+}
+
 function loadMorePublicCollectionCards() {
     publicCollectionDisplayLimit += PUBLIC_COLLECTION_PAGE_SIZE;
     renderPublicCollectionGrid();
@@ -650,6 +664,7 @@ function renderPublicCardDetail(cardId) {
     // cardmarket_id désormais exposé par get_cards_public (2026-08-09) : lien produit exact quand
     // disponible, repli recherche par nom sinon — même fonction que la fiche propriétaire.
     const cardmarketUrl = getCardmarketUrl(card.cardmarket_id, card.name);
+    const seriesLogoUrl = card.series_logo || getSeriesLogoUrl(card.tcgdex_id);
 
     // "Ajouter à ma wishlist" : jamais sur mon propre profil public (comparaison avec soi-même n'a pas
     // de sens, cf. isSelf plus haut dans loadPublicProfile), jamais si déjà présente dans MA wishlist
@@ -667,10 +682,13 @@ function renderPublicCardDetail(cardId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
-                    ${card.image
-                        ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                        : getGridNoImageHtml()
-                    }
+                    <div class="modal-image-frame">
+                        ${card.image
+                            ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                            : getGridNoImageHtml()
+                        }
+                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                    </div>
                 </div>
             </div>
             <div class="modal-info">
@@ -678,7 +696,6 @@ function renderPublicCardDetail(cardId) {
                     <div class="modal-title-row">
                         <div class="modal-title">${escapeHtml(card.name)}</div>
                     </div>
-                    ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-logo" alt="" onerror="this.remove()">` : ''}
                     <div class="modal-subtitle">${escapeHtml(card.series)} · #${card.number}</div>
 
                     <div class="modal-badges">
@@ -690,9 +707,9 @@ function renderPublicCardDetail(cardId) {
                     <div class="modal-value-block">
                         <div class="modal-value-label">Valeur estimée</div>
                         <div class="modal-value-row">
-                            <span class="modal-price">${marketValue.toFixed(2).replace('.', ',')}€</span>
+                            <span class="modal-price">${formatPrice(marketValue)}</span>
                         </div>
-                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${lineTotal.toFixed(2).replace('.', ',')}€ (×${qty})</div>` : ''}
+                        ${qty > 1 ? `<div class="modal-price-total">Valeur totale : ${formatPrice(lineTotal)} (×${qty})</div>` : ''}
                     </div>
 
                     <div class="modal-meta-actions-row">
@@ -807,7 +824,7 @@ function renderPublicWishlistLists() {
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
-                        ${price > 0 ? `<div class="price-badge">${price.toFixed(2)}€</div>` : ''}
+                        ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
                             <div class="collection-card-set">${escapeHtml(item.series || '')}</div>
@@ -824,7 +841,7 @@ function renderPublicWishlistLists() {
                     <div class="wishlist-list-card-title">
                         <span class="wishlist-list-name">${escapeHtml(list.name)}</span>
                         <span class="wishlist-count-badge">${items.length} carte${items.length > 1 ? 's' : ''}</span>
-                        ${listValue > 0 ? `<span class="wishlist-list-value">${listValue.toFixed(2)}€</span>` : ''}
+                        ${listValue > 0 ? `<span class="wishlist-list-value">${formatPrice(listValue)}</span>` : ''}
                     </div>
                     <div class="wishlist-list-card-actions">
                         <i class="ti ti-chevron-right wishlist-chevron ${isExpanded ? 'expanded' : ''}" aria-hidden="true"></i>
@@ -860,6 +877,7 @@ function showPublicWishlistItemDetail(itemId) {
     // cardmarket_id désormais exposé par get_wishlist_items_public (2026-08-09) : lien produit exact
     // quand disponible, repli recherche par nom sinon.
     const cardmarketUrl = getCardmarketUrl(item.cardmarket_id, item.name);
+    const seriesLogoUrl = item.series_logo || getSeriesLogoUrl(item.tcgdex_id);
 
     const modalCard = document.getElementById('public-card-detail-card');
     if (!modalCard) return;
@@ -870,10 +888,13 @@ function showPublicWishlistItemDetail(itemId) {
         <div class="modal-body">
             <div class="modal-image-wrap">
                 <div class="modal-stand">
-                    ${item.image
-                        ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
-                        : getGridNoImageHtml()
-                    }
+                    <div class="modal-image-frame">
+                        ${item.image
+                            ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                            : getGridNoImageHtml()
+                        }
+                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                    </div>
                 </div>
             </div>
             <div class="modal-info">
@@ -887,7 +908,7 @@ function showPublicWishlistItemDetail(itemId) {
                         <div class="modal-value-block">
                             <div class="modal-value-label">Valeur estimée</div>
                             <div class="modal-value-row">
-                                <span class="modal-price">${price.toFixed(2).replace('.', ',')}€</span>
+                                <span class="modal-price">${formatPrice(price)}</span>
                             </div>
                         </div>
                     ` : ''}
@@ -962,6 +983,7 @@ window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
 window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
 window.setPublicCollectionSort = setPublicCollectionSort;
 window.filterPublicCollectionAndDisplay = filterPublicCollectionAndDisplay;
+window.debouncedFilterPublicCollectionAndDisplay = debouncedFilterPublicCollectionAndDisplay;
 window.loadMorePublicCollectionCards = loadMorePublicCollectionCards;
 window.getFilteredSortedPublicCollection = getFilteredSortedPublicCollection;
 window.renderPublicDuplicateCardsHtml = renderPublicDuplicateCardsHtml;
