@@ -3404,11 +3404,19 @@ tbody tr:hover {
     gap: 0.35rem;
 }
 
+/* Icone dans un badge circulaire dore (retour utilisateur design 2026-09, cf mockup "Remplir le
+   Vide" valide) : remplace le simple trait a 35% d'opacite, jugee trop discrete/plate a cote du
+   reste du site. box-sizing:content-box pour que width/height restent la taille du dessin lui-meme
+   (inchangee, tous les appelants existants gardent le meme viewBox/SVG) et que le padding ajoute
+   le halo autour sans le deformer. */
 .app-empty-icon {
     width: 48px;
     height: 48px;
+    padding: 14px;
+    box-sizing: content-box;
+    border-radius: 50%;
+    background: var(--glow-gold);
     color: var(--gold);
-    opacity: 0.35;
     margin-bottom: 0.5rem;
 }
 
@@ -3425,8 +3433,21 @@ tbody tr:hover {
     max-width: 320px;
 }
 
+/* CTA toujours traite comme une action primaire (meme recette que .btn-primary) : avant, la classe
+   de base .filter-toggle-btn (grise/discrete) n'etait jamais recouverte, rendant l'action a peine
+   plus visible que le texte autour - alors que c'est justement l'action qu'on veut mettre en avant
+   depuis un etat vide. */
 .app-empty-cta {
     margin-top: 0.75rem;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(232, 169, 59, 0.3);
+}
+
+.app-empty-cta:hover {
+    background: linear-gradient(135deg, var(--gold-hover) 0%, #b8956a 100%);
+    box-shadow: 0 6px 20px rgba(232, 169, 59, 0.4);
 }
 
 /* Variante "il reste du contenu a decouvrir" (audit design 2026-09) : le meme composant que l'etat
