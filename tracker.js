@@ -896,6 +896,16 @@ function activateTabContent(tabId) {
             dateInput.dataset.datepickerInit = 'true';
             initDatePicker('#card-date-added');
         }
+
+        // Rafraichit le panneau "Pret a chercher" avec les recherches recentes les plus a jour
+        // (retour utilisateur 2026-09) : le bloc statique d'index.html ne peut connaitre le
+        // localStorage qu'au moment du rendu JS, pas a l'ecriture du HTML - sans ce refresh, la
+        // toute premiere visite de l'onglet dans une nouvelle session afficherait encore les exemples
+        // fixes meme si l'utilisateur a deja un historique de recherches. Uniquement si aucune
+        // recherche n'est en cours (input vide) : ne doit jamais ecraser de vrais resultats affiches.
+        if (!document.getElementById('card-search').value.trim()) {
+            document.getElementById('search-results').innerHTML = catalogueSearchReadyHtml();
+        }
     }
 }
 

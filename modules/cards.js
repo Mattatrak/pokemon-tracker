@@ -46,10 +46,37 @@ function runSuggestedCatalogueSearch(term) {
     searchCards();
 }
 
+// Recherches recentes (retour utilisateur 2026-09, "on pourrait ajouter les recherches recentes")
+// : localStorage, meme convention que les autres preferences d'affichage de ce projet
+// (dashboardWidgetOrder...) - jamais synchronise entre appareils, pas critique. Plus recent en
+// premier, dedupliqué insensible a la casse (retaper "pikachu" apres "Pikachu" fait juste remonter
+// l'entree existante en tete plutot que d'avoir les deux versions cote a cote).
+const CATALOGUE_RECENT_SEARCHES_KEY = 'catalogueRecentSearches';
+const CATALOGUE_RECENT_SEARCHES_MAX = 6;
+
+function getRecentCatalogueSearches() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(CATALOGUE_RECENT_SEARCHES_KEY) || '[]');
+        return Array.isArray(stored) ? stored.filter(t => typeof t === 'string' && t.trim()) : [];
+    } catch (e) { return []; } // stockage corrompu, repli sur aucun historique
+}
+
+function recordRecentCatalogueSearch(term) {
+    const recent = getRecentCatalogueSearches().filter(t => t.toLowerCase() !== term.toLowerCase());
+    recent.unshift(term);
+    localStorage.setItem(CATALOGUE_RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, CATALOGUE_RECENT_SEARCHES_MAX)));
+}
+
 // Markup identique au bloc statique d'index.html (#search-results) - reutilise ici pour y revenir
 // apres une recherche effacee (input vide, cf tracker.js), plutot que de dupliquer une 3e fois ce
 // HTML ou de laisser un panneau vide sans le message/les suggestions.
 function catalogueSearchReadyHtml() {
+    const recent = getRecentCatalogueSearches();
+    // Exemples fixes tant qu'aucune recherche n'a encore ete faite sur cet appareil (premiere visite) -
+    // le panneau ne doit jamais rester sans suggestions du tout.
+    const chipTerms = recent.length > 0 ? recent : ['Pikachu', 'Dracaufeu-ex', '151', 'Nuit Noire'];
+    const chipsLabel = recent.length > 0 ? 'Recherches récentes' : 'Essayez par exemple';
+
     return `
         <div class="app-empty-state catalogue-search-empty">
             <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
@@ -58,11 +85,9 @@ function catalogueSearchReadyHtml() {
             </svg>
             <div class="app-empty-title">Prêt à chercher</div>
             <p class="app-empty-text">Un nom, une série ou un numéro suffisent.</p>
+            <div class="catalogue-search-suggestions-label">${chipsLabel}</div>
             <div class="catalogue-search-suggestions">
-                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('Pikachu')">Pikachu</button>
-                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('Dracaufeu-ex')">Dracaufeu-ex</button>
-                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('151')">151</button>
-                <button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('Nuit Noire')">Nuit Noire</button>
+                ${chipTerms.map(term => `<button type="button" class="catalogue-search-chip" onclick="runSuggestedCatalogueSearch('${term.replace(/'/g, "\\'")}')">${escapeHtml(term)}</button>`).join('')}
             </div>
         </div>
     `;
@@ -91,6 +116,8 @@ async function searchCards() {
         showMessage('Veuillez entrer un nom, une série, un numéro ou un illustrateur', 'error');
         return;
     }
+
+    recordRecentCatalogueSearch(search);
 
     const myRequestId = ++searchRequestId;
 
