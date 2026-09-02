@@ -87,6 +87,15 @@ body {
        seulement le tout-debut). Trois glows ancres haut-centre / bas-gauche / bas-droite pour que le
        bas de l'ecran ait toujours un peu de lumiere lui aussi. Maquette de validation :
        https://claude.ai/code/artifact/19526b48-f95c-479c-a715-6335e110836d */
+    /* min-height (retour utilisateur avec capture d'ecran, 2026-09) : sans elle, sur une page dont le
+       contenu est plus court que la fenetre (ex. Progression avec 0 serie), la boite de body s'arrete
+       la ou le contenu s'arrete - le halo ci-dessus (fixed = ne bouge pas au scroll, mais reste peint
+       DANS la boite de l'element) s'arrete donc avec elle, laissant apparaitre en dessous le fond plat
+       de html (styles.css ~L39, sans halo) : coupure nette au milieu de l'ecran. dvh en 2e ligne
+       (ignoree si non supportee, auquel cas vh suffit) pour eviter un saut au masquage de la barre
+       d'adresse mobile. */
+    min-height: 100vh;
+    min-height: 100dvh;
     background-color: var(--bg);
     background-image:
         radial-gradient(120% 90% at 50% 0%, rgba(232,169,59,0.14) 0%, transparent 75%),
@@ -333,13 +342,35 @@ body::before {
     background: rgba(232, 169, 59, 0.5);
 }
 
-.search-results:empty::before {
-    content: 'Lancez une recherche depuis le Hero pour explorer le catalogue.';
+/* Etat "avant recherche" (audit design 2026-09) : etait un simple texte CSS (:empty::before), un
+   grand panneau vide avant toute recherche. Remplace par app-empty-state (deja partage ailleurs)
+   avec des suggestions cliquables reelles - premier rendu statique dans index.html, ecrase par
+   displaySearchResults() des la premiere recherche comme le reste des squelettes du site. */
+.catalogue-search-empty {
     grid-column: 1 / -1;
-    text-align: center;
+}
+
+.catalogue-search-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.catalogue-search-chip {
+    font-size: 0.8rem;
     color: var(--slate);
-    font-size: 0.9rem;
-    padding: 3rem 1rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 0.35rem 0.9rem;
+    cursor: pointer;
+}
+
+.catalogue-search-chip:hover {
+    color: var(--gold);
+    border-color: var(--gold);
 }
 
 .search-result-item {
@@ -3374,6 +3405,14 @@ tbody tr:hover {
    (app-empty-*, ex-wishlist-empty-*) pour être réutilisé par Collection/Progression/Collectionneurs
    sans dupliquer ces règles. */
 .app-empty-state {
+    /* grid-column: sans effet dans un parent flex/block (Progression/Souhaits/Collecteurs), mais
+       indispensable dans un parent grid (#collection-grid) : sinon ce bloc n'occupe qu'UNE colonne
+       de la grille (largeur ~190px) et se retrouve plaque en haut a gauche au lieu de centre sur
+       toute la largeur - retour utilisateur avec capture d'ecran, 2026-09. Meme filet deja pose sur
+       .collection-grid-empty/.catalogue-search-empty pour la meme raison, generalise ici a la base
+       plutot que de le repeter a chaque nouveau contexte grid qui reutilise ce composant. */
+    grid-column: 1 / -1;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3382,11 +3421,19 @@ tbody tr:hover {
     gap: 0.35rem;
 }
 
+/* Icone dans un badge circulaire dore (retour utilisateur design 2026-09, cf mockup "Remplir le
+   Vide" valide) : remplace le simple trait a 35% d'opacite, jugee trop discrete/plate a cote du
+   reste du site. box-sizing:content-box pour que width/height restent la taille du dessin lui-meme
+   (inchangee, tous les appelants existants gardent le meme viewBox/SVG) et que le padding ajoute
+   le halo autour sans le deformer. */
 .app-empty-icon {
     width: 48px;
     height: 48px;
+    padding: 14px;
+    box-sizing: content-box;
+    border-radius: 50%;
+    background: var(--glow-gold);
     color: var(--gold);
-    opacity: 0.35;
     margin-bottom: 0.5rem;
 }
 
@@ -3403,8 +3450,31 @@ tbody tr:hover {
     max-width: 320px;
 }
 
+/* CTA toujours traite comme une action primaire (meme recette que .btn-primary) : avant, la classe
+   de base .filter-toggle-btn (grise/discrete) n'etait jamais recouverte, rendant l'action a peine
+   plus visible que le texte autour - alors que c'est justement l'action qu'on veut mettre en avant
+   depuis un etat vide. */
 .app-empty-cta {
     margin-top: 0.75rem;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(232, 169, 59, 0.3);
+}
+
+.app-empty-cta:hover {
+    background: linear-gradient(135deg, var(--gold-hover) 0%, #b8956a 100%);
+    box-shadow: 0 6px 20px rgba(232, 169, 59, 0.4);
+}
+
+/* Variante "il reste du contenu a decouvrir" (audit design 2026-09) : le meme composant que l'etat
+   vraiment vide (app-empty-state), mais affiche APRES du contenu deja present plutot qu'a sa place -
+   marge/separateur du haut pour ne pas coller au dernier bloc reel (Progression/Souhaits). */
+.progression-discover-more,
+.wishlist-discover-more {
+    margin-top: 1.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
 }
 
 .wishlist-list-value {
@@ -10686,15 +10756,32 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     overflow-wrap: break-word;
 }
 
-.stx-habit-value-sm {
-    font-size: 1.15rem;
-    color: var(--slate);
-}
-
 .stx-habit-sub {
     font-size: 0.76rem;
     color: var(--slate);
     margin-top: 0.4rem;
+}
+
+/* Tuile "fonctionnalite a venir" (audit design 2026-09) : avant, "Bientot" en valeur normale au
+   milieu de vraies statistiques, indiscernable d'une donnee manquante. Badge distinct + carte
+   attenuee pour signaler explicitement une fonctionnalite annoncee, pas un bug. */
+.stx-habit-card-soon {
+    opacity: 0.75;
+}
+
+.stx-soon-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--slate);
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed var(--border);
+    border-radius: 100px;
+    padding: 0.2rem 0.55rem;
 }
 
 .stx-records-grid {
@@ -10839,6 +10926,17 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .stx-trophy-value.positive { color: var(--positive); }
 .stx-trophy-value.negative { color: var(--negative); }
+
+/* Etat "pas de donnee" des tuiles Records (audit design 2026-09) : avant, un simple "-" statique par
+   defaut dans index.html (jamais remplace par renderStatsRecords si aucune carte ne correspond),
+   indiscernable d'un composant casse. Texte explicite + style attenue plutot qu'un tiret ; retiree
+   par JS des qu'une vraie valeur est ecrite (cf renderStatsRecords, modules/stats-render.js). */
+.stx-trophy-empty {
+    color: var(--slate);
+    font-style: italic;
+    font-weight: 400;
+    white-space: normal;
+}
 
 .stx-trophy-sub {
     font-size: 0.78rem;
