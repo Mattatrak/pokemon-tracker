@@ -13,6 +13,35 @@ function preloadImages(urls) {
     });
 }
 
+// ===== Isolation d'erreur entre sections independantes d'une meme page (audit senior 2026-09,
+// generalise depuis dashboardRenderSafe qui n'existait que pour le Dashboard) : une section qui
+// plante ne doit jamais empecher les autres de s'afficher, ni laisser la page dans un etat casse
+// sans aucun retour visuel. =====
+
+// Pour une section qui possede un unique conteneur DOM (un widget Dashboard, une liste Progression...)
+// : sur erreur, remplace son contenu par un message de repli discret plutot que de laisser un
+// conteneur a moitie rendu ou vide sans explication.
+function renderSectionSafe(containerId, fn) {
+    try {
+        fn();
+    } catch (error) {
+        console.error(`Erreur de rendu (${containerId}):`, error);
+        const el = document.getElementById(containerId);
+        if (el) el.innerHTML = '<p class="render-error-text">Section indisponible</p>';
+    }
+}
+
+// Pour une section qui ecrit dans plusieurs elements a la fois (graphiques/listes Statistiques) :
+// pas de conteneur unique a remplacer par un message, mais la panne doit rester isolee - sans ca,
+// une erreur dans un graphique interrompait toute la sequence de rendu suivante (cf renderStatsCharts).
+function runSafe(fn, label) {
+    try {
+        fn();
+    } catch (error) {
+        console.error(`Erreur de rendu (${label}):`, error);
+    }
+}
+
 // ===== Chargement differe des librairies CDN lourdes (perf, cf audit bundle 2026-09-01) =====
 // Chart.js/Flatpickr/Papaparse n'etaient utilisees que par une fonctionnalite precise (graphique de
 // prix, selecteur de date, import CSV) mais chargees via <script> bloquant sur CHAQUE page, meme
@@ -568,6 +597,8 @@ async function initDatePicker(selector, presetValue) {
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.formatPrice = formatPrice;
 window.preloadImages = preloadImages;
+window.renderSectionSafe = renderSectionSafe;
+window.runSafe = runSafe;
 window.toLocalDateInputValue = toLocalDateInputValue;
 window.handleTcgdexImgError = handleTcgdexImgError;
 window.handleSealLogoError = handleSealLogoError;

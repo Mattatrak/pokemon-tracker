@@ -1007,6 +1007,26 @@ function renderFilteredCollection() {
     const isLoadMore = isLoadMoreRender;
     isLoadMoreRender = false;
 
+    const errorEl = document.getElementById('collection-render-error');
+    if (errorEl) errorEl.style.display = 'none';
+
+    // Contrairement au Dashboard/Statistiques (plusieurs sections independantes), la Collection rend
+    // une seule vue a la fois dans des conteneurs distincts selon le mode (grille/tableau/classeur/
+    // recap) : pas de conteneur unique a isoler section par section, donc un seul filet ici plutot
+    // que renderSectionSafe/runSafe (utils.js). Sans ca, une exception laissait la page silencieusement
+    // a moitie rendue (ex: KPIs mis a jour mais grille jamais rafraichie), sans aucun retour visuel.
+    try {
+        renderFilteredCollectionImpl(isLoadMore);
+    } catch (error) {
+        console.error('Erreur de rendu Collection:', error);
+        if (errorEl) {
+            errorEl.textContent = 'Affichage de la collection indisponible pour le moment.';
+            errorEl.style.display = '';
+        }
+    }
+}
+
+function renderFilteredCollectionImpl(isLoadMore) {
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
     // Anticipe le "Charger plus" : précharge les images de la page suivante pendant que celle-ci

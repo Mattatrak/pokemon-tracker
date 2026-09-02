@@ -2,18 +2,6 @@
 // Dépend de: allCollectionCards/supabaseClient/allWishlistItems/allTcgdexSeries/dashboardNeedsRefresh/wishlistPriceSignalMap (tracker.js/wishlist.js/progression.js),
 // escapeHtml/getSetIdFromTcgdexId (utils.js), showCardDetail (card-detail.js), openSetProgression/fetchSetCardsDetailed/computeSetCompletionBudget (progression.js),
 // activateTabContent (tracker.js), Chart
-// Exécute fn et attrape toute erreur pour qu'une section en échec n'empêche pas le reste du Dashboard
-// de s'afficher (le conteneur reçoit un message d'erreur discret à la place)
-function dashboardRenderSafe(containerId, fn) {
-    try {
-        fn();
-    } catch (error) {
-        console.error(`Erreur de rendu Dashboard (${containerId}):`, error);
-        const el = document.getElementById(containerId);
-        if (el) el.innerHTML = '<p class="dashboard-error-text">Section indisponible</p>';
-    }
-}
-
 async function renderDashboard() {
     if (!document.getElementById('dashboard-header')) return; // onglet pas encore présent dans le DOM
 
@@ -21,11 +9,11 @@ async function renderDashboard() {
 
     dashboardBuildSkeleton();
 
-    dashboardRenderSafe('dashboard-header', renderDashboardHeader);
+    renderSectionSafe('dashboard-header', renderDashboardHeader);
 
-    dashboardRenderSafe('dashboard-hero', renderDashboardHero);
-    dashboardRenderSafe('dashboard-kpis', renderDashboardKpis);
-    dashboardRenderSafe('dashboard-movers-body', renderDashboardTopMovers);
+    renderSectionSafe('dashboard-hero', renderDashboardHero);
+    renderSectionSafe('dashboard-kpis', renderDashboardKpis);
+    renderSectionSafe('dashboard-movers-body', renderDashboardTopMovers);
 
     // Chaque section reordonnable/masquable rend seulement si dashboardBuildSkeleton lui a construit
     // un conteneur (cf. filtre "hidden" ci-dessus) - sinon document.getElementById(bodyId) est null.
@@ -39,7 +27,7 @@ async function renderDashboard() {
     };
     Object.entries(widgetRenderers).forEach(([key, renderFn]) => {
         if (document.getElementById(DASHBOARD_WIDGET_DEFS[key].bodyId)) {
-            dashboardRenderSafe(DASHBOARD_WIDGET_DEFS[key].bodyId, renderFn);
+            renderSectionSafe(DASHBOARD_WIDGET_DEFS[key].bodyId, renderFn);
         }
     });
 
@@ -810,7 +798,6 @@ async function dashboardUpdateWishlistTrends(items) {
 // inline dans du HTML généré. Liste exhaustive des déclarations top-level de ce fichier
 // (hors variables déjà passées en window.x = ... directement à leur déclaration, cf audit
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
-window.dashboardRenderSafe = dashboardRenderSafe;
 window.renderDashboard = renderDashboard;
 window.dashboardBuildSkeleton = dashboardBuildSkeleton;
 window.openDashboardCustomizeModal = openDashboardCustomizeModal;

@@ -9062,7 +9062,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0 0.5rem 0.5rem;
 }
 
-.dashboard-error-text {
+.render-error-text {
     color: var(--slate);
     font-size: 0.8rem;
     text-align: center;

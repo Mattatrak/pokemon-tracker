@@ -184,8 +184,10 @@ async function loadSeriesProgress() {
             progressionLogosLoaded = true;
         }
 
-        renderProgressionSeriesList();
-        renderProgressionKpis();
+        // Isolees l'une de l'autre (renderSectionSafe, cf utils.js) : une panne dans les KPI ne doit
+        // pas effacer une liste de series deja correctement rendue, et inversement.
+        renderSectionSafe('progression-series-list', renderProgressionSeriesList);
+        renderSectionSafe('progression-stats-bottom', renderProgressionKpis);
         markDashboardDirty(); // le cache allTcgdexSeries vient peut-être d'être rempli : l'objectif du Dashboard peut changer
     } catch (error) {
         container.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Erreur lors du chargement des séries</p>';
