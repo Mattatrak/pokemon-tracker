@@ -609,3 +609,9 @@ window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
 window.debounce = debounce;
 window.parseCsvDate = parseCsvDate;
 window.initDatePicker = initDatePicker;
+
+// Exports pour les tests unitaires (Vitest, cf vitest.config.js) uniquement - purement additif : une
+// instruction export dans un module déjà chargé en <script type="module"> par le navigateur n'a aucun
+// effet sur ce qui s'exécute côté client, les window.X = X ci-dessus restent la seule chose qui compte
+// pour l'app elle-même.
+export { formatPrice, getMarketValueForFinish, escapeHtml };
