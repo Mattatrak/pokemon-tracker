@@ -691,19 +691,26 @@ async function bulkDeleteSelected() {
         return;
     }
 
-    // Réconcilier l'historique mensuel pour chaque carte supprimée (même logique que deleteCard)
-    for (const card of cardsToDelete) {
-        if (!card.created_at) continue;
-        const addedDate = new Date(card.created_at);
-        const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
-        const qty = Number(card.quantity || 1);
-        await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
-    }
+    // La suppression elle-même a réussi (ci-dessus) : cf deleteCard (tracker.js) pour la même
+    // protection - sans elle, un échec ici laissait la grille locale périmée sans avertissement.
+    try {
+        // Réconcilier l'historique mensuel pour chaque carte supprimée (même logique que deleteCard)
+        for (const card of cardsToDelete) {
+            if (!card.created_at) continue;
+            const addedDate = new Date(card.created_at);
+            const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+            const qty = Number(card.quantity || 1);
+            await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
+        }
 
-    showMessage(`${ids.length} carte${ids.length > 1 ? 's' : ''} supprimée${ids.length > 1 ? 's' : ''}`, 'success');
-    clearSelection();
-    await refreshCollection();
-    await recordValueSnapshot();
+        showMessage(`${ids.length} carte${ids.length > 1 ? 's' : ''} supprimée${ids.length > 1 ? 's' : ''}`, 'success');
+        clearSelection();
+        await refreshCollection();
+        await recordValueSnapshot();
+    } catch (error) {
+        console.error(error);
+        showMessage('Cartes supprimées, mais une erreur est survenue juste après (rafraîchissement) - recharge la page pour être sûr que tout est à jour.', 'error');
+    }
 }
 
 function filterAndDisplay() {

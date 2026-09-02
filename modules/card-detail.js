@@ -653,14 +653,25 @@ async function saveCardEdits(cardId, btn) {
         return;
     }
 
-    // Réconcilier l'historique mensuel : retirer l'ancienne contribution, ajouter la nouvelle
-    await adjustMonthlyStatsAmount(oldMonthKey, -oldQuantity, -(oldPurchasePrice * oldQuantity), -(marketValue * oldQuantity));
-    await adjustMonthlyStatsAmount(newMonthKey, quantity, purchasePrice * quantity, marketValue * quantity);
+    // La mise à jour elle-même a réussi (ci-dessus) : si la suite échoue, le bouton ne doit pas
+    // rester bloqué sur "Enregistrement..." indéfiniment (retour d'audit 2026-09, "échecs silencieux
+    // sur actions async") - message honnête sur ce qui a réellement réussi plutôt que de compter
+    // uniquement sur le filet générique (unhandledrejection, utils.js) qui ne rétablirait pas le bouton.
+    try {
+        // Réconcilier l'historique mensuel : retirer l'ancienne contribution, ajouter la nouvelle
+        await adjustMonthlyStatsAmount(oldMonthKey, -oldQuantity, -(oldPurchasePrice * oldQuantity), -(marketValue * oldQuantity));
+        await adjustMonthlyStatsAmount(newMonthKey, quantity, purchasePrice * quantity, marketValue * quantity);
 
-    showMessage('Carte mise à jour', 'success');
-    await refreshCollection();
-    await recordValueSnapshot();
-    showCardDetail(cardId);
+        showMessage('Carte mise à jour', 'success');
+        await refreshCollection();
+        await recordValueSnapshot();
+        showCardDetail(cardId);
+    } catch (error) {
+        console.error(error);
+        showMessage('Carte modifiée, mais une erreur est survenue juste après (rafraîchissement) - recharge la page pour être sûr que tout est à jour.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+    }
 }
 
 // Retrouve la carte source réellement VISIBLE (pas seulement présente dans le DOM) dans le
