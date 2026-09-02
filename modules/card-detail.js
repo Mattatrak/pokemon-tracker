@@ -82,6 +82,42 @@ function navigateCardDetail(direction) {
     renderCardDetail(targetId);
 }
 
+// Survol holographique de l'image de fiche (retour utilisateur 2026-09, meme mecanique que
+// initHoloGridEffect, card-grid-renderer.js) - attache directement (pas de delegation) : un seul
+// element concerne par rendu ici, contrairement a une grille de dizaines de cartes. renderCardDetail()
+// reconstruit tout le noeud a chaque appel (prev/suivant compris), donc pas de risque d'accumuler
+// des listeners sur un element qui n'existe plus.
+function initHoloDetailEffect(el) {
+    if (!el) return;
+    if (!window.matchMedia('(hover: hover)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const TILT_MAX_DEG = 16; // aligne sur la grille (retour utilisateur 2026-09) - marge conservee sur une carte en grand, mais coherent
+
+    el.addEventListener('mousemove', (e) => {
+        // Transition rapide pendant le suivi, lente seulement au relachement (mouseleave ci-dessous) -
+        // meme correction que la grille (card-grid-renderer.js) : une seule transition lente pour les
+        // deux phases fait "rater" sa cible sur un mouvement de souris rapide, la carte parait figee
+        // alors que le calcul tourne bien.
+        el.style.transition = 'transform 0.12s ease-out';
+        const rect = el.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        const rotateY = (x - 0.5) * TILT_MAX_DEG;
+        const rotateX = (0.5 - y) * TILT_MAX_DEG;
+        el.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+        el.style.setProperty('--holo-x', `${x * 100}%`);
+        el.style.setProperty('--holo-y', `${y * 100}%`);
+        el.style.setProperty('--holo-glare', `${x * 100}%`);
+        el.classList.add('is-holo-active');
+    });
+
+    el.addEventListener('mouseleave', () => {
+        el.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
+        el.style.transform = '';
+        el.classList.remove('is-holo-active');
+    });
+}
+
 function renderCardDetail(cardId) {
     const card = allCollectionCards.find(c => c.id === cardId);
     if (!card) return;
@@ -109,7 +145,11 @@ function renderCardDetail(cardId) {
                 <div class="modal-stand">
                     <div class="modal-image-frame">
                         ${card.image
-                            ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                            ? `<div class="modal-image-holo" id="card-detail-image-holo">
+                                <img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">
+                                <div class="collection-card-holo-sheen"></div>
+                                <div class="collection-card-holo-glare"></div>
+                               </div>`
                             : getModalUploadPlaceholder(card.id)
                         }
                         ${card.series_logo ? `<img src="${escapeHtml(card.series_logo)}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
@@ -245,6 +285,7 @@ function renderCardDetail(cardId) {
 
     document.getElementById('card-detail-overlay').classList.add('active');
     updateCardDetailNavButtons();
+    initHoloDetailEffect(document.getElementById('card-detail-image-holo'));
 
     if (card.tcgdex_id) {
         if (window.matchMedia('(max-width: 768px)').matches) {
@@ -825,6 +866,7 @@ async function handleCollectionImageUpload(event, cardId) {
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.showCardDetail = showCardDetail;
 window.navigateCardDetail = navigateCardDetail;
+window.initHoloDetailEffect = initHoloDetailEffect;
 window.cardPriceChartInstance = cardPriceChartInstance;
 window.cardPriceChartData = cardPriceChartData;
 window.renderCardPriceChart = renderCardPriceChart;

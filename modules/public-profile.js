@@ -413,6 +413,12 @@ function renderPublicProfileShell(container, profile) {
         ` : ''}
     `;
 
+    // Survol holographique (retour utilisateur 2026-09, meme mecanique que la Galerie Collection
+    // personnelle, card-grid-renderer.js) : un seul point d'ecoute delegue sur tout le conteneur du
+    // profil, couvre a la fois la grille de collection et celle des doublons a l'echange sans
+    // rattachement separe pour chacune.
+    initHoloGridEffect(container);
+
     if (profile.collection_visible) {
         populatePublicCollectionSeriesFilter();
         renderPublicCollectionRarityRow();
@@ -595,7 +601,8 @@ function getFilteredSortedPublicCollection() {
 function renderPublicDuplicateCardsHtml() {
     return viewedPublicDuplicateCards.map(card => renderGridCardHtml(card, {
         detailFn: 'showPublicCardDetail',
-        badgeMode: 'duplicate'
+        badgeMode: 'duplicate',
+        holoEffect: true
     })).join('');
 }
 
@@ -617,7 +624,8 @@ function renderPublicCollectionGrid() {
     }
 
     grid.innerHTML = page.map(card => renderGridCardHtml(card, {
-        detailFn: 'showPublicCardDetail'
+        detailFn: 'showPublicCardDetail',
+        holoEffect: true
     })).join('');
     updatePublicCollectionLoadMoreRow(filtered.length, page.length);
 }
@@ -682,10 +690,14 @@ function renderPublicCardDetail(cardId) {
                 <div class="modal-stand">
                     <div class="modal-image-frame">
                         ${card.image
-                            ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                            ? `<div class="modal-image-holo" id="public-card-detail-image-holo">
+                                <img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">
+                                <div class="collection-card-holo-sheen"></div>
+                                <div class="collection-card-holo-glare"></div>
+                               </div>`
                             : getGridNoImageHtml()
                         }
-                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        ${seriesLogoUrl ? `<img src="${escapeHtml(seriesLogoUrl)}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
                     </div>
                 </div>
             </div>
@@ -753,6 +765,7 @@ function renderPublicCardDetail(cardId) {
     `;
 
     document.getElementById('public-card-detail-overlay').classList.add('active');
+    initHoloDetailEffect(document.getElementById('public-card-detail-image-holo'));
 }
 
 function closePublicCardDetail() {
@@ -888,10 +901,14 @@ function showPublicWishlistItemDetail(itemId) {
                 <div class="modal-stand">
                     <div class="modal-image-frame">
                         ${item.image
-                            ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">`
+                            ? `<div class="modal-image-holo" id="public-card-detail-image-holo">
+                                <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" class="modal-image" onerror="this.outerHTML=getGridNoImageHtml()">
+                                <div class="collection-card-holo-sheen"></div>
+                                <div class="collection-card-holo-glare"></div>
+                               </div>`
                             : getGridNoImageHtml()
                         }
-                        ${seriesLogoUrl ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        ${seriesLogoUrl ? `<img src="${escapeHtml(seriesLogoUrl)}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
                     </div>
                 </div>
             </div>
@@ -937,6 +954,7 @@ function showPublicWishlistItemDetail(itemId) {
     `;
 
     document.getElementById('public-card-detail-overlay').classList.add('active');
+    initHoloDetailEffect(document.getElementById('public-card-detail-image-holo'));
 }
 
 // ===== Exports window (ticket V2 Vite, type="module") =====

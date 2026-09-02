@@ -1190,6 +1190,8 @@ function renderCollectionGrid(filtered, isLoadMore) {
     const grid = document.getElementById('collection-grid');
     if (!grid) return;
 
+    initHoloGridEffect(grid); // no-op si deja attache, si tactile ou si prefers-reduced-motion
+
     if (filtered.length === 0) {
         // Vraiment aucune carte en collection (nouvel utilisateur) -> état illustré ; un filtre/une
         // recherche qui ne remonte rien reste un texte simple, ne mérite pas la même mise en avant.
@@ -1209,7 +1211,8 @@ function renderCollectionGrid(filtered, isLoadMore) {
             detailFn: 'showCardDetail',
             imageFallback: 'upload',
             showAcquisitionIcon: true,
-            staggerIndex: i
+            staggerIndex: i,
+            holoEffect: true
         })).join(''));
         return;
     }
@@ -1218,7 +1221,8 @@ function renderCollectionGrid(filtered, isLoadMore) {
         detailFn: 'showCardDetail',
         imageFallback: 'upload',
         showAcquisitionIcon: true,
-        staggerIndex: i
+        staggerIndex: i,
+        holoEffect: true
     })).join('');
 
     replayEntrance(grid);

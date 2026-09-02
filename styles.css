@@ -2811,6 +2811,85 @@ button:disabled {
     transform: scale(1.05);
 }
 
+/* La carte holo applique deja son propre scale(1.05) au niveau du CONTENEUR (initHoloGridEffect,
+   card-grid-renderer.js) - sans ce filet, l'image zoomait EN PLUS a l'interieur d'une carte deja
+   inclinee/agrandie, brouillant completement l'effet (retour utilisateur : "je vois toujours
+   l'ancienne animation (zoom)" - c'est bien cette regle-la qu'on voyait, pas un bug de l'inclinaison
+   elle-meme). */
+.collection-card-holo:hover img {
+    transform: none;
+}
+
+/* ===== Survol holographique (retour utilisateur 2026-09, mockup "Carte Holographique" valide) =====
+   Galerie Collection uniquement (holoEffect, card-grid-renderer.js) : incline la carte et fait suivre
+   un reflet prismatique au curseur (--holo-x/--holo-y/--holo-glare poses par initHoloGridEffect,
+   card-grid-renderer.js), remplace le sheen diagonal existant (::after ci-dessus) qui reste, lui,
+   inchange partout ou l'effet n'est pas actif (Classeur, grilles publiques). */
+.collection-card-holo {
+    /* transform : valeur de repli avant le tout premier mousemove seulement - initHoloGridEffect
+       (card-grid-renderer.js) pose ensuite sa propre transition inline a chaque event (rapide pendant
+       le suivi, lente au relachement) et la gagne toujours. Une seule duree fixe ici causait un effet
+       immobile sur une carte traversee rapidement : la transition (re)partait de zero a chaque
+       mousemove sans jamais rattraper sa cible avant le mouseout suivant (retour utilisateur 2026-09). */
+    transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
+    transform-style: preserve-3d;
+}
+
+.collection-card-holo::after {
+    display: none;
+}
+
+.collection-card-holo-sheen,
+.collection-card-holo-glare {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    transition: opacity 0.35s ease;
+}
+
+/* Or/info/violet : 3 teintes deja presentes ailleurs dans l'app (--gold, --info, WISHLIST_COLOR_PRESET
+   'purple' #C77DFF) plutot qu'un arc-en-ciel generique. soft-light (pas color-dodge, trop agressif -
+   retour utilisateur 2026-09 : "la couleur du holo denature un peu trop les cartes", color-dodge
+   eclaircissait fort les zones deja claires de l'illustration, jusqu'a laver les couleurs reelles de
+   la carte) : teinte la surface sans la faire exploser en luminosite. Alphas et opacite finale revus
+   nettement a la baisse pour la meme raison - un accent qui suit le curseur, pas un filtre qui
+   remplace les couleurs de la carte. */
+.collection-card-holo-sheen {
+    background: radial-gradient(
+        circle at var(--holo-x, 50%) var(--holo-y, 50%),
+        rgba(232,169,59,0.22) 0%,
+        rgba(107,203,255,0.15) 25%,
+        rgba(199,125,255,0.18) 50%,
+        transparent 75%
+    );
+    mix-blend-mode: soft-light;
+}
+
+.collection-card-holo-glare {
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.22) var(--holo-glare, 50%), transparent 60%);
+    mix-blend-mode: overlay;
+}
+
+/* Sans le prefixe .collection-card-holo : reutilise aussi par .modal-image-holo (fiche detail,
+   card-detail.js) - meme mecanique de calques, contexte hote different. */
+.is-holo-active .collection-card-holo-sheen {
+    opacity: 0.55;
+}
+
+.is-holo-active .collection-card-holo-glare {
+    opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none) {
+    /* Filet CSS en plus du garde JS (initHoloGridEffect ne pose meme pas les listeners dans ce cas) :
+       si jamais la classe est presente sans le JS d'attache (SSR/erreur), la carte reste statique. */
+    .collection-card-holo {
+        transition: transform var(--motion-duration-fast) ease-out, box-shadow var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
+    }
+}
+
 .collection-card-noimg {
     width: 100%;
     height: 100%;
@@ -6491,6 +6570,26 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     width: 100%;
     border-radius: 8px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+/* Survol holographique de la fiche detail (retour utilisateur 2026-09, meme mecanique que
+   .collection-card-holo, styles.css) : englobe uniquement l'image, pas le sceau de serie ni les
+   fleches precedent/suivant (siblings dans .modal-image-frame, cf card-detail.js) - ces derniers
+   restent des affordances d'interface fixes, pas des objets qui doivent s'incliner avec la carte. */
+.modal-image-holo {
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.modal-image-holo .modal-image {
+    display: block;
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none) {
+    .modal-image-holo {
+        transition: none;
+    }
 }
 
 #card-detail-card .modal-body {

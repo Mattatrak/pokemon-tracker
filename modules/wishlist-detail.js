@@ -176,6 +176,7 @@ function renderWishlistItemDetail(item) {
     if (wishlistDetailAcquisitionOpen) {
         initDatePicker('#wishlist-detail-acquisition-date', wishlistDetailAcquisitionDate);
     }
+    initHoloDetailEffect(document.getElementById('wishlist-detail-image-holo'));
 }
 
 function lockBodyScrollForWishlistDetail() {
@@ -303,12 +304,16 @@ function buildWishlistDetailHtml(item) {
     const busy = wishlistDetailBusy;
 
     const imageHtml = item.image
-        ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="wishlist-detail-image" onerror="this.outerHTML='<div class=&quot;no-image-placeholder modal-size&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">`
+        ? `<div class="modal-image-holo" id="wishlist-detail-image-holo">
+            <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" class="wishlist-detail-image" onerror="this.outerHTML='<div class=&quot;no-image-placeholder modal-size&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>'">
+            <div class="collection-card-holo-sheen"></div>
+            <div class="collection-card-holo-glare"></div>
+           </div>`
         : `<div class="no-image-placeholder modal-size"><i class="ti ti-photo-off" aria-hidden="true"></i></div>`;
 
     const seriesLogoUrl = item.series_logo || getSeriesLogoUrl(item.tcgdex_id);
     const seriesSealHtml = seriesLogoUrl
-        ? `<img src="${seriesLogoUrl}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">`
+        ? `<img src="${escapeHtml(seriesLogoUrl)}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">`
         : '';
 
     const listHtml = list

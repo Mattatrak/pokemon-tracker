@@ -373,6 +373,12 @@ function renderWishlistsUI() {
     updateWishlistKpis();
     if (!container) return;
 
+    // Survol holographique (retour utilisateur 2026-09, meme mecanique que la Galerie Collection,
+    // card-grid-renderer.js) : un seul point d'ecoute delegue sur tout #wishlists-container, couvre
+    // toutes les listes/cartes qu'il contient (imbriquees dans .wishlist-thumb-grid par liste) sans
+    // rattachement supplementaire a chaque re-rendu.
+    initHoloGridEffect(container);
+
     // Vraiment aucune liste (pas juste 0 resultat de recherche) : app-empty-state (deja partage
     // Collection/Progression/Collecteurs) plutot qu'un simple texte, sinon meme vide beant que celui
     // corrige plus bas pour "au moins une liste existe" (retour utilisateur 2026-09, capture d'ecran
@@ -423,17 +429,19 @@ function renderWishlistsUI() {
 
             return `
                 <div class="wishlist-thumb-wrap">
-                    <div class="collection-card wishlist-thumb-card" data-wishlist-item-id="${item.id}" onclick="openWishlistItemDetail(${item.id}, event)" title="${escapeHtml(item.name)}">
+                    <div class="collection-card wishlist-thumb-card collection-card-holo" data-wishlist-item-id="${item.id}" onclick="openWishlistItemDetail(${item.id}, event)" title="${escapeHtml(item.name)}">
                         ${item.image
-                            ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
+                            ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
+                        <div class="collection-card-holo-sheen"></div>
+                        <div class="collection-card-holo-glare"></div>
                         ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Obtenue</div>' : ''}
                         ${signal ? `<div class="price-signal-badge price-signal-${signal.type}" title="${escapeHtml(signal.wording)}"><i class="ti ti-arrow-${signal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i></div>` : ''}
                         ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
-                            <div class="collection-card-set">${item.series_logo ? `<img src="${item.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(item.series)} · #${escapeHtml(item.number)}</div>
+                            <div class="collection-card-set">${item.series_logo ? `<img src="${escapeHtml(item.series_logo)}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(item.series)} · #${escapeHtml(item.number)}</div>
                         </div>
                     </div>
                 </div>
