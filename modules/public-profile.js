@@ -111,11 +111,9 @@ function escapePublicUsernameIlike(value) {
     return value.replace(/[%_\\]/g, '\\$&');
 }
 
-function formatPublicMemberSince(dateInput) {
-    if (!dateInput) return '';
-    const date = new Date(dateInput);
-    return `Collectionneur depuis ${date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`;
-}
+// formatPublicMemberSince déplacée dans modules/utils.js (audit bundle 2026-09) : collectors.js
+// (toujours chargé, widget Dashboard) l'utilise aussi et ne doit pas dépendre de ce module,
+// désormais chargé à la demande.
 
 function renderPublicProfileNotFound(container) {
     container.innerHTML = `
@@ -966,7 +964,6 @@ window.getPublicDuplicateEligibleCards = getPublicDuplicateEligibleCards;
 window.publicCardDetailOpenId = publicCardDetailOpenId;
 window.getUsernameFromHash = getUsernameFromHash;
 window.escapePublicUsernameIlike = escapePublicUsernameIlike;
-window.formatPublicMemberSince = formatPublicMemberSince;
 window.renderPublicProfileNotFound = renderPublicProfileNotFound;
 window.prepareCollectorProfileTransition = prepareCollectorProfileTransition;
 window.getPendingCollectorProfileContext = getPendingCollectorProfileContext;

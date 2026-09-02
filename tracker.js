@@ -807,6 +807,33 @@ window.addEventListener('hashchange', () => {
 
 // ===== ONGLETS =====
 
+// modules/admin.js chargé à la demande (audit bundle 2026-09) : page interne jamais visitée par
+// l'immense majorité des utilisateurs, le charger pour tout le monde dès le démarrage exposait en
+// plus la surface des fonctions d'administration à quiconque ouvre les outils de développement, admin
+// ou non. Promesse mémorisée comme ensureChartLoaded (utils.js) : une revisite de l'onglet ne
+// réimporte pas le module.
+let adminModuleLoadPromise = null;
+function ensureAdminModuleLoaded() {
+    if (!adminModuleLoadPromise) adminModuleLoadPromise = import('./modules/admin.js');
+    return adminModuleLoadPromise;
+}
+
+// Même traitement pour le profil public d'un collectionneur (audit bundle 2026-09) : visité par une
+// minorité d'utilisateurs (uniquement via "Voir le profil" depuis Collecteurs), jamais depuis le
+// Dashboard/Collection/etc au quotidien. collector-match.js n'est utilisé QUE par public-profile.js
+// (vérifié : aucune autre référence dans le projet) - les deux modules partagent donc le même import()
+// pour rester chargés/déchargés ensemble.
+let publicProfileModuleLoadPromise = null;
+function ensurePublicProfileModuleLoaded() {
+    if (!publicProfileModuleLoadPromise) {
+        publicProfileModuleLoadPromise = Promise.all([
+            import('./modules/collector-match.js'),
+            import('./modules/public-profile.js')
+        ]);
+    }
+    return publicProfileModuleLoadPromise;
+}
+
 // Rendu paresseux propre à un onglet, extrait de switchTab pour être réutilisable sans évènement de
 // clic (ex: boutons de navigation internes au Dashboard)
 function activateTabContent(tabId) {
@@ -843,7 +870,7 @@ function activateTabContent(tabId) {
     }
 
     if (tabId === 'tab-user-profile') {
-        loadPublicProfile(getUsernameFromHash());
+        ensurePublicProfileModuleLoaded().then(() => loadPublicProfile(getUsernameFromHash()));
     }
 
     if (tabId === 'tab-collectors') {
@@ -851,7 +878,7 @@ function activateTabContent(tabId) {
     }
 
     if (tabId === 'tab-admin') {
-        renderAdminGate();
+        ensureAdminModuleLoaded().then(() => renderAdminGate());
     }
 
     if (tabId === 'tab-changelog') {
@@ -1192,7 +1219,12 @@ function initEventListeners() {
             // de handler Échap ni de clic-sur-le-fond : un import peut être en cours, elle ne doit pas
             // pouvoir se fermer accidentellement.
             closeWishlistEditModal();
-            closeAdminImageUploadModal();
+            // admin.js et public-profile.js chargés à la demande (audit bundle 2026-09, cf
+            // ensureAdminModuleLoaded/ensurePublicProfileModuleLoaded plus haut) : gardés par typeof
+            // comme getPendingCollectorProfileContext/prepareCollectorProfileTransition ailleurs dans ce
+            // fichier - sans ça, un Échap n'importe où dans l'app plante tant que ces modules n'ont
+            // jamais été chargés, et interrompt aussi la fermeture des overlays suivants ci-dessous.
+            if (typeof closeAdminImageUploadModal === 'function') closeAdminImageUploadModal();
             if (document.getElementById('changelog-popup-overlay')?.classList.contains('active')) {
                 acknowledgeChangelogPopup();
             }
@@ -1202,7 +1234,7 @@ function initEventListeners() {
             closeProfileModal();
             closeProfileMenu();
             closeTopMoversModal();
-            closePublicCardDetail();
+            if (typeof closePublicCardDetail === 'function') closePublicCardDetail();
             closeCsvDropdown();
         }
 
