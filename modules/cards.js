@@ -248,7 +248,7 @@ function renderSearchResults(cards) {
         const cardNumber = card.localId || '?';
         const logoUrl = card.set?.logo ? `${card.set.logo}.webp` : '';
         const imgHtml = imageUrl
-            ? `<img src="${imageUrl}" alt="${card.name}" class="search-result-img" onerror="handleTcgdexImgError(this, '<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>')">`
+            ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(card.name)}" class="search-result-img" onerror="handleTcgdexImgError(this, '<div class=&quot;no-image-placeholder small&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>')">`
             : '<div class="no-image-placeholder small"><i class="ti ti-photo-off" aria-hidden="true"></i></div>';
 
         let price = 0;
@@ -263,11 +263,11 @@ function renderSearchResults(cards) {
                 ${imgHtml}
                 <div class="search-result-info">
                     <div class="search-result-text">
-                        <div class="search-result-name">${card.name || '?'}</div>
-                        <div class="search-result-set">${setName} - #${cardNumber}</div>
+                        <div class="search-result-name">${escapeHtml(card.name || '?')}</div>
+                        <div class="search-result-set">${escapeHtml(setName)} - #${escapeHtml(cardNumber)}</div>
                         ${price > 0 ? `<div class="search-result-price">${formatPrice(price)}</div>` : ''}
                     </div>
-                    ${logoUrl ? `<img src="${logoUrl}" class="search-result-series-logo" alt="" onerror="handleSealLogoError(this)">` : ''}
+                    ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="search-result-series-logo" alt="" onerror="handleSealLogoError(this)">` : ''}
                 </div>
             </div>
         `;

@@ -109,10 +109,10 @@ function renderCardDetail(cardId) {
                 <div class="modal-stand">
                     <div class="modal-image-frame">
                         ${card.image
-                            ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                            ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
                             : getModalUploadPlaceholder(card.id)
                         }
-                        ${card.series_logo ? `<img src="${card.series_logo}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        ${card.series_logo ? `<img src="${escapeHtml(card.series_logo)}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
                         <!-- Navigation carte precedente/suivante (retour d'audit concurrence 2026-09-01,
                              v2 apres retour utilisateur sur la 1ere version) : superposees sur L'IMAGE
                              elle-meme (.modal-image-frame, pas .modal-card) - style "macOS Quick Look" /
@@ -152,7 +152,7 @@ function renderCardDetail(cardId) {
             <div class="modal-info">
                 <div class="modal-main-col">
                     <div class="modal-title-row">
-                        <div class="modal-title">${card.name}</div>
+                        <div class="modal-title">${escapeHtml(card.name)}</div>
                         ${card.tcgdex_id ? favoriteStarHtml(card.tcgdex_id) : ''}
                     </div>
                     ${!card.series_logo && card.tcgdex_id ? `
@@ -161,11 +161,11 @@ function renderCardDetail(cardId) {
                         </div>
                         <input type="file" id="modal-logo-upload-input" accept="image/*" style="display:none" onchange="handleModalSeriesLogoUpload(event, '${getSetIdFromTcgdexId(card.tcgdex_id)}', ${card.id})">
                     ` : ''}
-                    <div class="modal-subtitle">${card.series} · #${card.number}</div>
+                    <div class="modal-subtitle">${escapeHtml(card.series)} · #${escapeHtml(card.number)}</div>
 
                     <div class="modal-badges">
-                        <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${card.rarity || 'N/A'}</span>
-                        <span class="modal-pill condition-pill ${conditionClass}">${conditionLabel} (${card.condition})</span>
+                        <span class="modal-pill rarity-pill">${getRarityIconHtml(card.rarity, 14)} ${escapeHtml(card.rarity || 'N/A')}</span>
+                        <span class="modal-pill condition-pill ${escapeHtml(conditionClass)}">${escapeHtml(conditionLabel)} (${escapeHtml(card.condition)})</span>
                         ${renderFinishBadge(card.finish, 'modal-pill finish-pill', 14)}
                         <span class="modal-pill acquisition-pill">${isPack ? '<i class="ti ti-gift" aria-hidden="true"></i> Sortie d\'un booster' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i> Achetée'}</span>
                         ${!card.series_symbol && card.tcgdex_id ? `
@@ -521,16 +521,16 @@ async function showCardEditForm(cardId) {
             <div class="edit-form-title">Informations de collection</div>
             <div class="edit-form-subtitle">Modifiez les détails de votre exemplaire.</div>
             <div class="edit-form-breadcrumb">
-                ${card.series_logo ? `<img src="${card.series_logo}" class="edit-breadcrumb-logo" alt="" onerror="this.remove()">` : ''}
-                <span>${card.series}</span>
+                ${card.series_logo ? `<img src="${escapeHtml(card.series_logo)}" class="edit-breadcrumb-logo" alt="" onerror="this.remove()">` : ''}
+                <span>${escapeHtml(card.series)}</span>
                 <span class="edit-breadcrumb-dot">·</span>
-                <span>#${card.number}</span>
+                <span>#${escapeHtml(card.number)}</span>
             </div>
         </div>
         <div class="modal-body edit-form-body">
             <div class="modal-image-wrap">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${card.name}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
+                    ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="modal-image" onerror="this.outerHTML=getModalUploadPlaceholder(${card.id})">`
                     : getModalUploadPlaceholder(card.id)
                 }
                 <div class="edit-info-box">

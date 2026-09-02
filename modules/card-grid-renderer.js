@@ -154,19 +154,19 @@ function renderGridCardHtml(card, options) {
     return `
         <div class="collection-card${staggerClass}" data-card-id="${card.id}"${staggerStyle} onclick="${detailFn}(${card.id}, event)">
             ${card.image
-                ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=${fallbackCall}">`
+                ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=${fallbackCall}">`
                 : fallbackHtml
             }
             ${renderGridCardBadge(card, badgeMode)}
             <div class="price-badge">${formatPrice(lineTotal)}</div>
             <div class="set-rarity-badge-row">
-                ${card.series_symbol ? `<img src="${card.series_symbol}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
+                ${card.series_symbol ? `<img src="${escapeHtml(card.series_symbol)}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
                 ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
             </div>
             <div class="collection-card-overlay">
                 <div class="collection-card-name">${escapeHtml(card.name)}</div>
-                <div class="collection-card-set">${card.series_logo ? `<img src="${card.series_logo}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)} · #${card.number}</div>
-                <span class="condition-badge-grid ${conditionClass}">${card.condition}</span>
+                <div class="collection-card-set">${card.series_logo ? `<img src="${escapeHtml(card.series_logo)}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)} · #${escapeHtml(card.number)}</div>
+                <span class="condition-badge-grid ${escapeHtml(conditionClass)}">${escapeHtml(card.condition)}</span>
                 ${renderFinishBadge(card.finish, 'condition-badge-grid finish-badge', 12)}
                 ${acquisitionHtml}
             </div>
