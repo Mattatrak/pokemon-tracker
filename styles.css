@@ -2850,32 +2850,36 @@ button:disabled {
 }
 
 /* Or/info/violet : 3 teintes deja presentes ailleurs dans l'app (--gold, --info, WISHLIST_COLOR_PRESET
-   'purple' #C77DFF) plutot qu'un arc-en-ciel generique. color-dodge = comportement optique reel d'un
-   film holographique (n'ajoute de la couleur qu'aux zones deja claires de l'image en dessous). */
+   'purple' #C77DFF) plutot qu'un arc-en-ciel generique. soft-light (pas color-dodge, trop agressif -
+   retour utilisateur 2026-09 : "la couleur du holo denature un peu trop les cartes", color-dodge
+   eclaircissait fort les zones deja claires de l'illustration, jusqu'a laver les couleurs reelles de
+   la carte) : teinte la surface sans la faire exploser en luminosite. Alphas et opacite finale revus
+   nettement a la baisse pour la meme raison - un accent qui suit le curseur, pas un filtre qui
+   remplace les couleurs de la carte. */
 .collection-card-holo-sheen {
     background: radial-gradient(
         circle at var(--holo-x, 50%) var(--holo-y, 50%),
-        rgba(232,169,59,0.5) 0%,
-        rgba(107,203,255,0.35) 25%,
-        rgba(199,125,255,0.4) 50%,
+        rgba(232,169,59,0.22) 0%,
+        rgba(107,203,255,0.15) 25%,
+        rgba(199,125,255,0.18) 50%,
         transparent 75%
     );
-    mix-blend-mode: color-dodge;
+    mix-blend-mode: soft-light;
 }
 
 .collection-card-holo-glare {
-    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.3) var(--holo-glare, 50%), transparent 60%);
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.22) var(--holo-glare, 50%), transparent 60%);
     mix-blend-mode: overlay;
 }
 
 /* Sans le prefixe .collection-card-holo : reutilise aussi par .modal-image-holo (fiche detail,
    card-detail.js) - meme mecanique de calques, contexte hote different. */
 .is-holo-active .collection-card-holo-sheen {
-    opacity: 0.85;
+    opacity: 0.55;
 }
 
 .is-holo-active .collection-card-holo-glare {
-    opacity: 0.6;
+    opacity: 0.4;
 }
 
 @media (prefers-reduced-motion: reduce), (hover: none) {
