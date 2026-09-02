@@ -160,6 +160,7 @@ function escapeHtml(str) {
 
 function showMessage(text, type = 'error') {
     const container = document.getElementById('message-container');
+    if (!container) return; // absent sur login.html - cf filet unhandledrejection plus bas, partagé par les deux pages
     const div = document.createElement('div');
     div.className = `message ${type}`;
     const icon = type === 'success' ? 'ti-circle-check' : 'ti-alert-circle';
@@ -172,6 +173,21 @@ function showMessage(text, type = 'error') {
         setTimeout(() => div.remove(), 300); // filet de sécurité si transitionend ne se déclenche pas
     }, 3000);
 }
+
+// Filet de securite final (audit senior 2026-09, "echecs silencieux sur actions async") : la
+// quasi-totalite des actions utilisateur (supprimer/modifier/ajouter une carte, une liste de
+// souhaits...) sont declenchees depuis des onclick="" inline sur des fonctions async. Le chemin
+// d'erreur evident (l'appel Supabase lui-meme) est deja gere localement (showMessage + console.error)
+// partout ou ca compte, mais rien n'attrapait jusqu'ici une exception survenant APRES - dans la
+// reconciliation des stats mensuelles, un rafraichissement, un re-rendu... Sentry (error-tracking.js)
+// captait deja ces rejets pour le suivi, mais l'utilisateur, lui, ne voyait absolument rien : au
+// mieux un bouton reste bloque, au pire une action semble n'avoir rien fait. Filet generique plutot
+// qu'auditer un par un chaque site d'appel (~90 fonctions async dans le projet, la plupart de simples
+// utilitaires jamais invoques depuis un onclick).
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Promesse rejetée non gérée :', event.reason);
+    showMessage("Une erreur inattendue s'est produite. Réessaie, et recharge la page si le problème persiste.", 'error');
+});
 
 // Validation avant upload Storage (taille + type réel du fichier, pas juste l'attribut HTML
 // accept="image/*" qui ne protège rien côté client). Appelée uniquement sur les File venant d'un

@@ -400,23 +400,31 @@ async function deleteCard(id) {
         return;
     }
 
-    // Réconcilier l'historique mensuel : une carte supprimée ne doit plus compter dans
-    // "cartes ajoutées"/"valeur ajoutée" du mois où elle avait été enregistrée (même logique
-    // que la réconciliation lors d'une édition, cf. modules/card-detail.js).
-    if (card && card.created_at) {
-        const addedDate = new Date(card.created_at);
-        const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
-        const qty = Number(card.quantity || 1);
-        await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
-    }
+    // La suppression elle-même a réussi (ci-dessus) : si la suite échoue, la carte reste supprimée
+    // côté serveur mais la grille locale (allCollectionCards) resterait périmée sans le moindre
+    // avertissement (retour d'audit 2026-09, "échecs silencieux sur actions async").
+    try {
+        // Réconcilier l'historique mensuel : une carte supprimée ne doit plus compter dans
+        // "cartes ajoutées"/"valeur ajoutée" du mois où elle avait été enregistrée (même logique
+        // que la réconciliation lors d'une édition, cf. modules/card-detail.js).
+        if (card && card.created_at) {
+            const addedDate = new Date(card.created_at);
+            const monthKey = `${addedDate.getFullYear()}-${String(addedDate.getMonth() + 1).padStart(2, '0')}`;
+            const qty = Number(card.quantity || 1);
+            await adjustMonthlyStatsAmount(monthKey, -qty, -(Number(card.purchase_price || 0) * qty), -(Number(card.market_value || 0) * qty));
+        }
 
-    await refreshCollection();
-    await recordValueSnapshot();
+        await refreshCollection();
+        await recordValueSnapshot();
 
-    // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
-    const progressionSetView = document.getElementById('progression-set-view');
-    if (progressionSetView && progressionSetView.style.display === 'block') {
-        renderProgressionCardsGrid();
+        // Si la grille de Progression est ouverte derrière la fenêtre, la rafraîchir aussi
+        const progressionSetView = document.getElementById('progression-set-view');
+        if (progressionSetView && progressionSetView.style.display === 'block') {
+            renderProgressionCardsGrid();
+        }
+    } catch (error) {
+        console.error(error);
+        showMessage('Carte supprimée, mais une erreur est survenue juste après (rafraîchissement) - recharge la page pour être sûr que tout est à jour.', 'error');
     }
 }
 
