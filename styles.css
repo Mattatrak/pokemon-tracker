@@ -2811,6 +2811,15 @@ button:disabled {
     transform: scale(1.05);
 }
 
+/* La carte holo applique deja son propre scale(1.05) au niveau du CONTENEUR (initHoloGridEffect,
+   card-grid-renderer.js) - sans ce filet, l'image zoomait EN PLUS a l'interieur d'une carte deja
+   inclinee/agrandie, brouillant completement l'effet (retour utilisateur : "je vois toujours
+   l'ancienne animation (zoom)" - c'est bien cette regle-la qu'on voyait, pas un bug de l'inclinaison
+   elle-meme). */
+.collection-card-holo:hover img {
+    transform: none;
+}
+
 /* ===== Survol holographique (retour utilisateur 2026-09, mockup "Carte Holographique" valide) =====
    Galerie Collection uniquement (holoEffect, card-grid-renderer.js) : incline la carte et fait suivre
    un reflet prismatique au curseur (--holo-x/--holo-y/--holo-glare poses par initHoloGridEffect,
