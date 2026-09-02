@@ -1180,3 +1180,7 @@ window.showAddCardModal = showAddCardModal;
 window.openWishlistPickerForProgressionCard = openWishlistPickerForProgressionCard;
 window.toggleQuickAddPurchasePriceField = toggleQuickAddPurchasePriceField;
 window.submitQuickAdd = submitQuickAdd;
+
+// Export pour les tests unitaires (Vitest, cf vitest.config.js) uniquement - voir le commentaire
+// équivalent en fin de modules/utils.js : purement additif, aucun effet sur le comportement navigateur.
+export { computeSetCompletionBudget };

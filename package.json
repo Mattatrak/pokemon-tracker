@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "check-release": "node scripts/check-release.js",
     "dev": "vite",
     "build": "vite build && node scripts/build-sw.js",
@@ -16,6 +17,8 @@
   "type": "commonjs",
   "devDependencies": {
     "http-server": "^14.1.1",
-    "vite": "8.2.1"
+    "jsdom": "^30.0.1",
+    "vite": "8.2.1",
+    "vitest": "^4.1.11"
   }
 }
