@@ -3396,6 +3396,14 @@ tbody tr:hover {
    (app-empty-*, ex-wishlist-empty-*) pour être réutilisé par Collection/Progression/Collectionneurs
    sans dupliquer ces règles. */
 .app-empty-state {
+    /* grid-column: sans effet dans un parent flex/block (Progression/Souhaits/Collecteurs), mais
+       indispensable dans un parent grid (#collection-grid) : sinon ce bloc n'occupe qu'UNE colonne
+       de la grille (largeur ~190px) et se retrouve plaque en haut a gauche au lieu de centre sur
+       toute la largeur - retour utilisateur avec capture d'ecran, 2026-09. Meme filet deja pose sur
+       .collection-grid-empty/.catalogue-search-empty pour la meme raison, generalise ici a la base
+       plutot que de le repeter a chaque nouveau contexte grid qui reutilise ce composant. */
+    grid-column: 1 / -1;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
