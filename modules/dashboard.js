@@ -606,7 +606,7 @@ function renderDashboardAcquisitions() {
         <div class="dashboard-acquisition-card" data-card-id="${c.id}" onclick="showCardDetail(${c.id}, event)">
             <div class="dashboard-acquisition-card-img-wrap">
                 ${c.image
-                    ? `<img src="${c.image}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'">`
+                    ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'">`
                     : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
             </div>
@@ -615,6 +615,20 @@ function renderDashboardAcquisitions() {
             <div class="dashboard-acquisition-time">${dashboardRelativeTime(c.created_at)}</div>
         </div>
     `).join('')}</div>`;
+
+    // Fondu de bord (retour utilisateur design 2026-09, "le carrousel coupe les cartes sans indice
+    // visuel qu'on peut glisser") : uniquement si le contenu deborde reellement - inutile et etrange
+    // visuellement quand les quelques cartes tiennent deja entierement dans le widget. Recalcule a
+    // chaque scroll (pas juste au rendu) pour retirer le fondu droit une fois arrive au bout, et
+    // ajouter un fondu gauche symetrique des qu'on s'est deplace du debut.
+    const scroller = el.querySelector('.dashboard-acquisitions-scroll');
+    const updateEdgeFade = () => {
+        const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+        scroller.classList.toggle('has-more-right', maxScroll > 1 && scroller.scrollLeft < maxScroll - 1);
+        scroller.classList.toggle('has-more-left', scroller.scrollLeft > 1);
+    };
+    updateEdgeFade();
+    scroller.addEventListener('scroll', updateEdgeFade, { passive: true });
 }
 
 // ===== A FAIRE AUJOURD'HUI =====

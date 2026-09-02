@@ -9924,6 +9924,33 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin: 0 -0.75rem;
     background: rgba(255,255,255,0.02);
     border-radius: 8px;
+    transition: mask-image 0.15s ease, -webkit-mask-image 0.15s ease;
+}
+
+/* Fondu de bord signalant qu'il y a d'autres cartes a glisser (retour utilisateur design 2026-09,
+   "le carrousel coupe les cartes sans indice visuel") - classes posees/retirees par JS uniquement
+   quand le contenu deborde reellement (cf renderDashboardAcquisitions, modules/dashboard.js). Les
+   deux cotes peuvent etre actifs en meme temps (position intermediaire du scroll), d'ou deux
+   gradients combines plutot qu'un seul mask-image ecrasant l'autre. */
+.dashboard-acquisitions-scroll.has-more-right {
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+}
+
+.dashboard-acquisitions-scroll.has-more-left {
+    -webkit-mask-image: linear-gradient(to left, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to left, black calc(100% - 28px), transparent 100%);
+}
+
+.dashboard-acquisitions-scroll.has-more-left.has-more-right {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-acquisitions-scroll {
+        transition: none;
+    }
 }
 
 .dashboard-acquisition-card {
