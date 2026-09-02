@@ -1366,6 +1366,42 @@ body::before {
     background-repeat: repeat;
 }
 
+/* Parallax léger au scroll sur les 7 heroes illustrés (mêmes 6 que le grain ci-dessus + .collectors-hero,
+   partagé Collecteurs/profil public) : le fond dérive doucement vers le bas pendant que la carte défile
+   hors champ, le texte/les KPI (enfants positionnés, jamais affectés par background-position) restent
+   parfaitement immobiles. Anime background-position (paint, pas composité) plutôt qu'un transform sur le
+   conteneur - la seule option qui isole le mouvement au fond sans réorganiser le HTML de chaque hero ;
+   acceptable ici car un seul élément par page (jamais une liste), borné par overflow:hidden.
+   animation-timeline: scroll() est nativement lié au défilement (pas de listener JS) - @supports en
+   repli silencieux sur les navigateurs sans le support, prefers-reduced-motion explicite en plus du
+   filet global (une timeline liée au scroll n'a pas de "durée" classique que ce filet neutralise).
+   .dashboard-hero/.catalogue-hero/.collectors-hero n'ont pas d'animation d'entrée propre (contenues
+   dans un .tab-content qui fondu déjà en entier) : la liste seule suffit ici. Progression/Collection/
+   Statistiques/Wishlist, elles, superposent déjà tab-content-fade-in sur ce même hero (cf plus bas,
+   body.page-X .X-hero) - le parallax y est ajouté en 2e position de la même liste `animation`, jamais
+   en réécrivant cette règle plus spécifique. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        .dashboard-hero,
+        .catalogue-hero,
+        .collectors-hero {
+            animation: hero-parallax-center linear both;
+            animation-timeline: scroll(root block);
+            animation-range: cover 0% cover 65%;
+        }
+    }
+}
+
+@keyframes hero-parallax-center {
+    from { background-position: center 50%; }
+    to   { background-position: center 58%; }
+}
+
+@keyframes hero-parallax-progression {
+    from { background-position: center 35%; }
+    to   { background-position: center 43%; }
+}
+
 .catalogue-hero-stage {
     position: relative;
     z-index: 1;
@@ -8535,6 +8571,18 @@ body.page-progression .progression-atlas-hero {
     margin-bottom: 2rem;
 }
 
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-progression .progression-atlas-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-progression linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
+}
+
 .progression-atlas-hero-content {
     position: relative;
     z-index: 1;
@@ -8603,6 +8651,18 @@ body.page-collection .collection-atlas-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
+}
+
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-collection .collection-atlas-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-center linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
 }
 
 .collection-atlas-hero-content {
@@ -8766,6 +8826,18 @@ body.page-statistics .stats-hero {
     margin-bottom: 2rem;
 }
 
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-statistics .stats-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-center linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
+}
+
 .stats-hero-content {
     position: relative;
     z-index: 1;
@@ -8850,6 +8922,18 @@ body.page-wishlist .wishlist-hero {
         0 30px 70px -20px rgba(0,0,0,0.55),
         0 10px 30px rgba(0,0,0,0.35);
     margin-bottom: 2rem;
+}
+
+/* Parallax (cf. bloc partagé ~ligne 1345) ajouté en 2e position de la liste `animation` ci-dessus,
+   jamais en la réécrivant : même sélecteur/spécificité, placé après pour gagner le cascade. */
+@media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+        body.page-wishlist .wishlist-hero {
+            animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out, hero-parallax-center linear both;
+            animation-timeline: auto, scroll(root block);
+            animation-range: normal, cover 0% cover 65%;
+        }
+    }
 }
 
 .wishlist-hero-content {
