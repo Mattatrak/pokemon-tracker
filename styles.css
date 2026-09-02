@@ -9261,7 +9261,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 1.1rem;
 }
 
 .dashboard-hero-greeting-name {
@@ -9269,12 +9269,42 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-size: 1.15em;
 }
 
+/* "Fiche d'expertise" plutôt que libellé de KPI SaaS (audit visuel, piste embellissement 2026-09-02) :
+   Inter italique au lieu d'Inter majuscule droit - reste dans les deux polices déjà utilisées
+   partout sur le site (Inter/Bebas Neue), pas de troisième police pour un simple accent
+   (retour utilisateur : une serif d'appoint détonnait avec le reste). */
 .dashboard-hero-label {
-    color: #B7C0D6;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.45rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-style: italic;
+    font-weight: 500;
+    color: #c9a468;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+}
+
+.dashboard-hero-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-hero-stamp {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--slate);
+    border-left: 1px solid rgba(227,169,132,0.35);
+    padding-left: 0.7rem;
+    margin-bottom: 0.3rem;
+}
+
+.dashboard-hero-rule {
+    height: 1px;
+    max-width: 320px;
+    margin: 0.75rem 0 0.6rem;
+    background: linear-gradient(90deg, rgba(227,188,132,0.5), transparent);
 }
 
 /* Degrade blanc -> parchemin -> or (avant : blanc -> lavande -> violet, hors charte - le plus gros
@@ -9308,15 +9338,6 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-hero-variation.dashboard-positive { background: rgba(126,217,167,0.12); border: 1px solid rgba(126,217,167,0.35); color: var(--positive); }
 .dashboard-hero-variation.dashboard-negative { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: var(--negative); }
 .dashboard-hero-variation.dashboard-neutral { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: var(--slate); }
-
-.dashboard-hero-last-refresh {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.75rem;
-    color: #8A93A6;
-    margin-top: 0.5rem;
-}
 
 /* Bouton "Reorganiser" (passe personnalisation 2026-09) : place ici plutot que dans
    .dashboard-header-actions, qui est masque en CSS sur cette page (body.page-dashboard

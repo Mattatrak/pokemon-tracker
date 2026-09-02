@@ -231,12 +231,21 @@ function dashboardGetLastMovers() {
 function renderDashboardHero() {
     const el = document.getElementById('dashboard-hero');
     const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+    // Même calcul que dashboard-kpi-cards (renderDashboardKpis) - le nombre cité dans le
+    // "tampon d'estimation" doit toujours correspondre à celui du KPI juste en dessous.
+    const totalCards = allCollectionCards.reduce((sum, c) => sum + Number(c.quantity || 1), 0);
 
-    // Info de mise à jour des prix
+    // Piste "fiche d'expertise" (audit visuel, 2026-09-02) : la date de mise à jour des prix et le
+    // nombre de cartes deviennent un tampon d'estimation à droite du chiffre plutôt qu'une ligne
+    // perdue en bas de carte - remplace l'ancien lastRefreshHtml séparé.
     const lastRefresh = localStorage.getItem('lastPriceRefresh');
-    const lastRefreshHtml = lastRefresh
-        ? `<div class="dashboard-hero-last-refresh"><i class="ti ti-refresh" aria-hidden="true"></i> Prix mis à jour le ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`
-        : '';
+    const stampDate = lastRefresh ? new Date(lastRefresh).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : null;
+    const stampHtml = `
+        <div class="dashboard-hero-stamp">
+            Établie sur ${totalCards} carte${totalCards > 1 ? 's' : ''}<br>
+            Cardmarket${stampDate ? `, ${stampDate}` : ''}
+        </div>
+    `;
 
     // Variation sur 7 jours : placeholder rempli après coup par dashboardUpdateHeroVariation (prix
     // marché uniquement, cf. computeMarketFluctuation dans stats.js — ne bouge pas avec les
@@ -254,10 +263,15 @@ function renderDashboardHero() {
 
         <div class="dashboard-hero-summary">
             ${typeof currentUserProfile !== 'undefined' && currentUserProfile?.pseudo ? `<div class="dashboard-hero-greeting">Bonjour <span class="dashboard-hero-greeting-name">${escapeHtml(currentUserProfile.pseudo)}</span></div>` : ''}
-            <div class="dashboard-hero-label">Valeur totale de la collection</div>
-            <div class="dashboard-hero-value">${formatPrice(totalValue)}</div>
+            <div class="dashboard-hero-row">
+                <div>
+                    <div class="dashboard-hero-label">Estimation actuelle</div>
+                    <div class="dashboard-hero-value">${formatPrice(totalValue)}</div>
+                </div>
+                ${stampHtml}
+            </div>
+            <div class="dashboard-hero-rule"></div>
             ${variationHtml}
-            ${lastRefreshHtml}
         </div>
 
         <div class="dashboard-kpis" id="dashboard-kpis">
@@ -621,9 +635,12 @@ function renderDashboardTodo() {
     const el = document.getElementById('dashboard-todo-body');
     const items = [];
 
+    // Heure incluse (pas seulement la date) : reprend l'info qui vivait dans le hero avant la piste
+    // "fiche d'expertise" (2026-09-02, ne gardait qu'une date courte JJ/MM dans le tampon) - demandée
+    // par l'utilisateur pour ne pas perdre l'heure exacte du dernier rafraîchissement.
     const lastRefresh = localStorage.getItem('lastPriceRefresh');
     const lastRefreshText = lastRefresh
-        ? `Dernière mise à jour : ${new Date(lastRefresh).toLocaleDateString('fr-FR')}`
+        ? `Dernière mise à jour : ${new Date(lastRefresh).toLocaleDateString('fr-FR')} à ${new Date(lastRefresh).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
         : 'Jamais rafraîchi';
     items.push(`
         <div class="dashboard-todo-row" onclick="refreshAllMarketPrices()">
