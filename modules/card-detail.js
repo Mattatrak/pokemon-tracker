@@ -866,6 +866,7 @@ async function handleCollectionImageUpload(event, cardId) {
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.showCardDetail = showCardDetail;
 window.navigateCardDetail = navigateCardDetail;
+window.initHoloDetailEffect = initHoloDetailEffect;
 window.cardPriceChartInstance = cardPriceChartInstance;
 window.cardPriceChartData = cardPriceChartData;
 window.renderCardPriceChart = renderCardPriceChart;
