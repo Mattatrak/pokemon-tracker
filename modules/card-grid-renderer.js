@@ -210,11 +210,17 @@ function initHoloGridEffect(container) {
     if (!window.matchMedia('(hover: hover)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     container.dataset.holoBound = 'true';
 
-    const TILT_MAX_DEG = 10; // plus discret que le mockup (22°) : ces cartes restent cliquables au milieu d'une grille dense, un tilt trop marque genererait la lecture du nom/prix au survol
+    const TILT_MAX_DEG = 16; // remonte de 10 a 16 (retour utilisateur : "l'inclinaison ne fonctionne pas sur la galerie") - une carte de 190px traversee par un mouvement de souris normal ne laisse que quelques dizaines de ms de survol reel par carte, un angle trop discret n'a pas le temps de se voir
 
     container.addEventListener('mousemove', (e) => {
         const card = e.target.closest('.collection-card-holo');
         if (!card) return;
+        // Transition rapide pendant le suivi (posee ici, pas dans le CSS de base) : la transition
+        // lente de "retour au neutre" (mouseout ci-dessous) restait active pendant tout le survol, et
+        // se relançait a chaque mousemove sans jamais rattraper sa cible sur une petite carte traversee
+        // en un mouvement de souris rapide - la carte semblait immobile alors que la logique tournait
+        // bien (verifie : transform recalcule correctement a chaque event, juste jamais rendu a temps).
+        card.style.transition = 'transform 0.12s ease-out';
         const rect = card.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const y = (e.clientY - rect.top) / rect.height;
@@ -223,7 +229,7 @@ function initHoloGridEffect(container) {
         // translateY(-3px) reprend la meme elevation que .collection-card:hover (styles.css) - sans
         // elle, cet inline style (qui gagne toujours sur la regle :hover) supprimerait l'elevation
         // existante des que la souris bouge, pas seulement l'angle.
-        card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px) scale(1.03)`;
+        card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px) scale(1.05)`;
         card.style.setProperty('--holo-x', `${x * 100}%`);
         card.style.setProperty('--holo-y', `${y * 100}%`);
         card.style.setProperty('--holo-glare', `${x * 100}%`);
@@ -233,6 +239,9 @@ function initHoloGridEffect(container) {
     container.addEventListener('mouseout', (e) => {
         const card = e.target.closest('.collection-card-holo');
         if (!card || card.contains(e.relatedTarget)) return;
+        // Transition lente seulement ici, au relachement (cf commentaire ci-dessus) : donne l'impression
+        // d'une carte qui "retombe" doucement, contrairement au suivi qui doit rester instantane.
+        card.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
         card.style.transform = '';
         card.classList.remove('is-holo-active');
     });

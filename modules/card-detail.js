@@ -91,9 +91,14 @@ function initHoloDetailEffect(el) {
     if (!el) return;
     if (!window.matchMedia('(hover: hover)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const TILT_MAX_DEG = 12; // legerement plus marque que la grille (10°) : une seule carte a la fois, en grand, supporte un angle plus visible sans gener la lecture
+    const TILT_MAX_DEG = 16; // aligne sur la grille (retour utilisateur 2026-09) - marge conservee sur une carte en grand, mais coherent
 
     el.addEventListener('mousemove', (e) => {
+        // Transition rapide pendant le suivi, lente seulement au relachement (mouseleave ci-dessous) -
+        // meme correction que la grille (card-grid-renderer.js) : une seule transition lente pour les
+        // deux phases fait "rater" sa cible sur un mouvement de souris rapide, la carte parait figee
+        // alors que le calcul tourne bien.
+        el.style.transition = 'transform 0.12s ease-out';
         const rect = el.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const y = (e.clientY - rect.top) / rect.height;
@@ -107,6 +112,7 @@ function initHoloDetailEffect(el) {
     });
 
     el.addEventListener('mouseleave', () => {
+        el.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
         el.style.transform = '';
         el.classList.remove('is-holo-active');
     });

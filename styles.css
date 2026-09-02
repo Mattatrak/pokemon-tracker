@@ -2817,6 +2817,11 @@ button:disabled {
    card-grid-renderer.js), remplace le sheen diagonal existant (::after ci-dessus) qui reste, lui,
    inchange partout ou l'effet n'est pas actif (Classeur, grilles publiques). */
 .collection-card-holo {
+    /* transform : valeur de repli avant le tout premier mousemove seulement - initHoloGridEffect
+       (card-grid-renderer.js) pose ensuite sa propre transition inline a chaque event (rapide pendant
+       le suivi, lente au relachement) et la gagne toujours. Une seule duree fixe ici causait un effet
+       immobile sur une carte traversee rapidement : la transition (re)partait de zero a chaque
+       mousemove sans jamais rattraper sa cible avant le mouseout suivant (retour utilisateur 2026-09). */
     transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow var(--motion-duration-fast) ease-out, border-color var(--motion-duration-fast) ease-out;
     transform-style: preserve-3d;
 }
