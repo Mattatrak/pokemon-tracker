@@ -9503,22 +9503,24 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 /* Retour utilisateur (2026-09-02) : les 6 widgets se fondaient trop dans le fond de page - fond
    rgba(26,26,30,X) presque identique à --bg #131313 (delta de luminosité minime), contour neutre
    quasi invisible. Pas de contour doré ici (cf .kpi-plaque plus haut : déjà tenté, jugé trop chargé
-   sur un composant répété plusieurs fois par page) - la séparation vient plutôt d'un fond plus clair
-   et plus opaque (--panel-light au lieu d'un gris presque noir), d'un contour neutre plus marqué, et
-   d'une ombre qui porte plus loin pour un vrai effet de "plaque détachée du fond" plutôt que posée dessus. */
+   sur un composant répété plusieurs fois par page). Premier essai (fond très clair + contour à 0.13 +
+   ombre appuyée) jugé too much en comparant côte à côte avec la version déployée - lisait comme une
+   grille de widgets SaaS générique plutôt que garder l'ambiance feutrée du reste du site. Redescendu
+   à mi-chemin : la séparation vient surtout de l'ombre (plus portée qu'avant, effet "détaché du fond"
+   sans bord visible dur) plutôt que du contour, qui ne bouge presque pas. */
 .dashboard-widget {
     position: relative;
     overflow: hidden;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 40%),
-        rgba(32,32,36,0.6);
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%),
+        rgba(28,28,32,0.45);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.095);
     border-radius: 14px;
     padding: 1.4rem;
     min-width: 0;
-    box-shadow: 0 18px 40px -16px rgba(0,0,0,0.65);
+    box-shadow: 0 16px 34px -16px rgba(0,0,0,0.6);
     animation: motion-enter var(--motion-duration-emphasized) var(--motion-ease-enter) both;
     animation-delay: calc(var(--motion-stagger-normal) * 3);
     transition:
