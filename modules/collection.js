@@ -606,6 +606,11 @@ function getFilteredSortedCollection() {
 
 const COLLECTION_PAGE_SIZE = 60;
 let collectionDisplayLimit = COLLECTION_PAGE_SIZE;
+// "Charger plus" ne doit ajouter que les nouvelles cartes, jamais rejouer l'entrée sur les cartes déjà
+// affichées (cf replayEntrance) : ça faisait clignoter toute la grille/le tableau en noir à chaque clic
+// (le conteneur entier repassait par opacity:0 avant de refondre). Positionné juste avant l'appel à
+// renderFilteredCollection() puis consommé et remis à false dans la même passe synchrone.
+let isLoadMoreRender = false;
 
 // Sélection multiple (édition en masse, vue Tableau)
 let selectedCardIds = new Set();
@@ -885,6 +890,7 @@ function filterAndDisplayReorder() {
 
 function loadMoreCollectionCards() {
     collectionDisplayLimit += COLLECTION_PAGE_SIZE;
+    isLoadMoreRender = true;
     renderFilteredCollection();
 }
 
@@ -997,6 +1003,10 @@ function renderCollectionHeaderKpis(filtered) {
 }
 
 function renderFilteredCollection() {
+    // Consommé immédiatement : ne doit s'appliquer qu'à cette passe de rendu, jamais à un appel suivant.
+    const isLoadMore = isLoadMoreRender;
+    isLoadMoreRender = false;
+
     const filtered = getFilteredSortedCollection();
     const page = filtered.slice(0, collectionDisplayLimit);
     // Anticipe le "Charger plus" : précharge les images de la page suivante pendant que celle-ci
@@ -1017,7 +1027,7 @@ function renderFilteredCollection() {
     updateCollectionSummary(filtered, page);
 
     if (effectiveMode === 'table') {
-        renderCollectionTable(page);
+        renderCollectionTable(page, isLoadMore);
     } else if (effectiveMode === 'binder') {
         // Le classeur reçoit filtered en entier (pas page/collectionDisplayLimit) : sa pagination par
         // double-page (binder-view.js) est indépendante du "Charger plus" de Galerie/Tableau.
@@ -1029,7 +1039,7 @@ function renderFilteredCollection() {
         // ce n'est pas exploité ici.
         renderCollectionRecap(filtered);
     } else {
-        renderCollectionGrid(page);
+        renderCollectionGrid(page, isLoadMore);
     }
 
     // Le classeur gère sa propre pagination (précédent/suivant), le Récap n'affiche pas de liste de
@@ -1048,7 +1058,7 @@ function renderFilteredCollection() {
     }
 }
 
-function renderCollectionTable(filtered) {
+function renderCollectionTable(filtered, isLoadMore) {
     const tbody = document.getElementById('cards-list');
     const tableWrapper = document.getElementById('collection-table-wrapper');
 
@@ -1069,7 +1079,24 @@ function renderCollectionTable(filtered) {
         return;
     }
 
-    tbody.innerHTML = filtered.map(card => {
+    // "Charger plus" : les lignes déjà affichées restent en place (pas de rebuild, pas de replayEntrance
+    // sur tout le tableau - même flash noir que la Galerie sinon). Seules les lignes nouvellement
+    // révélées sont ajoutées.
+    if (isLoadMore) {
+        const alreadyRendered = tbody.children.length;
+        const newCards = filtered.slice(alreadyRendered);
+        tbody.insertAdjacentHTML('beforeend', newCards.map(renderCollectionTableRowHtml).join(''));
+        updateSelectAllCheckboxState();
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(renderCollectionTableRowHtml).join('');
+
+    updateSelectAllCheckboxState();
+    replayEntrance(tableWrapper);
+}
+
+function renderCollectionTableRowHtml(card) {
         const qty = Number(card.quantity || 1);
         const lineTotal = Number(card.market_value || 0) * qty;
         const acquisitionIcon = card.acquisition_type === 'pack' ? '<i class="ti ti-gift" aria-hidden="true"></i>' : '<i class="ti ti-shopping-bag" aria-hidden="true"></i>';
@@ -1103,10 +1130,6 @@ function renderCollectionTable(filtered) {
             </td>
         </tr>
     `;
-    }).join('');
-
-    updateSelectAllCheckboxState();
-    replayEntrance(tableWrapper);
 }
 
 // État "vraiment vide" partagé Galerie/Tableau (aucune carte en collection, pas un filtre sans
@@ -1136,7 +1159,7 @@ function replayEntrance(el) {
     el.classList.add('motion-enter');
 }
 
-function renderCollectionGrid(filtered) {
+function renderCollectionGrid(filtered, isLoadMore) {
     const grid = document.getElementById('collection-grid');
     if (!grid) return;
 
@@ -1146,6 +1169,21 @@ function renderCollectionGrid(filtered) {
         grid.innerHTML = allCollectionCards.length === 0 ? getCollectionEmptyStateHtml() :
             '<div class="collection-grid-empty"><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</div>';
         replayEntrance(grid);
+        return;
+    }
+
+    // "Charger plus" : les cartes déjà affichées restent en place (pas de rebuild, pas de replayEntrance
+    // sur tout le conteneur - ça faisait passer toute la grille par opacity:0, d'où le flash noir signalé).
+    // Seules les cartes nouvellement révélées sont ajoutées, avec leur propre entrée en cascade.
+    if (isLoadMore) {
+        const alreadyRendered = grid.children.length;
+        const newCards = filtered.slice(alreadyRendered);
+        grid.insertAdjacentHTML('beforeend', newCards.map((card, i) => renderGridCardHtml(card, {
+            detailFn: 'showCardDetail',
+            imageFallback: 'upload',
+            showAcquisitionIcon: true,
+            staggerIndex: i
+        })).join(''));
         return;
     }
 
