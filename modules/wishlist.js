@@ -51,7 +51,27 @@ window.wishlistLastLoadedAt = 0;
 // quand ce n'est pas necessaire - zero rebuild = zero repaint possible, quelle qu'en soit la cause.
 let wishlistLastRenderedSignature = null;
 
-async function loadWishlists() {
+// Serialise les appels concurrents (audit senior 2026-09, "race sur loadWishlists") : pull-to-refresh,
+// changement d'onglet et une mutation (deleteWishlistItem, moveWishlistItem...) peuvent tous appeler
+// loadWishlists() à quelques ms d'intervalle. Sans verrou, deux Promise.all() en vol en même temps se
+// résolvent dans un ordre non garanti par le réseau - le plus lent écrase l'état (potentiellement plus
+// récent, si sa propre écriture vient tout juste d'être commit) posé par le plus rapide, perte
+// silencieuse d'une mutation. Une simple queue de profondeur 1 (chaque appel attend que le précédent
+// soit terminé avant de lancer son propre fetch) plutôt qu'un verrou "laisser tomber si déjà en cours"
+// (cf quantityChangeInProgress, tracker.js) : plusieurs appelants font un `await loadWishlists()`
+// juste après leur propre écriture et ont besoin d'un vrai rechargement frais, pas d'un résultat
+// partagé potentiellement antérieur à leur propre mutation.
+let wishlistLoadChain = Promise.resolve();
+
+function loadWishlists() {
+    const run = wishlistLoadChain.then(() => loadWishlistsSequenced());
+    // Un échec dans un maillon ne doit jamais bloquer la chaîne pour les appels suivants - chaque
+    // appelant gère déjà ses propres erreurs (aucun try/catch nécessaire ici).
+    wishlistLoadChain = run.catch(() => {});
+    return run;
+}
+
+async function loadWishlistsSequenced() {
     const [wishlistsRes, itemsRes] = await Promise.all([
         supabaseClient.from('wishlists').select('*').order('created_at', { ascending: true }),
         supabaseClient.from('wishlist').select('*').order('created_at', { ascending: false })
