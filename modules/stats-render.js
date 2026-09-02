@@ -106,21 +106,23 @@ async function renderStatsCharts() {
             loadSeriesProgress().then(renderStatsOverview);
         }
 
-        renderStatsKpis();
-        renderStatsOverview();
+        // runSafe (utils.js) isole chaque section : avant, une exception dans un graphique
+        // interrompait toute la suite de la sequence (les sections suivantes ne se rendaient jamais).
+        runSafe(renderStatsKpis, 'stats-kpis');
+        runSafe(renderStatsOverview, 'stats-overview');
         await loadMonthlySummaryOptions();
         await renderMonthlySummary();
         await renderStxTimeline();
-        renderRarityChart();
-        renderTypeBarlist();
-        renderExtBarlist();
-        renderSeriesValueChart();
-        renderStxTopMovers();
-        renderStatsHabits();
-        renderStatsRecords();
+        runSafe(renderRarityChart, 'rarity-chart');
+        runSafe(renderTypeBarlist, 'type-barlist');
+        runSafe(renderExtBarlist, 'ext-barlist');
+        runSafe(renderSeriesValueChart, 'series-value-chart');
+        runSafe(renderStxTopMovers, 'stx-top-movers');
+        runSafe(renderStatsHabits, 'stats-habits');
+        runSafe(renderStatsRecords, 'stats-records');
         await loadValueHistoryData();
-        renderValueHistoryChart();
-        renderPriceMovers();
+        runSafe(renderValueHistoryChart, 'value-history-chart');
+        runSafe(renderPriceMovers, 'price-movers');
 
         if (statsRenderVersion === versionAtStart) {
             statsNeedsRefresh = false;
