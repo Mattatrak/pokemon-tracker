@@ -110,14 +110,19 @@ function catalogueSearchNoResultsHtml(search) {
     `;
 }
 
-async function searchCards() {
+// recordHistory=false pour la recherche automatique "au fil de la frappe" (tracker.js, debounce sur
+// l'input) : sinon chaque fragment tape ("s", "st", "sta"...) se retrouvait enregistre comme une
+// recherche a part entiere des que l'utilisateur marquait une pause de 350ms, polluant "Recherches
+// recentes" de bouts de mots (retour utilisateur avec capture d'ecran, 2026-09). Seule une recherche
+// deliberement validee (Entree, bouton Rechercher, clic sur une suggestion/illustrateur) doit compter.
+async function searchCards({ recordHistory = true } = {}) {
     const search = document.getElementById('card-search').value.trim();
     if (!search) {
         showMessage('Veuillez entrer un nom, une série, un numéro ou un illustrateur', 'error');
         return;
     }
 
-    recordRecentCatalogueSearch(search);
+    if (recordHistory) recordRecentCatalogueSearch(search);
 
     const myRequestId = ++searchRequestId;
 
