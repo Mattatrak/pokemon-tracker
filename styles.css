@@ -9286,10 +9286,11 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 /* "Fiche d'expertise" plutôt que libellé de KPI SaaS (audit visuel, piste embellissement 2026-09-02) :
-   Fraunces italique au lieu d'Inter majuscule - seul usage de cette police sur le site pour l'instant,
-   réservée à ce genre d'accent (cf .dashboard-hero-stamp, même police, juste en dessous). */
+   Inter italique au lieu d'Inter majuscule droit - reste dans les deux polices déjà utilisées
+   partout sur le site (Inter/Bebas Neue), pas de troisième police pour un simple accent
+   (retour utilisateur : une serif d'appoint détonnait avec le reste). */
 .dashboard-hero-label {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-style: italic;
     font-weight: 500;
     color: #c9a468;
@@ -9305,7 +9306,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .dashboard-hero-stamp {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-style: italic;
     font-size: 0.78rem;
     line-height: 1.35;
