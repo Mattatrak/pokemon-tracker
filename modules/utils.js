@@ -13,6 +13,17 @@ function preloadImages(urls) {
     });
 }
 
+// Déplacée depuis modules/public-profile.js (audit bundle 2026-09) : utilisée à la fois par
+// collectors.js (widget Dashboard "Trouver un collectionneur", visible par tous, chargé eager) et
+// public-profile.js (fiche profil complète, chargée à la demande) - devait rester dans un module
+// toujours chargé, sinon collectors.js plantait dès qu'un résultat de recherche a un created_at,
+// tant que public-profile.js n'avait pas encore été importé.
+function formatPublicMemberSince(dateInput) {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    return `Collectionneur depuis ${date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`;
+}
+
 // ===== Isolation d'erreur entre sections independantes d'une meme page (audit senior 2026-09,
 // generalise depuis dashboardRenderSafe qui n'existait que pour le Dashboard) : une section qui
 // plante ne doit jamais empecher les autres de s'afficher, ni laisser la page dans un etat casse
@@ -613,6 +624,7 @@ async function initDatePicker(selector, presetValue) {
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.formatPrice = formatPrice;
 window.preloadImages = preloadImages;
+window.formatPublicMemberSince = formatPublicMemberSince;
 window.renderSectionSafe = renderSectionSafe;
 window.runSafe = runSafe;
 window.toLocalDateInputValue = toLocalDateInputValue;

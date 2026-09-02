@@ -1222,10 +1222,12 @@
     <script type="module" src="modules/progression.js"></script>
     <script type="module" src="modules/dashboard.js"></script>
     <script type="module" src="modules/profile.js"></script>
-    <script type="module" src="modules/collector-match.js"></script>
-    <script type="module" src="modules/public-profile.js"></script>
+    <!-- modules/collector-match.js et modules/public-profile.js retirés d'ici : chargés ensemble à la
+         demande via import() dynamique (tracker.js, ensurePublicProfileModuleLoaded) au premier accès
+         réel au profil public d'un collectionneur - cf audit bundle 2026-09. -->
     <script type="module" src="modules/collectors.js"></script>
-    <script type="module" src="modules/admin.js"></script>
+    <!-- modules/admin.js retiré d'ici : chargé à la demande via import() dynamique (tracker.js,
+         ensureAdminModuleLoaded) au premier accès réel à l'onglet Administration - cf audit bundle 2026-09. -->
     <script type="module" src="modules/changelog.js"></script>
     <script type="module" src="modules/pwa.js"></script>
     <script type="module" src="tracker.js"></script>
