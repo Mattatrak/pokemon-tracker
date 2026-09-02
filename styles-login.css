@@ -6,10 +6,17 @@
     overflow: hidden;
 }
 
+/* Fond repris de la même famille "bureau de collectionneur" que les heroes internes
+   (dashboard.webp + même vignette radiale/dégradé sombre que styles.css ~8523) - avant l'audit visuel,
+   ce fond utilisait une image de montagne en plein jour + le logo officiel Pokémon (login-header),
+   deux éléments qui ne ressemblaient à rien d'autre dans l'app une fois connecté. */
 .login-background {
     position: fixed;
     inset: 0;
-    background-image: url('/images/login/background.webp');
+    background-image:
+        radial-gradient(ellipse 90% 85% at 50% 45%, transparent 30%, rgba(0,0,0,0.55) 100%),
+        linear-gradient(rgba(10,10,16,0.55), rgba(10,10,16,0.55)),
+        url('/images/dashboard.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -24,7 +31,7 @@
     justify-content: center;
     z-index: 10;
     padding: 2rem 1rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .login-card {
@@ -61,21 +68,6 @@
     pointer-events: none;
 }
 
-.login-pokeball-top {
-    position: absolute;
-    top: -45px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90px;
-    height: 90px;
-}
-
-.pokeball-icon {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
-}
-
 .login-header {
     text-align: center;
     margin-bottom: 0;
@@ -86,31 +78,36 @@
     gap: 0;
 }
 
-.pokemon-logo {
-    height: 150px;
-    margin: 0;
-}
-
-.login-tracker-wrapper {
+/* Même wordmark que la nav desktop (components/navigation/navigation.css .dashboard-integrated-nav-logo),
+   agrandi pour porter la marque sur l'écran de connexion au lieu du logo officiel Pokémon. */
+.login-brand {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
+    gap: 0.6rem;
 }
 
-.grey-pokeball {
-    width: 24px;
-    height: 24px;
-    opacity: 0.8;
+.login-brand-icon {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.login-brand-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    font-weight: 600;
 }
 
 .login-subtitle {
-    font-size: 1.2rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    letter-spacing: 2px;
-    color: #e3bc84;
-    margin-top: 0;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-top: 0.5rem;
 }
 
 .login-welcome {
@@ -144,21 +141,23 @@
 .input-icon {
     position: absolute;
     left: 1rem;
-    color: #e3bc84;
+    color: var(--gold);
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
 }
 
+/* Recolorés sur la palette anthracite du reste de l'app (var(--panel)/--panel-light) - utilisaient
+   un bleu marine (#1B2233/#232B42) qui n'existe nulle part ailleurs dans PokéTracker. */
 .form-field input {
     width: 100%;
     padding: 1rem 1rem 1rem 3rem;
-    border: 2px solid #232B42;
-    border-radius: 14px;
+    border: 2px solid var(--panel-light);
+    border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
-    background: #1B2233;
+    background: var(--panel);
     color: #EDEFF5;
     transition: all var(--motion-duration-fast) ease;
 }
@@ -169,8 +168,8 @@
 
 .form-field input:focus {
     outline: none;
-    border-color: #e3bc84;
-    background: #232B42;
+    border-color: var(--gold);
+    background: var(--panel-light);
     box-shadow: 0 0 0 3px rgba(232, 169, 59,0.2);
 }
 
@@ -193,7 +192,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #e3bc84;
+    accent-color: var(--gold);
 }
 
 .form-checkbox label {
@@ -204,7 +203,7 @@
 }
 
 .forgot-password-link {
-    color: #e3bc84;
+    color: var(--gold);
     font-size: 0.85rem;
     text-decoration: none;
     transition: color var(--motion-duration-fast) ease;
@@ -212,11 +211,11 @@
 }
 
 .forgot-password-link:hover {
-    color: #cba672;
+    color: var(--gold-hover);
 }
 
 .login-error {
-    color: #ff6b6b;
+    color: var(--negative);
     font-size: 0.9rem;
     text-align: center;
     margin: 0.5rem 0;
@@ -226,7 +225,7 @@
 }
 
 .login-success {
-    color: #4ade80;
+    color: var(--positive);
     font-size: 0.9rem;
     text-align: center;
     margin: 0.5rem 0;
@@ -244,12 +243,15 @@
     flex-direction: column;
 }
 
+/* Recette identique à .btn-primary (styles.css) : mêmes variables, même radius que tous les autres
+   boutons dorés de l'app - remplace un radius 14px et des hex dupliqués qui n'existaient que sur ce
+   bouton. */
 .login-submit-btn {
-    background: linear-gradient(135deg, #e3bc84 0%, #cba672 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hover) 100%);
     color: white;
     border: none;
     padding: 1rem;
-    border-radius: 14px;
+    border-radius: 8px;
     font-size: 1.05rem;
     font-weight: 600;
     cursor: pointer;
@@ -265,7 +267,7 @@
 .login-submit-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(232, 169, 59,0.4);
-    background: linear-gradient(135deg, #cba672 0%, #b8956a 100%);
+    background: linear-gradient(135deg, var(--gold-hover) 0%, #b8956a 100%);
 }
 
 .login-submit-btn:active {
@@ -278,14 +280,14 @@
 }
 
 .login-link {
-    color: #e3bc84;
+    color: var(--gold);
     text-decoration: none;
     font-size: 0.9rem;
     transition: color var(--motion-duration-fast) ease;
 }
 
 .login-link:hover {
-    color: #cba672;
+    color: var(--gold-hover);
     text-decoration: underline;
 }
 
@@ -306,7 +308,7 @@
     position: absolute;
     width: 120px;
     height: 1.5px;
-    background-color: #e3bc84;
+    background-color: var(--gold);
     top: 50%;
     transform: translateY(-50%);
 }
@@ -344,14 +346,14 @@
 }
 
 .signup-link {
-    color: #e3bc84;
+    color: var(--gold);
     text-decoration: none;
     font-weight: 600;
     transition: color var(--motion-duration-fast) ease;
 }
 
 .signup-link:hover {
-    color: #cba672;
+    color: var(--gold-hover);
     text-decoration: underline;
 }
 
@@ -361,8 +363,13 @@
         padding: 2rem;
     }
 
-    .pokemon-logo {
-        height: 50px;
+    .login-brand-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .login-brand-name {
+        font-size: 1.7rem;
     }
 
     .login-welcome {
@@ -387,14 +394,13 @@
         border-radius: 14px;
     }
 
-    .login-pokeball-top {
-        top: -35px;
-        width: 70px;
-        height: 70px;
+    .login-brand-icon {
+        width: 30px;
+        height: 30px;
     }
 
-    .pokemon-logo {
-        height: 60px;
+    .login-brand-name {
+        font-size: 1.5rem;
     }
 
     .login-welcome {

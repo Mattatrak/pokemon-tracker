@@ -4009,8 +4009,11 @@ tbody tr:hover {
    (photo + dégradé) - partagé tel quel entre tab-collectors et tab-user-profile plutôt que dupliqué,
    les deux pages utilisant le même gabarit "utilitaire" et devant rester cohérentes entre elles.
    Navbar desktop globale (NAV1) : plus de container nav dédié dans ce hero, la nav persistante vit
-   hors de .container (index.html). background-color sert de repli si jamais images/collectors.webp
-   venait à manquer : un background-image 404 ne casse rien, juste pas de photo. */
+   hors de .container (index.html). background-color sert de repli si jamais images/dashboard.webp
+   venait à manquer : un background-image 404 ne casse rien, juste pas de photo.
+   Image alignée sur dashboard.webp (audit visuel 2026-09-02) : utilisait auparavant collectors.webp,
+   une photo de montagne en plein jour partagée avec l'écran de connexion - seule page interne à
+   rompre avec la famille "bureau de collectionneur" du reste de l'app une fois connecté. */
 .collectors-hero {
     position: relative;
     display: flex;
@@ -4021,7 +4024,7 @@ tbody tr:hover {
     overflow: hidden;
     background-image:
         linear-gradient(rgba(10,10,16,0.45), rgba(10,10,16,0.45)),
-        url('/images/collectors.webp');
+        url('/images/dashboard.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
