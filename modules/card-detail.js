@@ -421,6 +421,10 @@ function renderCardPriceChartForPeriod(days) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // Chart.js anime ce tracé sur <canvas>, hors de portée du filet CSS prefers-reduced-motion
+            // qui protège le reste du site (motion-components.css) - garde explicite ici comme pour les
+            // autres orchestrateurs d'animation du projet.
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : true,
             layout: {
                 padding: { top: 6, right: 2, bottom: 2, left: 2 }
             },

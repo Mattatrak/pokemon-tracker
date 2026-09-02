@@ -13,6 +13,14 @@ let timelineChartInstance = null;
 
 const STX_PALETTE = ['#e3bc84', '#3FA7A1', '#6bcbff', '#95e1a3', '#c77dff', '#ff9f6b', '#ff6b6b', '#8A93A6'];
 
+// Chart.js anime ses tracés sur <canvas> indépendamment du CSS - le filet de sécurité global
+// prefers-reduced-motion (motion-components.css) n'a donc aucune prise dessus, contrairement au
+// reste du site. `defaultAnimation` reprend la config de chaque graphique (ou true pour son défaut),
+// remplacée par `false` (aucune animation Chart.js) sous la préférence système.
+function stxChartAnimation(defaultAnimation) {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : defaultAnimation;
+}
+
 // Rend un conteneur cliquable pour ouvrir la fiche carte (showCardDetail, modules/card-detail.js),
 // même comportement que dans Collection. Utilisé partout où une carte possédée est référencée
 // sur la page Statistiques (Records, Top hausses/baisses).
@@ -251,6 +259,7 @@ async function renderStxTimeline() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: stxChartAnimation(true),
                 plugins: {
                     legend: {
                         display: true,
@@ -400,6 +409,7 @@ function renderRarityChart() {
             responsive: true,
             maintainAspectRatio: false,
             cutout: '68%',
+            animation: stxChartAnimation(true),
             plugins: { legend: { display: false } }
         }
     });
@@ -538,6 +548,7 @@ function renderSeriesValueChart() {
             responsive: true,
             maintainAspectRatio: false,
             cutout: '68%',
+            animation: stxChartAnimation(true),
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: { label: (ctx) => formatPrice(ctx.parsed) } }
@@ -828,6 +839,7 @@ async function renderValueHistoryChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: stxChartAnimation(true),
             plugins: {
                 legend: { display: false },
                 tooltip: {
