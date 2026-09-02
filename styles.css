@@ -12,6 +12,13 @@
     --slate: #A1A1AA;
     --light-line: #E6C07B;
     --positive: #7ED9A7;
+    /* Ajoutées lors de l'audit visuel (2026-09-02) : --negative/--info comblent une asymétrie avec
+       --positive (rouge/bleu utilisés 26+/4+ fois en dur sans jamais avoir été promus en variable) ;
+       --glow-gold nomme le halo doré copié-collé identique à 5 endroits (box-shadow des cartes/boutons
+       premium) plutôt que de laisser chaque endroit le retaper à la main. */
+    --negative: #ff6b6b;
+    --info: #6bcbff;
+    --glow-gold: rgba(232, 169, 59, 0.1);
 }
 
 * {
@@ -166,7 +173,7 @@ body::before {
 }
 
 .login-error {
-    color: #ff6b6b;
+    color: var(--negative);
     font-size: 0.85rem;
     text-align: center;
     margin-bottom: 1rem;
@@ -254,7 +261,7 @@ body::before {
 
 .input-with-icon input:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
+    box-shadow: 0 0 14px var(--glow-gold);
 }
 
 /* SKELETON DE CHARGEMENT */
@@ -366,7 +373,7 @@ body::before {
 }
 
 .catalogue-load-more-btn:hover {
-    background: rgba(232, 169, 59, 0.1);
+    background: var(--glow-gold);
 }
 
 .search-result-item:hover {
@@ -1115,7 +1122,7 @@ body::before {
 }
 
 .preview-cardmarket-btn:hover {
-    background: rgba(232, 169, 59, 0.1);
+    background: var(--glow-gold);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1656,7 +1663,7 @@ body::before {
 }
 
 .kpi-plaque-sub.negative {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .hero-fluctuation {
@@ -1664,8 +1671,8 @@ body::before {
     font-weight: 600;
 }
 
-.hero-fluctuation.positive { color: #7ED9A7; }
-.hero-fluctuation.negative { color: #ff6b6b; }
+.hero-fluctuation.positive { color: var(--positive); }
+.hero-fluctuation.negative { color: var(--negative); }
 .hero-fluctuation.neutral { color: var(--slate); }
 
 .duplicate-alert-badge {
@@ -1896,7 +1903,7 @@ select {
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
+    box-shadow: 0 0 14px var(--glow-gold);
 }
 
 textarea {
@@ -1942,7 +1949,7 @@ button:active {
 
 button:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
+    box-shadow: 0 0 14px var(--glow-gold);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -2069,7 +2076,7 @@ button:disabled {
 }
 
 .wishlist-toolbar .filter-toggle-btn i {
-    color: #e3bc84;
+    color: var(--gold);
 }
 
 .wishlist-toolbar .filter-toggle-btn:hover {
@@ -2077,7 +2084,7 @@ button:disabled {
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
         rgba(255,255,255,0.05);
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
+    box-shadow: 0 0 14px var(--glow-gold);
     transform: translateY(-1px);
 }
 
@@ -2308,7 +2315,7 @@ button:disabled {
 }
 
 .recap-value-amount.positive { color: var(--positive); }
-.recap-value-amount.negative { color: #ff6b6b; }
+.recap-value-amount.negative { color: var(--negative); }
 
 .recap-value-detail {
     display: flex;
@@ -2767,7 +2774,7 @@ button:disabled {
     bottom: 0;
     padding: 0.6rem 0.55rem 0.5rem;
     background: linear-gradient(180deg, rgba(18,18,20,0) 0%, rgba(10,10,11,0.92) 55%, #0A0A0B 100%);
-    color: #F7F3EA;
+    color: var(--parchment);
 }
 
 .collection-card-name {
@@ -2895,7 +2902,7 @@ button:disabled {
 }
 
 .price-signal-badge.price-signal-low { color: var(--positive); }
-.price-signal-badge.price-signal-high { color: #ff6b6b; }
+.price-signal-badge.price-signal-high { color: var(--negative); }
 
 .wishlist-detail-price-signal {
     display: flex;
@@ -2906,14 +2913,14 @@ button:disabled {
 }
 
 .wishlist-detail-price-signal.price-signal-low { color: var(--positive); }
-.wishlist-detail-price-signal.price-signal-high { color: #ff6b6b; }
+.wishlist-detail-price-signal.price-signal-high { color: var(--negative); }
 
 .qty-badge {
     position: absolute;
     top: 0.5rem;
     left: 0.5rem;
     background: rgba(22,27,41,0.85);
-    color: #F7F3EA;
+    color: var(--parchment);
     font-size: 0.7rem;
     font-weight: 700;
     padding: 0.2rem 0.5rem;
@@ -2960,12 +2967,12 @@ button:disabled {
 
 .condition-badge-grid.nm {
     background: rgba(149, 225, 163, 0.18);
-    color: #95e1a3;
+    color: var(--positive);
 }
 
 .condition-badge-grid.lp {
     background: rgba(107, 203, 255, 0.18);
-    color: #6bcbff;
+    color: var(--info);
 }
 
 .condition-badge-grid.mp {
@@ -2975,7 +2982,7 @@ button:disabled {
 
 .condition-badge-grid.hp {
     background: rgba(255, 107, 107, 0.18);
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .acquisition-icon {
@@ -3109,12 +3116,12 @@ tbody tr:hover {
 
 .badge.nm {
     background: rgba(149, 225, 163, 0.15);
-    color: #95e1a3;
+    color: var(--positive);
 }
 
 .badge.lp {
     background: rgba(107, 203, 255, 0.15);
-    color: #6bcbff;
+    color: var(--info);
 }
 
 .badge.mp {
@@ -3124,13 +3131,13 @@ tbody tr:hover {
 
 .badge.hp {
     background: rgba(255, 107, 107, 0.15);
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .delete-btn {
     background: none;
     border: none;
-    color: #ff6b6b;
+    color: var(--negative);
     cursor: pointer;
     font-size: 1.2rem;
     padding: 0;
@@ -3400,7 +3407,7 @@ tbody tr:hover {
     font-size: 1rem;
     letter-spacing: 0.02em;
     color: var(--gold);
-    background: rgba(232, 169, 59, 0.1);
+    background: var(--glow-gold);
     padding: 0.1rem 0.5rem;
     border-radius: 20px;
     white-space: nowrap;
@@ -3453,7 +3460,7 @@ tbody tr:hover {
 }
 
 .wishlist-thumb-owned-flag {
-    background: #95e1a3;
+    background: var(--positive);
     color: #155724;
 }
 
@@ -3651,16 +3658,16 @@ tbody tr:hover {
 }
 
 .profile-menu-item i {
-    color: #e3bc84;
+    color: var(--gold);
     font-size: 1rem;
 }
 
 .profile-menu-item-danger {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .profile-menu-item-danger i {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .profile-modal-preview {
@@ -3703,7 +3710,7 @@ tbody tr:hover {
 }
 
 .profile-avatar-swatch.selected {
-    border-color: #e3bc84;
+    border-color: var(--gold);
 }
 
 /* PHASE 1 — Profils publics : identité + confidentialité (aucune donnée tierce lisible ici, cf
@@ -3732,7 +3739,7 @@ tbody tr:hover {
 }
 
 .profile-username-invalid {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .profile-toggle-row {
@@ -4160,7 +4167,7 @@ tbody tr:hover {
 }
 
 .collectors-state-error {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .collectors-result-row {
@@ -4376,11 +4383,11 @@ tbody tr:hover {
 }
 
 .movers-heading.up {
-    color: #7ED9A7;
+    color: var(--positive);
 }
 
 .movers-heading.down {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .mover-row {
@@ -4416,11 +4423,11 @@ tbody tr:hover {
 }
 
 .mover-delta.positive {
-    color: #7ED9A7;
+    color: var(--positive);
 }
 
 .mover-delta.negative {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 /* PROGRESSION PAR SERIE — chapitres de l'Atlas.
@@ -4545,7 +4552,7 @@ tbody tr:hover {
 }
 
 .progress-ring-fill.is-complete {
-    stroke: #7ED9A7;
+    stroke: var(--positive);
 }
 
 @keyframes progress-ring-draw {
@@ -4655,7 +4662,7 @@ tbody tr:hover {
 }
 
 .progression-set-pct-badge.is-complete {
-    background: #7ED9A7;
+    background: var(--positive);
 }
 
 .progression-set-row.is-complete {
@@ -4666,7 +4673,7 @@ tbody tr:hover {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    color: #7ED9A7;
+    color: var(--positive);
     font-weight: 600;
     font-size: 0.8rem;
 }
@@ -5649,7 +5656,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 .wishlist-detail-status-value.is-owned {
-    color: #95e1a3;
+    color: var(--positive);
 }
 
 /* Bloc prix : présence forte mais réduite par rapport au gabarit générique .modal-price
@@ -5662,7 +5669,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 2.1rem;
     font-weight: 600;
-    color: #e3af64;
+    color: var(--gold);
     letter-spacing: -0.01em;
     line-height: 1.1;
     overflow-wrap: anywhere;
@@ -5719,7 +5726,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 .wishlist-detail-btn-cardmarket {
-    color: #6bcbff;
+    color: var(--info);
 }
 
 .wishlist-detail-btn-move {
@@ -5955,7 +5962,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .wishlist-detail-acquisition-price-wrap:focus-within {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
+    box-shadow: 0 0 14px var(--glow-gold);
 }
 
 .wishlist-detail-acquisition-price-wrap input {
@@ -6122,7 +6129,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     background: rgba(22,27,41,0.88);
     border: 1px solid rgba(255,255,255,0.22);
     border-radius: 50%;
-    color: #F7F3EA;
+    color: var(--parchment);
     font-size: 1.05rem;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     opacity: 0;
@@ -6581,12 +6588,12 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .card-price-stat-pct.positive,
 .card-price-stat-abs.positive {
-    color: #7ED9A7;
+    color: var(--positive);
 }
 
 .card-price-stat-pct.negative,
 .card-price-stat-abs.negative {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .card-price-stat-pct.neutral,
@@ -6903,10 +6910,10 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     vertical-align: middle;
 }
 
-.condition-pill.nm { color: #95e1a3; }
-.condition-pill.lp { color: #6bcbff; }
+.condition-pill.nm { color: var(--positive); }
+.condition-pill.lp { color: var(--info); }
 .condition-pill.mp { color: #ffd93d; }
-.condition-pill.hp { color: #ff6b6b; }
+.condition-pill.hp { color: var(--negative); }
 
 .acquisition-pill {
     background: rgba(232, 169, 59, 0.15);
@@ -6923,7 +6930,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 #card-detail-card .rarity-pill {
     background: transparent;
-    color: #e3af64;
+    color: var(--gold);
     border-color: rgba(227, 175, 100, 0.4);
 }
 
@@ -7012,7 +7019,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 3.4rem;
     font-weight: 600;
-    color: #e3af64;
+    color: var(--gold);
     letter-spacing: -0.01em;
     line-height: 1;
 }
@@ -7411,12 +7418,12 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 #card-detail-card .modal-save-btn i {
-    color: #e3bc84;
+    color: var(--gold);
 }
 
 #card-detail-card .modal-save-btn:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px rgba(232, 169, 59, 0.1);
+    box-shadow: 0 0 14px var(--glow-gold);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -7493,7 +7500,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
     border-radius: 14px;
-    color: #e3bc84;
+    color: var(--gold);
     font-size: 1rem;
 }
 
@@ -7551,7 +7558,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 .edit-field-label i {
-    color: #e3bc84;
+    color: var(--gold);
     font-size: 0.95rem;
 }
 
@@ -7593,7 +7600,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     border-radius: 8px;
     padding: 0.65rem 1rem;
     margin-top: 0.5rem;
-    color: #ff6b6b;
+    color: var(--negative);
     font-size: 0.85rem;
     font-weight: 600;
 }
@@ -7680,7 +7687,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .modal-action-row-danger .modal-action-icon,
 .modal-action-row-danger .modal-action-title {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .modal-action-row-danger {
@@ -7728,7 +7735,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .modal-disclaimer-title {
     font-size: 0.9rem;
-    color: #e3bc84;
+    color: var(--gold);
 }
 
 .modal-disclaimer-sub {
@@ -8053,11 +8060,11 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 .message.error {
-    border-left-color: #ff6b6b;
+    border-left-color: var(--negative);
 }
 
 .message.error .message-icon {
-    color: #ff6b6b;
+    color: var(--negative);
 }
 
 .message.success {
@@ -8420,8 +8427,8 @@ html body .flatpickr-calendar .flatpickr-day.today.selected:hover {
 
 /* ===================== DASHBOARD ===================== */
 
-.dashboard-positive { color: #7ED9A7; }
-.dashboard-negative { color: #ff6b6b; }
+.dashboard-positive { color: var(--positive); }
+.dashboard-negative { color: var(--negative); }
 .dashboard-neutral { color: var(--slate); }
 
 /* Onglet Dashboard uniquement : la bannière + les 3 cartes stats du haut dupliquent le hero/KPI du
@@ -9261,7 +9268,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .dashboard-hero-greeting-name {
-    color: #e3bc84;
+    color: var(--gold);
     font-size: 1.15em;
 }
 
@@ -9281,7 +9288,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.01em;
-    background: linear-gradient(135deg, #ffffff 0%, #f7f0de 55%, #e3bc84 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f7f0de 55%, var(--gold) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -9301,8 +9308,8 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: fit-content;
 }
 
-.dashboard-hero-variation.dashboard-positive { background: rgba(126,217,167,0.12); border: 1px solid rgba(126,217,167,0.35); color: #7ED9A7; }
-.dashboard-hero-variation.dashboard-negative { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: #ff6b6b; }
+.dashboard-hero-variation.dashboard-positive { background: rgba(126,217,167,0.12); border: 1px solid rgba(126,217,167,0.35); color: var(--positive); }
+.dashboard-hero-variation.dashboard-negative { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.35); color: var(--negative); }
 .dashboard-hero-variation.dashboard-neutral { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: var(--slate); }
 
 .dashboard-hero-last-refresh {
@@ -9336,7 +9343,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 50%;
-    color: #F7F3EA;
+    color: var(--parchment);
     font-size: 1rem;
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
@@ -9591,7 +9598,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.01em;
-    color: #e3bc84;
+    color: var(--gold);
 }
 
 .dashboard-widget-link {
@@ -9605,7 +9612,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .dashboard-widget-link:hover {
-    color: #e3bc84;
+    color: var(--gold);
 }
 
 /* ----- Activite recente ----- */
@@ -9665,12 +9672,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .dashboard-activity-row--up::before {
-    background: #7ED9A7;
+    background: var(--positive);
     box-shadow: 0 0 0 3px rgba(126,217,167,0.15);
 }
 
 .dashboard-activity-row--down::before {
-    background: #FF6B6B;
+    background: var(--negative);
     box-shadow: 0 0 0 3px rgba(255,107,107,0.15);
 }
 
@@ -9733,7 +9740,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     position: absolute;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 0.95rem;
-    color: #F7F3EA;
+    color: var(--parchment);
 }
 
 .dashboard-objective-row-text {
@@ -10550,7 +10557,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .stx-evo-delta.positive { color: var(--positive); }
-.stx-evo-delta.negative { color: #ff6b6b; }
+.stx-evo-delta.negative { color: var(--negative); }
 
 .stx-panel-value-history canvas {
     max-height: 340px;
@@ -10805,7 +10812,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .stx-trophy-value.positive { color: var(--positive); }
-.stx-trophy-value.negative { color: #ff6b6b; }
+.stx-trophy-value.negative { color: var(--negative); }
 
 .stx-trophy-sub {
     font-size: 0.78rem;
@@ -10814,7 +10821,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .stx-trophy-sub.positive { color: var(--positive); }
-.stx-trophy-sub.negative { color: #ff6b6b; }
+.stx-trophy-sub.negative { color: var(--negative); }
 
 /* Section 6 — Résumé du mois : cartes d'insight dédiées, indépendantes de .kpi-plaque
    (composant partagé, jamais modifié ici). Même matière que Habitudes/Records. */
@@ -11152,7 +11159,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .changelog-change--new .changelog-change-badge {
-    color: #7fd88a;
+    color: var(--positive);
     border-color: rgba(127, 216, 138, 0.35);
     background: rgba(127, 216, 138, 0.1);
 }
