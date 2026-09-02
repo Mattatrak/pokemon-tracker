@@ -210,6 +210,18 @@ function initHoloGridEffect(container) {
     if (!window.matchMedia('(hover: hover)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     container.dataset.holoBound = 'true';
 
+    // Chaque carte porte aussi .card-stagger-in (entree en cascade, motion-components.css) dont
+    // l'animation "motion-enter" a fill-mode:both - elle continue donc de VERROUILLER transform sur
+    // translateY(0) bien apres la fin de l'animation (both = tient sa valeur finale indefiniment tant
+    // que la classe/animation reste appliquee), avec une priorite superieure a un style inline (retour
+    // utilisateur : diagnostic console a montre transformInline correct mais transformComputed reste
+    // matrix identite - c'est exactement cette signature). Sans retirer la classe une fois l'entree
+    // terminee, initHoloGridEffect calcule un transform juste, jamais rendu. Delegue comme les 2 autres
+    // listeners ci-dessous : animationend bubble, un seul point d'ecoute suffit pour toute la grille.
+    container.addEventListener('animationend', (e) => {
+        if (e.animationName === 'motion-enter') e.target.classList.remove('card-stagger-in');
+    });
+
     const TILT_MAX_DEG = 16; // remonte de 10 a 16 (retour utilisateur : "l'inclinaison ne fonctionne pas sur la galerie") - une carte de 190px traversee par un mouvement de souris normal ne laisse que quelques dizaines de ms de survol reel par carte, un angle trop discret n'a pas le temps de se voir
 
     container.addEventListener('mousemove', (e) => {
