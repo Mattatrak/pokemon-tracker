@@ -87,6 +87,15 @@ body {
        seulement le tout-debut). Trois glows ancres haut-centre / bas-gauche / bas-droite pour que le
        bas de l'ecran ait toujours un peu de lumiere lui aussi. Maquette de validation :
        https://claude.ai/code/artifact/19526b48-f95c-479c-a715-6335e110836d */
+    /* min-height (retour utilisateur avec capture d'ecran, 2026-09) : sans elle, sur une page dont le
+       contenu est plus court que la fenetre (ex. Progression avec 0 serie), la boite de body s'arrete
+       la ou le contenu s'arrete - le halo ci-dessus (fixed = ne bouge pas au scroll, mais reste peint
+       DANS la boite de l'element) s'arrete donc avec elle, laissant apparaitre en dessous le fond plat
+       de html (styles.css ~L39, sans halo) : coupure nette au milieu de l'ecran. dvh en 2e ligne
+       (ignoree si non supportee, auquel cas vh suffit) pour eviter un saut au masquage de la barre
+       d'adresse mobile. */
+    min-height: 100vh;
+    min-height: 100dvh;
     background-color: var(--bg);
     background-image:
         radial-gradient(120% 90% at 50% 0%, rgba(232,169,59,0.14) 0%, transparent 75%),
