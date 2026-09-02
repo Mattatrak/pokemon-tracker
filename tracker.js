@@ -1304,7 +1304,7 @@ function initEventListeners() {
         }
 
         searchDebounceTimer = setTimeout(() => {
-            searchCards();
+            searchCards({ recordHistory: false });
         }, 350);
     });
     // Wrappees en fleches (pas la reference directe) : passer la fonction elle-meme oblige a ce
