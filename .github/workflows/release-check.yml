@@ -7,6 +7,9 @@ name: PokéTracker Release Check
 # devenus sans objet, `vite build` couvre la syntaxe et scripts/build-sw.js (ticket V5) élimine les
 # tokens manuels. Ne bloque aucun déploiement (le vrai déploiement est .github/workflows/deploy.yml,
 # ticket V6) - sert uniquement de check visible sur chaque push/PR.
+#
+# `npm test` (Vitest, 2026-09-02) ajouté à côté du build : sans ça, les tests existeraient dans le
+# repo sans jamais être exécutés ailleurs qu'en local à la main.
 
 on:
   push:
@@ -16,7 +19,7 @@ on:
 
 jobs:
   check:
-    name: Build Vite + vérification dist/
+    name: Build Vite + tests + vérification dist/
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,4 +29,5 @@ jobs:
           node-version: 22
 
       - run: npm ci
+      - run: npm test
       - run: npm run check-release
