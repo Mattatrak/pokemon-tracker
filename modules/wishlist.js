@@ -373,8 +373,21 @@ function renderWishlistsUI() {
     updateWishlistKpis();
     if (!container) return;
 
+    // Vraiment aucune liste (pas juste 0 resultat de recherche) : app-empty-state (deja partage
+    // Collection/Progression/Collecteurs) plutot qu'un simple texte, sinon meme vide beant que celui
+    // corrige plus bas pour "au moins une liste existe" (retour utilisateur 2026-09, capture d'ecran
+    // a l'appui - ce cas zero liste n'avait pas ete corrige la premiere fois).
     if (allWishlists.length === 0) {
-        container.innerHTML = '<p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l\'instant</p>';
+        container.innerHTML = `
+            <div class="app-empty-state">
+                <svg class="app-empty-icon" viewBox="0 0 100 100" aria-hidden="true">
+                    <path d="M50 82 C 20 60, 10 40, 25 25 C 35 15, 48 20, 50 32 C 52 20, 65 15, 75 25 C 90 40, 80 60, 50 82 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                </svg>
+                <div class="app-empty-title">Aucune liste de souhaits</div>
+                <p class="app-empty-text">Séparez vos envies par set, par budget ou pour un cadeau à venir.</p>
+                <button class="filter-toggle-btn app-empty-cta" onclick="createWishlistOnly()"><i class="ti ti-plus" aria-hidden="true"></i> Nouvelle liste</button>
+            </div>
+        `;
         playWishlistContainerFadeIn(container);
         return;
     }
