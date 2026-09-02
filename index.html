@@ -991,7 +991,20 @@
                     </div>
                 </div>
                 <div id="wishlists-container">
-                    <p class="empty-state"><i class="ti ti-star" aria-hidden="true"></i> Aucune liste de souhaits pour l'instant</p>
+                    <div class="skeleton-row" style="background: var(--panel); border-radius: 8px; margin-bottom: 0.75rem; border-bottom: none;">
+                        <div class="skeleton" style="width:44px; height:32px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:30%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:6px; width:60%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-row" style="background: var(--panel); border-radius: 8px; border-bottom: none;">
+                        <div class="skeleton" style="width:44px; height:32px; flex-shrink:0;"></div>
+                        <div style="flex:1;">
+                            <div class="skeleton" style="height:14px; width:40%; margin-bottom:8px;"></div>
+                            <div class="skeleton" style="height:6px; width:50%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
