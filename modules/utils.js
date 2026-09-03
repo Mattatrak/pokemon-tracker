@@ -440,6 +440,17 @@ const RARITY_ORDER = [
     'promo.webp'
 ];
 
+// Effet "foil" (retour utilisateur 2026-09, audit design) : dégradé chromatique statique sur le
+// badge de prix des cartes des paliers de rareté élevés, pour les repérer d'un coup d'œil dans une
+// grille de 60 cartes - comme sur une vraie table de tri. Seuil à illustration-rare.png (index 4 sur
+// 9) : au-delà de "Double rare" (V/VMAX/VSTAR non full-art, très courant dans une collection normale,
+// le foil deviendrait juste le bruit de fond plutôt qu'un signal) mais avant "Promo" (dernier de
+// RARITY_ORDER, catégorie de provenance et non de rareté - une promo peut être commune).
+const HIGH_RARITY_ICONS = new Set(['illustration-rare.png', 'ultra-rare.png', 'illustration-speciale-rare.png', 'mega-hyper-rare.webp']);
+function isHighRarityCard(rarity) {
+    return HIGH_RARITY_ICONS.has(RARITY_ICON_MAP[normalizeForMatch(rarity)]);
+}
+
 function sortRaritiesByTier(rarities) {
     return [...rarities].sort((a, b) => {
         const fileA = RARITY_ICON_MAP[normalizeForMatch(a)];
@@ -943,6 +954,7 @@ window.normalizeForMatch = normalizeForMatch;
 window.getCardmarketSearchUrl = getCardmarketSearchUrl;
 window.getCardmarketUrl = getCardmarketUrl;
 window.RARITY_ICON_MAP = RARITY_ICON_MAP;
+window.isHighRarityCard = isHighRarityCard;
 window.RARITY_ORDER = RARITY_ORDER;
 window.sortRaritiesByTier = sortRaritiesByTier;
 window.buildFinishOptionsFromCard = buildFinishOptionsFromCard;

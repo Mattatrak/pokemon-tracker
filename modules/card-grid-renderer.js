@@ -162,6 +162,10 @@ function renderGridCardHtml(card, options) {
     const holoLayersHtml = holoEffect
         ? '<div class="collection-card-holo-sheen"></div><div class="collection-card-holo-glare"></div>'
         : '';
+    // Effet foil (retour utilisateur 2026-09, audit design) : dégradé chromatique statique sur le
+    // badge de prix des cartes de rareté élevée (isHighRarityCard, utils.js) - repère les pépites au
+    // premier coup d'œil dans une grille dense, sans dépendre du survol.
+    const priceFoilClass = isHighRarityCard(card.rarity) ? ' price-badge-foil' : '';
 
     return `
         <div class="collection-card${staggerClass}${holoClass}" data-card-id="${card.id}"${staggerStyle} onclick="${detailFn}(${card.id}, event)">
@@ -171,7 +175,7 @@ function renderGridCardHtml(card, options) {
             }
             ${holoLayersHtml}
             ${renderGridCardBadge(card, badgeMode)}
-            <div class="price-badge">${formatPrice(lineTotal)}</div>
+            <div class="price-badge${priceFoilClass}">${formatPrice(lineTotal)}</div>
             <div class="set-rarity-badge-row">
                 ${card.series_symbol ? `<img src="${escapeHtml(card.series_symbol)}" class="set-symbol-badge" alt="" title="${escapeHtml(card.series)}" onerror="this.remove()">` : ''}
                 ${getRarityIconHtml(card.rarity) ? `<div class="rarity-badge-corner" title="${escapeHtml(card.rarity)}">${getRarityIconHtml(card.rarity, 18)}</div>` : ''}
