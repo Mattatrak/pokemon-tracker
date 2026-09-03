@@ -119,27 +119,34 @@ function sortCollectorsByOpportunity(profiles, signalsMap) {
     });
 }
 
-// Badges compacts : chiffres explicites (jamais un score), un seul appel par ligne à la Map déjà
-// résolue - aucune requête ici. signal undefined (profil hors signalsMap, cf sortCollectorsByOpportunity)
-// -> aucun badge affiché, jamais un badge "0" trompeur.
+// Signal directionnel (retour utilisateur 2026-09, audit design - maquette "Refonte Cartes
+// Collectionneurs" validée) : les comptes pour/contre deviennent des flèches ↓/↑ plutôt que deux
+// badges texte au même poids que "Match réciproque", pour que le sens de l'échange se lise d'un
+// coup d'œil. Chiffres explicites (jamais un score), un seul appel par ligne à la Map déjà résolue -
+// aucune requête ici. signal undefined (profil hors signalsMap, cf sortCollectorsByOpportunity) ->
+// rien affiché, jamais un badge "0" trompeur.
 function renderCollectorSignalBadges(signal) {
     if (!signal) return '';
 
-    const badges = [];
-    if (signal.is_reciprocal) {
-        badges.push('<span class="collectors-signal-badge collectors-signal-reciprocal"><i class="ti ti-repeat" aria-hidden="true"></i> Match réciproque</span>');
-    }
+    const arrows = [];
     if (signal.for_me_count > 0) {
         // "toi" (pas "vous") : aligné sur le registre déjà établi côté profil public pour ce même
         // signal ("Ce qu'il peut te proposer", modules/public-profile.js) - trouvé en audit P5-5,
         // incohérence de tutoiement/vouvoiement sur la même information entre les deux écrans.
-        badges.push(`<span class="collectors-signal-badge collectors-signal-for-me">${signal.for_me_count} pour toi</span>`);
+        arrows.push(`<span class="collectors-signal-badge collectors-signal-for-me"><i class="ti ti-arrow-down" aria-hidden="true"></i> ${signal.for_me_count} pour toi</span>`);
     }
     if (signal.for_them_count > 0) {
-        badges.push(`<span class="collectors-signal-badge collectors-signal-for-them">${signal.for_them_count} pour lui</span>`);
+        arrows.push(`<span class="collectors-signal-badge collectors-signal-for-them"><i class="ti ti-arrow-up" aria-hidden="true"></i> ${signal.for_them_count} pour lui</span>`);
     }
+    const arrowsHtml = arrows.length > 0 ? `<div class="collectors-result-signals">${arrows.join('')}</div>` : '';
 
-    return badges.length > 0 ? `<div class="collectors-result-signals">${badges.join('')}</div>` : '';
+    // Pill séparée (pas dans le même flux que les flèches) : reste le signal le plus fort de la
+    // carte, un match réciproque mérite de se voir même si l'écran est étroit et que le reste wrap.
+    const reciprocalHtml = signal.is_reciprocal
+        ? '<div class="collectors-signal-badge collectors-signal-reciprocal collectors-reciprocal-standalone"><i class="ti ti-repeat" aria-hidden="true"></i> Match réciproque</div>'
+        : '';
+
+    return arrowsHtml + reciprocalHtml;
 }
 
 // VT4 (cf roadmap technique animations premium) : clic normal (même onglet, bouton gauche, sans
@@ -173,24 +180,27 @@ function handleCollectorProfileClick(event, anchorEl) {
 // signalsMap (Phase 5, P5-3) : optionnel, défaut vide - la variante Dashboard n'affiche jamais de
 // badges, seule la page #/collectors complète les demande (withTradeSignals, plus bas).
 function renderCollectorsResults(container, profiles, signalsMap = new Map()) {
-    container.innerHTML = profiles.map(p => `
-        <a href="#/user/${encodeURIComponent(p.username)}" class="collectors-result-row"
+    container.innerHTML = profiles.map(p => {
+        const signal = signalsMap.get(p.id);
+        return `
+        <a href="#/user/${encodeURIComponent(p.username)}" class="collectors-result-row${signal?.is_reciprocal ? ' collectors-result-row-reciprocal' : ''}"
             data-collector-id="${p.id}"
             data-collector-avatar-url="${p.avatar_url ? escapeHtml(p.avatar_url) : ''}"
             data-collector-pseudo="${escapeHtml(p.pseudo || p.username)}"
             data-collector-username="${escapeHtml(p.username)}"
             data-collector-created-at="${p.created_at || ''}"
             onclick="handleCollectorProfileClick(event, this)">
-            ${profileAvatarHtml(p, 44)}
+            ${profileAvatarHtml(p, 56)}
             <div class="collectors-result-identity">
                 <div class="collectors-result-pseudo">${escapeHtml(p.pseudo || p.username)}</div>
                 <div class="collectors-result-username">@${escapeHtml(p.username)}</div>
                 ${p.created_at ? `<div class="collectors-result-since">${formatPublicMemberSince(p.created_at)}</div>` : ''}
+                ${renderCollectorSignalBadges(signal)}
             </div>
-            ${renderCollectorSignalBadges(signalsMap.get(p.id))}
             <i class="ti ti-chevron-right collectors-result-chevron" aria-hidden="true"></i>
         </a>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Variante compacte (bloc Dashboard) : avatar + pseudo + @username uniquement, pas de date d'arrivée
