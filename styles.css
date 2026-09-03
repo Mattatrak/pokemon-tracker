@@ -270,7 +270,7 @@ body::before {
 
 .input-with-icon input:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 /* SKELETON DE CHARGEMENT */
@@ -767,7 +767,7 @@ body::before {
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: var(--radius-2xl);
-    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    box-shadow: var(--shadow-xl);
     padding: 1.5rem;
 }
 
@@ -814,7 +814,7 @@ body::before {
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: var(--radius-2xl);
-    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    box-shadow: var(--shadow-xl);
     padding: 1.5rem;
 }
 
@@ -2094,7 +2094,7 @@ select {
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 textarea {
@@ -2140,7 +2140,7 @@ button:active {
 
 button:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -2279,7 +2279,7 @@ button:disabled {
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
         rgba(255,255,255,0.05);
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
     transform: translateY(-1px);
 }
 
@@ -3483,7 +3483,7 @@ tbody tr:hover {
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: var(--radius-lg);
     margin-bottom: 1rem;
-    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    box-shadow: var(--shadow-xl);
 }
 
 /* Pas d'overflow:hidden ici (contrairement à avant) : ça clippait le popover d'action d'une
@@ -6301,7 +6301,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .wishlist-detail-acquisition-price-wrap:focus-within {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 .wishlist-detail-acquisition-price-wrap input {
@@ -6824,7 +6824,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
@@ -7782,7 +7782,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 #card-detail-card .modal-save-btn:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -10755,7 +10755,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .stx-panel::after {
@@ -11125,7 +11125,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: var(--radius-lg);
     padding: 1.75rem 1.5rem;
     min-width: 0;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .stx-habit-icon {
@@ -11217,7 +11217,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 1.75rem;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
     transition: transform var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 

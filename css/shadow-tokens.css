@@ -1,0 +1,15 @@
+/* SHADOW TOKENS - Sprint audit design 2026-09
+   Contrairement aux rayons de bordure (css/radius-tokens.css), les box-shadow de styles.css ne suivent
+   PAS une échelle de facto (audit : 112 déclarations, quasiment aucune ne se répète à l'identique -
+   opacités variant de 0.15 a 0.65 par pas de 0.05-0.1, blur/spread propres à chaque composant). Inventer
+   une échelle a 3-4 niveaux aurait donc voulu dire ARRONDIR une majorité de valeurs vers la plus proche,
+   un changement visuel réel sur des dizaines de composants sans qu'aucun n'ait été revu un par un.
+   Ce fichier ne tokenise donc QUE les groupes réellement dupliqués à l'identique trouvés dans l'audit
+   (chacune de ces 3 valeurs apparaissait mot pour mot 3 à 6 fois dans styles.css) - le reste (ombres
+   à une seule occurrence) reste en valeur litterale, ce sont des choix bespoke par composant, pas une
+   échelle a centraliser. */
+:root {
+    --shadow-glow-gold: 0 0 14px var(--glow-gold);
+    --shadow-lg: 0 12px 30px -18px rgba(0,0,0,0.5);
+    --shadow-xl: 0 24px 55px -30px rgba(0,0,0,0.65);
+}
