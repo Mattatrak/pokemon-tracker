@@ -137,6 +137,44 @@ function resolveCachedLogoUrl(id, rawLogoBase) {
     return '';
 }
 
+// ===== CÉLÉBRATION SET COMPLÉTÉ (retour utilisateur 2026-09, mockup "Micro-interactions" validé) =====
+// Déclenchée depuis modules/cards.js#addCard() quand la carte qui vient d'être ajoutée fait passer un
+// set de "presque complet" à 100%. Overlay non bloquant (pointer-events:none, auto-disparition) plutôt
+// qu'un ancrage sur l'anneau du set dans la page Progression : la complétion se produit presque
+// toujours depuis l'onglet Ajouter, où cet anneau n'existe pas à l'écran - contrairement au mockup
+// initial qui l'animait sur place. Un seul déclenchement par complétion, jamais en boucle.
+//
+// Dépend d'allTcgdexSeries (cf commentaire window.allTcgdexSeries plus haut) : reste vide tant que
+// l'onglet Progression n'a pas été visité au moins une fois dans la session (loadSeriesProgress
+// ci-dessous) - comme l'objectif du Dashboard (même dépendance, cf markDashboardDirty), on accepte
+// silencieusement de ne pas fêter cette complétion plutôt que de forcer un chargement réseau
+// supplémentaire à chaque ajout de carte pour une feature purement cosmétique.
+function celebrateSetComplete(setId) {
+    if (!allTcgdexSeries || allTcgdexSeries.length === 0) return;
+
+    let targetSet = null;
+    for (const series of allTcgdexSeries) {
+        targetSet = (series.sets || []).find(s => s.id === setId);
+        if (targetSet) break;
+    }
+    if (!targetSet) return;
+
+    const logoUrl = resolveCachedLogoUrl(targetSet.id, targetSet.logo);
+    const logoHtml = logoUrl
+        ? `<img src="${logoUrl}" class="app-celebration-icon-img" alt="" onerror="this.remove()">`
+        : `<i class="ti ti-trophy" aria-hidden="true"></i>`;
+
+    // showCelebrationBanner()/spawnCelebrationConfetti() (utils.js) : bandeau + confetti génériques,
+    // partagés avec modules/cards.js#celebrateCardAddedBanner (retour utilisateur 2026-09).
+    showCelebrationBanner(`
+        <div class="app-celebration-icon-wrap">${logoHtml}</div>
+        <div class="app-celebration-text">
+            <span class="app-celebration-eyebrow"><i class="ti ti-check" aria-hidden="true"></i> Série complétée</span>
+            <span class="app-celebration-title">${escapeHtml(targetSet.name || '')}</span>
+        </div>
+    `);
+}
+
 async function loadSeriesProgress() {
     const container = document.getElementById('progression-series-list');
     container.innerHTML = Array.from({ length: 3 }).map(() => `
@@ -888,6 +926,17 @@ async function addFromProgression(cardId, btnEl) {
 
 // Ajout instantané (bouton "+"), sans ouvrir de fenêtre, avec les réglages par défaut
 async function quickInstantAdd(cardId, btnEl) {
+    // Capturés AVANT tout await (donc avant que quoi que ce soit ait pu détacher btnEl du DOM) : la
+    // grille affiche potentiellement des dizaines de boutons "+" à la fois, et chacun mène son propre
+    // ajout de façon indépendante - si un second clic sur une autre carte termine sa propre requête
+    // pendant que celle-ci attend encore le réseau, son renderProgressionCardsGrid() remplace toute la
+    // grille en innerHTML et détache CE btnEl avant que cette fonction ait pu lire sa position (retour
+    // utilisateur : "l'animation fonctionne une fois sur cinq depuis Progression" - le fantôme partait
+    // alors du coin (0,0), invisible). captureCardAddOrigin/Source() (utils.js) figent la position et
+    // l'apparence dès maintenant, indépendamment de tout ce qui arrive au DOM ensuite.
+    const addOrigin = btnEl ? captureCardAddOrigin(btnEl) : null;
+    const addSource = btnEl ? captureCardAddSource(btnEl.closest('.progression-card-item')?.querySelector('img')) : null;
+
     if (btnEl) {
         btnEl.disabled = true;
         btnEl.innerHTML = '<span class="loading" style="width:12px;height:12px;border-width:2px;"></span>';
@@ -908,6 +957,14 @@ async function quickInstantAdd(cardId, btnEl) {
 
         const defaults = getQuickAddDefaults();
 
+        // Capturé avant performCardAdd()/refreshCollection() (comme modules/cards.js#addCard) : la
+        // comparaison ownedBefore/ownedAfter plus bas détecte une vraie transition vers 100%, jamais
+        // un ajout à un set déjà complet. quickInstantAdd() est le chemin d'ajout "+" instantané de
+        // cette page (retour utilisateur : la célébration de set complété ne se déclenchait ici ni
+        // depuis quickInstantAdd ni depuis submitQuickAdd, contrairement à l'onglet Ajouter).
+        const setId = getSetIdFromTcgdexId(cardId);
+        const ownedBefore = getSetOwnedCount(setId);
+
         await performCardAdd(cardData, {
             condition: defaults.condition,
             quantity: defaults.quantity,
@@ -918,10 +975,20 @@ async function quickInstantAdd(cardId, btnEl) {
             finish: progressionFinishMode
         });
 
-        showMessage(`${cardData.name} ajoutée !`, 'success');
+        // addOrigin/addSource sont déjà des snapshots figés (capturés avant le moindre await, cf plus
+        // haut) : indépendants de ce que renderProgressionCardsGrid() fait au DOM juste en dessous.
+        celebrateCardAdded({
+            originEl: addOrigin,
+            sourceImgEl: addSource,
+            quantity: defaults.quantity
+        });
+
         await refreshCollection();
         await recordValueSnapshot();
         renderProgressionCardsGrid();
+
+        const total = getSetTotalCount(setId);
+        if (total > 0 && ownedBefore < total && getSetOwnedCount(setId) >= total) celebrateSetComplete(setId);
     } catch (error) {
         showMessage('Erreur lors de l\'ajout rapide', 'error');
         console.error(error);
@@ -1112,6 +1179,11 @@ async function submitQuickAdd(card) {
     const originalText = btn.textContent;
     btn.disabled = true;
 
+    // Même détection de complétion que quickInstantAdd/modules/cards.js#addCard ci-dessus, pour ce
+    // second chemin d'ajout de la page Progression (modale ouverte depuis addFromProgression).
+    const setId = card.id ? getSetIdFromTcgdexId(card.id) : null;
+    const ownedBefore = setId ? getSetOwnedCount(setId) : 0;
+
     let result;
     try {
         result = await performCardAdd(card, {
@@ -1131,14 +1203,18 @@ async function submitQuickAdd(card) {
         return;
     }
 
+    // Avant closeCardDetail() (qui masque la modale, donc met à zéro les rects de btn/image) :
+    // même principe que modules/cards.js#addCard, celebrateCardAdded() lit les positions de façon
+    // synchrone puis crée des clones indépendants du DOM source (retour utilisateur 2026-09 : le
+    // toast textuel "carte(s) ajoutée(s)" ci-dessous est retiré, l'animation seule suffit).
+    celebrateCardAdded({
+        originEl: btn,
+        sourceImgEl: document.querySelector('#quickadd-image-slot img'),
+        quantity
+    });
+
     closeCardDetail();
     customQuickAddImage = null;
-
-    if (result.merged) {
-        showMessage(`Quantité mise à jour : ${result.newQuantity} exemplaire(s) au total`, 'success');
-    } else {
-        showMessage(`${quantity} carte(s) ajoutée(s)`, 'success');
-    }
 
     await refreshCollection();
     await recordValueSnapshot();
@@ -1146,6 +1222,11 @@ async function submitQuickAdd(card) {
     // Rafraîchir la grille de progression pour refléter le nouvel ajout
     if (currentProgressionSetId) {
         renderProgressionCardsGrid();
+    }
+
+    if (setId) {
+        const total = getSetTotalCount(setId);
+        if (total > 0 && ownedBefore < total && getSetOwnedCount(setId) >= total) celebrateSetComplete(setId);
     }
 }
 
@@ -1172,6 +1253,7 @@ window.progressionStoredLogoFilenames = progressionStoredLogoFilenames;
 window.progressionLogosLoaded = progressionLogosLoaded;
 window.progressionLogoCachingTriggered = progressionLogoCachingTriggered;
 window.resolveCachedLogoUrl = resolveCachedLogoUrl;
+window.celebrateSetComplete = celebrateSetComplete;
 window.loadSeriesProgress = loadSeriesProgress;
 window.computeProgressionKpiData = computeProgressionKpiData;
 window.renderProgressionKpis = renderProgressionKpis;

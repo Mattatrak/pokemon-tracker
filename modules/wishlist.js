@@ -346,6 +346,12 @@ async function markWishlistItemOwned(itemId, { acquisitionType = 'achat', purcha
         };
     }
 
+    // Même détection de complétion que modules/cards.js#addCard et modules/progression.js#quickInstantAdd/
+    // submitQuickAdd (retour utilisateur 2026-09 : la célébration de set complété ne se déclenchait
+    // que depuis l'onglet Ajouter, jamais depuis les autres chemins d'ajout comme celui-ci).
+    const setId = cardData.id ? getSetIdFromTcgdexId(cardData.id) : null;
+    const ownedBefore = setId ? getSetOwnedCount(setId) : 0;
+
     try {
         await performCardAdd(cardData, {
             condition: 'NM',
@@ -361,10 +367,26 @@ async function markWishlistItemOwned(itemId, { acquisitionType = 'achat', purcha
         return false;
     }
 
-    showMessage('Ajoutée à ta collection ! Pense à ajuster l\'état et le prix si besoin.', 'success');
+    // Avant que le seul appelant (wishlistDetailConfirmAcquisition, modules/wishlist-detail.js) ne
+    // referme le panneau de détail : ces sélecteurs pointent son bouton de confirmation et l'image de
+    // la fiche, encore visibles à cet instant. celebrateCardAdded() est un no-op silencieux si absents
+    // (ex: appel futur depuis un contexte sans ce panneau). Remplace le toast textuel ci-dessous
+    // (retour utilisateur 2026-09 : l'animation seule suffit).
+    celebrateCardAdded({
+        originEl: document.querySelector('.wishlist-detail-btn-primary'),
+        sourceImgEl: document.querySelector('.wishlist-detail-image'),
+        quantity: 1
+    });
+
     await refreshCollection();
     await recordValueSnapshot();
     renderWishlistsUI();
+
+    if (setId) {
+        const total = getSetTotalCount(setId);
+        if (total > 0 && ownedBefore < total && getSetOwnedCount(setId) >= total) celebrateSetComplete(setId);
+    }
+
     return true;
 }
 

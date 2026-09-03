@@ -747,6 +747,29 @@ async function handlePreviewImageUpload(event) {
 
 // ===== AJOUT ONGLET "AJOUTER" =====
 
+// Bandeau + confetti (retour utilisateur 2026-09) plutôt que le geste plus discret celebrateCardAdded()
+// (étincelles + carte volante, utils.js) : sur cette page précise les ajouts se font un par un - pas
+// de série rapide comme sur la grille Progression, où la même notif marquante deviendrait fatigante
+// (cf celebrateCardAdded() toujours en place là-bas et sur la wishlist). previewImgEl : l'<img> de la
+// fiche preview, déjà résolue vers la bonne source (upload perso ou fallback TCGdex, cf applyCardToPreview)
+// - réutilisée telle quelle plutôt que reconstruite depuis card.image, pour rester fidèle à ce que
+// l'utilisateur voyait à l'écran juste avant l'ajout.
+function celebrateCardAddedBanner(card, quantity) {
+    const previewImgEl = document.querySelector('.preview-image img');
+    const imgHtml = previewImgEl
+        ? `<img src="${escapeHtml(previewImgEl.src)}" class="app-celebration-icon-img" alt="" onerror="this.remove()">`
+        : `<i class="ti ti-cards" aria-hidden="true"></i>`;
+    const eyebrow = quantity > 1 ? `${quantity} cartes ajoutées` : 'Carte ajoutée';
+
+    showCelebrationBanner(`
+        <div class="app-celebration-icon-wrap">${imgHtml}</div>
+        <div class="app-celebration-text">
+            <span class="app-celebration-eyebrow"><i class="ti ti-circle-check" aria-hidden="true"></i> ${eyebrow}</span>
+            <span class="app-celebration-title">${escapeHtml(card.name || '')}</span>
+        </div>
+    `);
+}
+
 async function addCard() {
     if (!selectedCard) {
         showMessage('Veuillez sélectionner une carte', 'error');
@@ -761,6 +784,14 @@ async function addCard() {
         ? 0
         : (parseFloat(document.getElementById('card-value').value) || 0);
     const customDate = document.getElementById('card-date-added').value || null;
+
+    // Capturés avant performCardAdd()/refreshCollection() (qui mettent à jour allCollectionCards) :
+    // c'est la comparaison ownedBefore/ownedAfter, une fois l'ajout confirmé, qui détecte qu'un set
+    // vient de passer à 100% (cf appel à celebrateSetComplete plus bas). selectedCard.id (pas
+    // .tcgdex_id) : c'est le résultat brut de recherche TCGdex (cf onSearchResultClick), qui n'est
+    // renommé en colonne tcgdex_id qu'à l'écriture en base par performCardAdd (tracker.js, card.id).
+    const addedCardSetId = selectedCard.id ? getSetIdFromTcgdexId(selectedCard.id) : null;
+    const setOwnedBefore = addedCardSetId ? getSetOwnedCount(addedCardSetId) : 0;
 
     const addBtn = document.querySelector('.add-panel-submit');
     const originalBtnText = addBtn.textContent;
@@ -788,11 +819,11 @@ async function addCard() {
     addBtn.disabled = false;
     addBtn.innerHTML = originalBtnText;
 
-    if (result.merged) {
-        showMessage(`Quantité mise à jour : ${result.newQuantity} exemplaire(s) au total`, 'success');
-    } else {
-        showMessage(`${quantity} carte(s) ajoutée(s)`, 'success');
-    }
+    // Avant tout reset du formulaire ci-dessous (qui masque la fiche preview) : celebrateCardAddedBanner()
+    // lit encore selectedCard/.preview-image à cet instant. Remplace les toasts textuels
+    // "carte(s) ajoutée(s)"/"Quantité mise à jour" qui tournaient ici auparavant (retour utilisateur
+    // 2026-09 : l'animation seule suffit).
+    celebrateCardAddedBanner(selectedCard, quantity);
 
     document.getElementById('card-search').value = '';
     document.getElementById('card-quantity').value = '1';
@@ -815,6 +846,17 @@ async function addCard() {
 
     await refreshCollection();
     await recordValueSnapshot();
+
+    // Détection de complétion APRÈS refreshCollection() (allCollectionCards à jour) : ne se déclenche
+    // que sur une vraie transition <100% -> 100%, jamais sur un ajout à un set déjà complet (result.merged
+    // notamment - le compte de cartes distinctes ne bouge alors pas, ownedAfter === ownedBefore).
+    if (addedCardSetId) {
+        const total = getSetTotalCount(addedCardSetId);
+        if (total > 0 && setOwnedBefore < total) {
+            const setOwnedAfter = getSetOwnedCount(addedCardSetId);
+            if (setOwnedAfter >= total) celebrateSetComplete(addedCardSetId);
+        }
+    }
 }
 
 // ===== PHASE 2 CATALOGUE : bascule fiche consultation / formulaire d'ajout =====

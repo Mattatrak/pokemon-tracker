@@ -1,5 +1,8 @@
 // Helpers purs - Pokémon Tracker
 // Aucun état partagé, aucune dépendance à supabaseClient. Charge juste après config.js.
+// Exception : celebrateCardAdded()/findCollectionNavTarget() lisent TAB_ROUTES (tracker.js) et
+// allCollectionCards/allTcgdexSeries (tracker.js/progression.js) - uniquement au moment de l'appel,
+// jamais au chargement du fichier, donc sans contrainte d'ordre de <script>.
 
 // Précharge une liste d'URLs d'image en arrière-plan (sans les insérer dans le DOM) - anticipe le
 // chargement de la page suivante en pagination (Collection/Catalogue) pour un "Charger plus" plus
@@ -318,6 +321,33 @@ function getSetIdFromTcgdexId(tcgdexId) {
     return lastDash === -1 ? tcgdexId : tcgdexId.substring(0, lastDash);
 }
 
+// Nombre de cartes DISTINCTES possédées dans un set (même dérivation que ownedIdsBySet dans
+// renderProgressionSeriesList, modules/progression.js - dupliquée ici en version ciblée sur un seul
+// set pour que modules/cards.js#celebrateCardAdd puisse détecter une complétion sans dépendre de
+// progression.js ni recalculer tous les sets à chaque ajout).
+function getSetOwnedCount(setId) {
+    if (!setId) return 0;
+    const owned = new Set();
+    allCollectionCards.forEach(card => {
+        if (card.tcgdex_id && getSetIdFromTcgdexId(card.tcgdex_id) === setId) owned.add(card.tcgdex_id);
+    });
+    return owned.size;
+}
+
+// Total de cartes d'un set (secrètes incluses, même règle que renderProgressionSeriesList). Dépend
+// d'allTcgdexSeries (progression.js), vide tant que l'onglet Progression n'a pas été visité au moins
+// une fois dans la session - retourne alors 0, ce qui désactive silencieusement toute logique basée
+// dessus (cf modules/cards.js#addCard, modules/progression.js#celebrateSetComplete) plutôt que de
+// forcer un chargement réseau supplémentaire pour une feature cosmétique.
+function getSetTotalCount(setId) {
+    if (!setId || !allTcgdexSeries || allTcgdexSeries.length === 0) return 0;
+    for (const series of allTcgdexSeries) {
+        const set = (series.sets || []).find(s => s.id === setId);
+        if (set) return set.cardCount?.total || set.cardCount?.official || 0;
+    }
+    return 0;
+}
+
 function normalizeForMatch(str) {
     return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
@@ -614,6 +644,258 @@ async function initDatePicker(selector, presetValue) {
     });
 }
 
+// ===== CÉLÉBRATION AJOUT DE CARTE (retour utilisateur 2026-09, mockup "Micro-interactions" validé) =====
+// Point d'entrée partagé par tous les chemins d'ajout (onglet Ajouter/cards.js, Progression/
+// progression.js, wishlist/wishlist.js) : remplace le toast textuel "carte(s) ajoutée(s)" qui tournait
+// en parallèle auparavant sur chacun d'eux (retour utilisateur : l'animation seule suffit, les deux
+// signaux pour un même événement faisaient doublon). Vivait uniquement dans modules/cards.js au
+// départ, déplacé ici une fois réutilisé par un deuxième puis un troisième appelant.
+//
+// originEl/sourceImgEl acceptent soit un élément DOM vivant (lu ici, au moment de l'appel), soit un
+// snapshot déjà capturé via captureCardAddOrigin()/captureCardAddSource() (voir plus bas) : un appelant
+// qui ne peut pas garantir que ses éléments seront encore attachés au moment où cette fonction tourne
+// (ex: quickInstantAdd, page Progression - retour utilisateur "l'animation fonctionne une fois sur
+// cinq" : un second ajout cliqué pendant que le premier est encore en vol réseau déclenche un
+// renderProgressionCardsGrid() qui détache le bouton/l'image du premier avant que sa propre animation
+// n'ait pu lire leurs rects, qui partaient alors du coin (0,0) - invisible) doit capturer un snapshot
+// AVANT tout await et le passer ici, plutôt que de garder l'élément DOM vivant en espérant qu'il tienne.
+function celebrateCardAdded({ originEl, sourceImgEl, quantity = 1 } = {}) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const originRect = originEl && (originEl.rect || originEl.getBoundingClientRect());
+    if (!originRect) return;
+
+    const navTarget = findCollectionNavTarget();
+    if (!navTarget) return;
+
+    spawnAddSparks(originRect.left + originRect.width / 2, originRect.top);
+
+    const dstRect = navTarget.getBoundingClientRect();
+    const source = sourceImgEl && (sourceImgEl.rect ? sourceImgEl : { rect: sourceImgEl.getBoundingClientRect(), isImg: sourceImgEl.tagName === 'IMG', imgSrc: sourceImgEl.tagName === 'IMG' ? sourceImgEl.src : null });
+    if (source) {
+        flyGhostCard(source, dstRect, quantity);
+    } else {
+        popNavToast(dstRect, quantity);
+    }
+}
+
+// Capture immuable des positions/apparence nécessaires à celebrateCardAdded(), à appeler AVANT tout
+// await susceptible de laisser un autre ajout concurrent détacher ces éléments du DOM (cf commentaire
+// ci-dessus). { rect, isImg, imgSrc } ne référence plus aucun nœud DOM une fois créé : totalement
+// indépendant de ce qui arrive ensuite à la page.
+function captureCardAddOrigin(el) {
+    return el ? { rect: el.getBoundingClientRect() } : null;
+}
+
+function captureCardAddSource(el) {
+    if (!el) return null;
+    return {
+        rect: el.getBoundingClientRect(),
+        isImg: el.tagName === 'IMG',
+        imgSrc: el.tagName === 'IMG' ? el.src : null
+    };
+}
+
+// Le lien "Ma Collection" existe deux fois dans le DOM (DesktopNavbar.js + MobileBottomNavigation.js,
+// CSS masque l'un des deux selon le breakpoint) : offsetParent === null détecte de façon fiable celui
+// caché par display:none (pas juste hors-écran), sans dépendre d'un matchMedia dupliqué ici.
+function findCollectionNavTarget() {
+    const links = document.querySelectorAll(`a[href="#${TAB_ROUTES['tab-collection']}"]`);
+    for (const link of links) {
+        if (link.offsetParent !== null) return link;
+    }
+    return null;
+}
+
+// Canvas plein viewport, créé/détruit à chaque appel (pas de canvas persistant à gérer entre deux
+// ajouts) : le coût d'une création est négligeable face à la complexité d'un état partagé entre
+// célébrations qui pourraient se chevaucher (ajouts rapprochés).
+function spawnAddSparks(x, y) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'add-celebration-canvas';
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * ratio;
+    canvas.height = window.innerHeight * ratio;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    const particles = Array.from({ length: 20 }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.3 + Math.random() * 2.4;
+        return {
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 0.6,
+            life: 1,
+            size: 1.5 + Math.random() * 2,
+            color: Math.random() > 0.35 ? '227,188,132' : '244,199,102' // --gold / --gold-bright (scrollbar)
+        };
+    });
+
+    function frame() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        let alive = false;
+        particles.forEach(p => {
+            if (p.life <= 0) return;
+            alive = true;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.06;
+            p.life -= 0.03;
+            ctx.globalAlpha = Math.max(p.life, 0);
+            ctx.fillStyle = `rgb(${p.color})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        if (alive) requestAnimationFrame(frame);
+        else canvas.remove();
+    }
+    requestAnimationFrame(frame);
+}
+
+// source : { rect, isImg, imgSrc } capturé par captureCardAddSource() (ou construit à la volée par
+// celebrateCardAdded() si un élément DOM vivant a été passé directement) - jamais un nœud DOM lui-même,
+// qui pourrait déjà être détaché au moment où cette fonction tourne (cf commentaire celebrateCardAdded).
+function flyGhostCard(source, dstRect, quantity) {
+    const srcRect = source.rect;
+    const ghost = document.createElement('div');
+    ghost.className = 'add-celebration-ghost';
+    ghost.style.left = srcRect.left + 'px';
+    ghost.style.top = srcRect.top + 'px';
+    ghost.style.width = srcRect.width + 'px';
+    ghost.style.height = srcRect.height + 'px';
+
+    if (source.isImg && source.imgSrc) {
+        const img = document.createElement('img');
+        img.src = source.imgSrc;
+        img.alt = '';
+        ghost.appendChild(img);
+    } else {
+        ghost.classList.add('add-celebration-ghost-plain');
+    }
+
+    document.body.appendChild(ghost);
+
+    // Cible le centre du lien nav, avec un décalage pour que le fantôme "disparaisse dedans" au lieu
+    // de s'arrêter pile au centre géométrique (plus naturel pour un rectangle qui rétrécit en scale).
+    const endX = dstRect.left + dstRect.width / 2 - srcRect.width * 0.075;
+    const endY = dstRect.top + dstRect.height / 2 - srcRect.height * 0.075;
+
+    requestAnimationFrame(() => {
+        ghost.style.transform = `translate(${endX - srcRect.left}px, ${endY - srcRect.top}px) scale(0.15) rotate(8deg)`;
+        ghost.style.opacity = '0';
+    });
+
+    setTimeout(() => {
+        ghost.remove();
+        popNavToast(dstRect, quantity);
+    }, 520);
+}
+
+function popNavToast(dstRect, quantity) {
+    const toast = document.createElement('div');
+    toast.className = 'add-celebration-toast';
+    toast.textContent = `+${quantity}`;
+    toast.style.left = (dstRect.left + dstRect.width / 2) + 'px';
+    toast.style.top = dstRect.top + 'px';
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('add-celebration-toast-active'));
+    setTimeout(() => toast.remove(), 650);
+}
+
+// ===== BANDEAU DE CÉLÉBRATION GÉNÉRIQUE (retour utilisateur 2026-09, mockup "Micro-interactions"
+// validé) =====
+// Partagé par la complétion de set (modules/progression.js#celebrateSetComplete) et l'ajout de carte
+// depuis l'onglet Ajouter (modules/cards.js#celebrateCardAddedBanner) - retour utilisateur : sur cette
+// page précise les ajouts se font un par un (pas de série rapide comme sur la grille Progression), la
+// même notif marquante que pour un set complété a donc sa place ici aussi. Vivait uniquement dans
+// modules/progression.js au départ (spécifique aux sets), généralisée une fois réutilisée par un
+// deuxième appelant. Ailleurs (Progression/wishlist), le geste plus discret celebrateCardAdded()
+// (étincelles + carte volante) reste seul en place : la même notif à chaque ajout d'une série rapide y
+// serait fatigante.
+//
+// innerHtml : contenu déjà construit par l'appelant (icône/image + libellé + nom) - cette fonction ne
+// connaît ni sets ni cartes, seulement comment afficher/faire disparaître le bandeau et le confetti.
+function showCelebrationBanner(innerHtml) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'app-celebration-banner';
+    banner.innerHTML = innerHtml;
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => banner.classList.add('show'));
+
+    spawnCelebrationConfetti();
+
+    setTimeout(() => {
+        banner.classList.remove('show');
+        setTimeout(() => banner.remove(), 500);
+    }, 2600);
+}
+
+// Confetti aux couleurs de la marque (or/parchemin/vert succès - jamais arc-en-ciel), partant du
+// centre-haut du viewport où atterrit .app-celebration-banner. Canvas créé/détruit à chaque appel
+// (pas d'état partagé à gérer entre deux célébrations qui pourraient se chevaucher).
+function spawnCelebrationConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'app-celebration-canvas';
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * ratio;
+    canvas.height = window.innerHeight * ratio;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    const colors = ['227,188,132', '244,199,102', '126,217,167', '247,243,234'];
+    const originX = window.innerWidth / 2;
+    const originY = 110;
+    const particles = Array.from({ length: 70 }, () => ({
+        x: originX + (Math.random() - 0.5) * 140,
+        y: originY + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 4.5,
+        vy: -3 - Math.random() * 3,
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.35,
+        size: 4 + Math.random() * 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1,
+        decay: 0.006 + Math.random() * 0.006
+    }));
+
+    function frame() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        let alive = false;
+        particles.forEach(p => {
+            if (p.life <= 0) return;
+            alive = true;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.11;
+            p.rot += p.vr;
+            p.life -= p.decay;
+            ctx.save();
+            ctx.globalAlpha = Math.max(p.life, 0);
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = `rgb(${p.color})`;
+            ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.66);
+            ctx.restore();
+        });
+        ctx.globalAlpha = 1;
+        if (alive) requestAnimationFrame(frame);
+        else canvas.remove();
+    }
+    requestAnimationFrame(frame);
+}
+
 // ===== Exports window (ticket V2 Vite, type="module") =====
 // Les déclarations top-level d'un module ES ne s'attachent plus automatiquement à window
 // (contrairement à un <script> classique) : réexport explicite pour que les autres scripts
@@ -646,6 +928,17 @@ window.ensureFlatpickrLoaded = ensureFlatpickrLoaded;
 window.ensurePapaLoaded = ensurePapaLoaded;
 window.getSeriesSymbolPath = getSeriesSymbolPath;
 window.getSetIdFromTcgdexId = getSetIdFromTcgdexId;
+window.getSetOwnedCount = getSetOwnedCount;
+window.getSetTotalCount = getSetTotalCount;
+window.celebrateCardAdded = celebrateCardAdded;
+window.captureCardAddOrigin = captureCardAddOrigin;
+window.captureCardAddSource = captureCardAddSource;
+window.showCelebrationBanner = showCelebrationBanner;
+window.spawnCelebrationConfetti = spawnCelebrationConfetti;
+window.findCollectionNavTarget = findCollectionNavTarget;
+window.spawnAddSparks = spawnAddSparks;
+window.flyGhostCard = flyGhostCard;
+window.popNavToast = popNavToast;
 window.normalizeForMatch = normalizeForMatch;
 window.getCardmarketSearchUrl = getCardmarketSearchUrl;
 window.getCardmarketUrl = getCardmarketUrl;
