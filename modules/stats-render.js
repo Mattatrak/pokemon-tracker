@@ -1,6 +1,7 @@
 // Dashboard de l'onglet Stats - Pokémon Tracker
 // Dépend de: supabaseClient/allCollectionCards/renderPriceMovers (tracker.js), getDuplicateGroupKey (collection.js),
-// computeProgressionKpiData/allTcgdexSeries/loadSeriesProgress (progression.js), allWishlistItems (wishlist.js), Chart
+// computeProgressionKpiData/allTcgdexSeries/loadSeriesProgress (progression.js), allWishlistItems (wishlist.js), Chart,
+// initHoloGridEffect (card-grid-renderer.js)
 // Etat possédé : rarityChartInstance, seriesValueChartInstance, valueHistoryChartInstance, valueHistoryRawData,
 // currentValueHistoryRange, timelineChartInstance
 
@@ -691,6 +692,13 @@ function renderStatsHabits() {
 function renderStatsRecords() {
     const oldestNameEl = document.getElementById('stx-record-oldest-name');
     if (!oldestNameEl) return;
+
+    // Survol holographique (retour utilisateur 2026-09, meme mecanique que la Galerie Collection,
+    // card-grid-renderer.js) : les 6 vignettes sont du HTML statique (index.html), jamais regenerees -
+    // contrairement aux grilles dynamiques ou holoEffect est un flag passe a renderGridCardHtml a
+    // chaque rendu, initHoloGridEffect() est donc appele ici plutot que la-bas. Idempotent (dataset.
+    // holoBound, card-grid-renderer.js) : sans risque a rappeler a chaque renderStatsRecords().
+    initHoloGridEffect(document.querySelector('.stx-records-grid'));
 
     if (allCollectionCards.length === 0) return;
 

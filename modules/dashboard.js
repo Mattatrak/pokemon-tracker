@@ -489,11 +489,18 @@ function renderDashboardObjective() {
     const myToken = dashboardObjectiveToken;
 
     if (!best) {
+        // CTA (retour utilisateur 2026-09, audit design) : même pattern que le remplisseur Wishlist
+        // voisin (dashboardWishlistEmptyHtml/dashboard-wishlist-filler ci-dessous) - jusque-là le
+        // seul widget vide du Dashboard sans bouton d'action, juste une phrase. "best" est calculé par
+        // dashboardFindBestObjective() à partir des séries déjà entamées (allCollectionCards) : ajouter
+        // une carte d'un nouveau set alimente directement ce widget au prochain rendu, d'où le lien
+        // vers Progression plutôt qu'un vrai sélecteur (aucun ne pilote cet objectif automatique).
         el.innerHTML = `
             <div class="dashboard-widget-empty-compact">
                 <i class="ti ti-aperture" aria-hidden="true"></i>
                 <p class="dashboard-empty-text" style="padding:0;">Aucun objectif sélectionné</p>
                 <p class="dashboard-empty-subtext">Choisissez une série depuis l'onglet Progression.</p>
+                <button class="dashboard-btn-secondary" onclick="navigateToTab('tab-progression')">Voir mes séries</button>
             </div>
         `;
         return;
