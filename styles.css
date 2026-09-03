@@ -9859,36 +9859,27 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* ----- Grilles principale / basse ----- */
 
+/* V2 "widgets Android" (retour utilisateur 2026-09, remplace le système à 3 tailles cyclables) : vraie
+   grille de cases 1x1, chaque widget occupe grid-column/grid-row en unités entières (posées en style
+   inline par dashboardBuildSkeleton() depuis getDashboardEffectiveSpan) et se redimensionne en glissant
+   depuis son coin (cf dashboardHandleResizePointerDown, dashboard.js). --dashboard-cell-row : hauteur
+   FIXE d'une unité de ligne (pas minmax(…, auto)) - indispensable pour que le glisser puisse convertir
+   un déplacement en pixels en un nombre entier de cases de façon prévisible ; un widget dont le contenu
+   dépasse ses lignes allouées est simplement rogné (overflow:hidden déjà sur .dashboard-widget) plutôt
+   que d'agrandir la ligne, comme un vrai widget Android. align-items:stretch (était start) : chaque
+   carte doit remplir réellement les lignes qu'on lui a assignées pour que le glisser reste visuellement
+   cohérent (sinon une carte "haute" resterait collée à son contenu, indépendamment de sa taille de grille). */
 .dashboard-main-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* start (etait stretch) : Activite recente affiche desormais jusqu'a 6 entrees et peut devenir
-       nettement plus haute qu'Objectif actuel - en stretch, ce dernier s'etirait pour suivre, avec
-       son contenu recentre au milieu d'un grand vide (retour utilisateur 2026-09, "trop grande").
-       Chaque carte garde maintenant sa hauteur naturelle. */
-    align-items: start;
-    /* dense (retour utilisateur 2026-09) : avec 2 sections "large" (span 2 lignes,
-       .dashboard-widget-size-large) et 4 "small" (1 ligne), le flux normal laisserait un vide sous
-       une "large" si l'ordre choisi place les "small" ailleurs. "dense" fait remonter les sections
-       suivantes pour combler tout trou disponible, quel que soit l'ordre reorganise par l'utilisateur -
-       change l'ordre visuel, jamais l'ordre DOM (accessibilite/lecteurs d'ecran inchanges). */
+    --dashboard-cell-row: 90px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: var(--dashboard-cell-row);
+    align-items: stretch;
+    /* dense : comble les trous laissés par des tailles/largeurs différentes plutôt que de forcer un
+       flux strictement séquentiel - change l'ordre VISUEL, jamais l'ordre DOM (accessibilité inchangée). */
     grid-auto-flow: dense;
     gap: 1.25rem;
     margin-bottom: 2rem;
-}
-
-/* 2x la hauteur d'une section normale (retour utilisateur 2026-09) : reservee aux sections dont le
-   contenu est structurellement le plus long (cf. DASHBOARD_WIDGET_DEFS, dashboard.js). Combinee a
-   grid-auto-flow:dense ci-dessus, 2 sections "small" consecutives viennent naturellement se loger a
-   cote d'une "large" plutot que de laisser un vide. */
-.dashboard-widget-size-large {
-    grid-row: span 2;
-    /* align-self:stretch (le grid reste align-items:start par defaut) : une "large" doit remplir
-       reellement ses 2 lignes, sinon la carte flotte en haut d'une cellule 2x plus grande que son
-       propre contenu - meme probleme que l'ancien Objectif actuel "trop grand", mais cette fois
-       A L'INTERIEUR de la carte plutot que cause par une autre colonne. Verifie en direct : sans
-       cette regle, Activite recente/Wishlist ne remplissaient que ~400px sur ~590px disponibles. */
-    align-self: stretch;
 }
 
 .dashboard-widget-activity,
@@ -9963,6 +9954,11 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     box-shadow: 0 16px 32px -14px rgba(0,0,0,0.6);
 }
 
+/* Retour utilisateur 2026-09 ("Top hausses n'a pas la poignée pour le rétrécir") : ce widget suit
+   maintenant le même système de span inline que les autres (cf getDashboardEffectiveSpan/
+   dashboardBuildSkeleton, dashboard.js - clé spéciale "movers", en dehors de DASHBOARD_WIDGET_DEFS
+   car jamais réordonnable/masquable) - cette règle ne sert donc plus que de secours si jamais aucun
+   style inline n'était posé. */
 .dashboard-widget-full {
     grid-column: 1 / -1;
 }
@@ -9972,6 +9968,118 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1rem;
+}
+
+.dashboard-widget-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+/* Poignée de réorganisation (P3, audit design 2026-09) : invisible au repos, apparaît au survol du
+   widget (ou au focus clavier, jamais uniquement au survol - cf :focus-visible). Ouvre la modale de
+   réorganisation existante ET porte le vrai glisser-déposer (cf JS). Le redimensionnement a son propre
+   grip dans le coin (cf .dashboard-widget-resize-grip plus bas), pas un bouton de cette famille. */
+.dashboard-widget-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* padding:0 indispensable : le reset générique "button { padding:0.75rem 1.5rem }" (styles.css)
+       n'est jamais annulé par width/height seuls - même correctif que .dashboard-hero-customize-btn
+       et .modal-close (cf leurs commentaires), qui ont le même souci pour la même raison. */
+    padding: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: none;
+    color: var(--slate);
+    opacity: 0;
+    cursor: grab;
+    /* touch-action:none : sans effet aujourd'hui (le glisser tactile n'est pas implémenté, la poignée
+       reste invisible sans survol sur mobile - cf commentaire JS dashboardHandlePointerDown), posé par
+       principe pour ne pas laisser le navigateur intercepter le geste en scroll si ça change un jour. */
+    touch-action: none;
+    transition: opacity var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
+}
+
+.dashboard-widget-drag-handle:active {
+    cursor: grabbing;
+}
+
+.dashboard-widget:hover .dashboard-widget-drag-handle,
+.dashboard-widget-drag-handle:focus-visible {
+    opacity: 1;
+}
+
+.dashboard-widget-drag-handle:hover {
+    color: var(--gold);
+    background: rgba(255,255,255,0.06);
+}
+
+/* Widget en cours de glisser (retour utilisateur 2026-09, "un vrai drag-and-drop") : position:fixed
+   posée en JS (dashboardHandlePointerDown) - transition:none indispensable, sinon chaque frame de
+   suivi du curseur (left/top réécrits en JS) hérite du fondu/déplacement de .dashboard-widget et traîne
+   derrière le pointeur au lieu de le suivre au pixel près. pointer-events:none : laisse
+   document.elementFromPoint() traverser le widget qu'on tient pour détecter la cible du dépôt en dessous. */
+.dashboard-widget-dragging {
+    transition: none !important;
+    box-shadow: 0 20px 45px -15px rgba(0,0,0,0.65), 0 0 0 1px rgba(232,169,59,0.4);
+    opacity: 0.94;
+    pointer-events: none;
+    cursor: grabbing;
+}
+
+/* Case vide qui matérialise où le widget tenu atterrira (V2 du glisser-déposer, retour utilisateur :
+   "pouvoir déplacer les cards où l'on veut", pas juste échanger avec une seule autre). Invisible tant
+   que le seuil de mouvement n'est pas franchi (classe -active ajoutée par JS) - un simple clic sans
+   glisser ne doit jamais laisser entrevoir un "trou" dans la grille, même une fraction de seconde.
+   pointer-events:none : ne doit jamais lui-même devenir la cible détectée par elementFromPoint(). */
+.dashboard-widget-placeholder {
+    pointer-events: none;
+}
+
+.dashboard-widget-placeholder-active {
+    border-radius: var(--radius-3xl);
+    border: 2px dashed rgba(232, 169, 59, 0.35);
+    background: rgba(232, 169, 59, 0.04);
+}
+
+/* Poignée de redimensionnement (V2 "widgets Android", retour utilisateur 2026-09) : coin bas-droit de
+   chaque widget, visible au survol comme les boutons du header. SVG intégré (trois traits diagonaux,
+   comme les grips de fenêtre classiques) plutôt qu'une icône Tabler - évite un nom d'icône incertain
+   pour un simple ornement décoratif. cursor:nwse-resize + touch-action:none : cohérent avec un vrai
+   redimensionnement en diagonale (bien que le glisser tactile ne soit pas implémenté, cf poignée de
+   déplacement plus haut - même choix, par principe). */
+.dashboard-widget-resize-grip {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    opacity: 0;
+    touch-action: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M11 1L1 11M11 5L5 11M11 9L9 11' stroke='%23A1A1AA' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: opacity var(--motion-duration-fast) ease;
+}
+
+.dashboard-widget:hover .dashboard-widget-resize-grip,
+.dashboard-widget-resize-grip:focus-visible {
+    opacity: 1;
+}
+
+/* Widget en cours de redimensionnement : même famille visuelle que .dashboard-widget-dragging
+   (déplacement) - transition:none indispensable, sinon chaque frame de grid-column/grid-row réécrits
+   en JS hérite de la transition normale de .dashboard-widget et l'étirement traîne derrière le curseur
+   au lieu de le suivre au pixel/case près. */
+.dashboard-widget-resizing {
+    transition: none !important;
+    z-index: 60;
+    box-shadow: 0 0 0 2px var(--gold), 0 20px 45px -15px rgba(0,0,0,0.5);
 }
 
 /* ----- Personnalisation (reordonnancement) ----- */
@@ -10616,6 +10724,12 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
    validée, cf modules/dashboard.js#renderDashboardBadges) : médaillons plutôt qu'emoji, même famille
    visuelle que le reste de l'app (dégradé or, glow). .collector-badge* (pas .badge-*) pour ne pas
    entrer en collision avec .badge/.badge.nm/.lp/.mp/.hp (état des cartes, déjà pris). */
+
+.dashboard-widget[data-widget-key="badges"] {
+    container-type: size;
+    container-name: dashboard-badges;
+}
+
 .collector-badges-count {
     font-size: 0.72rem;
     color: var(--slate);
@@ -10702,6 +10816,29 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-variant-numeric: tabular-nums;
 }
 
+/* Contenu adaptatif à la taille de la carte (retour utilisateur 2026-09, suite des listes du
+   Dashboard) : contrairement aux widgets-listes (dashboardTrimListToFit, JS), la grille de badges
+   reste un ensemble fixe de 6 succès - jamais souhaitable d'en masquer un plutôt qu'un autre. On
+   réduit donc plutôt la taille des médaillons/étiquettes en pur CSS via une container query sur la
+   hauteur réelle du widget (container-type:size posé plus haut sur data-widget-key="badges"), pour
+   que davantage de badges tiennent avant de manquer de place verticalement. Placé après les règles
+   de base ci-dessus : même spécificité, doit gagner par ordre de cascade.
+*/
+@container dashboard-badges (max-height: 230px) {
+    .collector-badges-grid { grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 0.6rem; }
+    .collector-badge-medal { width: 40px; height: 40px; }
+    .collector-badge-medal svg { width: 17px; height: 17px; }
+    .collector-badge-label { display: none; }
+    .collector-badge-progress { display: none; }
+}
+
+@container dashboard-badges (max-height: 150px) {
+    .collector-badges-count { display: none; }
+    .collector-badges-grid { gap: 0.4rem; }
+    .collector-badge-medal { width: 30px; height: 30px; }
+    .collector-badge-medal svg { width: 13px; height: 13px; }
+}
+
 /* ----- Carte du jour (P2, mockups "concept C") ----- */
 
 .dashboard-daily-card {
@@ -10770,12 +10907,26 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    /* Le redimensionnement libre (grid-column/grid-row posés en style inline par
+       dashboardBuildSkeleton(), cf dashboard.js) reste une amélioration desktop uniquement - sous
+       1024px, on retombe sur un empilement simple qui ignore les tailles personnalisées (!important
+       nécessaire : rien d'autre ne bat un style inline). grid-auto-rows repasse en hauteur naturelle,
+       jamais l'unité fixe desktop qui n'aurait plus de sens avec des cartes en pleine largeur. */
     .dashboard-main-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: auto;
     }
 
-    .dashboard-widget-full {
-        grid-column: span 2;
+    .dashboard-widget[data-widget-key] {
+        grid-column: span 1 !important;
+        grid-row: span 1 !important;
+    }
+
+    /* [data-widget-key] : bat la règle générique juste au-dessus (même !important, spécificité plus
+       haute) - Top hausses reste plein largeur même sur tablette, sa hauteur retombe elle sur "span 1"
+       (hauteur naturelle, grid-auto-rows repassé en auto plus haut) comme tous les autres widgets. */
+    .dashboard-widget-full[data-widget-key] {
+        grid-column: span 2 !important;
     }
 }
 
@@ -10826,12 +10977,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
     .dashboard-main-grid {
         grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: auto;
     }
 
-    /* Colonne unique : un span sur 2 lignes n'a plus de sens (rien a caser a cote), ca laisserait
-       juste une 2e ligne vide sous le contenu reel de la section. */
-    .dashboard-widget-size-large {
-        grid-row: auto;
+    /* Colonne unique : les tailles personnalisées (desktop) n'ont plus de sens ici, cf commentaire
+       identique au palier 1024px plus haut. */
+    .dashboard-widget[data-widget-key] {
+        grid-column: span 1 !important;
+        grid-row: span 1 !important;
     }
 
     .dashboard-widget-full {
