@@ -851,6 +851,41 @@ async function renderValueHistoryChart() {
 
     if (valueHistoryChartInstance) valueHistoryChartInstance.destroy();
 
+    // Tracé progressif (retour utilisateur 2026-09, audit design) : la courbe se dessine de gauche à
+    // droite plutôt que d'apparaître d'un bloc - recette Chart.js officielle (delay croissant par
+    // point sur x ET y), pas la simple interpolation par défaut (animation:true ci-dessous avant ce
+    // chantier) qui anime chaque point depuis l'axe X *en même temps*, sans effet de révélation
+    // directionnelle. previousY() fait partir chaque point de la position Y du point précédent (pas
+    // de zéro) : la ligne semble "s'étirer" d'un point au suivant plutôt que rebondir depuis le bas à
+    // chaque segment. xStarted/yStarted sur le ctx (muté, pattern officiel Chart.js) : le délai ne
+    // doit être appliqué qu'une fois par point, jamais à chaque frame d'interpolation de ce même point.
+    const drawDuration = 600;
+    const delayPerPoint = values.length > 1 ? drawDuration / values.length : 0;
+    const previousY = (ctx) => {
+        if (ctx.index === 0) return ctx.chart.scales.y.getPixelForValue(0);
+        const meta = ctx.chart.getDatasetMeta(ctx.datasetIndex);
+        const prevPoint = meta.data[ctx.index - 1];
+        return prevPoint ? prevPoint.getProps(['y'], true).y : ctx.chart.scales.y.getPixelForValue(0);
+    };
+    const drawLineAnimation = {
+        x: {
+            type: 'number', easing: 'linear', duration: delayPerPoint, from: NaN,
+            delay(ctx) {
+                if (ctx.type !== 'data' || ctx.xStarted) return 0;
+                ctx.xStarted = true;
+                return ctx.index * delayPerPoint;
+            }
+        },
+        y: {
+            type: 'number', easing: 'linear', duration: delayPerPoint, from: previousY,
+            delay(ctx) {
+                if (ctx.type !== 'data' || ctx.yStarted) return 0;
+                ctx.yStarted = true;
+                return ctx.index * delayPerPoint;
+            }
+        }
+    };
+
     valueHistoryChartInstance = new Chart(canvas, {
         type: 'line',
         data: {
@@ -869,7 +904,7 @@ async function renderValueHistoryChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: stxChartAnimation(true),
+            animation: stxChartAnimation(drawLineAnimation),
             plugins: {
                 legend: { display: false },
                 tooltip: {
