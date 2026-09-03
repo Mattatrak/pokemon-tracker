@@ -4495,11 +4495,30 @@ tbody tr:hover {
     border: 1px solid var(--border);
     text-decoration: none;
     color: inherit;
+    transition: border-color var(--motion-duration-fast) ease-out, box-shadow var(--motion-duration-fast) ease-out;
 }
 
 .collectors-result-row:hover {
     background: rgba(255,255,255,0.04);
     border-color: var(--gold);
+}
+
+/* Match réciproque (retour utilisateur 2026-09, audit design) : liseré doré visible en permanence,
+   pas seulement au survol - c'est le signal le plus fort de toute la carte, il doit se voir dans la
+   liste avant même de cliquer. Cible .profile-avatar (modules/profile.js#profileAvatarHtml) plutôt
+   qu'un nouveau wrapper : la taille (56px ici, cf renderCollectorsResults) reste pilotée par son style
+   inline existant, seul l'anneau change. */
+.collectors-result-row-reciprocal {
+    border-color: rgba(232, 169, 59, 0.35);
+    box-shadow: 0 0 0 1px var(--glow-gold) inset;
+}
+
+.collectors-result-row .profile-avatar {
+    box-shadow: 0 0 0 2px var(--border);
+}
+
+.collectors-result-row-reciprocal .profile-avatar {
+    box-shadow: 0 0 0 2px var(--gold);
 }
 
 .collectors-result-identity {
@@ -4529,15 +4548,16 @@ tbody tr:hover {
     flex-shrink: 0;
 }
 
-/* Signaux d'échange (Phase 5, P5-3) : chiffres explicites, pas de score - reste discret par rapport à
-   l'identité (flex:1) mais reste lisible. */
+/* Signal directionnel (retour utilisateur 2026-09, audit design) : déplacé DANS .collectors-result-
+   identity (sous pseudo/username/since) plutôt qu'en colonne à droite alignée flex-end - se lit
+   maintenant comme une propriété du profil, pas comme une donnée annexe, et wrap naturellement en
+   flux normal sur mobile sans le hack padding-left recalé sur la largeur de l'avatar qui existait
+   ici avant (cassait dès que la taille de l'avatar changeait, ce que ce même chantier vient de faire). */
 .collectors-result-signals {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
     gap: 0.4rem;
-    flex-shrink: 0;
-    max-width: 40%;
+    margin-top: 0.4rem;
 }
 
 .collectors-signal-badge {
@@ -4554,14 +4574,19 @@ tbody tr:hover {
     border: 1px solid var(--border);
 }
 
+/* Flèche ↓ entrante (retour utilisateur : direction plutôt que couleur seule pour distinguer
+   "pour toi" de "pour lui" au premier coup d'œil) - vert positif, cohérent avec le reste de l'app
+   (--positive déjà utilisé pour tout gain/possession). */
 .collectors-signal-for-me {
-    color: var(--gold);
-    border-color: rgba(232, 169, 59, 0.35);
-}
-
-.collectors-signal-for-them {
     color: var(--positive);
     border-color: rgba(126, 217, 167, 0.35);
+}
+
+/* Flèche ↑ sortante - bleu info plutôt que positif/négatif : ce n'est ni un gain ni une perte pour
+   l'utilisateur, juste ce qu'il peut donner. */
+.collectors-signal-for-them {
+    color: var(--info);
+    border-color: rgba(107, 203, 255, 0.35);
 }
 
 .collectors-signal-reciprocal {
@@ -4570,18 +4595,8 @@ tbody tr:hover {
     border-color: var(--gold);
 }
 
-@media (max-width: 640px) {
-    .collectors-result-row {
-        flex-wrap: wrap;
-    }
-
-    .collectors-result-signals {
-        max-width: 100%;
-        width: 100%;
-        justify-content: flex-start;
-        order: 3;
-        padding-left: calc(44px + 0.9rem); /* aligné sous l'identité, largeur de l'avatar + gap de la ligne */
-    }
+.collectors-reciprocal-standalone {
+    margin-top: 0.4rem;
 }
 
 /* Bloc "Trouver un collectionneur" du Dashboard (modules/dashboard.js) : mêmes classes de résultat
