@@ -21,6 +21,7 @@ async function renderDashboard() {
         activity: renderDashboardActivity,
         objective: renderDashboardObjective,
         badges: renderDashboardBadges,
+        dailyCard: renderDashboardDailyCard,
         acquisitions: renderDashboardAcquisitions,
         todo: renderDashboardTodo,
         wishlist: renderDashboardWishlist,
@@ -48,6 +49,7 @@ const DASHBOARD_WIDGET_DEFS = {
     activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body', size: 'large' },
     objective: { title: 'Objectif actuel', extraClass: 'dashboard-widget-objective', bodyId: 'dashboard-objective-body' },
     badges: { title: 'Succès', extraClass: '', bodyId: 'dashboard-badges-body' },
+    dailyCard: { title: 'Carte du jour', extraClass: '', bodyId: 'dashboard-daily-card-body' },
     wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' }, size: 'large' },
     acquisitions: { title: 'Dernières acquisitions', extraClass: '', bodyId: 'dashboard-acquisitions-body', link: { label: 'Voir tout', tab: 'tab-collection' } },
     todo: { title: "À faire aujourd'hui", extraClass: '', bodyId: 'dashboard-todo-body' },
@@ -59,7 +61,7 @@ const DASHBOARD_WIDGET_DEFS = {
 // sur cet ordre par défaut - un utilisateur avec un ordre personnalisé existant (6 clés) verra donc
 // simplement 'badges' réapparaître à sa position par défaut plutôt qu'une erreur, sans code
 // supplémentaire à écrire ici (déjà prévu pour ce cas de figure).
-const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'badges', 'wishlist', 'acquisitions', 'todo', 'collectors'];
+const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'badges', 'dailyCard', 'wishlist', 'acquisitions', 'todo', 'collectors'];
 const DASHBOARD_WIDGET_ORDER_KEY = 'dashboardWidgetOrder';
 
 // Ordre choisi par l'utilisateur (localStorage, jamais synchronise entre appareils - meme
@@ -707,6 +709,74 @@ function renderDashboardBadges() {
     `;
 }
 
+// ===== CARTE DU JOUR =====
+
+// P2 (audit design 2026-09, mockups "Carte du jour" - concept C validé) : widget independant du
+// systeme reordonnable/masquable, plutot que reintegre au hero comme l'ancien "Favori du jour" retire
+// le 01/09 (cf commit 9e72665 - juge trop encombre partage avec l'estimation de valeur). Rotation
+// quotidienne deterministe (jour de l'annee), sans bouton "suivant" ni etat localStorage dedie -
+// c'est justement cette mecanique de rotation manuelle qui alourdissait l'ancienne version pour un
+// gain limite ; ici, un widget qu'on peut masquer d'un clic si on ne s'y interesse pas suffit.
+function dashboardPickDailyCard() {
+    if (allCollectionCards.length === 0) return null;
+
+    const favoritedOwned = [];
+    const seenFavoriteIds = new Set();
+    allCollectionCards.forEach(c => {
+        if (c.tcgdex_id && isFavorite(c.tcgdex_id) && !seenFavoriteIds.has(c.tcgdex_id)) {
+            seenFavoriteIds.add(c.tcgdex_id);
+            favoritedOwned.push(c);
+        }
+    });
+
+    let pool = favoritedOwned;
+    if (pool.length === 0) {
+        pool = [...allCollectionCards].filter(c => Number(c.market_value || 0) > 0);
+    }
+    if (pool.length === 0) pool = allCollectionCards;
+
+    // Tri deterministe avant rotation (nom puis tcgdex_id) : sans ça, l'ordre de allCollectionCards
+    // (dépend du fetch réseau) ferait potentiellement changer la carte du jour à chaque rechargement,
+    // pas seulement chaque jour.
+    pool = [...pool].sort((a, b) => {
+        const nameDiff = (a.name || '').localeCompare(b.name || '');
+        if (nameDiff !== 0) return nameDiff;
+        return String(a.tcgdex_id || '').localeCompare(String(b.tcgdex_id || ''));
+    });
+
+    const startOfYear = new Date(new Date().getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((Date.now() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+    return pool[dayOfYear % pool.length];
+}
+
+function renderDashboardDailyCard() {
+    const el = document.getElementById('dashboard-daily-card-body');
+    if (!el) return;
+
+    const card = dashboardPickDailyCard();
+
+    if (!card) {
+        el.innerHTML = '<p class="dashboard-empty-text">Votre collection est vide</p>';
+        return;
+    }
+
+    el.innerHTML = `
+        <div class="dashboard-daily-card" data-card-id="${card.id}" onclick="showCardDetail(${card.id}, event)">
+            <div class="dashboard-daily-card-thumb">
+                ${card.image
+                    ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.style.display='none'">`
+                    : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
+                }
+            </div>
+            <div class="dashboard-daily-card-meta">
+                <div class="dashboard-daily-card-name">${escapeHtml(card.name)}</div>
+                ${card.series ? `<div class="dashboard-daily-card-set">${escapeHtml(card.series)}</div>` : ''}
+                ${Number(card.market_value || 0) > 0 ? `<div class="dashboard-daily-card-value">${formatPrice(card.market_value)}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
 // ===== TOP HAUSSES =====
 
 function renderDashboardTopMovers() {
@@ -745,33 +815,96 @@ function renderDashboardAcquisitions() {
         return;
     }
 
-    el.innerHTML = `<div class="dashboard-acquisitions-scroll">${cards.map(c => `
-        <div class="dashboard-acquisition-card" data-card-id="${c.id}" onclick="showCardDetail(${c.id}, event)">
-            <div class="dashboard-acquisition-card-img-wrap">
-                ${c.image
-                    ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'">`
-                    : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
-                }
-            </div>
-            <div class="dashboard-acquisition-name">${escapeHtml(c.name)}</div>
-            ${Number(c.market_value || 0) > 0 ? `<div class="dashboard-acquisition-value">${formatPrice(c.market_value)}</div>` : ''}
-            <div class="dashboard-acquisition-time">${dashboardRelativeTime(c.created_at)}</div>
+    // Fleches + points (audit design 2026-09, P2 "refonte carrousel") : remplace la scrollbar native
+    // doree (heritee de la regle globale scrollbar-color, jugee brute au regard des autres composants)
+    // par une navigation coherente avec le reste de l'app. Un point par carte plutot qu'un decoupage en
+    // "pages" - le nombre de cartes est toujours petit (max 5, cf slice ci-dessus), donc chaque carte a
+    // legitimement son propre point.
+    el.innerHTML = `
+        <div class="dashboard-acquisitions-carousel">
+            <button type="button" class="dashboard-acquisitions-arrow dashboard-acquisitions-arrow-prev" aria-label="Acquisition précédente">
+                <i class="ti ti-chevron-left" aria-hidden="true"></i>
+            </button>
+            <div class="dashboard-acquisitions-scroll">${cards.map(c => `
+                <div class="dashboard-acquisition-card" data-card-id="${c.id}" onclick="showCardDetail(${c.id}, event)">
+                    <div class="dashboard-acquisition-card-img-wrap">
+                        ${c.image
+                            ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'">`
+                            : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
+                        }
+                    </div>
+                    <div class="dashboard-acquisition-name">${escapeHtml(c.name)}</div>
+                    ${Number(c.market_value || 0) > 0 ? `<div class="dashboard-acquisition-value">${formatPrice(c.market_value)}</div>` : ''}
+                    <div class="dashboard-acquisition-time">${dashboardRelativeTime(c.created_at)}</div>
+                </div>
+            `).join('')}</div>
+            <button type="button" class="dashboard-acquisitions-arrow dashboard-acquisitions-arrow-next" aria-label="Acquisition suivante">
+                <i class="ti ti-chevron-right" aria-hidden="true"></i>
+            </button>
         </div>
-    `).join('')}</div>`;
+        ${cards.length > 1 ? `<div class="dashboard-acquisitions-dots">${cards.map((c, i) => `
+            <span class="dashboard-acquisitions-dot${i === 0 ? ' active' : ''}" data-dot-index="${i}"></span>
+        `).join('')}</div>` : ''}
+    `;
+
+    const scroller = el.querySelector('.dashboard-acquisitions-scroll');
+    const prevBtn = el.querySelector('.dashboard-acquisitions-arrow-prev');
+    const nextBtn = el.querySelector('.dashboard-acquisitions-arrow-next');
+    const dots = [...el.querySelectorAll('.dashboard-acquisitions-dot')];
+    const cardEls = [...scroller.querySelectorAll('.dashboard-acquisition-card')];
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Fondu de bord (retour utilisateur design 2026-09, "le carrousel coupe les cartes sans indice
     // visuel qu'on peut glisser") : uniquement si le contenu deborde reellement - inutile et etrange
     // visuellement quand les quelques cartes tiennent deja entierement dans le widget. Recalcule a
     // chaque scroll (pas juste au rendu) pour retirer le fondu droit une fois arrive au bout, et
-    // ajouter un fondu gauche symetrique des qu'on s'est deplace du debut.
-    const scroller = el.querySelector('.dashboard-acquisitions-scroll');
-    const updateEdgeFade = () => {
+    // ajouter un fondu gauche symetrique des qu'on s'est deplace du debut. Sert aussi a activer/
+    // desactiver les fleches et a mettre a jour le point actif.
+    const updateCarouselState = () => {
         const maxScroll = scroller.scrollWidth - scroller.clientWidth;
-        scroller.classList.toggle('has-more-right', maxScroll > 1 && scroller.scrollLeft < maxScroll - 1);
-        scroller.classList.toggle('has-more-left', scroller.scrollLeft > 1);
+        const atStart = scroller.scrollLeft <= 1;
+        const atEnd = maxScroll <= 1 || scroller.scrollLeft >= maxScroll - 1;
+        scroller.classList.toggle('has-more-right', !atEnd);
+        scroller.classList.toggle('has-more-left', !atStart);
+        prevBtn.disabled = atStart;
+        nextBtn.disabled = atEnd;
+
+        if (dots.length > 0) {
+            let closestIndex = 0;
+            let closestDist = Infinity;
+            cardEls.forEach((card, i) => {
+                const dist = Math.abs(cardScrollPosition(card) - scroller.scrollLeft);
+                if (dist < closestDist) { closestDist = dist; closestIndex = i; }
+            });
+            dots.forEach((dot, i) => dot.classList.toggle('active', i === closestIndex));
+        }
     };
-    updateEdgeFade();
-    scroller.addEventListener('scroll', updateEdgeFade, { passive: true });
+    // .dashboard-acquisitions-scroll centre son contenu (justify-content:center) tant qu'il ne deborde
+    // pas - offsetLeft seul y est donc decale d'une valeur pouvant etre negative et ne correspond pas a
+    // scrollLeft. Position reelle dans l'espace scrollable = rect relatif au scroller + scrollLeft
+    // courant, valable que le contenu deborde ou non.
+    function cardScrollPosition(card) {
+        return card.getBoundingClientRect().left - scroller.getBoundingClientRect().left + scroller.scrollLeft;
+    }
+    updateCarouselState();
+    scroller.addEventListener('scroll', updateCarouselState, { passive: true });
+
+    const scrollByOneCard = (direction) => {
+        const card = cardEls[0];
+        if (!card) return;
+        const cardStep = card.getBoundingClientRect().width + 16; // largeur carte + gap (1rem)
+        scroller.scrollBy({ left: direction * cardStep, behavior: reduceMotion ? 'auto' : 'smooth' });
+    };
+    prevBtn.addEventListener('click', () => scrollByOneCard(-1));
+    nextBtn.addEventListener('click', () => scrollByOneCard(1));
+
+    dots.forEach((dot, i) => {
+        dot.addEventListener('click', () => {
+            const card = cardEls[i];
+            if (!card) return;
+            scroller.scrollTo({ left: cardScrollPosition(card), behavior: reduceMotion ? 'auto' : 'smooth' });
+        });
+    });
 }
 
 // ===== A FAIRE AUJOURD'HUI =====
@@ -974,6 +1107,8 @@ window.dashboardFindBestObjective = dashboardFindBestObjective;
 window.renderDashboardObjective = renderDashboardObjective;
 window.computeCollectorBadges = computeCollectorBadges;
 window.renderDashboardBadges = renderDashboardBadges;
+window.dashboardPickDailyCard = dashboardPickDailyCard;
+window.renderDashboardDailyCard = renderDashboardDailyCard;
 window.renderDashboardTopMovers = renderDashboardTopMovers;
 window.renderDashboardAcquisitions = renderDashboardAcquisitions;
 window.renderDashboardTodo = renderDashboardTodo;

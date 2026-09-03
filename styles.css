@@ -270,7 +270,7 @@ body::before {
 
 .input-with-icon input:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 /* SKELETON DE CHARGEMENT */
@@ -767,7 +767,7 @@ body::before {
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: var(--radius-2xl);
-    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    box-shadow: var(--shadow-xl);
     padding: 1.5rem;
 }
 
@@ -814,7 +814,7 @@ body::before {
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: var(--radius-2xl);
-    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    box-shadow: var(--shadow-xl);
     padding: 1.5rem;
 }
 
@@ -2094,7 +2094,7 @@ select {
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 textarea {
@@ -2140,7 +2140,7 @@ button:active {
 
 button:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -2279,7 +2279,7 @@ button:disabled {
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
         rgba(255,255,255,0.05);
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
     transform: translateY(-1px);
 }
 
@@ -2722,6 +2722,21 @@ button:disabled {
     padding: 0.5rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
+}
+
+/* P2 - Podium visuel (audit design 2026-09) : traitement or/argent/bronze differencie sur le top 3 -
+   couleur de badge + liseret/halo assortis. Rangs 4-5 gardent le style neutre ci-dessus. */
+.recap-top-card-rank-1 { --medal-color: #f4c766; }
+.recap-top-card-rank-2 { --medal-color: #c7cbd1; }
+.recap-top-card-rank-3 { --medal-color: #c98553; }
+
+.recap-top-card-podium {
+    border-color: var(--medal-color);
+    box-shadow: 0 0 0 1px var(--medal-color), 0 0 16px -6px var(--medal-color);
+}
+
+.recap-top-card-podium .recap-top-card-rank {
+    background: var(--medal-color);
 }
 
 .recap-top-card-image {
@@ -3483,7 +3498,7 @@ tbody tr:hover {
     border: 1px solid rgba(232, 169, 59, 0.16);
     border-radius: var(--radius-lg);
     margin-bottom: 1rem;
-    box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
+    box-shadow: var(--shadow-xl);
 }
 
 /* Pas d'overflow:hidden ici (contrairement à avant) : ça clippait le popover d'action d'une
@@ -5019,6 +5034,19 @@ tbody tr:hover {
     background: rgba(126,217,167,0.05);
 }
 
+/* Halo permanent (retour utilisateur 2026-09, audit design) : les sets à 90-99% (is-almost, déjà posé
+   par renderProgressionSeriesList mais jamais stylé jusqu'ici - la classe existait sans aucune règle
+   CSS derrière) gagnent un liseré + halo doré au repos, pas seulement au survol comme le reste de la
+   liste - signal "tu y es presque" visible d'un coup d'œil sans avoir à survoler chaque carte une par
+   une. --shadow-glow-gold (css/shadow-tokens.css) reste discret par nature (0.1 d'opacité), cohérent
+   avec une liste qui peut compter plusieurs sets presque terminés à la fois - jamais un effet qui
+   capte l'attention en continu comme une animation le ferait. */
+.progression-set-row.is-almost {
+    background: rgba(227,188,132,0.05);
+    border-color: rgba(232,169,59,0.3);
+    box-shadow: var(--shadow-glow-gold);
+}
+
 .progression-set-complete {
     display: inline-flex;
     align-items: center;
@@ -6301,7 +6329,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .wishlist-detail-acquisition-price-wrap:focus-within {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 .wishlist-detail-acquisition-price-wrap input {
@@ -6824,7 +6852,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Verre fumé (même formule que .stx-panel côté Statistiques) : reflet neutre en haut. */
@@ -7782,7 +7810,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 #card-detail-card .modal-save-btn:hover {
     border-color: rgba(232, 169, 59, 0.45);
-    box-shadow: 0 0 14px var(--glow-gold);
+    box-shadow: var(--shadow-glow-gold);
     transform: translateY(-1px);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
@@ -10207,16 +10235,87 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 /* ----- Dernieres acquisitions ----- */
 
+/* Fleches + points (audit design 2026-09, P2) : la scrollbar native doree (heritee de la regle globale
+   scrollbar-color, styles.css:38) jugee trop brute pour ce composant - remplacee par une navigation
+   dediee, scrollbar native masquee ci-dessous. */
+.dashboard-acquisitions-carousel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.dashboard-acquisitions-arrow {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, opacity var(--motion-duration-fast) ease;
+}
+
+.dashboard-acquisitions-arrow:hover:not(:disabled) {
+    background: rgba(232,169,59,0.16);
+    color: var(--gold);
+}
+
+.dashboard-acquisitions-arrow:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.dashboard-acquisitions-arrow i {
+    font-size: 1rem;
+}
+
 .dashboard-acquisitions-scroll {
     display: flex;
-    justify-content: center;
+    /* "safe center" (et non center seul, cf audit design 2026-09 P2) : centre le contenu quand il
+       tient dans le widget, mais bascule en alignement au debut des qu'il deborde - sinon la carte #1
+       se retrouve a une position negative hors de la zone de scroll (bug reel decouvert en implementant
+       les points/fleches ci-dessous : leur calcul de position devient incoherent avec scrollLeft). */
+    justify-content: safe center;
     gap: 1rem;
     overflow-x: auto;
     padding: 0.85rem 0.75rem 0.6rem;
-    margin: 0 -0.75rem;
     background: rgba(255,255,255,0.02);
     border-radius: var(--radius-md);
     transition: mask-image 0.15s ease, -webkit-mask-image 0.15s ease;
+    scrollbar-width: none;
+}
+
+.dashboard-acquisitions-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.dashboard-acquisitions-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.dashboard-acquisitions-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease;
+}
+
+.dashboard-acquisitions-dot:hover {
+    background: rgba(232,169,59,0.5);
+}
+
+.dashboard-acquisitions-dot.active {
+    background: var(--gold);
+    transform: scale(1.3);
 }
 
 /* Fondu de bord signalant qu'il y a d'autres cartes a glisser (retour utilisateur design 2026-09,
@@ -10576,6 +10675,67 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-variant-numeric: tabular-nums;
 }
 
+/* ----- Carte du jour (P2, mockups "concept C") ----- */
+
+.dashboard-daily-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    cursor: pointer;
+    padding: 0.4rem;
+    margin: -0.4rem;
+    border-radius: var(--radius-md);
+    transition: background var(--motion-duration-fast) ease;
+}
+
+.dashboard-daily-card:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.dashboard-daily-card-thumb {
+    flex: none;
+    width: 56px;
+    aspect-ratio: 5/7;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: 0 6px 16px -8px rgba(0,0,0,0.5);
+}
+
+.dashboard-daily-card-thumb img,
+.dashboard-daily-card-thumb .no-image-placeholder {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.dashboard-daily-card-meta {
+    min-width: 0;
+}
+
+.dashboard-daily-card-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashboard-daily-card-set {
+    font-size: 0.76rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashboard-daily-card-value {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-top: 0.15rem;
+}
+
 /* ----- Responsive ----- */
 
 @media (max-width: 1024px) {
@@ -10755,7 +10915,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .stx-panel::after {
@@ -10896,6 +11056,45 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .stx-composition-grid .stx-legend-total {
     margin-top: 1.5rem;
+}
+
+/* Info-bulle personnalisee du donut "Repartition valeur/serie" (audit design 2026-09) : rendu via le
+   mode external de Chart.js (modules/stats-render.js) pour pouvoir afficher le logo du set, impossible
+   avec le tooltip natif. */
+.stx-chart-tooltip {
+    position: fixed;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--ink-navy);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.7rem;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+    transform: translate(-50%, -115%);
+    white-space: nowrap;
+}
+
+.stx-chart-tooltip-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex: none;
+}
+
+.stx-chart-tooltip-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stx-chart-tooltip-value {
+    font-size: 0.7rem;
+    color: var(--slate);
 }
 
 .stx-barlist {
@@ -11125,7 +11324,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-radius: var(--radius-lg);
     padding: 1.75rem 1.5rem;
     min-width: 0;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .stx-habit-icon {
@@ -11217,7 +11416,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: var(--radius-lg);
     padding: 1.75rem;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-lg);
     transition: transform var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
 }
 

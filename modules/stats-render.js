@@ -514,6 +514,49 @@ function renderExtBarlist() {
 
 // ===== 3. VALEUR & INVESTISSEMENT : répartition de la valeur par série (donut + légende) — même
 // calcul de totaux par série que l'ancien graphique "Top séries (par valeur)", regroupé Top 5 + Autres =====
+// Info-bulle HTML personnalisee (audit design 2026-09) : le tooltip natif de Chart.js ne peut pas
+// afficher d'image, donc le logo du set repose sur le mode "external" de Chart.js qui delegue tout
+// le rendu a ce noeud, cree une seule fois et reutilise a chaque survol (meme principe que
+// .nav-progress-bar dans tracker.js).
+let seriesValueTooltipEl = null;
+function getSeriesValueTooltipEl() {
+    if (!seriesValueTooltipEl) {
+        seriesValueTooltipEl = document.createElement('div');
+        seriesValueTooltipEl.className = 'stx-chart-tooltip';
+        document.body.appendChild(seriesValueTooltipEl);
+    }
+    return seriesValueTooltipEl;
+}
+
+function seriesValueTooltipHandler(context, entries, seriesLogoMap, grandTotal) {
+    const { chart, tooltip } = context;
+    const el = getSeriesValueTooltipEl();
+
+    if (tooltip.opacity === 0) {
+        el.style.opacity = '0';
+        return;
+    }
+
+    const dp = tooltip.dataPoints && tooltip.dataPoints[0];
+    if (dp) {
+        const [label, value] = entries[dp.dataIndex];
+        const logoUrl = seriesLogoMap[label];
+        const pct = grandTotal > 0 ? ((value / grandTotal) * 100).toFixed(1) : '0.0';
+        el.innerHTML = `
+            ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="" class="stx-chart-tooltip-logo" onerror="this.remove()">` : ''}
+            <div class="stx-chart-tooltip-text">
+                <div class="stx-chart-tooltip-title">${escapeHtml(label)}</div>
+                <div class="stx-chart-tooltip-value">${formatPrice(value)} · ${pct}%</div>
+            </div>
+        `;
+    }
+
+    const rect = chart.canvas.getBoundingClientRect();
+    el.style.opacity = '1';
+    el.style.left = `${rect.left + tooltip.caretX}px`;
+    el.style.top = `${rect.top + tooltip.caretY}px`;
+}
+
 function renderSeriesValueChart() {
     const canvas = document.getElementById('series-value-chart');
     const legendEl = document.getElementById('series-value-legend');
@@ -521,10 +564,12 @@ function renderSeriesValueChart() {
     if (!canvas) return;
 
     const totals = {};
+    const seriesLogoMap = {};
     allCollectionCards.forEach(card => {
         const key = card.series;
         if (!key || key === 'N/A') return;
         totals[key] = (totals[key] || 0) + Number(card.market_value || 0) * Number(card.quantity || 1);
+        if (card.series_logo && !seriesLogoMap[key]) seriesLogoMap[key] = card.series_logo;
     });
 
     const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
@@ -537,6 +582,7 @@ function renderSeriesValueChart() {
     const grandTotal = values.reduce((s, v) => s + v, 0);
 
     if (seriesValueChartInstance) seriesValueChartInstance.destroy();
+    if (seriesValueTooltipEl) seriesValueTooltipEl.style.opacity = '0';
 
     if (labels.length === 0) {
         if (legendEl) legendEl.innerHTML = '';
@@ -562,7 +608,10 @@ function renderSeriesValueChart() {
             animation: stxChartAnimation(true),
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => formatPrice(ctx.parsed) } }
+                tooltip: {
+                    enabled: false,
+                    external: (context) => seriesValueTooltipHandler(context, entries, seriesLogoMap, grandTotal)
+                }
             }
         }
     });
@@ -909,7 +958,21 @@ async function renderValueHistoryChart() {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => formatPrice(ctx.parsed.y)
+                        label: (ctx) => formatPrice(ctx.parsed.y),
+                        // Variation vs le point precedent (retour utilisateur 2026-09, audit design) :
+                        // chaque point du graphique est un total agrege par date, pas une carte
+                        // individuelle - impossible d'y montrer une mini-carte (proposition initiale de
+                        // l'audit, ecartee apres verification). La variation ligne a ligne est
+                        // l'enrichissement qui a du sens ici a la place. Aucune ligne pour le tout
+                        // premier point (rien avant) ni si la valeur n'a pas bouge (0,00€ vs jour
+                        // precedent serait du bruit, pas une info).
+                        afterLabel: (ctx) => {
+                            const i = ctx.dataIndex;
+                            if (i === 0) return undefined;
+                            const delta = values[i] - values[i - 1];
+                            if (delta === 0) return undefined;
+                            return `${delta > 0 ? '+' : ''}${formatPrice(delta)} vs jour précédent`;
+                        }
                     }
                 }
             },
