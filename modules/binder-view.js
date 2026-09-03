@@ -25,9 +25,9 @@
 // B8 (mobile) : slide+fade WAAPI léger sur goToBinderSpread(), cf animateBinderPageChange() plus bas.
 // N'affecte aucun comportement de B1-B7 - seule la transition visuelle entre deux rendus change.
 //
-// B9 (desktop, branche tech/phase-4-binder-pageturn, dérivée de B8) : rotation ~90deg d'une seule page
-// à la fois (celle concernée par le sens de navigation), autour de la reliure. Une itération recto/verso
-// 180deg a été tentée puis abandonnée - cf commentaire détaillé au-dessus d'animateBinderPageChange.
+// B9 (desktop, branche tech/phase-4-binder-pageturn, dérivée de B8) : vrai flip 180deg d'un feuillet
+// recto/verso superposé, hinge sur la reliure (refonte 2026-09, retour utilisateur - remplace une
+// première version en rotation ~90deg jugée pas assez réaliste) - cf animateBinderDesktopFlip.
 
 // window.x plutôt que let (ticket V2 Vite, type="module") : lu/écrit uniquement dans ce fichier pour
 // l'instant, mais suit la convention du projet par cohérence avec collectionDisplayLimit (collection.js).
@@ -156,25 +156,16 @@ function goToBinderSpread(delta) {
 }
 
 // ===== Animation de changement de double-page/page (WAAPI, cf roadmap technique) =====
-// Mobile (B8) : slide+fade léger sur .binder-book en entier. Desktop (B9) : rotation ~90deg d'une
-// seule page à la fois - celle concernée par le sens de navigation (droite pour "suivant", gauche pour
-// "précédent"), comme dans un vrai livre. Expérimentation isolée (branche tech/phase-4-binder-pageturn),
-// n'affecte aucun comportement de B1-B7 - seule la transition visuelle entre deux rendus change.
-// (Une itération recto/verso 180deg a été tentée puis abandonnée : le classeur navigue par double-page
-// ENTIÈRE, pas page par page comme un vrai livre, ce qui créait un désaccord irréconciliable entre la
-// géométrie du flip - qui fait "atterrir" la page tournée sur la page opposée - et le contenu affiché
-// à cet endroit - qui ne pouvait représenter ni l'ancien contenu recouvert ni le nouveau de façon
-// cohérente. Le swing à 90deg, plus simple, ne prétend pas simuler un vrai livre page par page - juste
-// un mouvement directionnel clair.)
+// Mobile (B8) : slide+fade léger sur .binder-book en entier. Desktop (B9) : vrai flip 180deg d'un seul
+// feuillet recto/verso, hinge sur la reliure - cf animateBinderDesktopFlip plus bas pour le détail de
+// la technique et son historique (plusieurs tentatives intermédiaires abandonnées avant celle-ci).
 //
 // BINDER_SLIDE_DISTANCE : aucun token --motion-distance-* existant n'est calibré pour ce cas (ils
 // servent des micro-interactions hover de quelques px) - valeur minimale dédiée, volontairement petite.
 // Durée/easing du mobile (B8) lisent directement --motion-duration-normal/--motion-ease-standard (cf
 // readMotionDurationMs/readMotionEasing ci-dessous) plutôt que de dupliquer leur valeur en dur - un
 // audit a trouvé un ancien duplicata (260ms) qui avait divergé du token (450ms) sans que rien ne le
-// signale. Le desktop garde sa propre durée dédiée (BINDER_TURN_DURATION), une rotation ayant besoin
-// de plus de temps pour se lire comme "la page tourne" (retour utilisateur sur un premier essai à
-// 260ms, jugé trop rapide) - volontairement indépendante du token, donc laissée en dur.
+// signale.
 function readMotionDurationMs(varName, fallbackMs) {
     const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
     const ms = raw.endsWith('ms') ? parseFloat(raw) : raw.endsWith('s') ? parseFloat(raw) * 1000 : NaN;
@@ -184,9 +175,15 @@ function readMotionEasing(varName, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
 }
 const BINDER_SLIDE_DISTANCE = 22; // px - mobile uniquement (B8)
-const BINDER_ROTATE_ANGLE = 90; // deg - desktop uniquement (B9)
 const BINDER_ANIM_DURATION = readMotionDurationMs('--motion-duration-normal', 450); // mobile (B8) uniquement
-const BINDER_TURN_DURATION = 420; // ms - desktop uniquement (B9), délibérément indépendante du token
+// Desktop (B9) : rotation complète (180deg, contre 420ms/90deg avant refonte) - un feuillet qui voyage
+// réellement d'une case à l'autre a besoin d'un peu plus de temps pour se lire, cf commentaire détaillé
+// sur animateBinderDesktopFlip. Volontairement indépendante du token de durée partagé, comme avant.
+// 480ms -> 750ms -> 600ms (retour utilisateur 2026-09, essai comparatif) : le geste a plus de temps
+// pour se lire une fois la geometrie (charniere) et la case liberee (mi-course) corrigees, 750ms jugé
+// un peu long.
+const BINDER_FLIP_DURATION = 600; // ms - desktop uniquement (B9)
+const BINDER_FLIP_EASING = 'cubic-bezier(0.65, 0, 0.35, 1)'; // accélère puis décélère, courbe symétrique
 const BINDER_ANIM_EASING = readMotionEasing('--motion-ease-standard', 'cubic-bezier(0.2, 0, 0, 1)');
 
 let binderAnimating = false;
@@ -198,7 +195,9 @@ let binderAnimating = false;
 let binderAnimationToken = 0;
 
 // direction > 0 : navigation "suivant". direction < 0 : "précédent".
-// renderFn : la mise à jour d'état + rerender existante (goToBinderSpread ci-dessus) - jamais réécrite.
+// renderFn : la mise à jour d'état + rerender existante (goToBinderSpread ci-dessus) - jamais réécrite,
+// juste appelée à un moment différent selon la branche (immédiatement sur mobile, en fin d'animation
+// sur desktop - cf animateBinderDesktopFlip).
 function animateBinderPageChange(direction, renderFn) {
     // Navigation rapide (clics/swipes répétés) : on ignore plutôt que d'empiler ou d'interrompre une
     // animation en cours - stratégie la plus simple et la plus robuste (jamais deux animations ou deux
@@ -216,15 +215,19 @@ function animateBinderPageChange(direction, renderFn) {
         return;
     }
 
+    if (isCollectionMobileViewport()) {
+        animateBinderMobileSlide(direction, renderFn, wrapper, oldBook);
+    } else {
+        animateBinderDesktopFlip(direction, renderFn, wrapper, oldBook);
+    }
+}
+
+// B8 (mobile) : slide+fade sur .binder-book en entier (une seule page 2x2, pas de reliure à faire
+// tourner) - clone-et-fade classique, comportement inchangé depuis l'origine.
+function animateBinderMobileSlide(direction, renderFn, wrapper, oldBook) {
     binderAnimating = true;
     const myToken = ++binderAnimationToken;
 
-    // Clone positionné en fixed (coordonnées déjà en repère viewport via getBoundingClientRect, aucun
-    // besoin de rendre .binder-scene position:relative pour ça) et ajouté à document.body - survit au
-    // wrapper.innerHTML de renderBinderView() qui va suivre (lequel détruirait un enfant de .binder-scene).
-    // pointer-events:none : ne doit jamais intercepter un clic destiné à la nouvelle page en dessous.
-    // aria-hidden + inert : c'est un doublon visuel temporaire du contenu réel, jamais interactif -
-    // ne doit jamais être exposé aux technologies d'assistance ni recevoir le focus clavier.
     const oldRect = oldBook.getBoundingClientRect();
     const clone = oldBook.cloneNode(true);
     clone.setAttribute('aria-hidden', 'true');
@@ -241,37 +244,24 @@ function animateBinderPageChange(direction, renderFn) {
     });
     document.body.appendChild(clone);
 
-    // Mobile garde le slide+fade de B8 (une seule page, pas de reliure à faire tourner). Desktop passe
-    // sur la rotation (animateBinderTurnExit/Enter, plus bas) - durée dédiée plus longue.
-    const mobile = isCollectionMobileViewport();
-    const timing = {
-        duration: mobile ? BINDER_ANIM_DURATION : BINDER_TURN_DURATION,
-        easing: BINDER_ANIM_EASING,
-        fill: 'none'
-    };
-    const exitAnims = mobile ? animateBinderSlideExit(clone, direction, timing) : animateBinderTurnExit(clone, direction, timing);
+    const timing = { duration: BINDER_ANIM_DURATION, easing: BINDER_ANIM_EASING, fill: 'none' };
+    const exitAnims = animateBinderSlideExit(clone, direction, timing);
 
-    renderFn(); // rebuild synchrone (index déjà avancé par l'appelant) - la nouvelle page est en place
-                // dès cette ligne, ses handlers de clic sont donc déjà actifs pendant l'animation.
+    renderFn(); // rebuild synchrone - la nouvelle page est en place dès cette ligne.
 
     const newBook = wrapper.querySelector('.binder-book');
     const enterAnims = (newBook && typeof newBook.animate === 'function')
-        ? (mobile ? animateBinderSlideEnter(newBook, direction, timing) : animateBinderTurnEnter(newBook, direction, timing))
+        ? animateBinderSlideEnter(newBook, direction, timing)
         : [];
 
-    // fill:'none' (par défaut) : chaque élément revient automatiquement à son état CSS normal une fois
-    // l'animation terminée - aucun style inline résiduel à retirer nous-mêmes. .finally() garantit le
-    // nettoyage (clone + flag) même si une des animations est annulée entretemps (ex: navigation hors
-    // de Collection pendant l'animation).
     Promise.all([...exitAnims, ...enterAnims].map(a => a.finished))
         .catch(() => {})
         .finally(() => {
-            clone.remove(); // toujours retiré, même si le token a changé entretemps (son propre clone)
-            if (myToken === binderAnimationToken) binderAnimating = false; // cf commentaire du token plus haut
+            clone.remove();
+            if (myToken === binderAnimationToken) binderAnimating = false;
         });
 }
 
-// B8 (mobile) : slide+fade sur .binder-book en entier (une seule page 2x2, pas de reliure).
 function animateBinderSlideExit(book, direction, timing) {
     const offset = direction > 0 ? -BINDER_SLIDE_DISTANCE : BINDER_SLIDE_DISTANCE;
     return [book.animate(
@@ -288,45 +278,227 @@ function animateBinderSlideEnter(book, direction, timing) {
     )];
 }
 
-// B9 (desktop) : une seule page tourne, comme dans un vrai livre - celle de droite pour "suivant"
-// (transform-origin posé côté reliure en CSS), celle de gauche pour "précédent". L'autre page (celle
-// qui ne tourne pas) reçoit seulement un fondu d'opacité, sans rotation, pour rester cohérente
-// visuellement pendant que la page active tourne. Jamais de face arrière rendue : une page vue par la
-// tranche à 90deg est dégénérée (largeur nulle), donc invisible à ce point sans rien à afficher - pas
-// de recto/verso comme un vrai flip 180deg (tenté puis abandonné, cf commentaire de section plus haut).
-function animateBinderTurnExit(book, direction, timing) {
-    const anims = [];
-    const left = book.querySelector('.binder-page-left');
-    const right = book.querySelector('.binder-page-right');
-    const turningPage = direction > 0 ? right : left;
-    const stillPage = direction > 0 ? left : right;
-    // Signe qui fait "se soulever vers l'avant/le lecteur" plutôt que partir en arrière dans l'écran
-    // (retour utilisateur, vérifié géométriquement : le bord libre d'une page pivotée côté reliure a
-    // besoin d'une rotation négative si son pivot est à gauche, positive s'il est à droite).
-    const turningAngle = direction > 0 ? -BINDER_ROTATE_ANGLE : BINDER_ROTATE_ANGLE;
+// B9 (desktop) - refonte complète (retour utilisateur 2026-09) : après plusieurs tentatives ratées sur
+// la version "swing 90deg puis disparaît" (ajout de profondeur/ombre/easing - toutes rejetées, cf
+// historique retiré de ce commentaire par manque de valeur une fois la bonne piste trouvée), référence
+// concrète fournie par l'utilisateur (illu-dex.web.app/binder) et inspectée en direct via DevTools.
+//
+// La différence clé avec l'ancienne version : au lieu de faire pivoter la VRAIE page du DOM sur place
+// (qui rétrécit et disparaît dans le vide), un unique feuillet TEMPORAIRE recto/verso est superposé,
+// ancré à son propre bord côté reliure (transform-origin, comme avant) et pivoté à 180deg COMPLETS
+// (contre 90deg avant). Par la seule géométrie de rotateY autour d'un bord fixe, ce feuillet balaie
+// visuellement de sa case de départ vers la case d'arrivée opposée - AUCUNE translation en JS
+// nécessaire, juste la rotation. Son recto montre le contenu actuel de la case de départ (clone du
+// vrai DOM), son verso montre déjà le contenu de la case d'arrivée une fois la double-page tournée
+// (pré-calculé via computeBinderSpreadCards, sans toucher au DOM réel ni à binderSpreadIndex).
+//
+// `renderFn` (la vraie mise à jour de binderSpreadIndex + re-render) n'est appelée qu'À LA FIN, une
+// fois le feuillet retiré - jamais avant. Résout enfin la tension "double-page entière vs flip page à
+// page" qui avait fait abandonner cette piste à l'origine : le DOM réel ne change jamais sous les yeux
+// de l'utilisateur pendant le flip (aucun "pop" de contenu à masquer), le feuillet est le seul élément
+// visible qui bouge, exactement comme sur la référence observée.
+function animateBinderDesktopFlip(direction, renderFn, wrapper, oldBook) {
+    const oldLeft = oldBook.querySelector('.binder-page-left');
+    const oldRight = oldBook.querySelector('.binder-page-right');
+    const turningPage = direction > 0 ? oldRight : oldLeft;
 
-    if (turningPage) anims.push(turningPage.animate(
-        [{ transform: 'rotateY(0deg)', opacity: 1 }, { transform: `rotateY(${turningAngle}deg)`, opacity: 0 }],
-        timing
-    ));
-    if (stillPage) anims.push(stillPage.animate([{ opacity: 1 }, { opacity: 0 }], timing));
-    return anims;
+    if (!turningPage || typeof turningPage.animate !== 'function') {
+        renderFn();
+        return;
+    }
+
+    binderAnimating = true;
+    const myToken = ++binderAnimationToken;
+
+    // "suivant" : la page DROITE tourne et atterrit à GAUCHE (comme dans un vrai livre - on tourne la
+    // page de droite, elle rejoint la pile de gauche). "précédent" : l'inverse.
+    const turningOrigin = direction > 0 ? 'left center' : 'right center';
+    const landingClass = direction > 0 ? 'binder-page-left' : 'binder-page-right';
+    // Même convention de signe que l'ancienne version 90deg (vérifiée géométriquement à l'époque) :
+    // négatif si le pivot est à gauche, positif s'il est à droite - juste doublée à 180.
+    const turningAngle = direction > 0 ? -180 : 180;
+
+    const pageRect = turningPage.getBoundingClientRect();
+    const newSpread = computeBinderNewSpreadCards(direction);
+    // "suivant" atterrit sur la nouvelle page GAUCHE (verso du feuillet), "précédent" sur la nouvelle
+    // page DROITE - cf commentaire sur turningOrigin/landingClass plus haut. sameSideCards : le contenu
+    // de la case que le feuillet vient de libérer (même côté que turningPage), affiché à mi-course
+    // directement dans le VRAI DOM (cf plus bas) - pas sur le feuillet, qui ne s'occupe que du verso.
+    const landingCards = direction > 0 ? newSpread.leftCards : newSpread.rightCards;
+    const sameSideCards = direction > 0 ? newSpread.rightCards : newSpread.leftCards;
+
+    // Charnière recalée sur le CENTRE de la reliure, pas sur le bord de la page (retour utilisateur
+    // 2026-09, capture "pas d'anneaux au milieu, la largeur se réajuste après") : la page elle-même
+    // s'arrête avant la reliure (gap flex + .binder-spine, ~30-50px au total), donc ancrer le feuillet
+    // sur turningPage.getBoundingClientRect() pivotait à cet endroit-là plutôt qu'au vrai centre de la
+    // reliure. Sur 180deg, ce décalage se double et le feuillet atterrissait visiblement enfoncé dans
+    // la reliure côté opposé, la masquant - d'où l'impression de "manque d'anneaux/largeur réduite" le
+    // temps de l'animation, corrigée d'un coup au rendu final (renderFn) - un vrai "réajustement".
+    // Le feuillet est donc élargi jusqu'au centre de la reliure ; son bord extérieur (loin de la
+    // reliure) ne bouge pas. Le vrai contenu de page (recto ET verso) est réinséré à sa largeur
+    // normale (pageRect.width) DANS cette boîte élargie, décalé du côté opposé à la reliure - la
+    // tranche ajoutée reste transparente et laisse voir la reliure réelle (toujours dans le DOM normal,
+    // jamais recouverte) par transparence.
+    const spineEl = oldBook.querySelector('.binder-spine');
+    const spineRect = spineEl ? spineEl.getBoundingClientRect() : null;
+    const hingeX = spineRect
+        ? spineRect.left + spineRect.width / 2
+        : (direction > 0 ? pageRect.left : pageRect.right); // repli si .binder-spine absent (mobile n'arrive jamais ici)
+
+    const boxLeft = direction > 0 ? hingeX : pageRect.left;
+    const boxRight = direction > 0 ? pageRect.right : hingeX;
+    const boxWidth = boxRight - boxLeft;
+    // Décalage du contenu réel (largeur pageRect.width) à l'intérieur de la boîte élargie - toujours
+    // du côté OPPOSÉ à la reliure (loin de hingeX), l'autre côté restant vide/transparent.
+    const contentOffset = pageRect.left - boxLeft; // >=0 par construction
+
+    const scene = document.createElement('div');
+    scene.setAttribute('aria-hidden', 'true');
+    scene.inert = true;
+    Object.assign(scene.style, {
+        position: 'fixed',
+        left: `${boxLeft}px`,
+        top: `${pageRect.top}px`,
+        width: `${boxWidth}px`,
+        height: `${pageRect.height}px`,
+        // 1800px -> 2400px + origine décalée (retour utilisateur 2026-09, référence illu-dex.web.app -
+        // valeurs exactes relevées via DevTools sur sa scène de flip) : distance de perspective plus
+        // longue = raccourci 3D plus subtil, moins "grand-angle" ; perspective-origin légèrement
+        // au-dessus du centre = angle de vue "on regarde le classeur d'en haut, posé sur une table",
+        // plutôt que pile en face.
+        perspective: '2400px',
+        perspectiveOrigin: '50% 45%',
+        zIndex: '60',
+        pointerEvents: 'none'
+    });
+
+    const leaf = document.createElement('div');
+    leaf.className = 'binder-flip-leaf';
+    // Le pivot reste sur le bord de la boîte côté reliure - désormais exactement hingeX puisque ce
+    // bord de la boîte a été recalé dessus ci-dessus.
+    leaf.style.transformOrigin = turningOrigin;
+
+    // Recto : clone direct du vrai DOM (garde exactement le même rendu que la page actuelle, images
+    // déjà chargées comprises - pas de re-render depuis les données). Enveloppe transparente
+    // (.binder-flip-face) de la largeur de la boîte élargie ; le clone lui-même retrouve sa largeur
+    // réelle et son décalage via un style inline, positionné côté extérieur (loin de la reliure).
+    const front = document.createElement('div');
+    front.className = 'binder-flip-face binder-flip-face-front';
+    const frontInner = turningPage.cloneNode(true);
+    frontInner.removeAttribute('id');
+    Object.assign(frontInner.style, {
+        position: 'absolute', top: '0', left: `${contentOffset}px`, width: `${pageRect.width}px`, height: '100%'
+    });
+    front.appendChild(frontInner);
+
+    // Verso : construit depuis les données (pas de vrai DOM existant pour ce contenu pas encore
+    // affiché) - mêmes classes que la case d'ARRIVÉE pour hériter du bon arrondi/ombre visuels. Décalé
+    // en miroir (right plutôt que left) : le verso porte sa propre rotation locale de 180deg (cf CSS,
+    // pour ne pas apparaître inversé) qui mirrore aussi tout positionnement interne - "right:
+    // contentOffset" ici produit donc bien "loin de la reliure" une fois cette rotation appliquée,
+    // symétrique au recto (vérifié en direct, pas juste déduit sur le papier).
+    const back = document.createElement('div');
+    back.className = 'binder-flip-face binder-flip-face-back';
+    const backInner = document.createElement('div');
+    backInner.className = `binder-page ${landingClass}`;
+    Object.assign(backInner.style, {
+        position: 'absolute', top: '0', right: `${contentOffset}px`, width: `${pageRect.width}px`, height: '100%'
+    });
+    backInner.innerHTML = `<div class="binder-page-grid">${renderBinderPageGrid(landingCards, newSpread.pageSize)}</div>`;
+    back.appendChild(backInner);
+
+    leaf.appendChild(front);
+    leaf.appendChild(back);
+    scene.appendChild(leaf);
+    document.body.appendChild(scene);
+
+    // fill:'forwards' (pas 'none' comme B8/l'ancienne version) : `anim.finished` se résout un tick
+    // après la fin réelle de l'animation (microtask), pas de façon strictement synchrone avec la
+    // dernière frame peinte - avec fill:'none', le feuillet reprenait sa transform de base
+    // (rotateY(0deg), donc recouvrait de nouveau sa case de DÉPART) pendant cette fenêtre, le temps
+    // qu'au moins une frame soit peinte avant que .finally() ne le retire - visible comme un
+    // "décalage"/flash au niveau de la reliure (retour utilisateur 2026-09, repéré sur vidéo). forwards
+    // garde le feuillet figé à son état final (atterri, verso visible) jusqu'à son retrait explicite.
+    const anim = leaf.animate(
+        [{ transform: 'rotateY(0deg)' }, { transform: `rotateY(${turningAngle}deg)` }],
+        { duration: BINDER_FLIP_DURATION, easing: BINDER_FLIP_EASING, fill: 'forwards' }
+    );
+
+    // Case libérée (retour utilisateur 2026-09, référence illu-dex.web.app - "la page de droite se
+    // remplit avec les nouvelles cartes quand la page tournée passe le milieu") : dès que le feuillet a
+    // dépassé 90deg (progress >= 0.5), il ne recouvre plus la case de DÉPART de turningPage (il est
+    // parti recouvrir la case d'arrivée, cf le sens de rotation), qui redevient visible - jusque-là,
+    // elle affichait encore l'ancien contenu. On la fait basculer sur le contenu de la NOUVELLE
+    // double-page pour ce même côté à cet instant précis, directement dans le vrai DOM (turningPage
+    // reste le même noeud, seule sa grille de cartes est remplacée) - sans toucher à binderSpreadIndex
+    // ni à l'autre page, qui restent gérées par renderFn() en fin d'animation comme avant.
+    // getComputedTiming().progress (pas un simple setTimeout à moitié de la durée) : reste correct même
+    // si l'easing n'est pas parfaitement symétrique dans le temps.
+    let sameSideSwapped = false;
+    function checkSameSideSwap() {
+        if (sameSideSwapped || myToken !== binderAnimationToken) return;
+        const progress = anim.effect.getComputedTiming().progress;
+        if (progress === null) return; // anim pas encore démarrée
+        if (progress >= 0.5) {
+            sameSideSwapped = true;
+            if (turningPage.isConnected) {
+                const grid = turningPage.querySelector('.binder-page-grid');
+                if (grid) {
+                    // Fondu d'apparition (retour utilisateur 2026-09, "trop brutal" puis "scintillement sur
+                    // tout le classeur" avec un grid.animate() WAAPI) : une transition CSS statique (classe
+                    // .binder-page-grid, binder.css) plutôt qu'une Animation WAAPI créée à la volée - un
+                    // .animate() pendant que le feuillet tourne encore en 3D juste à côté semble forcer une
+                    // recomposition GPU plus large que prévu (même famille de bug que le fondu de couverture
+                    // plus haut dans ce fichier).
+                    // Double rAF (pas juste un reflow forcé - testé, pas fiable) avant de repasser à
+                    // opacity:1 : le navigateur a besoin d'un cycle de peinture complet avec opacity:0
+                    // déjà committé pour traiter le retour à 1 comme une transition, pas un saut silencieux.
+                    grid.style.opacity = '0';
+                    grid.innerHTML = renderBinderPageGrid(sameSideCards, newSpread.pageSize);
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        if (grid.isConnected) grid.style.opacity = '1';
+                    }));
+                }
+            }
+            return;
+        }
+        requestAnimationFrame(checkSameSideSwap);
+    }
+    requestAnimationFrame(checkSameSideSwap);
+
+    anim.finished
+        .catch(() => {})
+        .finally(() => {
+            scene.remove();
+            renderFn(); // seul moment où le DOM réel (les deux pages) change - synchrone, donc invisible
+                        // (le feuillet vient d'être retiré sur la ligne précédente, rien à peindre entre les deux).
+            if (myToken === binderAnimationToken) binderAnimating = false;
+        });
 }
 
-function animateBinderTurnEnter(book, direction, timing) {
-    const anims = [];
-    const left = book.querySelector('.binder-page-left');
-    const right = book.querySelector('.binder-page-right');
-    const turningPage = direction > 0 ? right : left;
-    const stillPage = direction > 0 ? left : right;
-    const turningAngle = direction > 0 ? -BINDER_ROTATE_ANGLE : BINDER_ROTATE_ANGLE;
+// Calcule le contenu des DEUX pages de la nouvelle double-page (celle vers laquelle on navigue) sans
+// toucher à binderSpreadIndex ni au DOM réel - mêmes bornes défensives que renderBinderView (dupliquées
+// ici à dessein : brancher sur le rendu réel aurait forcé à monter la nouvelle double-page en avance,
+// exactement ce que cette technique évite, cf commentaire d'animateBinderDesktopFlip). Les deux côtés
+// sont nécessaires : le verso du feuillet (case d'ARRIVÉE) ET la case que le feuillet vient de LIBÉRER,
+// mise à jour à mi-course (retour utilisateur 2026-09, référence illu-dex - "la page de droite se
+// remplit quand la page tournée passe le milieu").
+function computeBinderNewSpreadCards(direction) {
+    const cards = getFilteredSortedCollection();
+    const spreadSize = getBinderSpreadSize();
+    const pageSize = getBinderPageSize();
+    const totalSpreads = Math.max(1, Math.ceil(cards.length / spreadSize));
 
-    if (turningPage) anims.push(turningPage.animate(
-        [{ transform: `rotateY(${turningAngle}deg)`, opacity: 0 }, { transform: 'rotateY(0deg)', opacity: 1 }],
-        timing
-    ));
-    if (stillPage) anims.push(stillPage.animate([{ opacity: 0 }, { opacity: 1 }], timing));
-    return anims;
+    let index = binderSpreadIndex + direction;
+    if (index >= totalSpreads) index = totalSpreads - 1;
+    if (index < 0) index = 0;
+
+    const start = index * spreadSize;
+    return {
+        pageSize,
+        leftCards: cards.slice(start, start + pageSize),
+        rightCards: cards.slice(start + pageSize, start + pageSize * 2)
+    };
 }
 
 // ===== B3 : clavier =====
