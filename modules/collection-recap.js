@@ -246,12 +246,16 @@ function computeRecapTopValuableCards(cards) {
 // exactement comme collection-card - runCardDetailMorphTransition (card-grid-renderer.js) lit
 // event.currentTarget.querySelector('img') en interne, donc le morph View Transition fonctionne
 // automatiquement dès que la structure clic+<img> est respectée, sans aucun code de transition propre à R5.
+// P2 (audit design 2026-09) - "traitement or/argent/bronze sur le top 3, plutot que 5 cartes
+// identiques numerotees #1 a #5" : classe de rang ajoutee uniquement pour 1-3, les rangs 4-5 gardent
+// le style neutre existant (recap-top-card-rank-N pilote juste --medal-color en CSS, styles.css).
 function renderRecapTopCardItem(card, rank) {
     const qty = Number(card.quantity || 1);
     const unitValue = Number(card.market_value || 0);
+    const podiumClass = rank <= 3 ? ` recap-top-card-podium recap-top-card-rank-${rank}` : '';
 
     return `
-        <div class="recap-top-card" data-card-id="${card.id}" onclick="showCardDetail(${card.id}, event)">
+        <div class="recap-top-card${podiumClass}" data-card-id="${card.id}" onclick="showCardDetail(${card.id}, event)">
             <span class="recap-top-card-rank">#${rank}</span>
             ${qty > 1 ? `<span class="recap-top-card-qty">×${qty}</span>` : ''}
             <div class="recap-top-card-image">
