@@ -5019,6 +5019,19 @@ tbody tr:hover {
     background: rgba(126,217,167,0.05);
 }
 
+/* Halo permanent (retour utilisateur 2026-09, audit design) : les sets à 90-99% (is-almost, déjà posé
+   par renderProgressionSeriesList mais jamais stylé jusqu'ici - la classe existait sans aucune règle
+   CSS derrière) gagnent un liseré + halo doré au repos, pas seulement au survol comme le reste de la
+   liste - signal "tu y es presque" visible d'un coup d'œil sans avoir à survoler chaque carte une par
+   une. --shadow-glow-gold (css/shadow-tokens.css) reste discret par nature (0.1 d'opacité), cohérent
+   avec une liste qui peut compter plusieurs sets presque terminés à la fois - jamais un effet qui
+   capte l'attention en continu comme une animation le ferait. */
+.progression-set-row.is-almost {
+    background: rgba(227,188,132,0.05);
+    border-color: rgba(232,169,59,0.3);
+    box-shadow: var(--shadow-glow-gold);
+}
+
 .progression-set-complete {
     display: inline-flex;
     align-items: center;
