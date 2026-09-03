@@ -1,0 +1,21 @@
+/* RADIUS TOKENS - Sprint audit design 2026-09
+   Source de verite unique pour les rayons de bordure. Avant ce fichier, 8 valeurs (4/6/8/14/16/20/26px,
+   100px/999px pour les pilules) coexistaient dans styles.css sans variable, choisies au coup par coup
+   composant par composant plutot que par une echelle explicite - fonctionnel, mais aucun garde-fou
+   contre une 9e valeur la prochaine fois. Chaque token ci-dessous reprend EXACTEMENT une valeur deja en
+   usage (aucun radius existant n'a change de taille en migrant vers ces tokens) : ce chantier centralise
+   une echelle deja de facto en place, il n'en invente pas une nouvelle.
+   --radius-pill absorbe aussi les 3 usages historiques de 100px (cf audit) : au-dela de la moitie de la
+   plus petite dimension d'un badge/bouton (toujours < 200px de haut ici), border-radius plafonne au
+   meme rendu visuel qu'avec 999px - aucune difference de rendu, un seul nom pour un seul concept.
+   Toute nouvelle bordure arrondie doit consommer un de ces tokens plutot qu'une valeur en dur. */
+:root {
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 14px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+    --radius-3xl: 26px;
+    --radius-pill: 999px;
+}

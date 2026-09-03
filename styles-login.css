@@ -41,7 +41,7 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     padding: 2.5rem;
     max-width: 420px;
     width: 100%;
@@ -154,7 +154,7 @@
     width: 100%;
     padding: 1rem 1rem 1rem 3rem;
     border: 2px solid var(--panel-light);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 1rem;
     font-family: inherit;
     background: var(--panel);
@@ -221,7 +221,7 @@
     margin: 0.5rem 0;
     padding: 0.75rem;
     background: rgba(255, 107, 107, 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .login-success {
@@ -231,7 +231,7 @@
     margin: 0.5rem 0;
     padding: 0.75rem;
     background: rgba(74, 222, 128, 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .login-view {
@@ -251,7 +251,7 @@
     color: white;
     border: none;
     padding: 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 1.05rem;
     font-weight: 600;
     cursor: pointer;
@@ -391,7 +391,7 @@
 
     .login-card {
         padding: 1.5rem;
-        border-radius: 14px;
+        border-radius: var(--radius-lg);
     }
 
     .login-brand-icon {
