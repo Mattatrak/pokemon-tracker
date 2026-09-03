@@ -56,7 +56,7 @@ html {
 
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, var(--gold), #f4c766);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -170,7 +170,7 @@ body::before {
 
 .login-card {
     background: linear-gradient(135deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 2.5rem;
     max-width: 380px;
     width: 100%;
@@ -283,7 +283,7 @@ body::before {
     background: linear-gradient(90deg, var(--panel-light) 25%, #2e2e34 37%, var(--panel-light) 63%);
     background-size: 400% 100%;
     animation: shimmer 1.4s ease infinite;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 .skeleton-row {
@@ -309,12 +309,12 @@ body::before {
    simple vide comme avant ce chantier, le temps de chargement y est de toute façon très court. */
 .skeleton-card {
     aspect-ratio: 5 / 7;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .skeleton-widget {
     height: 220px;
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -372,7 +372,7 @@ body::before {
     color: var(--slate);
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 100px;
+    border-radius: var(--radius-pill);
     padding: 0.35rem 0.9rem;
     cursor: pointer;
 }
@@ -385,7 +385,7 @@ body::before {
 .search-result-item {
     padding: 0.85rem;
     border: 1px solid transparent;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -409,7 +409,7 @@ body::before {
     color: var(--gold);
     border: 1px solid rgba(232, 169, 59, 0.35);
     padding: 0.7rem 1.75rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
 }
 
 .catalogue-load-more-btn:hover {
@@ -432,7 +432,7 @@ body::before {
     aspect-ratio: 5 / 7;
     height: auto;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--ink-navy);
     transition: transform var(--motion-duration-fast) ease;
 }
@@ -489,7 +489,7 @@ body::before {
     justify-content: center;
     background: var(--ink-navy);
     border: 1px dashed rgba(255,255,255,0.15);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     flex-shrink: 0;
     text-align: center;
     color: var(--slate);
@@ -681,7 +681,7 @@ body::before {
 .catalogue-view-toggle {
     display: flex;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
@@ -731,7 +731,7 @@ body::before {
     right: 0;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     padding: 0.9rem;
     min-width: 240px;
@@ -766,7 +766,7 @@ body::before {
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
     padding: 1.5rem;
 }
@@ -813,7 +813,7 @@ body::before {
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
     padding: 1.5rem;
 }
@@ -825,7 +825,7 @@ body::before {
         linear-gradient(180deg, rgba(227, 188, 132, 0.14) 0%, transparent 60%),
         rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(232, 169, 59, 0.3);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     padding: 0.5rem 1.25rem 1.25rem;
     overflow: hidden;
 }
@@ -951,7 +951,7 @@ body::before {
     gap: 0;
     background: var(--ink-navy);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0;
     width: fit-content;
     box-sizing: border-box;
@@ -966,7 +966,7 @@ body::before {
     background: transparent;
     color: var(--text-primary);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .add-panel-qty-stepper button:hover {
@@ -1049,7 +1049,7 @@ body::before {
 
 .add-celebration-ghost {
     position: fixed;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     pointer-events: none;
     z-index: 9999;
@@ -1107,7 +1107,7 @@ body::before {
     gap: 0.85rem;
     background: linear-gradient(155deg, var(--panel-light), var(--panel));
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 0.7rem 1.1rem 0.7rem 0.7rem;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--glow-gold) inset;
     opacity: 0;
@@ -1192,7 +1192,7 @@ body::before {
     font-size: 0.76rem;
     font-weight: 600;
     padding: 0.35rem 0.7rem;
-    border-radius: 100px;
+    border-radius: var(--radius-pill);
     background: transparent;
     color: var(--slate);
     border: 1px solid var(--border);
@@ -1229,7 +1229,7 @@ body::before {
     align-items: center;
     gap: 0.65rem;
     padding: 0.5rem 0.3rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 
@@ -1240,7 +1240,7 @@ body::before {
 .related-card-thumb {
     width: 34px;
     aspect-ratio: 5 / 7;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     object-fit: cover;
     flex-shrink: 0;
     background: var(--ink-navy);
@@ -1300,7 +1300,7 @@ body::before {
     background: transparent;
     color: var(--gold);
     border: 1px solid rgba(232, 169, 59, 0.35);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     font-size: 0.82rem;
     font-weight: 600;
     text-decoration: none;
@@ -1398,7 +1398,7 @@ body::before {
     flex: 0 0 36%;
     max-height: 380px;
     background: var(--ink-navy);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     overflow: visible;
     display: flex;
     align-items: center;
@@ -1473,7 +1473,7 @@ body::before {
     width: 100%;
     height: 320px;
     border: 2px dashed rgba(232, 169, 59, 0.35);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     position: relative;
     gap: 0.6rem;
     justify-content: flex-end;
@@ -1504,7 +1504,7 @@ body::before {
     font-weight: 600;
     font-size: 0.9rem;
     padding: 0.6rem 1.1rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
 }
 
 /* ===== HERO CATALOGUE (Ajouter) ===== */
@@ -1520,7 +1520,7 @@ body::before {
     background-position: center center;
     background-repeat: no-repeat;
     background-color: var(--panel);
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
 }
 
@@ -1666,7 +1666,7 @@ body::before {
     width: 100%;
     padding: 1rem 1rem 1rem 2.75rem;
     font-size: 1.05rem;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background: var(--ink-navy);
     border: 1px solid var(--border);
     color: var(--text-primary);
@@ -1679,7 +1679,7 @@ body::before {
 
 .catalogue-hero-search-form #search-btn {
     padding: 0 1.75rem;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     flex-shrink: 0;
 }
 
@@ -1761,7 +1761,7 @@ body::before {
     /* Contour sobre (retour utilisateur 2026-09) : remplace l'ancien contour conic-gradient dore
        (::before ci-dessous, retire) - jugee trop chargee sur un composant repete 4x par page. */
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 16px 18px 18px;
     box-shadow: 0 18px 40px -20px rgba(0,0,0,0.5);
     transition:
@@ -1875,7 +1875,7 @@ body::before {
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.4rem 0.75rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     margin-bottom: 0.75rem;
 }
 
@@ -1887,7 +1887,7 @@ body::before {
     max-width: 100%;
     max-height: 380px;
     height: auto;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
@@ -1955,7 +1955,7 @@ body::before {
         linear-gradient(180deg, rgba(227, 188, 132, 0.14) 0%, transparent 60%),
         rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(232, 169, 59, 0.3);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.1rem 1.25rem 1.5rem;
     margin-bottom: 1.5rem;
     overflow: hidden;
@@ -2067,7 +2067,7 @@ label {
 input, select, textarea {
     padding: 0.8rem 0.9rem;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 1rem;
     font-family: inherit;
     background: var(--ink-navy);
@@ -2110,7 +2110,7 @@ button {
         rgba(255,255,255,0.04);
     color: #F4F1EB;
     border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
@@ -2195,7 +2195,7 @@ button:disabled {
 .view-toggle {
     display: inline-flex;
     background: var(--panel-light);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.25rem;
     gap: 0.25rem;
 }
@@ -2206,7 +2206,7 @@ button:disabled {
     padding: 0.45rem 0.9rem;
     font-size: 0.85rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -2225,7 +2225,7 @@ button:disabled {
 .grid-sort-select {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
     font-family: inherit;
 }
@@ -2243,7 +2243,7 @@ button:disabled {
     padding: 0.6rem 1rem;
     font-size: 0.85rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -2295,7 +2295,7 @@ button:disabled {
     left: 0;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     padding: 0.4rem;
     min-width: 210px;
@@ -2311,7 +2311,7 @@ button:disabled {
     align-items: center;
     gap: 0.6rem;
     padding: 0.6rem 0.7rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 0.85rem;
     color: var(--text-primary);
     cursor: pointer;
@@ -2384,7 +2384,7 @@ button:disabled {
     padding: 0.5rem 0.9rem;
     font-size: 0.8rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -2446,7 +2446,7 @@ button:disabled {
 .recap-section {
     background: linear-gradient(180deg, var(--ink-navy) 0%, var(--ink-navy-light) 100%);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     min-height: 4rem;
 }
 
@@ -2589,7 +2589,7 @@ button:disabled {
 .recap-bar-segmented {
     display: flex;
     height: 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
     background: rgba(255, 255, 255, 0.05);
 }
@@ -2656,14 +2656,14 @@ button:disabled {
     flex: 1;
     min-width: 0;
     height: 7px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     background: rgba(255, 255, 255, 0.05);
     overflow: hidden;
 }
 
 .recap-finish-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 .recap-finish-value {
@@ -2718,7 +2718,7 @@ button:disabled {
     position: relative;
     width: 140px;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.5rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
@@ -2726,7 +2726,7 @@ button:disabled {
 
 .recap-top-card-image {
     position: relative;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     aspect-ratio: 5 / 7;
     margin-bottom: 0.5rem;
@@ -2748,7 +2748,7 @@ button:disabled {
     font-weight: 700;
     color: var(--ink-navy);
     background: var(--gold);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 0.12rem 0.45rem;
     line-height: 1.4;
 }
@@ -2762,7 +2762,7 @@ button:disabled {
     font-weight: 600;
     color: var(--text-primary);
     background: rgba(0, 0, 0, 0.6);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 0.12rem 0.5rem;
     line-height: 1.4;
 }
@@ -2802,7 +2802,7 @@ button:disabled {
     align-items: center;
     gap: 0.6rem;
     padding: 0.6rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
     cursor: pointer;
@@ -2812,7 +2812,7 @@ button:disabled {
     flex-shrink: 0;
     width: 36px;
     height: 50px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
 }
 
@@ -2864,7 +2864,7 @@ button:disabled {
 
 .collection-card {
     position: relative;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     aspect-ratio: 5 / 7;
     background: var(--ink-navy);
@@ -3124,7 +3124,7 @@ button:disabled {
     display: inline-block;
     background: var(--panel-light);
     border: 1px dashed rgba(255,255,255,0.2);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.4rem 0.7rem;
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
@@ -3209,7 +3209,7 @@ button:disabled {
     font-size: 0.7rem;
     font-weight: 700;
     padding: 0.2rem 0.5rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     border: 1px solid rgba(255,255,255,0.15);
 }
 
@@ -3246,7 +3246,7 @@ button:disabled {
     font-size: 0.6rem;
     font-weight: 700;
     padding: 0.15rem 0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     letter-spacing: 0.03em;
 }
 
@@ -3307,7 +3307,7 @@ button:disabled {
 .table-wrapper {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 4px 10px rgba(0,0,0,0.25);
     overflow-x: auto;
     /* overflow-y reste clippé (comportement identique à l'ancien overflow:hidden) : aucun scroll
@@ -3328,7 +3328,7 @@ button:disabled {
     flex-wrap: wrap;
     background: var(--panel-light);
     border: 1px solid var(--gold);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.75rem 1.25rem;
     margin-bottom: 1rem;
 }
@@ -3388,13 +3388,13 @@ tbody tr:hover {
     width: 40px;
     height: 60px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 .badge {
     display: inline-block;
     padding: 0.35rem 0.75rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     font-size: 0.8rem;
     font-weight: 700;
 }
@@ -3481,7 +3481,7 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(232, 169, 59, 0.16);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     margin-bottom: 1rem;
     box-shadow: 0 24px 55px -30px rgba(0,0,0,0.65);
 }
@@ -3506,7 +3506,7 @@ tbody tr:hover {
 .wishlist-list-icon {
     width: 40px;
     height: 40px;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3538,7 +3538,7 @@ tbody tr:hover {
     font-size: 0.75rem;
     font-weight: 700;
     padding: 0.15rem 0.55rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     white-space: nowrap;
 }
 
@@ -3556,7 +3556,7 @@ tbody tr:hover {
     color: var(--slate);
     padding: 0.4rem;
     font-size: 0.85rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     opacity: 0.75;
 }
 
@@ -3618,7 +3618,7 @@ tbody tr:hover {
         height: 44px;
         padding: 0;
         font-size: 0.95rem;
-        border-radius: 8px;
+        border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3733,7 +3733,7 @@ tbody tr:hover {
     color: var(--gold);
     background: var(--glow-gold);
     padding: 0.1rem 0.5rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     white-space: nowrap;
 }
 
@@ -3803,7 +3803,7 @@ tbody tr:hover {
     text-align: center;
     aspect-ratio: 5 / 7;
     border: 2px dashed var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--slate);
     font-size: 0.85rem;
     font-weight: 600;
@@ -3823,7 +3823,7 @@ tbody tr:hover {
 .wishlist-thumb-placeholder {
     aspect-ratio: 5 / 7;
     border: 1px dashed rgba(232, 169, 59, 0.32);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(10, 8, 6, 0.35);
     position: relative;
     cursor: pointer;
@@ -3859,7 +3859,7 @@ tbody tr:hover {
     justify-content: space-between;
     padding: 0.85rem 1rem;
     background: var(--panel-light);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 0.5rem;
     cursor: pointer;
     color: var(--text-primary);
@@ -3938,7 +3938,7 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     backdrop-filter: blur(24px) saturate(1.5) contrast(1.05);
     border: 1px solid transparent;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 0.4rem;
     box-shadow: 0 16px 32px -12px rgba(0,0,0,0.6), 0 0 14px rgba(232, 169, 59, 0.12);
     z-index: 20;
@@ -3976,7 +3976,7 @@ tbody tr:hover {
     background: none;
     border: none;
     padding: 0.6rem 0.7rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-primary);
@@ -4209,7 +4209,7 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1rem 1.25rem;
     text-align: center;
 }
@@ -4237,7 +4237,7 @@ tbody tr:hover {
 .user-profile-section {
     flex: 1 1 260px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.25rem;
 }
 
@@ -4292,7 +4292,7 @@ tbody tr:hover {
     font-weight: 600;
     color: var(--ink-navy);
     background: var(--gold);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 0.25rem 0.7rem;
 }
 
@@ -4352,7 +4352,7 @@ tbody tr:hover {
     align-items: flex-end;
     min-height: 320px;
     padding: 2rem 2.5rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
     background-image:
         linear-gradient(rgba(10,10,16,0.45), rgba(10,10,16,0.45)),
@@ -4419,7 +4419,7 @@ tbody tr:hover {
     .collectors-hero {
         min-height: 0;
         padding: 24px;
-        border-radius: 20px;
+        border-radius: var(--radius-2xl);
     }
 
     .collectors-hero-subtitle {
@@ -4510,7 +4510,7 @@ tbody tr:hover {
     align-items: center;
     gap: 0.9rem;
     padding: 0.75rem 1rem;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     text-decoration: none;
     color: inherit;
@@ -4584,7 +4584,7 @@ tbody tr:hover {
     align-items: center;
     gap: 0.3rem;
     padding: 0.2rem 0.55rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 0.72rem;
     font-weight: 600;
     white-space: nowrap;
@@ -4643,7 +4643,7 @@ tbody tr:hover {
     height: 2.1rem;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 1.1rem;
     display: flex;
     align-items: center;
@@ -4685,7 +4685,7 @@ tbody tr:hover {
 .stats-range-toggle {
     display: inline-flex;
     background: var(--panel);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.2rem;
     gap: 0.2rem;
 }
@@ -4696,7 +4696,7 @@ tbody tr:hover {
     padding: 0.35rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .range-btn:hover {
@@ -4840,7 +4840,7 @@ tbody tr:hover {
     padding: 1rem 0.85rem 0.85rem;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, transform var(--motion-duration-fast) ease;
 }
@@ -4963,14 +4963,14 @@ tbody tr:hover {
     height: 4px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
 }
 
 .progression-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, rgba(199,164,116,0.92), rgba(227,188,132,0.92));
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     transition: width var(--motion-duration-normal) ease;
 }
 
@@ -4989,7 +4989,7 @@ tbody tr:hover {
     background: rgba(40,32,50,0.6);
     border: 1px solid rgba(199,125,255,0.15);
     padding: 0.08rem 0.4rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     font-weight: 600;
 }
 
@@ -5002,7 +5002,7 @@ tbody tr:hover {
     color: var(--ink-navy);
     background: var(--gold);
     padding: 0.12rem 0.4rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     line-height: 1.3;
 }
 
@@ -5139,7 +5139,7 @@ tbody tr:hover {
 .progression-goal-card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.9rem 1rem;
     cursor: pointer;
     transition: transform var(--motion-duration-fast), border-color var(--motion-duration-fast);
@@ -5221,7 +5221,7 @@ tbody tr:hover {
     position: relative;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     transition: transform var(--motion-duration-fast);
 }
@@ -5268,7 +5268,7 @@ tbody tr:hover {
     font-size: 0.7rem;
     font-weight: 600;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     border: 1px solid var(--gold);
 }
 
@@ -5433,7 +5433,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
 .modal-card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     padding: 1.75rem;
     max-width: 600px;
     width: 100%;
@@ -5467,7 +5467,7 @@ html:active-view-transition-type(profile-open)::view-transition-group(collector-
 #card-detail-card,
 #wishlist-detail-card,
 #public-card-detail-card {
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     border: 1px solid transparent;
     background:
         radial-gradient(ellipse at 50% -10%, rgba(232,169,59,0.05) 0%, transparent 55%),
@@ -5815,7 +5815,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         transform: translateX(-50%);
         width: 36px;
         height: 4px;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         background: rgba(255,255,255,0.25);
         pointer-events: none;
     }
@@ -5922,7 +5922,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     width: 100%;
     max-height: 330px;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
@@ -6031,7 +6031,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     height: 46px;
     background: rgba(255,255,255,0.055);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 700;
@@ -6120,7 +6120,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     padding: 0.75rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
 }
 
 .wishlist-detail-move-option {
@@ -6129,7 +6129,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.6rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.6rem 0.85rem;
     text-align: left;
     width: 100%;
@@ -6180,7 +6180,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     padding: 0.85rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
 }
 
 .wishlist-detail-acquisition-header {
@@ -6213,7 +6213,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.45rem;
     background: rgba(255,255,255,0.035);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.55rem 0.5rem;
     color: var(--text-primary);
     text-align: left;
@@ -6294,7 +6294,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     max-width: 160px;
     background: var(--ink-navy);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0 0.9rem;
     transition: border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
@@ -6345,7 +6345,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.4rem;
     background: rgba(255,255,255,0.035);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     height: 46px;
     padding: 0 1rem;
     color: var(--text-primary);
@@ -6742,7 +6742,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 
 .modal-image {
     width: 100%;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
@@ -6823,7 +6823,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
 
@@ -6860,7 +6860,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.15rem;
     padding: 2px;
     background: rgba(255,255,255,0.04);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .chart-period-btn {
@@ -6871,7 +6871,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     font-size: 0.65rem;
     font-weight: 600;
     color: var(--slate);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease;
 }
@@ -7137,7 +7137,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     align-items: center;
     gap: 0.3rem;
     padding: 0.35rem 0.7rem;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     font-size: 0.75rem;
     font-weight: 700;
 }
@@ -7180,7 +7180,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     width: 40px;
     height: 40px;
     padding: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--panel-light);
     border: 1px solid var(--border);
     display: flex;
@@ -7207,7 +7207,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.35rem 0.65rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
@@ -7492,7 +7492,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.4rem;
     background: var(--gold);
     color: var(--ink-navy);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.35rem 0.5rem 0.35rem 0.7rem;
     font-size: 0.8rem;
     font-weight: 600;
@@ -7529,7 +7529,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     background: var(--panel-light);
     color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.5rem 0.85rem;
     font-size: 0.85rem;
     font-weight: 600;
@@ -7555,7 +7555,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     max-width: calc(100vw - 2rem);
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 12px 30px rgba(0,0,0,0.45);
     z-index: 60;
     overflow: hidden;
@@ -7594,7 +7594,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     justify-content: center;
     width: 28px;
     height: 28px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 
@@ -7611,7 +7611,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     width: 100%;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.5rem 0.6rem;
     font-size: 0.85rem;
     color: var(--text-primary);
@@ -7637,7 +7637,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     padding: 0.65rem 0.7rem;
     font-size: 0.85rem;
     color: var(--text-primary);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 
@@ -7760,14 +7760,14 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 #card-detail-card .form-group select,
 #card-detail-card .form-group textarea {
     padding: 0.85rem 1rem;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     border-color: rgba(255,255,255,0.08);
 }
 
 #card-detail-card .modal-save-btn {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 500;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 45%),
         rgba(255,255,255,0.04);
@@ -7794,7 +7794,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
 }
 
 #card-detail-card .modal-cancel-btn {
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.02);
     color: var(--slate);
@@ -7858,7 +7858,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     padding: 0.85rem 1rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     color: var(--gold);
     font-size: 1rem;
 }
@@ -7896,7 +7896,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.6rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1rem;
 }
 
@@ -7956,7 +7956,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.5rem;
     background: rgba(255, 107, 107, 0.08);
     border: 1px solid rgba(255, 107, 107, 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 0.65rem 1rem;
     margin-top: 0.5rem;
     color: var(--negative);
@@ -7984,7 +7984,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     gap: 0.9rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 0.85rem 1.1rem;
     text-decoration: none;
     cursor: pointer;
@@ -8068,7 +8068,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     padding: 0.85rem 1.25rem;
     background: rgba(255,255,255,0.025);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     line-height: 1.4;
 }
 
@@ -8393,7 +8393,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
     align-items: center;
     gap: 0.6rem;
     padding: 0.9rem 1.1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 1rem;
     background: #14171f;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -8578,7 +8578,7 @@ html:active-view-transition-type(card-detail)::view-transition-group(card-detail
         linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%),
         linear-gradient(165deg, var(--panel-light) 0%, var(--panel) 55%, var(--ink-navy) 100%) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 14px !important;
+    border-radius: var(--radius-lg) !important;
     box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset !important;
     padding: 0.65rem !important;
     width: 268px !important;
@@ -8642,7 +8642,7 @@ html body .flatpickr-calendar .dayContainer {
 html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
     background: rgba(232, 169, 59, 0.12) !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-md) !important;
     color: var(--gold) !important;
     font-weight: 700;
     padding: 0.1rem 0.3rem !important;
@@ -8666,7 +8666,7 @@ html body .flatpickr-calendar .flatpickr-current-month input.cur-year {
 
 .flatpickr-current-month input.cur-year {
     background: var(--panel-light) !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-md) !important;
     color: var(--text-primary) !important;
     font-weight: 600;
 }
@@ -8858,7 +8858,7 @@ body.page-wishlist #wishlist-stats-bottom {
     width: 40px;
     height: 56px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     flex-shrink: 0;
     transform: rotate(-8deg);
     box-shadow: 0 4px 10px rgba(0,0,0,0.35);
@@ -8920,7 +8920,7 @@ body.page-progression .progression-atlas-hero {
     min-height: 340px;
     animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
@@ -9002,7 +9002,7 @@ body.page-collection .collection-atlas-hero {
     min-height: 340px;
     animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
@@ -9144,7 +9144,7 @@ body.page-collection .collection-atlas-hero {
     .collection-atlas-hero {
         min-height: 0;
         padding: 24px;
-        border-radius: 20px;
+        border-radius: var(--radius-2xl);
     }
 
     .collection-atlas-hero-subtitle {
@@ -9175,7 +9175,7 @@ body.page-statistics .stats-hero {
     min-height: 340px;
     animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
@@ -9246,7 +9246,7 @@ body.page-statistics .stats-hero-content .stats-bottom {
     .stats-hero {
         min-height: 0;
         padding: 24px;
-        border-radius: 20px;
+        border-radius: var(--radius-2xl);
     }
 
     .stats-hero-subtitle {
@@ -9273,7 +9273,7 @@ body.page-wishlist .wishlist-hero {
     min-height: 340px;
     animation: tab-content-fade-in var(--motion-duration-normal) ease-in-out;
     padding: 2rem 2.5rem;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
     background-image:
         radial-gradient(ellipse 90% 85% at 50% 45%, transparent 40%, rgba(0,0,0,0.4) 100%),
@@ -9358,7 +9358,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .wishlist-hero {
         min-height: 0;
         padding: 24px;
-        border-radius: 20px;
+        border-radius: var(--radius-2xl);
     }
 
     .wishlist-hero-subtitle {
@@ -9383,7 +9383,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     .progression-atlas-hero {
         min-height: 0;
         padding: 24px;
-        border-radius: 20px;
+        border-radius: var(--radius-2xl);
     }
 
     .progression-atlas-hero-subtitle {
@@ -9503,7 +9503,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 }
 
 .dashboard-add-btn {
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     padding: 0.7rem 1.3rem;
     font-size: 0.85rem;
     min-height: 44px;
@@ -9528,7 +9528,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 2rem;
     min-height: 340px;
     padding: 32px;
-    border-radius: 26px;
+    border-radius: var(--radius-3xl);
     overflow: hidden;
     background-image:
         linear-gradient(90deg, rgba(5,8,15,0.94) 0%, rgba(5,8,15,0.84) 24%, rgba(5,8,15,0.42) 43%, rgba(5,8,15,0.08) 62%, transparent 78%),
@@ -9693,7 +9693,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     font-weight: 600;
     margin-top: 0.6rem;
     padding: 7px 12px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     width: fit-content;
 }
 
@@ -9879,7 +9879,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.095);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.4rem;
     min-width: 0;
     box-shadow: 0 16px 34px -16px rgba(0,0,0,0.6);
@@ -9935,7 +9935,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0.65rem 0.85rem;
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .dashboard-customize-name {
@@ -9957,7 +9957,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     justify-content: center;
     background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--slate);
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease, color var(--motion-duration-fast) ease;
@@ -10021,7 +10021,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 0.75rem;
     padding: 0.65rem 0.5rem;
     margin: 0 -0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     /* Pas de separateur horizontal (etait border-bottom) : le mockup source espace les entrees par
        du vide, pas des lignes - la ligne verticale seule porte la continuite. */
     cursor: pointer;
@@ -10175,7 +10175,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 0.75rem;
     padding: 0.55rem 0.5rem;
     margin: 0 -0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     transition: background var(--motion-duration-fast) ease;
 }
@@ -10215,7 +10215,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 0.85rem 0.75rem 0.6rem;
     margin: 0 -0.75rem;
     background: rgba(255,255,255,0.02);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     transition: mask-image 0.15s ease, -webkit-mask-image 0.15s ease;
 }
 
@@ -10273,7 +10273,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 
 .dashboard-acquisition-card-img-wrap {
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 0.5rem;
     box-shadow: 0 6px 16px -8px rgba(0,0,0,0.5);
 }
@@ -10283,7 +10283,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 100%;
     aspect-ratio: 5/7;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     display: block;
     transition: transform var(--motion-duration-normal) ease;
 }
@@ -10319,7 +10319,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 0.75rem;
     padding: 0.6rem 0.5rem;
     margin: 0 -0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     cursor: pointer;
     transition: background var(--motion-duration-fast) ease;
@@ -10336,7 +10336,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .dashboard-todo-icon {
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(232,169,59,0.15);
     color: var(--gold);
     display: flex;
@@ -10369,7 +10369,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     gap: 0.75rem;
     padding: 0.6rem 0.5rem;
     margin: 0 -0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     transition: background var(--motion-duration-fast) ease;
     cursor: pointer;
@@ -10388,7 +10388,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 42px;
     height: 58px;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     flex-shrink: 0;
     box-shadow: 0 4px 10px -6px rgba(0,0,0,0.5);
 }
@@ -10598,7 +10598,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
         align-items: stretch;
         min-height: 0;
         padding: 24px;
-        border-radius: 20px;
+        border-radius: var(--radius-2xl);
         text-align: center;
     }
 
@@ -10753,7 +10753,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
 }
@@ -10944,14 +10944,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex: 1;
     min-width: 0;
     height: 18px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--panel-light);
     overflow: hidden;
 }
 
 #type-barlist .stx-type-fill {
     height: 100%;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 #type-barlist .stx-type-pct {
@@ -10991,14 +10991,14 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     flex: 1;
     min-width: 0;
     height: 18px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--panel-light);
     overflow: hidden;
 }
 
 #ext-barlist .stx-ext-fill {
     height: 100%;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 #ext-barlist .stx-ext-pct {
@@ -11122,7 +11122,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.75rem 1.5rem;
     min-width: 0;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
@@ -11189,7 +11189,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     color: var(--slate);
     background: rgba(255,255,255,0.05);
     border: 1px dashed var(--border);
-    border-radius: 100px;
+    border-radius: var(--radius-pill);
     padding: 0.2rem 0.55rem;
 }
 
@@ -11215,7 +11215,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
     backdrop-filter: blur(20px) saturate(1.4);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.75rem;
     box-shadow: 0 12px 30px -18px rgba(0,0,0,0.5);
     transition: transform var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
@@ -11267,7 +11267,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 70px;
     height: 98px;
     flex-shrink: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--panel-light);
     box-shadow: 0 6px 16px -10px rgba(0,0,0,0.5);
@@ -11289,7 +11289,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
 }
 
@@ -11375,7 +11375,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
 }
 
@@ -11452,7 +11452,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     backdrop-filter: blur(16px) saturate(1.3);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 0.9rem 1rem;
     text-align: center;
     opacity: 0.68;
@@ -11631,7 +11631,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
 .changelog-entry {
     background: var(--panel-light);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 1.25rem 1.5rem;
 }
 
@@ -11685,7 +11685,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     letter-spacing: 0.03em;
     text-transform: uppercase;
     padding: 0.15rem 0.5rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: rgba(255,255,255,0.06);
     color: var(--slate);
     border: 1px solid var(--border);
@@ -11745,7 +11745,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     width: 100%;
     margin-top: 1.25rem;
     padding: 0.7rem 1rem;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(232, 169, 59, 0.35);
     background:
         linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 45%),
@@ -11843,7 +11843,7 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     background: var(--gold);
     color: var(--ink-navy);
     border: none;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 0.35rem 0.9rem;
     font-size: 0.8rem;
     font-weight: 600;
