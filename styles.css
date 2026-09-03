@@ -10486,6 +10486,96 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     display: none;
 }
 
+/* ===== SUCCÈS (retour utilisateur 2026-09, audit design - maquette "Badges de Collectionneur"
+   validée, cf modules/dashboard.js#renderDashboardBadges) : médaillons plutôt qu'emoji, même famille
+   visuelle que le reste de l'app (dégradé or, glow). .collector-badge* (pas .badge-*) pour ne pas
+   entrer en collision avec .badge/.badge.nm/.lp/.mp/.hp (état des cartes, déjà pris). */
+.collector-badges-count {
+    font-size: 0.72rem;
+    color: var(--slate);
+    text-align: right;
+    margin-bottom: 0.6rem;
+}
+
+.collector-badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 0.9rem;
+}
+
+.collector-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    text-align: center;
+}
+
+.collector-badge-medal {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.collector-badge-medal svg {
+    width: 22px;
+    height: 22px;
+    position: relative;
+    z-index: 1;
+}
+
+.collector-badge.unlocked .collector-badge-medal {
+    background: radial-gradient(circle at 32% 28%, #fbe3ad 0%, var(--gold-hover) 32%, var(--gold) 62%, #a97c3f 100%);
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.35) inset,
+        0 0 0 3px var(--panel),
+        0 0 0 4px var(--glow-gold),
+        0 6px 16px -4px rgba(232,169,59,0.55);
+    color: #1a1408;
+}
+
+.collector-badge.unlocked .collector-badge-medal::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.25) 100%);
+    mix-blend-mode: overlay;
+}
+
+.collector-badge.locked .collector-badge-medal {
+    background: var(--panel-light);
+    border: 1.5px dashed rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.18);
+}
+
+.collector-badge-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--slate);
+    max-width: 76px;
+}
+
+.collector-badge.unlocked .collector-badge-label {
+    color: var(--text-primary);
+}
+
+.collector-badge.locked .collector-badge-label {
+    opacity: 0.45;
+}
+
+.collector-badge-progress {
+    font-size: 0.6rem;
+    color: var(--slate);
+    margin-top: -0.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ----- Responsive ----- */
 
 @media (max-width: 1024px) {

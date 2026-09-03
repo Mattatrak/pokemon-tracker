@@ -1,6 +1,6 @@
 // Onglet Dashboard - Pokémon Tracker
 // Dépend de: allCollectionCards/supabaseClient/allWishlistItems/allTcgdexSeries/dashboardNeedsRefresh/wishlistPriceSignalMap (tracker.js/wishlist.js/progression.js),
-// escapeHtml/getSetIdFromTcgdexId (utils.js), showCardDetail (card-detail.js), openSetProgression/fetchSetCardsDetailed/computeSetCompletionBudget (progression.js),
+// escapeHtml/getSetIdFromTcgdexId/isHighRarityCard (utils.js), showCardDetail (card-detail.js), openSetProgression/fetchSetCardsDetailed/computeSetCompletionBudget/computeProgressionKpiData (progression.js),
 // activateTabContent (tracker.js), Chart
 async function renderDashboard() {
     if (!document.getElementById('dashboard-header')) return; // onglet pas encore présent dans le DOM
@@ -20,6 +20,7 @@ async function renderDashboard() {
     const widgetRenderers = {
         activity: renderDashboardActivity,
         objective: renderDashboardObjective,
+        badges: renderDashboardBadges,
         acquisitions: renderDashboardAcquisitions,
         todo: renderDashboardTodo,
         wishlist: renderDashboardWishlist,
@@ -46,12 +47,19 @@ async function renderDashboard() {
 const DASHBOARD_WIDGET_DEFS = {
     activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body', size: 'large' },
     objective: { title: 'Objectif actuel', extraClass: 'dashboard-widget-objective', bodyId: 'dashboard-objective-body' },
+    badges: { title: 'Succès', extraClass: '', bodyId: 'dashboard-badges-body' },
     wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' }, size: 'large' },
     acquisitions: { title: 'Dernières acquisitions', extraClass: '', bodyId: 'dashboard-acquisitions-body', link: { label: 'Voir tout', tab: 'tab-collection' } },
     todo: { title: "À faire aujourd'hui", extraClass: '', bodyId: 'dashboard-todo-body' },
     collectors: { title: 'Trouver un collectionneur', extraClass: '', bodyId: 'dashboard-collectors-body', link: { label: 'Voir tout', tab: 'tab-collectors' } }
 };
-const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'wishlist', 'acquisitions', 'todo', 'collectors'];
+// 'badges' ajouté après 'objective' (retour utilisateur 2026-09, audit design - maquette "Badges de
+// Collectionneur" validée) : getDashboardWidgetOrder() (plus bas) détecte déjà tout ordre stocké dont
+// les clés ne correspondent plus exactement à ce tableau (longueur ou contenu différent) et retombe
+// sur cet ordre par défaut - un utilisateur avec un ordre personnalisé existant (6 clés) verra donc
+// simplement 'badges' réapparaître à sa position par défaut plutôt qu'une erreur, sans code
+// supplémentaire à écrire ici (déjà prévu pour ce cas de figure).
+const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'badges', 'wishlist', 'acquisitions', 'todo', 'collectors'];
 const DASHBOARD_WIDGET_ORDER_KEY = 'dashboardWidgetOrder';
 
 // Ordre choisi par l'utilisateur (localStorage, jamais synchronise entre appareils - meme
@@ -601,6 +609,104 @@ async function dashboardEnrichObjectiveBudget(best, myToken) {
     budgetEl.innerHTML = `<i class="ti ti-wallet" aria-hidden="true"></i> ≈ ${formatPrice(budget.totalKnown)} pour compléter cette série${budget.countUnknown > 0 ? ` (${budget.countUnknown} sans prix connu)` : ''}`;
 }
 
+// ===== SUCCÈS (retour utilisateur 2026-09, audit design - maquette "Badges de Collectionneur" validée) =====
+// Calculés en direct à chaque rendu, à partir des données déjà chargées (allCollectionCards/
+// allTcgdexSeries/allWishlistItems) - même principe que l'Objectif actuel juste au-dessus : aucun état
+// persisté, aucune RPC dédiée, jamais "débloqué le 12/08" puisque rien n'est écrit nulle part. Portée
+// v1 : uniquement le Dashboard de l'utilisateur connecté - jamais recalculé pour un profil public
+// consulté (chantier à part si un jour souhaité, même caveat que celebrateSetComplete sur
+// allTcgdexSeries qui reste vide tant que l'onglet Progression n'a pas été visité une première fois).
+//
+// Médaillons plutôt qu'emoji (retour utilisateur explicite sur la maquette) : dégradé or + glow pour
+// débloqué, contour pointillé + icône estompée pour verrouillé, avec la progression restante affichée
+// en dessous quand elle a un sens (ex. "3/5") - jamais pour un badge binaire déjà à 0 (juste "0/1"
+// serait du bruit, cf badges first-card/rare-hunter ci-dessous).
+const COLLECTOR_BADGE_INVESTOR_THRESHOLD = 1000;
+const COLLECTOR_BADGE_ICON_CARDS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="12" height="16" rx="2" transform="rotate(-8 10 13)"/><rect x="8" y="3" width="12" height="16" rx="2" transform="rotate(8 14 11)"/></svg>';
+const COLLECTOR_BADGE_ICON_GRID = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+const COLLECTOR_BADGE_ICON_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 5H4v2a3 3 0 0 0 3 3M16 5h4v2a3 3 0 0 1-3 3"/><path d="M12 13v3M9 20h6M10 17h4v3h-4z"/></svg>';
+const COLLECTOR_BADGE_ICON_DIAMOND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l3 5-9 13L3 8Z"/><path d="M3 8h18M9 3l3 5 3-5M12 8l-3 13M12 8l3 13"/></svg>';
+const COLLECTOR_BADGE_ICON_TRENDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>';
+const COLLECTOR_BADGE_ICON_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9L2 9.2l7.1-.6z"/></svg>';
+
+// Réutilise computeProgressionKpiData (progression.js), déjà calculé pour les KPI de cette page - pas
+// une deuxième traversée de allTcgdexSeries/allCollectionCards. completed>0 -> badge débloqué ;
+// sinon mostAdvanced?.pct (le set le plus avancé PARMI CEUX NON complétés, déjà exclu par cette
+// fonction) sert de progression affichée - "0%" si rien n'est commencé, jamais undefined.
+function collectorBadgeSetProgress() {
+    if (typeof allTcgdexSeries === 'undefined' || allTcgdexSeries.length === 0) return { done: false, pct: null };
+    const { completed, mostAdvanced } = computeProgressionKpiData();
+    return { done: completed > 0, pct: mostAdvanced ? mostAdvanced.pct : (completed > 0 ? 100 : 0) };
+}
+
+function computeCollectorBadges() {
+    const totalCards = allCollectionCards.length;
+    const totalValue = allCollectionCards.reduce((sum, c) => sum + Number(c.market_value || 0) * Number(c.quantity || 1), 0);
+    const wishlistCount = typeof allWishlistItems !== 'undefined' ? allWishlistItems.length : 0;
+    const hasRareCard = allCollectionCards.some(c => isHighRarityCard(c.rarity));
+    const setProgress = collectorBadgeSetProgress();
+
+    return [
+        {
+            id: 'first-card', label: 'Première carte', icon: COLLECTOR_BADGE_ICON_CARDS,
+            condition: 'Posséder au moins 1 carte dans ta collection',
+            done: totalCards >= 1,
+            progress: totalCards >= 1 ? null : '0/1'
+        },
+        {
+            id: 'collector-50', label: 'Collectionneur confirmé', icon: COLLECTOR_BADGE_ICON_GRID,
+            condition: 'Posséder au moins 50 cartes uniques',
+            done: totalCards >= 50,
+            progress: totalCards >= 50 ? null : `${totalCards}/50`
+        },
+        {
+            id: 'first-set', label: 'Premier set complété', icon: COLLECTOR_BADGE_ICON_TROPHY,
+            condition: 'Compléter un set à 100%',
+            done: setProgress.done,
+            progress: setProgress.done ? null : (setProgress.pct === null ? null : `${setProgress.pct}%`)
+        },
+        {
+            id: 'rare-hunter', label: 'Chasseur de pépites', icon: COLLECTOR_BADGE_ICON_DIAMOND,
+            condition: 'Posséder au moins une carte en illustration rare ou plus rare',
+            done: hasRareCard,
+            progress: hasRareCard ? null : '0/1'
+        },
+        {
+            id: 'investor', label: 'Investisseur', icon: COLLECTOR_BADGE_ICON_TRENDING,
+            condition: `Atteindre ${formatPrice(COLLECTOR_BADGE_INVESTOR_THRESHOLD)} de valeur de collection`,
+            done: totalValue >= COLLECTOR_BADGE_INVESTOR_THRESHOLD,
+            progress: totalValue >= COLLECTOR_BADGE_INVESTOR_THRESHOLD ? null : `${formatPrice(totalValue)} / ${formatPrice(COLLECTOR_BADGE_INVESTOR_THRESHOLD)}`
+        },
+        {
+            id: 'wishlist-active', label: 'Wishlist active', icon: COLLECTOR_BADGE_ICON_STAR,
+            condition: 'Avoir au moins 5 cartes dans une liste de souhaits',
+            done: wishlistCount >= 5,
+            progress: wishlistCount >= 5 ? null : `${wishlistCount}/5`
+        }
+    ];
+}
+
+function renderDashboardBadges() {
+    const el = document.getElementById('dashboard-badges-body');
+    if (!el) return;
+
+    const badges = computeCollectorBadges();
+    const unlockedCount = badges.filter(b => b.done).length;
+
+    el.innerHTML = `
+        <div class="collector-badges-count">${unlockedCount} / ${badges.length} débloqués</div>
+        <div class="collector-badges-grid">
+            ${badges.map(b => `
+                <div class="collector-badge ${b.done ? 'unlocked' : 'locked'}" data-tooltip="${escapeHtml(b.label)} — ${escapeHtml(b.condition)}">
+                    <div class="collector-badge-medal">${b.icon}</div>
+                    <div class="collector-badge-label">${escapeHtml(b.label)}</div>
+                    ${b.progress ? `<div class="collector-badge-progress">${escapeHtml(b.progress)}</div>` : ''}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 // ===== TOP HAUSSES =====
 
 function renderDashboardTopMovers() {
@@ -866,6 +972,8 @@ window.dashboardRelativeTime = dashboardRelativeTime;
 window.renderDashboardActivity = renderDashboardActivity;
 window.dashboardFindBestObjective = dashboardFindBestObjective;
 window.renderDashboardObjective = renderDashboardObjective;
+window.computeCollectorBadges = computeCollectorBadges;
+window.renderDashboardBadges = renderDashboardBadges;
 window.renderDashboardTopMovers = renderDashboardTopMovers;
 window.renderDashboardAcquisitions = renderDashboardAcquisitions;
 window.renderDashboardTodo = renderDashboardTodo;
