@@ -384,12 +384,14 @@ function onCollectorsSearchInput() {
 
 // Appelée à chaque activation de l'onglet (tracker.js:activateTabContent) : repart toujours d'un champ
 // vide et recharge la liste par défaut (plutôt que de conserver une recherche précédente entre deux
-// visites de la vue).
+// visites de la vue). Retourne la Promise de chargement (retour utilisateur 2026-09) : activateTabContent
+// l'agrège avec les autres onglets pour piloter la barre de progression de navigation - ce chargement
+// tournait déjà en async, seule la valeur de retour manquait pour que l'appelant puisse l'attendre.
 function resetCollectorsSearchView() {
     const input = document.getElementById('collectors-search-input');
     if (input) input.value = '';
     collectorsPageSearchController.reset();
-    collectorsPageDefaultLoader.load();
+    return collectorsPageDefaultLoader.load();
 }
 
 // ===== Bloc Dashboard "Trouver un collectionneur" (limite 5, rendu compact) =====
