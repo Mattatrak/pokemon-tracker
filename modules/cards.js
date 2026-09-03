@@ -719,7 +719,7 @@ async function handlePreviewImageUpload(event) {
     if (!file) return;
 
     const previewImageContainer = document.querySelector('.preview-image');
-    previewImageContainer.innerHTML = '<div class="no-image-placeholder large"><span class="loading" style="border-top-color: #ff6b6b;"></span><br>Envoi...</div>';
+    previewImageContainer.innerHTML = '<div class="no-image-placeholder large"><span class="loading"></span><br>Envoi...</div>';
 
     try {
         const publicUrl = await uploadImageToStorage(file, selectedCard?.id);

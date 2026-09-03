@@ -902,7 +902,7 @@ async function addFromProgression(cardId, btnEl) {
     // Filet de sécurité si jamais la carte n'était pas dans le cache
     if (btnEl) {
         btnEl.disabled = true;
-        btnEl.innerHTML = '<span class="loading" style="width:12px;height:12px;border-width:2px;"></span>';
+        btnEl.innerHTML = '<span class="loading" style="width:12px;height:12px;"></span>';
     }
 
     try {
@@ -939,7 +939,7 @@ async function quickInstantAdd(cardId, btnEl) {
 
     if (btnEl) {
         btnEl.disabled = true;
-        btnEl.innerHTML = '<span class="loading" style="width:12px;height:12px;border-width:2px;"></span>';
+        btnEl.innerHTML = '<span class="loading" style="width:12px;height:12px;"></span>';
     }
 
     try {
@@ -1011,7 +1011,7 @@ async function handleQuickAddImageUpload(event, tcgdexId) {
     if (!file) return;
 
     const slot = document.getElementById('quickadd-image-slot');
-    slot.innerHTML = '<div class="no-image-placeholder modal-size"><span class="loading" style="border-top-color: #ff6b6b;"></span></div>';
+    slot.innerHTML = '<div class="no-image-placeholder modal-size"><span class="loading"></span></div>';
 
     try {
         const publicUrl = await uploadImageToStorage(file, tcgdexId || null);
