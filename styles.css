@@ -2158,14 +2158,18 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* Pokéball plutôt qu'un simple rond (retour utilisateur 2026-09) : réutilise l'icône déjà présente sur
+   login.html (images/login/pokeball.png, fond transparent - RGBA vérifié), jamais chargée nulle part
+   ailleurs dans l'app avant ce spinner. Rotation continue simple (par opposition à un spin "physique"
+   avec rebond) : c'est un indicateur d'attente, il tourne tant que l'opération n'est pas terminée, un
+   easing qui ralentit/accélère donnerait l'impression trompeuse d'un cycle qui se termine. */
 .loading {
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    border-top-color: transparent;
-    animation: spin 0.6s linear infinite;
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+    background: url('/images/login/pokeball.png') center/contain no-repeat;
+    animation: spin 0.8s linear infinite;
     margin-right: 0.5rem;
 }
 
