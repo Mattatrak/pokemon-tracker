@@ -10911,6 +10911,45 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     margin-top: 1.5rem;
 }
 
+/* Info-bulle personnalisee du donut "Repartition valeur/serie" (audit design 2026-09) : rendu via le
+   mode external de Chart.js (modules/stats-render.js) pour pouvoir afficher le logo du set, impossible
+   avec le tooltip natif. */
+.stx-chart-tooltip {
+    position: fixed;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--ink-navy);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.7rem;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+    transform: translate(-50%, -115%);
+    white-space: nowrap;
+}
+
+.stx-chart-tooltip-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex: none;
+}
+
+.stx-chart-tooltip-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stx-chart-tooltip-value {
+    font-size: 0.7rem;
+    color: var(--slate);
+}
+
 .stx-barlist {
     display: flex;
     flex-direction: column;
