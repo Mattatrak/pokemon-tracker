@@ -21,6 +21,7 @@ async function renderDashboard() {
         activity: renderDashboardActivity,
         objective: renderDashboardObjective,
         badges: renderDashboardBadges,
+        dailyCard: renderDashboardDailyCard,
         acquisitions: renderDashboardAcquisitions,
         todo: renderDashboardTodo,
         wishlist: renderDashboardWishlist,
@@ -48,6 +49,7 @@ const DASHBOARD_WIDGET_DEFS = {
     activity: { title: 'Activité récente', extraClass: 'dashboard-widget-activity', bodyId: 'dashboard-activity-body', size: 'large' },
     objective: { title: 'Objectif actuel', extraClass: 'dashboard-widget-objective', bodyId: 'dashboard-objective-body' },
     badges: { title: 'Succès', extraClass: '', bodyId: 'dashboard-badges-body' },
+    dailyCard: { title: 'Carte du jour', extraClass: '', bodyId: 'dashboard-daily-card-body' },
     wishlist: { title: 'Wishlist à surveiller', extraClass: 'dashboard-widget-tall', bodyId: 'dashboard-wishlist-body', link: { label: 'Voir tout', tab: 'tab-wishlist' }, size: 'large' },
     acquisitions: { title: 'Dernières acquisitions', extraClass: '', bodyId: 'dashboard-acquisitions-body', link: { label: 'Voir tout', tab: 'tab-collection' } },
     todo: { title: "À faire aujourd'hui", extraClass: '', bodyId: 'dashboard-todo-body' },
@@ -59,7 +61,7 @@ const DASHBOARD_WIDGET_DEFS = {
 // sur cet ordre par défaut - un utilisateur avec un ordre personnalisé existant (6 clés) verra donc
 // simplement 'badges' réapparaître à sa position par défaut plutôt qu'une erreur, sans code
 // supplémentaire à écrire ici (déjà prévu pour ce cas de figure).
-const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'badges', 'wishlist', 'acquisitions', 'todo', 'collectors'];
+const DASHBOARD_DEFAULT_WIDGET_ORDER = ['activity', 'objective', 'badges', 'dailyCard', 'wishlist', 'acquisitions', 'todo', 'collectors'];
 const DASHBOARD_WIDGET_ORDER_KEY = 'dashboardWidgetOrder';
 
 // Ordre choisi par l'utilisateur (localStorage, jamais synchronise entre appareils - meme
@@ -707,6 +709,74 @@ function renderDashboardBadges() {
     `;
 }
 
+// ===== CARTE DU JOUR =====
+
+// P2 (audit design 2026-09, mockups "Carte du jour" - concept C validé) : widget independant du
+// systeme reordonnable/masquable, plutot que reintegre au hero comme l'ancien "Favori du jour" retire
+// le 01/09 (cf commit 9e72665 - juge trop encombre partage avec l'estimation de valeur). Rotation
+// quotidienne deterministe (jour de l'annee), sans bouton "suivant" ni etat localStorage dedie -
+// c'est justement cette mecanique de rotation manuelle qui alourdissait l'ancienne version pour un
+// gain limite ; ici, un widget qu'on peut masquer d'un clic si on ne s'y interesse pas suffit.
+function dashboardPickDailyCard() {
+    if (allCollectionCards.length === 0) return null;
+
+    const favoritedOwned = [];
+    const seenFavoriteIds = new Set();
+    allCollectionCards.forEach(c => {
+        if (c.tcgdex_id && isFavorite(c.tcgdex_id) && !seenFavoriteIds.has(c.tcgdex_id)) {
+            seenFavoriteIds.add(c.tcgdex_id);
+            favoritedOwned.push(c);
+        }
+    });
+
+    let pool = favoritedOwned;
+    if (pool.length === 0) {
+        pool = [...allCollectionCards].filter(c => Number(c.market_value || 0) > 0);
+    }
+    if (pool.length === 0) pool = allCollectionCards;
+
+    // Tri deterministe avant rotation (nom puis tcgdex_id) : sans ça, l'ordre de allCollectionCards
+    // (dépend du fetch réseau) ferait potentiellement changer la carte du jour à chaque rechargement,
+    // pas seulement chaque jour.
+    pool = [...pool].sort((a, b) => {
+        const nameDiff = (a.name || '').localeCompare(b.name || '');
+        if (nameDiff !== 0) return nameDiff;
+        return String(a.tcgdex_id || '').localeCompare(String(b.tcgdex_id || ''));
+    });
+
+    const startOfYear = new Date(new Date().getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((Date.now() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+    return pool[dayOfYear % pool.length];
+}
+
+function renderDashboardDailyCard() {
+    const el = document.getElementById('dashboard-daily-card-body');
+    if (!el) return;
+
+    const card = dashboardPickDailyCard();
+
+    if (!card) {
+        el.innerHTML = '<p class="dashboard-empty-text">Votre collection est vide</p>';
+        return;
+    }
+
+    el.innerHTML = `
+        <div class="dashboard-daily-card" data-card-id="${card.id}" onclick="showCardDetail(${card.id}, event)">
+            <div class="dashboard-daily-card-thumb">
+                ${card.image
+                    ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.style.display='none'">`
+                    : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
+                }
+            </div>
+            <div class="dashboard-daily-card-meta">
+                <div class="dashboard-daily-card-name">${escapeHtml(card.name)}</div>
+                ${card.series ? `<div class="dashboard-daily-card-set">${escapeHtml(card.series)}</div>` : ''}
+                ${Number(card.market_value || 0) > 0 ? `<div class="dashboard-daily-card-value">${formatPrice(card.market_value)}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
 // ===== TOP HAUSSES =====
 
 function renderDashboardTopMovers() {
@@ -1037,6 +1107,8 @@ window.dashboardFindBestObjective = dashboardFindBestObjective;
 window.renderDashboardObjective = renderDashboardObjective;
 window.computeCollectorBadges = computeCollectorBadges;
 window.renderDashboardBadges = renderDashboardBadges;
+window.dashboardPickDailyCard = dashboardPickDailyCard;
+window.renderDashboardDailyCard = renderDashboardDailyCard;
 window.renderDashboardTopMovers = renderDashboardTopMovers;
 window.renderDashboardAcquisitions = renderDashboardAcquisitions;
 window.renderDashboardTodo = renderDashboardTodo;
