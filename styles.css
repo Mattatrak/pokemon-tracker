@@ -4633,6 +4633,33 @@ tbody tr:hover {
     margin-top: 0.4rem;
 }
 
+/* Niveau B (mémoire collectors_redesign_tier_b_deferred, 2026-09) : jusqu'à 3 vignettes de la
+   collection de la cible, entre l'identité et le chevron - flex:none, ne prend que sa taille propre
+   (l'identité reste flex:1 et continue d'absorber l'espace/de tronquer en premier). Masqué sur mobile
+   (cf media query plus bas) : la carte est déjà dense à cette largeur (avatar+identité+chevron seuls),
+   3 vignettes en plus l'aurait rendue illisible plutôt que d'apporter de la valeur. */
+.collectors-result-preview {
+    display: flex;
+    flex: none;
+    gap: 0.4rem;
+}
+
+/* 30px -> 44px (retour utilisateur 2026-09, "ça vaudrait le coup d'agrandir") : plus proche du poids
+   visuel de l'avatar (56px) à côté, les vignettes se lisaient trop comme un détail mineur. */
+.collectors-result-preview-thumb {
+    width: 44px;
+    aspect-ratio: 5 / 7;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 1px var(--border);
+}
+
+@media (max-width: 640px) {
+    .collectors-result-preview {
+        display: none;
+    }
+}
+
 /* Bloc "Trouver un collectionneur" du Dashboard (modules/dashboard.js) : mêmes classes de résultat
    que la vue #/collectors, juste plus compactes/secondaires — cohérent avec les autres widgets. */
 .dashboard-collectors-results {

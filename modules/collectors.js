@@ -168,6 +168,21 @@ function renderCollectorSignalBadges(signal) {
     return arrowsHtml + reciprocalHtml;
 }
 
+// Niveau B (mémoire collectors_redesign_tier_b_deferred, validé le 2026-09-03) : jusqu'à 3 vignettes
+// de la collection de la cible, déjà renvoyées par get_collector_trade_signals (preview_images,
+// migration 2026-09-03_collector_preview_images.sql) - aucun appel réseau supplémentaire ici. 0 à 3
+// images selon ce que la RPC a trouvé (collection masquée ou vide -> tableau vide, rien affiché).
+function renderCollectorPreviewThumbnails(signal) {
+    const images = signal?.preview_images;
+    if (!images || images.length === 0) return '';
+
+    return `
+        <div class="collectors-result-preview">
+            ${images.map(url => `<img src="${escapeHtml(url)}" alt="" loading="lazy" class="collectors-result-preview-thumb">`).join('')}
+        </div>
+    `;
+}
+
 // VT4 (cf roadmap technique animations premium) : clic normal (même onglet, bouton gauche, sans
 // modificateur) sur une carte Collecteur -> prépare un shell + avatar partagé pour le profil public
 // ciblé, consommés par modules/public-profile.js#loadPublicProfile et tracker.js (choix de la
@@ -216,6 +231,7 @@ function renderCollectorsResults(container, profiles, signalsMap = new Map()) {
                 ${p.created_at ? `<div class="collectors-result-since">${formatPublicMemberSince(p.created_at)}</div>` : ''}
                 ${renderCollectorSignalBadges(signal)}
             </div>
+            ${renderCollectorPreviewThumbnails(signal)}
             <i class="ti ti-chevron-right collectors-result-chevron" aria-hidden="true"></i>
         </a>
     `;
