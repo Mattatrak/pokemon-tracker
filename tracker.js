@@ -566,9 +566,14 @@ const ROUTE_TO_TAB = Object.fromEntries(
 // la bonne section est visible immédiatement, mais son rendu métier (renderDashboard/loadWishlists/...)
 // n'a lieu qu'une seule fois, après appReady = true (voir modules/auth.js), pour ne pas tourner sur des
 // données encore vides puis une seconde fois pour rien une fois les données prêtes.
+// Retourne toujours une Promise (résolue immédiatement si activateContent=false ou tabId inconnu) :
+// consommée par la barre de progression de navigation (cf startNavProgress/finishNavProgress plus bas)
+// pour savoir quand le contenu de l'onglet a fini de se charger, pas seulement quand le shell (DOM/nav)
+// a basculé. Les appelants qui ignoraient déjà la valeur de retour (la quasi-totalité) continuent de
+// fonctionner à l'identique - une Promise ignorée n'est jamais une erreur.
 function renderTab(tabId, { activateContent = true } = {}) {
     const targetTab = document.getElementById(tabId);
-    if (!targetTab) return; // tabId inconnu ou DOM pas prêt : on ignore plutôt que planter sur classList
+    if (!targetTab) return Promise.resolve(); // tabId inconnu ou DOM pas prêt : on ignore plutôt que planter sur classList
 
     // classList.remove/add cible (pas document.body.className = ..., un remplacement complet) : ce
     // dernier effaçait au passage toute classe posée ailleurs sur <body> independamment du routing -
@@ -582,7 +587,7 @@ function renderTab(tabId, { activateContent = true } = {}) {
 
     updateDesktopNavigation(tabId);
     updateMobileBottomNav(tabId);
-    if (activateContent) activateTabContent(tabId);
+    return activateContent ? activateTabContent(tabId) : Promise.resolve();
 }
 
 // Lit la route dans le hash de l'URL (ex: "#/collection" -> "/collection"), la valide dans ROUTE_TO_TAB
@@ -765,6 +770,59 @@ function runProfileOpenTransition(pendingCtx, doRenderTab) {
 // post-appReady (modules/auth.js) appellent renderTab() directement, jamais via ce listener : aucune
 // transition 'navigation' n'a donc jamais lieu au chargement initial (pas de position OLD pertinente, cf
 // roadmap animations premium VT2).
+// ===== BARRE DE PROGRESSION DE NAVIGATION (retour utilisateur 2026-09, audit design) =====
+// Masque la latence reseau percue lors d'un changement d'onglet (notamment Progression/Statistiques,
+// dont le premier chargement declenche un ou plusieurs appels reseau) : une fine ligne doree sous la
+// nav se remplit pendant le chargement plutot que de laisser la page paraitre figee entre le clic et
+// l'affichage du contenu. Style "trickle" (avance jusqu'a ~72% sans jamais atteindre 100% seule, cf
+// startNavProgress) : la duree reelle du chargement est inconnue a l'avance, contrairement a une
+// animation classique a duree fixe. finishNavProgress() (appelee via la Promise retournee par
+// renderTab -> activateTabContent) termine la course jusqu'a 100% puis s'efface - fonctionne aussi bien
+// pour un chargement quasi instantane (la barre flashe et s'efface tres vite) qu'un chargement lent
+// (la barre reste visible tout du long, sans jamais paraitre bloquee puisqu'elle continue d'avancer).
+// Un seul noeud DOM créé paresseusement (jamais dans index.html) et reutilise a chaque navigation -
+// mêmes principes que .nav-active-dot (runNavIndicatorTransition, cf plus haut).
+let navProgressEl = null;
+let navProgressHideTimer = null;
+
+function getNavProgressEl() {
+    if (!navProgressEl) {
+        navProgressEl = document.createElement('div');
+        navProgressEl.className = 'nav-progress-bar';
+        document.body.appendChild(navProgressEl);
+    }
+    return navProgressEl;
+}
+
+function startNavProgress() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const bar = getNavProgressEl();
+    clearTimeout(navProgressHideTimer);
+    // Repart de 0 sans transition (sinon on verrait un retour en arriere anime si une navigation
+    // precedente etait encore en cours de fondu de sortie), puis relance la transition au frame suivant
+    // pour que le navigateur anime bien 0 -> 0.72, pas un saut instantane (meme piege FLIP que
+    // runNavIndicatorTransition : changer transition et transform dans le meme tick les fond en un seul
+    // etat, sans jamais rien animer).
+    bar.style.transition = 'none';
+    bar.style.opacity = '1';
+    bar.style.transform = 'scaleX(0)';
+    void bar.offsetWidth;
+    bar.style.transition = 'transform 0.5s cubic-bezier(0.2,0,0,1)';
+    bar.style.transform = 'scaleX(0.72)';
+}
+
+function finishNavProgress() {
+    const bar = navProgressEl;
+    if (!bar) return;
+    bar.style.transition = 'transform 0.25s ease-out';
+    bar.style.transform = 'scaleX(1)';
+    clearTimeout(navProgressHideTimer);
+    navProgressHideTimer = setTimeout(() => {
+        bar.style.transition = 'opacity 0.3s ease';
+        bar.style.opacity = '0';
+    }, 200);
+}
+
 window.addEventListener('hashchange', () => {
     // Hook minimal Vue Classeur (B3, cf roadmap technique) : le DOM de tab-collection n'est jamais
     // démonté (renderTab bascule juste .active, cf renderTab ci-dessus), donc le listener clavier du
@@ -780,7 +838,17 @@ window.addEventListener('hashchange', () => {
     closeMobileMorePanel();
     closeMobileAddPanel();
 
-    const doRenderTab = () => renderTab(targetTabId, { activateContent: appReady === true });
+    // N'affiche la barre que si le contenu va reellement etre active (appReady) : sinon (navigation
+    // pendant le tout premier chargement) le shell change mais activateTabContent ne tourne pas, la
+    // Promise se resoudrait immediatement et la barre ferait un flash inutile avant meme que l'app soit
+    // prete.
+    if (appReady === true) startNavProgress();
+
+    const doRenderTab = () => {
+        const result = renderTab(targetTabId, { activateContent: appReady === true });
+        if (appReady === true) Promise.resolve(result).finally(finishNavProgress);
+        return result;
+    };
 
     // VT4 : priorité à 'profile-open' (avatar partagé) si un clic Collecteur a préparé cette
     // navigation exacte - jamais les deux transitions ('navigation' puis 'profile-open') pour un même
@@ -836,9 +904,17 @@ function ensurePublicProfileModuleLoaded() {
 
 // Rendu paresseux propre à un onglet, extrait de switchTab pour être réutilisable sans évènement de
 // clic (ex: boutons de navigation internes au Dashboard)
+// pending[] (retour utilisateur 2026-09, audit design) : collecte les promesses des chargements
+// réellement déclenchés pour CET onglet, retournées via Promise.allSettled - consommé par
+// startNavProgress/finishNavProgress (barre de progression de navigation, plus bas) pour savoir quand
+// masquer la barre. allSettled (jamais Promise.all) : un chargement en échec (réseau coupé, etc.) ne
+// doit jamais laisser la barre bloquée indéfiniment à mi-course - chaque appelant gère déjà ses propres
+// erreurs (showMessage), ce n'est pas le rôle de la barre de les re-signaler.
 function activateTabContent(tabId) {
+    const pending = [];
+
     if (tabId === 'tab-dashboard') {
-        renderDashboard();
+        pending.push(renderDashboard());
     }
 
     // Chart.js a besoin que le canvas soit visible pour bien se dimensionner : on redessine à l'ouverture.
@@ -847,15 +923,15 @@ function activateTabContent(tabId) {
     // ici (perf, audit bundle 2026-09-01) pour ne s'executer qu'a la premiere vraie visite de cet
     // onglet, et charger Chart.js seulement si necessaire (cf ensureChartLoaded, utils.js).
     if (tabId === 'tab-stats') {
-        renderStatsCharts();
-        renderHeroValueCard();
+        pending.push(renderStatsCharts());
+        pending.push(renderHeroValueCard());
     }
 
     if (tabId === 'tab-progression') {
         if (currentProgressionSetId && document.getElementById('progression-set-view').style.display === 'block') {
-            renderProgressionCardsGrid();
+            pending.push(renderProgressionCardsGrid());
         } else {
-            loadSeriesProgress();
+            pending.push(loadSeriesProgress());
         }
     }
 
@@ -866,19 +942,19 @@ function activateTabContent(tabId) {
     // rafraichissements apres une vraie mutation (wishlist.js) restent toujours a jour : ils appellent
     // loadWishlists() directement, jamais via ce garde-fou.
     if (tabId === 'tab-wishlist' && (typeof wishlistLastLoadedAt === 'undefined' || Date.now() - wishlistLastLoadedAt >= WISHLIST_RELOAD_STALE_MS)) {
-        loadWishlists();
+        pending.push(loadWishlists());
     }
 
     if (tabId === 'tab-user-profile') {
-        ensurePublicProfileModuleLoaded().then(() => loadPublicProfile(getUsernameFromHash()));
+        pending.push(ensurePublicProfileModuleLoaded().then(() => loadPublicProfile(getUsernameFromHash())));
     }
 
     if (tabId === 'tab-collectors') {
-        resetCollectorsSearchView();
+        pending.push(resetCollectorsSearchView());
     }
 
     if (tabId === 'tab-admin') {
-        ensureAdminModuleLoaded().then(() => renderAdminGate());
+        pending.push(ensureAdminModuleLoaded().then(() => renderAdminGate()));
     }
 
     if (tabId === 'tab-changelog') {
@@ -907,6 +983,8 @@ function activateTabContent(tabId) {
             document.getElementById('search-results').innerHTML = catalogueSearchReadyHtml();
         }
     }
+
+    return Promise.allSettled(pending);
 }
 
 // ===== INITIALISATION =====
