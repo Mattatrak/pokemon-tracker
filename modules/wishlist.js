@@ -460,7 +460,7 @@ function renderWishlistsUI() {
                         <div class="collection-card-holo-glare"></div>
                         ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Obtenue</div>' : ''}
                         ${signal ? `<div class="price-signal-badge price-signal-${signal.type}" title="${escapeHtml(signal.wording)}"><i class="ti ti-arrow-${signal.type === 'low' ? 'down' : 'up'}" aria-hidden="true"></i></div>` : ''}
-                        ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
+                        ${price > 0 ? `<div class="price-badge${isHighRarityCard(item.rarity) ? ' price-badge-foil' : ''}">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
                             <div class="collection-card-set">${item.series_logo ? `<img src="${escapeHtml(item.series_logo)}" class="series-logo-inline" alt="" onerror="this.remove()">` : ''}${escapeHtml(item.series)} · #${escapeHtml(item.number)}</div>

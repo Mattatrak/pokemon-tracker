@@ -835,7 +835,7 @@ function renderPublicWishlistLists() {
                             ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
-                        ${price > 0 ? `<div class="price-badge">${formatPrice(price)}</div>` : ''}
+                        ${price > 0 ? `<div class="price-badge${isHighRarityCard(item.rarity) ? ' price-badge-foil' : ''}">${formatPrice(price)}</div>` : ''}
                         <div class="collection-card-overlay">
                             <div class="collection-card-name">${escapeHtml(item.name)}</div>
                             <div class="collection-card-set">${escapeHtml(item.series || '')}</div>

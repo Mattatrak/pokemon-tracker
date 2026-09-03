@@ -3158,6 +3158,17 @@ button:disabled {
     box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 14px rgba(232,169,59,0.4);
 }
 
+/* Foil (retour utilisateur 2026-09, audit design) : cartes de rareté élevée uniquement
+   (isHighRarityCard, utils.js), posé par modules/card-grid-renderer.js#renderGridCardHtml. Dégradé
+   chromatique STATIQUE (pas d'animation, pas de suivi au survol comme le holo des cartes elles-mêmes,
+   .collection-card-holo) - un simple repère au repos, jamais un effet qui capte l'attention en
+   continu sur une grille de 60 cartes. Mêmes teintes que collection-card-holo-sheen (or/info/violet,
+   cf styles.css ~3000) pour rester dans la même famille visuelle que le reste du holo. */
+.price-badge-foil {
+    background: linear-gradient(135deg, #f4c766 0%, #e3bc84 22%, #c77dff 48%, #6bcbff 74%, #f4c766 100%);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 14px rgba(199,125,255,0.35);
+}
+
 /* Signal de prix Wishlist (Phase 2, P2-4) — même coin que .qty-badge, jamais affichés ensemble
    (mutuellement exclusifs côté JS : une carte obtenue n'a plus de signal d'achat). */
 .price-signal-badge {
@@ -3761,6 +3772,14 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* Même spécificité (0,2,0) que .wishlist-thumb-card .price-badge juste au-dessus, déclarée après :
+   sans ce doublon compound, le fond uni de la règle précédente gagnait toujours sur .price-badge-foil
+   seule (0,1,0) - le foil ne s'appliquait donc jamais sur la Wishlist malgré la classe correctement
+   posée en JS (retour utilisateur 2026-09, carte "Illustration rare" confirmée sans foil visible). */
+.wishlist-thumb-card .price-badge-foil {
+    background: linear-gradient(135deg, #f4c766 0%, #e3bc84 22%, #c77dff 48%, #6bcbff 74%, #f4c766 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
