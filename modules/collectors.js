@@ -57,6 +57,25 @@ function renderCollectorsLoading(container) {
     container.innerHTML = '<p class="collectors-state-text"><span class="loading"></span> Recherche...</p>';
 }
 
+// Silhouette du chargement initial de la page #/collectors (retour utilisateur 2026-09, audit design) :
+// reprend la forme réelle de .collectors-result-row (avatar 56px + deux lignes de texte, cf
+// renderCollectorsResults) plutôt que le texte "Recherche..." partagé ci-dessus - celui-ci reste
+// utilisé pour la recherche (déclenchée par une frappe, contexte différent : l'utilisateur vient de
+// taper, un texte compact suffit) et pour le widget compact du Dashboard (avatars 32px, jamais cette
+// silhouette calée sur 56px). N'inclut jamais les badges de signal d'échange (asymétriques par carte,
+// une forme fixe donnerait une fausse impression de contenu déjà connu).
+function renderCollectorsLoadingSkeleton(container, count = 4) {
+    container.innerHTML = Array.from({ length: count }).map(() => `
+        <div class="collectors-result-row">
+            <div class="skeleton" style="width:56px; height:56px; border-radius:50%; flex-shrink:0;"></div>
+            <div class="collectors-result-identity">
+                <div class="skeleton" style="height:14px; width:40%; margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:11px; width:25%;"></div>
+            </div>
+        </div>
+    `).join('');
+}
+
 function renderCollectorsError(container) {
     container.innerHTML = '<p class="collectors-state-text collectors-state-error"><i class="ti ti-alert-circle" aria-hidden="true"></i> Erreur de recherche, réessaie.</p>';
 }
@@ -295,14 +314,18 @@ function createCollectorsSearchController({ limit = COLLECTORS_RESULT_LIMIT, wit
 // (policy "select public profiles" OR "select own profile") : sans ce filtre, le propre profil de
 // l'utilisateur connecté remonterait dans la liste "publique" même s'il est resté privé. username non
 // null requis : un profil public sans username n'a pas d'URL #/user/<username> valide à afficher ici.
-function createDefaultCollectorsLoader({ limit, containerId, renderResults, withTradeSignals = false }) {
+// renderLoading (retour utilisateur 2026-09, audit design) : optionnel, replie sur le texte
+// "Recherche..." partagé si absent (comportement inchangé pour le loader Dashboard, qui ne le passe
+// pas) - seule la vue #/collectors passe renderCollectorsLoadingSkeleton (silhouette calée sur la vraie
+// forme des cartes, plus appropriée pour un premier chargement de page que pour le petit widget compact.
+function createDefaultCollectorsLoader({ limit, containerId, renderResults, withTradeSignals = false, renderLoading = renderCollectorsLoading }) {
     let profiles = null; // null = pas encore chargé / erreur, [] = chargé mais vide
     let signalsMap = new Map();
     let hasError = false;
 
     async function load() {
         const container = document.getElementById(containerId);
-        renderCollectorsLoading(container);
+        renderLoading(container);
 
         try {
             const { data, error } = await supabaseClient
@@ -357,7 +380,8 @@ const collectorsPageDefaultLoader = createDefaultCollectorsLoader({
     limit: COLLECTORS_RESULT_LIMIT,
     containerId: 'collectors-search-results',
     renderResults: renderCollectorsResults,
-    withTradeSignals: true
+    withTradeSignals: true,
+    renderLoading: (container) => renderCollectorsLoadingSkeleton(container, 4)
 });
 
 const collectorsPageSearchController = createCollectorsSearchController({
@@ -441,6 +465,7 @@ window.escapeCollectorsIlike = escapeCollectorsIlike;
 window.searchPublicCollectors = searchPublicCollectors;
 window.renderCollectorsHint = renderCollectorsHint;
 window.renderCollectorsLoading = renderCollectorsLoading;
+window.renderCollectorsLoadingSkeleton = renderCollectorsLoadingSkeleton;
 window.renderCollectorsError = renderCollectorsError;
 window.renderCollectorsNoResults = renderCollectorsNoResults;
 window.fetchCollectorTradeSignals = fetchCollectorTradeSignals;
