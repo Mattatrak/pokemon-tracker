@@ -186,6 +186,55 @@ function getDashboardEffectiveSpan(key) {
     return spans[key] || DASHBOARD_DEFAULT_SPANS[key] || { cols: 2, rows: 2 };
 }
 
+// ===== OBJECTIF ÉPINGLÉ (audit webdesign 2026-09, "Objectifs de complétion personnalisés") =====
+// localStorage, même convention que les préférences Dashboard ci-dessus (pas de sync entre appareils,
+// pas de migration SQL nécessaire) - épingle un set précis (choisi depuis Progression, cf
+// pinDashboardObjective) avec une échéance optionnelle, prioritaire sur le choix automatique de
+// dashboardFindBestObjective tant que ce set n'est pas complété à 100%.
+const DASHBOARD_PINNED_OBJECTIVE_KEY = 'dashboardPinnedObjective';
+
+function getDashboardPinnedObjective() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_PINNED_OBJECTIVE_KEY) || 'null');
+        if (stored && typeof stored.setId === 'string' && (stored.deadline === null || typeof stored.deadline === 'string')) {
+            return stored;
+        }
+    } catch (e) { /* stockage corrompu, repli sur aucun objectif épinglé */ }
+    return null;
+}
+
+function saveDashboardPinnedObjective(setId, deadline) {
+    localStorage.setItem(DASHBOARD_PINNED_OBJECTIVE_KEY, JSON.stringify({ setId, deadline: deadline || null }));
+}
+
+function clearDashboardPinnedObjective() {
+    localStorage.removeItem(DASHBOARD_PINNED_OBJECTIVE_KEY);
+}
+
+// Progression d'un set précis par setId (contrairement à dashboardFindBestObjective, ne filtre pas sur
+// owned > 0 : un objectif épinglé peut être un set pas encore entamé). Retourne null si le set n'existe
+// plus dans le catalogue TCGdex chargé (allTcgdexSeries pas encore prêt, ou id invalide).
+function dashboardComputeSetProgress(setId) {
+    if (typeof allTcgdexSeries === 'undefined') return null;
+
+    let targetSet = null;
+    allTcgdexSeries.forEach(series => {
+        (series.sets || []).forEach(set => { if (set.id === setId) targetSet = set; });
+    });
+    if (!targetSet) return null;
+
+    const officialCount = targetSet.cardCount?.official || 0;
+    if (officialCount === 0) return null;
+
+    const ownedIds = new Set();
+    allCollectionCards.forEach(card => {
+        if (card.tcgdex_id && getSetIdFromTcgdexId(card.tcgdex_id) === setId) ownedIds.add(card.tcgdex_id);
+    });
+
+    const logoUrl = targetSet.logo ? `${targetSet.logo}.webp` : '';
+    return { setId, setName: targetSet.name, logoUrl, owned: ownedIds.size, total: officialCount, pct: ownedIds.size / officialCount };
+}
+
 // Lit le span RÉEL actuellement appliqué à un widget (style inline posé par dashboardBuildSkeleton) -
 // jamais recalculé depuis getDashboardEffectiveSpan pendant un glisser en cours, qui doit partir de ce
 // que l'utilisateur voit à l'écran à cet instant, pas d'une valeur potentiellement obsolète.
@@ -852,9 +901,25 @@ function renderDashboardActivity() {
 
 // ===== OBJECTIF ACTUEL =====
 
+// Objectif épinglé (pinDashboardObjective, modules/progression.js) prioritaire tant qu'il n'est pas
+// complété à 100% - sinon repli sur dashboardFindBestObjectiveAuto (choix automatique préexistant).
+// Désépingle silencieusement un objectif complété ou dont le set n'existe plus (allTcgdexSeries pas
+// encore chargé, id invalide) : jamais de widget bloqué sur un set fini ou introuvable.
+function dashboardFindBestObjective() {
+    const pinned = getDashboardPinnedObjective();
+    if (pinned) {
+        const progress = dashboardComputeSetProgress(pinned.setId);
+        if (progress && progress.pct < 1) {
+            return { ...progress, pinned: true, deadline: pinned.deadline };
+        }
+        if (progress) clearDashboardPinnedObjective(); // complété à 100%
+    }
+    return dashboardFindBestObjectiveAuto();
+}
+
 // Cherche la série incomplète avec la meilleure progression, uniquement à partir du cache déjà chargé
 // par l'onglet Progression (allTcgdexSeries) : aucun nouvel appel API n'est déclenché depuis le Dashboard
-function dashboardFindBestObjective() {
+function dashboardFindBestObjectiveAuto() {
     if (typeof allTcgdexSeries === 'undefined' || allTcgdexSeries.length === 0) return null;
 
     const ownedIdsBySet = {};
@@ -925,7 +990,19 @@ function renderDashboardObjective() {
         ? `<div class="dashboard-objective-extra"><i class="ti ti-tag" aria-hidden="true"></i> ${lowPriceCount} carte${lowPriceCount > 1 ? 's' : ''} en wishlist à prix bas en ce moment</div>`
         : '';
 
+    // Audit webdesign 2026-09, "Objectifs de complétion personnalisés" : objectif épinglé depuis
+    // Progression (pinDashboardObjective) plutôt que le choix automatique - badge + échéance optionnelle
+    // + bouton pour retirer, sinon strictement le même rendu qu'avant (rétro-compatible avec le widget
+    // 100% automatique existant).
+    const pinnedBadge = best.pinned
+        ? `<button type="button" class="dashboard-objective-unpin" onclick="unpinDashboardObjective()" title="Retirer cet objectif épinglé"><i class="ti ti-pin-filled" aria-hidden="true"></i> Épinglé</button>`
+        : '';
+    const deadlineLine = (best.pinned && best.deadline)
+        ? `<div class="dashboard-objective-extra dashboard-objective-deadline"><i class="ti ti-calendar-event" aria-hidden="true"></i> ${escapeHtml(dashboardObjectiveDeadlineText(best.deadline))}</div>`
+        : '';
+
     el.innerHTML = `
+        ${pinnedBadge}
         <div class="dashboard-objective-row">
             <div class="dashboard-objective-ring-wrap">
                 ${progressRingSvg(pctDisplay)}
@@ -938,11 +1015,38 @@ function renderDashboardObjective() {
         </div>
         <div class="dashboard-objective-count">${best.owned} / ${best.total} cartes</div>
         <div class="dashboard-objective-extra" id="dashboard-objective-budget"></div>
+        ${deadlineLine}
         ${lowPriceLine}
         <button class="dashboard-btn-primary dashboard-btn-full" onclick="dashboardGoToProgressionSet('${best.setId}', '${safeName}', '${best.logoUrl}')">Continuer la série</button>
     `;
 
     dashboardEnrichObjectiveBudget(best, myToken);
+}
+
+// Texte sobre, jamais culpabilisant (pas de rouge/urgence sur un retard - c'est une collection de
+// cartes, pas une deadline professionnelle). deadline au format Y-m-d (posé par le date picker
+// Progression, modules/progression.js).
+function dashboardObjectiveDeadlineText(deadline) {
+    const target = new Date(`${deadline}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((target - today) / 86400000);
+
+    if (diffDays > 1) return `Objectif : dans ${diffDays} jours`;
+    if (diffDays === 1) return 'Objectif : demain';
+    if (diffDays === 0) return 'Objectif : aujourd\'hui';
+    const lateDays = Math.abs(diffDays);
+    return `Échéance dépassée de ${lateDays} jour${lateDays > 1 ? 's' : ''}`;
+}
+
+// Retire l'objectif épinglé (bouton "Épinglé" du widget Dashboard, ou "Retirer" côté Progression) -
+// re-rend le widget (retombe sur le choix automatique) et, si la vue détail Progression du même set
+// est affichée, son propre contrôle (evite un bouton "Retirer" qui reste affiché pour un objectif qui
+// vient de l'être).
+function unpinDashboardObjective() {
+    clearDashboardPinnedObjective();
+    dashboardRerenderWidgetBody('objective');
+    if (typeof renderProgressionObjectiveControl === 'function') renderProgressionObjectiveControl();
 }
 
 // Cache localStorage du budget de complétion de l'objectif (P2-5) : évite de refetch les prix des
@@ -1510,7 +1614,14 @@ window.dashboardKpiHtml = dashboardKpiHtml;
 window.dashboardRelativeTime = dashboardRelativeTime;
 window.renderDashboardActivity = renderDashboardActivity;
 window.dashboardFindBestObjective = dashboardFindBestObjective;
+window.dashboardFindBestObjectiveAuto = dashboardFindBestObjectiveAuto;
 window.renderDashboardObjective = renderDashboardObjective;
+window.getDashboardPinnedObjective = getDashboardPinnedObjective;
+window.saveDashboardPinnedObjective = saveDashboardPinnedObjective;
+window.clearDashboardPinnedObjective = clearDashboardPinnedObjective;
+window.dashboardComputeSetProgress = dashboardComputeSetProgress;
+window.unpinDashboardObjective = unpinDashboardObjective;
+window.dashboardRerenderWidgetBody = dashboardRerenderWidgetBody;
 window.computeCollectorBadges = computeCollectorBadges;
 window.renderDashboardBadges = renderDashboardBadges;
 window.dashboardPickDailyCard = dashboardPickDailyCard;

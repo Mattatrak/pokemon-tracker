@@ -655,6 +655,24 @@ async function initDatePicker(selector, presetValue) {
     });
 }
 
+// Variante pour une échéance future (objectif de complétion, modules/progression.js) : minDate au lieu
+// de maxDate (initDatePicker ci-dessus est pour des dates d'acquisition, toujours dans le passé).
+// clear() posé par le champ (petite croix, config par défaut de Flatpickr) déclenche aussi onChange
+// avec dateStr === '' : onChange le distingue déjà d'une vraie date (cf appelant).
+async function initObjectiveDeadlinePicker(selector, presetValue) {
+    await ensureFlatpickrLoaded();
+    flatpickr(selector, {
+        locale: 'fr',
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        minDate: 'today',
+        monthSelectorType: 'static',
+        defaultDate: presetValue || null,
+        onChange: (selectedDates, dateStr) => { onProgressionObjectiveDeadlineChange(dateStr); }
+    });
+}
+
 // ===== CÉLÉBRATION AJOUT DE CARTE (retour utilisateur 2026-09, mockup "Micro-interactions" validé) =====
 // Point d'entrée partagé par tous les chemins d'ajout (onglet Ajouter/cards.js, Progression/
 // progression.js, wishlist/wishlist.js) : remplace le toast textuel "carte(s) ajoutée(s)" qui tournait
@@ -973,6 +991,7 @@ window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
 window.debounce = debounce;
 window.parseCsvDate = parseCsvDate;
 window.initDatePicker = initDatePicker;
+window.initObjectiveDeadlinePicker = initObjectiveDeadlinePicker;
 
 // Exports pour les tests unitaires (Vitest, cf vitest.config.js) uniquement - purement additif : une
 // instruction export dans un module déjà chargé en <script type="module"> par le navigateur n'a aucun

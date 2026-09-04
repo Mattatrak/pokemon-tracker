@@ -508,6 +508,15 @@ body::before {
     font-size: 0.9rem;
 }
 
+/* Même taille que .card-image-thumb dans le mode Tableau (audit webdesign 2026-09) - la vignette a
+   été fusionnée dans la colonne Nom, pas un cas de plus pour .thumb (40x60, utilisé ailleurs). */
+.no-image-placeholder.table-row {
+    width: 32px;
+    height: 44px;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
 .no-image-placeholder.full {
     width: 100%;
     height: 100%;
@@ -3422,11 +3431,52 @@ tbody tr:hover {
     background: rgba(255,255,255,0.03);
 }
 
+/* Habillage premium du mode Tableau (audit webdesign 2026-09, "seul écran qui a l'air back-office")
+   - scopé à .collection-table-premium (posé uniquement sur le <table> de la Collection) pour ne pas
+   affecter le tableau Admin "cartes sans image" qui réutilise .table-wrapper/th/td/tbody tr:hover
+   sans besoin du même traitement. */
+.collection-table-premium thead {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+}
+
+.collection-table-premium th {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--slate);
+    padding: 0.85rem 1rem;
+}
+
+.collection-table-premium th.sortable:hover {
+    color: var(--gold);
+}
+
+/* Zébrage très léger : à peine perceptible, aide à suivre une ligne sur une collection dense sans
+   virer au tableur. nth-child(even) plutôt que odd pour que la 1re ligne reste sur le fond nu de la
+   carte (--panel), cohérent avec le reste de l'app où le premier élément d'une liste n'a jamais de
+   fond distinct. */
+.collection-table-premium tbody tr:nth-child(even) {
+    background: var(--panel-light);
+}
+
+.collection-table-premium tbody tr:hover {
+    background: rgba(227, 188, 132, 0.06);
+}
+
+.table-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
 .card-image-thumb {
-    width: 40px;
-    height: 60px;
+    width: 32px;
+    height: 44px;
     object-fit: cover;
     border-radius: var(--radius-xs);
+    flex-shrink: 0;
 }
 
 .badge {
@@ -4288,6 +4338,37 @@ tbody tr:hover {
     color: var(--gold);
 }
 
+/* Sommaire d'ancres (audit webdesign 2026-09, quick win "Mini sommaire") : sauter directement à
+   Échange/Wishlist/Collection sans tout scroller sur un profil riche - jamais affiché avec moins de
+   2 cibles (posé par renderPublicProfileAnchorNav). */
+.user-profile-anchor-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+}
+
+.user-profile-anchor-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    color: var(--slate);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
+}
+
+.user-profile-anchor-pill:hover {
+    color: var(--gold);
+    border-color: rgba(232, 169, 59, 0.35);
+    background: rgba(232, 169, 59, 0.06);
+}
+
 .user-profile-stat-label {
     font-size: 0.75rem;
     color: var(--slate);
@@ -4352,16 +4433,28 @@ tbody tr:hover {
     margin-bottom: 0;
 }
 
-/* Badge sobre : chiffres/texte explicites ailleurs dans la section, jamais un pourcentage ici,
-   aucune animation (consigne P5-4). */
-.trade-reciprocal-badge {
-    flex-shrink: 0;
-    font-size: 0.72rem;
+/* Bandeau plein largeur (audit webdesign 2026-09, "[L] Bandeau Match réciproque repensé") : remplace
+   l'ancienne pastille .trade-reciprocal-badge (même traitement visuel qu'un simple libellé de
+   section) - c'est le signal le plus fort de toute la page, il ne peut plus passer pour un détail.
+   Toujours le premier enfant de .user-profile-match-section (overflow:hidden + border-radius du
+   parent) : pas de coins arrondis à gérer ici, le clip du parent s'en charge. Fond dégradé plutôt
+   qu'un aplat --gold : reste lisible en superposition du fond sombre de la section, aucune animation
+   (même consigne que l'ancien badge, P5-4). */
+.trade-reciprocal-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.9rem 1.25rem;
+    background: linear-gradient(135deg, rgba(232, 169, 59, 0.22), rgba(232, 169, 59, 0.06));
+    border-bottom: 1px solid rgba(232, 169, 59, 0.35);
+    color: var(--gold);
+    font-size: 0.85rem;
     font-weight: 600;
-    color: var(--ink-navy);
-    background: var(--gold);
-    border-radius: var(--radius-pill);
-    padding: 0.25rem 0.7rem;
+}
+
+.trade-reciprocal-banner .ti {
+    font-size: 1.25rem;
+    flex-shrink: 0;
 }
 
 /* 2 colonnes desktop si les deux directions existent (une direction seule occupe naturellement toute
@@ -4379,6 +4472,45 @@ tbody tr:hover {
     .trade-opportunity-groups {
         grid-template-columns: 1fr;
     }
+}
+
+/* Tiroir "+ N autres doublons sans correspondance" (audit webdesign 2026-09, fusion Échange/Ses
+   doublons disponibles) : replié par défaut, queue de la section plutôt qu'un deuxième bloc toujours
+   visible. Bordure supprimée quand il suit directement .trade-opportunity-groups (qui a déjà son
+   propre padding-bottom pour la séparation) - gardée quand il suit directement le header (aucune
+   correspondance, le tiroir est alors le premier contenu de la section). */
+.trade-duplicates-drawer-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    border: none;
+    border-top: 1px solid var(--border);
+    background: none;
+    color: var(--slate);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
+}
+
+.trade-opportunity-groups + .trade-duplicates-drawer-toggle {
+    border-top: none;
+}
+
+.trade-duplicates-drawer-toggle:hover {
+    color: var(--gold);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.trade-duplicates-drawer-toggle-expanded {
+    color: var(--text-primary);
+}
+
+.trade-duplicates-drawer-grid {
+    padding: 0 1.25rem 1.25rem;
 }
 
 .user-profile-match-group-title {
@@ -5246,6 +5378,85 @@ tbody tr:hover {
 .progression-set-budget-text .budget-amount {
     color: var(--parchment);
     font-weight: 600;
+}
+
+/* Audit webdesign 2026-09, "Objectifs de complétion personnalisés" - contrôle d'épinglage affiché
+   dans l'en-tête de la vue détail d'un set (renderProgressionObjectiveControl, progression.js). */
+.progression-objective-control {
+    margin-top: 0.6rem;
+}
+
+.progression-objective-pinned {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.progression-objective-pinned-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--gold);
+}
+
+.progression-objective-pinned input[type="text"] {
+    width: 150px;
+    padding: 0.4rem 0.7rem;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+}
+
+/* Pilule sobre liseré or (retour utilisateur : le bouton rectangulaire générique .dashboard-btn-
+   secondary ne convenait pas ici) - même famille visuelle que .profile-public-preview-link et le
+   badge "Épinglé" du widget Dashboard (.dashboard-objective-unpin), pour que les deux bouts de cette
+   même interaction (épingler ici, désépingler côté widget) se répondent visuellement. */
+.progression-objective-pin-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    background: none;
+    border: 1px solid rgba(232, 169, 59, 0.35);
+    border-radius: var(--radius-pill);
+    color: var(--gold);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
+}
+
+.progression-objective-pin-btn:hover {
+    background: rgba(232, 169, 59, 0.1);
+    border-color: rgba(232, 169, 59, 0.55);
+}
+
+/* Icône seule plutôt qu'un 2e bouton texte à côté de la pastille + du champ - "Retirer" en toutes
+   lettres faisait trois éléments qui se disputaient l'attention sur une seule ligne. */
+.progression-objective-remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--slate);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: color var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
+}
+
+.progression-objective-remove-btn:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* Priorisation des sets (Phase 2, P2-3) — 2 cartes objectives au-dessus de la liste des séries,
@@ -10395,6 +10606,33 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     display: none;
 }
 
+/* Audit webdesign 2026-09, "Objectifs de complétion personnalisés" */
+.dashboard-objective-unpin {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.6rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(232, 169, 59, 0.1);
+    border: 1px solid rgba(232, 169, 59, 0.3);
+    border-radius: var(--radius-pill);
+    color: var(--gold);
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--motion-duration-fast) ease;
+}
+
+.dashboard-objective-unpin:hover {
+    background: rgba(232, 169, 59, 0.18);
+}
+
+/* Jamais rouge/urgent (cf dashboardObjectiveDeadlineText, dashboard.js) : même ton neutre que
+   .dashboard-objective-extra, une collection de cartes n'a pas de deadline professionnelle. */
+.dashboard-objective-deadline {
+    color: var(--gold);
+}
+
 /* ----- Top hausses ----- */
 /* Le widget entier (pas juste son contenu) est masqué en JS quand aucune donnée n'existe */
 
@@ -11549,9 +11787,13 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     border-bottom: none;
 }
 
+/* Audit webdesign 2026-09, quick win "Hiérarchie visuelle section 4" : 2fr/2fr pour les 2 cartes
+   phares (prix moyen, extension préférée - stx-habit-card-featured, toujours les 2 premières du
+   marquage) vs 1fr pour les 4 cases secondaires - avant, 6 colonnes égales ne traduisaient aucune
+   inégalité d'importance entre ces chiffres. */
 .stx-habits-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr;
     gap: 1rem;
 }
 
@@ -11572,6 +11814,26 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
     padding: 1.75rem 1.5rem;
     min-width: 0;
     box-shadow: var(--shadow-lg);
+}
+
+/* Cartes phares (prix moyen, extension préférée) : léger liseré/teinte or + valeur plus grande, les
+   4 autres cases gardent le traitement neutre .stx-habit-card d'origine. */
+.stx-habit-card-featured {
+    border-color: rgba(232, 169, 59, 0.3);
+    background:
+        linear-gradient(180deg, rgba(232, 169, 59, 0.1) 0%, transparent 55%),
+        rgba(26, 26, 30, 0.35);
+}
+
+.stx-habit-card-featured .stx-habit-icon {
+    background: rgba(232, 169, 59, 0.14);
+    border-color: rgba(232, 169, 59, 0.3);
+    color: var(--gold);
+}
+
+.stx-habit-card-featured .stx-habit-value {
+    font-size: 1.6rem;
+    color: var(--gold);
 }
 
 .stx-habit-icon {
@@ -11982,7 +12244,10 @@ body.page-wishlist .wishlist-hero-content #wishlist-stats-bottom {
             "evo evo"
             "repartition movers";
     }
+    /* Les 2 cartes phares passent en pleine largeur (span 3) plutôt que de partager une colonne à
+       égalité avec les 4 secondaires - la hiérarchie doit rester lisible ici aussi. */
     .stx-habits-grid { grid-template-columns: repeat(3, 1fr); }
+    .stx-habit-card-featured { grid-column: 1 / -1; }
     .stx-records-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
