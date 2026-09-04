@@ -11,7 +11,9 @@
 //   - card-detail        : ouverture/fermeture de la fiche carte (VT1, généralisé en VT3)
 //   - collection-reorder : réorganisation Collection au filtre/tri (pas encore utilisé)
 //   - profile-open       : Collecteur -> profil public, avatar partagé (VT4)
-const VIEW_TRANSITION_TYPES = ['navigation', 'card-detail', 'collection-reorder', 'profile-open'];
+//   - set-progression    : Atlas des séries -> détail d'un set, logo partagé (audit webdesign 2026-09,
+//                          "Morph de transition Atlas -> détail de set")
+const VIEW_TRANSITION_TYPES = ['navigation', 'card-detail', 'collection-reorder', 'profile-open', 'set-progression'];
 
 // Concurrence (cf audit VT) : document.activeViewTransition expose la transition en cours, si
 // support - pas besoin de garder notre propre référence/flag. skipTransition() saute proprement à
