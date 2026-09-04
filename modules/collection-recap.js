@@ -260,7 +260,7 @@ function renderRecapTopCardItem(card, rank) {
             ${qty > 1 ? `<span class="recap-top-card-qty">×${qty}</span>` : ''}
             <div class="recap-top-card-image">
                 ${card.image
-                    ? `<img src="${card.image}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
+                    ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
                     : getGridNoImageHtml()
                 }
             </div>
@@ -332,7 +332,7 @@ function renderRecapDuplicateItem(group) {
         <div class="recap-dup-item" data-card-id="${group.id}" onclick="showCardDetail(${group.id}, event)">
             <div class="recap-dup-thumb">
                 ${group.image
-                    ? `<img src="${group.image}" alt="${escapeHtml(group.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
+                    ? `<img src="${escapeHtml(group.image)}" alt="${escapeHtml(group.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
                     : getGridNoImageHtml()
                 }
             </div>
