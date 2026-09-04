@@ -64,6 +64,43 @@ function renderAdminGate() {
     loadAdminMissingImages();
 }
 
+// Déclenche à la demande la même Edge Function que le job pg_cron quotidien
+// (supabase/functions/refresh-market-prices) - supabaseClient.functions.invoke() joint
+// automatiquement le JWT de l'admin connecté en Authorization, vérifié côté fonction (table
+// admin_users) avant d'exécuter quoi que ce soit. Bouton désactivé pendant l'appel : un
+// rafraîchissement complet (tous comptes, tous tcgdex_id distincts) prend potentiellement plusieurs
+// dizaines de secondes, jamais une action à répéter par impatience pendant qu'elle tourne déjà.
+async function triggerGlobalPriceRefresh() {
+    const btn = document.getElementById('admin-refresh-prices-btn');
+    const resultEl = document.getElementById('admin-refresh-prices-result');
+    if (!btn || btn.disabled) return;
+
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="loading"></span> Rafraîchissement en cours...';
+    if (resultEl) resultEl.textContent = '';
+
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('refresh-market-prices');
+        if (error) throw error;
+
+        if (resultEl) {
+            resultEl.textContent = data?.ok
+                ? `Terminé : ${data.pricesFetched}/${data.cardsChecked} identifiants mis à jour.`
+                : `Terminé avec des erreurs (${data?.updateErrors?.length || 0}) — voir la console.`;
+        }
+        if (!data?.ok) console.error('Erreurs rafraîchissement prix global:', data?.updateErrors);
+        showMessage('Rafraîchissement des prix terminé.', 'success');
+    } catch (error) {
+        console.error('Erreur rafraîchissement prix global:', error);
+        if (resultEl) resultEl.textContent = 'Échec du rafraîchissement — voir la console.';
+        showMessage('Erreur lors du rafraîchissement des prix.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
 async function loadAdminMissingImages() {
     const countEl = document.getElementById('admin-missing-count');
     const tbody = document.getElementById('admin-missing-images-body');
@@ -346,6 +383,7 @@ window.PTCG_API_BASE = PTCG_API_BASE;
 window.PTCG_API_KEY = PTCG_API_KEY;
 window.renderAdminGate = renderAdminGate;
 window.loadAdminMissingImages = loadAdminMissingImages;
+window.triggerGlobalPriceRefresh = triggerGlobalPriceRefresh;
 window.onAdminSearchInput = onAdminSearchInput;
 window.renderAdminMissingImagesTable = renderAdminMissingImagesTable;
 window.fetchPtcgCard = fetchPtcgCard;

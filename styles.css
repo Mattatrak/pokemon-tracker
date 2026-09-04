@@ -4653,6 +4653,39 @@ tbody tr:hover {
     width: 100%;
 }
 
+/* Admin - section "Prix marché" (bouton de rafraîchissement global, modules/admin.js). Même matière
+   que .user-profile-section/.stx-habit-card ailleurs dans l'app (fond --panel, bordure neutre très
+   légère, même rayon) plutôt qu'un nouveau composant. */
+.admin-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-section-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.4rem;
+}
+
+.admin-section-hint {
+    font-size: 0.85rem;
+    color: var(--slate);
+    margin-bottom: 0.9rem;
+}
+
+.admin-section-result {
+    font-size: 0.85rem;
+    color: var(--slate);
+    margin-top: 0.6rem;
+}
+
+.admin-section-result:empty {
+    display: none;
+}
+
 .collectors-header {
     margin-bottom: 1.5rem;
 }
