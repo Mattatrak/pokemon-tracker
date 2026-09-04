@@ -203,24 +203,30 @@ async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardNa
     const addedSpent = purchasePrice * quantity;
     const addedValue = marketValue * quantity;
 
-    if (existing) {
-        let topCardName = existing.top_card_name;
-        let topCardValue = Number(existing.top_card_value || 0);
+    // Incrémente la ligne existante à partir de row (déjà lue) - factorisé car appelé à la fois pour
+    // le cas normal (existing trouvé au SELECT initial) et pour le repli après conflit ci-dessous.
+    const applyIncrementalUpdate = async (row) => {
+        let topCardName = row.top_card_name;
+        let topCardValue = Number(row.top_card_value || 0);
         if (marketValue > topCardValue) {
             topCardValue = marketValue;
             topCardName = cardName;
         }
 
         const { error } = await supabaseClient.from('monthly_summary').update({
-            cards_added: Number(existing.cards_added || 0) + quantity,
-            total_spent: Number(existing.total_spent || 0) + addedSpent,
-            value_added: Number(existing.value_added || 0) + addedValue,
+            cards_added: Number(row.cards_added || 0) + quantity,
+            total_spent: Number(row.total_spent || 0) + addedSpent,
+            value_added: Number(row.value_added || 0) + addedValue,
             top_card_name: topCardName,
             top_card_value: topCardValue,
             updated_at: new Date().toISOString()
-        }).eq('id', existing.id);
+        }).eq('id', row.id);
 
         if (error) console.error('Erreur mise à jour historique mensuel:', error);
+    };
+
+    if (existing) {
+        await applyIncrementalUpdate(existing);
     } else {
         const { error } = await supabaseClient.from('monthly_summary').insert([{
             month: monthKey,
@@ -231,7 +237,24 @@ async function recordMonthlyStats({ quantity, purchasePrice, marketValue, cardNa
             top_card_value: marketValue
         }]);
 
-        if (error) console.error('Erreur création historique mensuel:', error);
+        if (error && error.code === '23505') {
+            // Un autre ajout concurrent (ex: deux cartes ajoutées coup sur coup le même mois, cf
+            // bug remonté en usage réel) a créé la ligne entre notre SELECT et cet INSERT - on
+            // bascule sur la mise à jour incrémentale au lieu d'échouer, en relisant la ligne que
+            // l'autre appel vient d'écrire plutôt que d'écraser sa valeur.
+            const { data: raceExisting, error: raceFetchError } = await supabaseClient
+                .from('monthly_summary')
+                .select('*')
+                .eq('month', monthKey)
+                .maybeSingle();
+            if (raceFetchError || !raceExisting) {
+                console.error('Erreur relecture historique mensuel après conflit:', raceFetchError);
+                return;
+            }
+            await applyIncrementalUpdate(raceExisting);
+        } else if (error) {
+            console.error('Erreur création historique mensuel:', error);
+        }
     }
 }
 

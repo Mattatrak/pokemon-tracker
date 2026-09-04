@@ -1136,6 +1136,19 @@
                     <h1 class="collectors-title">Administration</h1>
                     <p class="collectors-subtitle" id="admin-missing-count">Cartes sans image : —</p>
                 </div>
+
+                <!-- Rafraîchissement global des prix (suite du chantier Edge Functions, même Edge
+                     Function que le déclenchement automatique quotidien pg_cron) : contourne la
+                     limite de refreshAllMarketPrices (tracker.js), strictement mono-utilisateur par
+                     construction (RLS) - met à jour market_value pour tous les comptes en un seul
+                     passage, sans attendre que chacun clique lui-même. -->
+                <div class="admin-section">
+                    <div class="admin-section-title">Prix marché</div>
+                    <p class="admin-section-hint">Rafraîchit <code>market_value</code> pour toutes les cartes de tous les comptes (même job que le rafraîchissement automatique quotidien).</p>
+                    <button type="button" class="filter-toggle-btn" id="admin-refresh-prices-btn" onclick="triggerGlobalPriceRefresh()"><i class="ti ti-refresh" aria-hidden="true"></i> Rafraîchir les prix pour tous les comptes</button>
+                    <p class="admin-section-result" id="admin-refresh-prices-result"></p>
+                </div>
+
                 <div class="input-with-icon">
                     <i class="ti ti-search" aria-hidden="true"></i>
                     <input type="text" id="admin-search-input" placeholder="Filtrer par nom, série ou tcgdex_id" oninput="onAdminSearchInput()">
