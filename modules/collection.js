@@ -1092,7 +1092,7 @@ function renderCollectionTable(filtered, isLoadMore) {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="10" style="text-align: center; padding: 2rem;">
+                <td colspan="9" style="text-align: center; padding: 2rem;">
                     ${allCollectionCards.length === 0 ? getCollectionEmptyStateHtml() : `
                         <div class="empty-state">
                             <p><i class="ti ti-search-off" aria-hidden="true"></i> Aucune carte trouvée</p>
@@ -1131,11 +1131,15 @@ function renderCollectionTableRowHtml(card) {
         return `
         <tr data-card-id="${card.id}">
             <td class="select-col"><input type="checkbox" class="row-select-checkbox" data-id="${card.id}" ${selectedCardIds.has(card.id) ? 'checked' : ''} onchange="toggleCardSelection(${card.id})"></td>
-            <td>${card.image
-                ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id})">`
-                : getCollectionUploadPlaceholder(card.id)
-            }</td>
-            <td><strong class="row-name-link" onclick="showCardDetail(${card.id})">${escapeHtml(card.name)}</strong></td>
+            <td>
+                <div class="table-name-cell">
+                    ${card.image
+                        ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" class="card-image-thumb" onerror="this.outerHTML=getCollectionUploadPlaceholder(${card.id}, 'table-row')">`
+                        : getCollectionUploadPlaceholder(card.id, 'table-row')
+                    }
+                    <strong class="row-name-link" onclick="showCardDetail(${card.id})">${escapeHtml(card.name)}</strong>
+                </div>
+            </td>
             <td>${card.series_logo ? `<img src="${escapeHtml(card.series_logo)}" class="series-logo-table" alt="" onerror="this.remove()">` : ''}${escapeHtml(card.series)}</td>
             <td>${escapeHtml(card.number)}</td>
             <td>

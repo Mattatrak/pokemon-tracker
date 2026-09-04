@@ -584,6 +584,8 @@ async function openSetProgression(setId, setName, logoUrl) {
     document.querySelectorAll('#tab-progression .view-toggle-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('prog-filter-all').classList.add('active');
 
+    renderProgressionObjectiveControl();
+
     document.getElementById('progression-series-view').style.display = 'none';
     document.getElementById('progression-set-view').style.display = 'block';
     document.getElementById('progression-set-title').textContent = setName;
@@ -628,6 +630,54 @@ async function openSetProgression(setId, setName, logoUrl) {
         grid.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--slate);">Erreur lors du chargement des cartes</p>';
         console.error(error);
     }
+}
+
+// ===== OBJECTIF ÉPINGLÉ (audit webdesign 2026-09, "Objectifs de complétion personnalisés") =====
+// Contrôle affiché dans l'en-tête de la vue détail d'un set (cf .progression-set-title-row,
+// index.html) : bouton "Définir comme objectif" si ce set n'est pas l'objectif épinglé du Dashboard,
+// sinon badge + champ d'échéance optionnel + bouton pour retirer. Le stockage (localStorage) et le
+// calcul de progression vivent dans modules/dashboard.js (getDashboardPinnedObjective/
+// saveDashboardPinnedObjective/dashboardComputeSetProgress), réutilisés ici tels quels.
+function renderProgressionObjectiveControl() {
+    const el = document.getElementById('progression-objective-control');
+    if (!el) return;
+
+    const pinned = getDashboardPinnedObjective();
+    const isPinnedHere = pinned && pinned.setId === currentProgressionSetId;
+
+    if (!isPinnedHere) {
+        el.innerHTML = `
+            <button type="button" class="progression-objective-pin-btn" onclick="pinDashboardObjective()">
+                <i class="ti ti-pin" aria-hidden="true"></i> Définir comme objectif du Dashboard
+            </button>
+        `;
+        return;
+    }
+
+    el.innerHTML = `
+        <div class="progression-objective-pinned">
+            <span class="progression-objective-pinned-label"><i class="ti ti-pin-filled" aria-hidden="true"></i> Objectif du Dashboard</span>
+            <input type="text" id="progression-objective-deadline" placeholder="Échéance (optionnel)" value="${pinned.deadline ? escapeHtml(pinned.deadline) : ''}">
+            <button type="button" class="progression-objective-remove-btn" onclick="unpinDashboardObjective()" title="Retirer cet objectif"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>
+    `;
+    initObjectiveDeadlinePicker('#progression-objective-deadline', pinned.deadline);
+}
+
+function pinDashboardObjective() {
+    saveDashboardPinnedObjective(currentProgressionSetId, null);
+    renderProgressionObjectiveControl();
+    dashboardRerenderWidgetBody('objective');
+}
+
+// Appelé par flatpickr (onChange) quand l'échéance change - conserve le setId déjà épinglé, remplace
+// juste la date. dateStr vide (croix flatpickr) -> deadline redevenue optionnelle (null), pas une
+// chaîne vide stockée.
+function onProgressionObjectiveDeadlineChange(dateStr) {
+    const pinned = getDashboardPinnedObjective();
+    if (!pinned || pinned.setId !== currentProgressionSetId) return;
+    saveDashboardPinnedObjective(currentProgressionSetId, dateStr || null);
+    dashboardRerenderWidgetBody('objective');
 }
 
 let progressionRarityFilterValues = new Set();
@@ -1262,6 +1312,9 @@ window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
 window.setupProgressionStickyBar = setupProgressionStickyBar;
 window.teardownProgressionStickyBar = teardownProgressionStickyBar;
 window.openSetProgression = openSetProgression;
+window.renderProgressionObjectiveControl = renderProgressionObjectiveControl;
+window.pinDashboardObjective = pinDashboardObjective;
+window.onProgressionObjectiveDeadlineChange = onProgressionObjectiveDeadlineChange;
 window.fetchSetCardsDetailed = fetchSetCardsDetailed;
 window.computeSetCompletionBudget = computeSetCompletionBudget;
 window.progressionRarityFilterValues = progressionRarityFilterValues;

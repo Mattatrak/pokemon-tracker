@@ -581,11 +581,10 @@
             </div>
 
             <div class="table-wrapper" id="collection-table-wrapper" style="display: none;">
-                <table>
+                <table class="collection-table-premium">
                     <thead>
                         <tr>
                             <th class="select-col"><input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAllVisible()"></th>
-                            <th>Image</th>
                             <th class="sortable" onclick="sortCollection('name')">Nom <span class="sort-arrow" id="sort-arrow-name"></span></th>
                             <th class="sortable" onclick="sortCollection('series')">Série <span class="sort-arrow" id="sort-arrow-series"></span></th>
                             <th class="sortable" onclick="sortCollection('number')">N° <span class="sort-arrow" id="sort-arrow-number"></span></th>
@@ -598,7 +597,7 @@
                     </thead>
                     <tbody id="cards-list">
                         <tr>
-                            <td colspan="10" style="text-align: center; padding: 2rem;">
+                            <td colspan="9" style="text-align: center; padding: 2rem;">
                                 <div class="empty-state">
                                     <p><i class="ti ti-cards" aria-hidden="true"></i> Votre collection est vide</p>
                                 </div>
@@ -656,13 +655,14 @@
                     <span id="progression-sticky-title"></span>
                     <span id="progression-sticky-progress"></span>
                 </div>
-                <button class="back-btn" onclick="backToSeriesProgress()">← Retour aux séries</button>
+                <button type="button" class="public-page-back-link" onclick="backToSeriesProgress()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Retour aux séries</button>
                 <div class="progression-set-title-row">
                     <img id="progression-set-logo" src="" alt="" style="display:none;">
                     <div>
                         <h2 id="progression-set-title"></h2>
                         <div id="progression-set-progress-text" class="progression-set-progress-text"></div>
                         <div id="progression-set-budget-text" class="progression-set-budget-text"></div>
+                        <div class="progression-objective-control" id="progression-objective-control"></div>
                     </div>
                 </div>
 
@@ -826,14 +826,14 @@
                     <span class="stx-section-title">Habitudes de collection</span>
                 </div>
                 <div class="stx-habits-grid">
-                    <div class="stx-habit-card">
+                    <div class="stx-habit-card stx-habit-card-featured">
                         <span class="stx-habit-icon"><i class="ti ti-coin" aria-hidden="true"></i></span>
                         <div class="stx-habit-text">
                             <div class="stx-habit-label">Prix moyen par carte</div>
                             <div class="stx-habit-value" id="stx-habit-avg-price">-</div>
                         </div>
                     </div>
-                    <div class="stx-habit-card">
+                    <div class="stx-habit-card stx-habit-card-featured">
                         <span class="stx-habit-icon"><i class="ti ti-crown" aria-hidden="true"></i></span>
                         <div class="stx-habit-text">
                             <div class="stx-habit-label">Extension préférée</div>

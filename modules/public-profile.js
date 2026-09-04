@@ -80,6 +80,12 @@ let hasReciprocalTrade = false;
 let viewedPublicDuplicateCards = [];
 let profileDuplicateMatches = [];
 
+// Audit webdesign 2026-09 (Focus échange, item "Fusion des sections") : replié par défaut, jamais
+// affiché d'emblée - c'est le tiroir "+ N autres doublons sans correspondance" qui remplace l'ancienne
+// section séparée "Ses doublons disponibles" (toujours visible, redondante avec Opportunités
+// d'échange). Booléen simple (pas un Set) : un seul tiroir par page profil consultée.
+let tradeDuplicatesDrawerExpanded = false;
+
 // Raretés jamais retenues comme "doublon à l'échange" (trop communes pour être un vrai signal
 // d'échange, cf demande utilisateur du 2026-08-12) : Commune, Peu commune, Holo (rare de base).
 // Comparaison par clé de groupe (getRarityGroupKey, utils.js) plutôt que par texte brut : couvre
@@ -202,6 +208,7 @@ async function loadPublicProfile(username) {
     viewedPublicDuplicateCards = [];
     profileDuplicateMatches = [];
     hasReciprocalTrade = false;
+    tradeDuplicatesDrawerExpanded = false;
 
     if (!username) {
         pendingCollectorProfileContext = null; // jamais laissé traîner si la route finit sans username valide
@@ -262,11 +269,13 @@ async function loadPublicProfile(username) {
             // computeWishlistMatch ne lit que .quantity, aucune modification de cette fonction requise.
             const ownedCardsA = viewedPublicDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }));
             profileDuplicateMatches = computeWishlistMatch(allWishlistItems, ownedCardsA);
-            // Audit webdesign 2026-09 (F-Focus, quick win "Vignette enrichie") : condition/finish ne
-            // sont pas recopiés par computeWishlistMatch (hors scope de ce module pur, cf son en-tête) -
-            // rattachés ici depuis la carte source (celle de ownedCardId, même carte que celle qu'ouvre
-            // le clic sur la vignette) pour affichage sur renderProfileMatchThumb.
-            enrichMatchesWithConditionFinish(profileDuplicateMatches, ownedCardsA);
+            // Audit webdesign 2026-09 (F-Focus, quick wins "Vignette enrichie" + "Tri par valeur") :
+            // condition/finish/market_value ne sont pas recopiés par computeWishlistMatch (hors scope
+            // de ce module pur, cf son en-tête) - rattachés ici depuis la carte source (celle de
+            // ownedCardId, même carte que celle qu'ouvre le clic sur la vignette), puis triés par
+            // valeur décroissante : la carte qui vaut vraiment la peine d'être proposée en premier,
+            // pas l'ordre brut du tableau source.
+            enrichAndSortMatches(profileDuplicateMatches, ownedCardsA);
         }
         if (profile.wishlist_visible) {
             // "Pour lui" (Phase 5, P5-1) : mes doublons réellement échangeables ∩ sa wishlist - même
@@ -278,7 +287,7 @@ async function loadPublicProfile(username) {
             const myDuplicateCards = getDuplicateCardsWithQuantity(getPublicDuplicateEligibleCards(allCollectionCards));
             const ownedCardsB = myDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }));
             profileMatchesB = computeWishlistMatch(viewedPublicWishlistItems, ownedCardsB);
-            enrichMatchesWithConditionFinish(profileMatchesB, ownedCardsB);
+            enrichAndSortMatches(profileMatchesB, ownedCardsB);
         }
 
         // Match réciproque : les deux signaux ("Pour moi" = profileDuplicateMatches, "Pour lui" =
@@ -329,6 +338,16 @@ async function loadPublicWishlistPrices() {
 }
 
 function renderPublicProfileShell(container, profile) {
+    // Calculé avant l'injection (audit webdesign 2026-09, quick win "Mini sommaire d'ancres") : il
+    // faut savoir si la section Échange a quelque chose à montrer AVANT de construire le sommaire,
+    // puisque renderProfileMatchSection peut renvoyer '' (aucun match, aucun doublon). Le résultat est
+    // réinjecté tel quel plus bas, jamais recalculé une 2e fois.
+    const matchSectionHtml = renderProfileMatchSection(profile);
+    const anchors = [];
+    if (matchSectionHtml) anchors.push({ target: 'user-profile-trade-section', icon: 'ti-repeat', label: 'Échange' });
+    if (profile.wishlist_visible) anchors.push({ target: 'user-profile-wishlist-section', icon: 'ti-star', label: 'Wishlist' });
+    if (profile.collection_visible) anchors.push({ target: 'user-profile-collection-section', icon: 'ti-cards', label: 'Collection' });
+
     container.innerHTML = `
         ${renderPublicProfileIdentityHeader(profile)}
 
@@ -351,7 +370,9 @@ function renderPublicProfileShell(container, profile) {
             ` : ''}
         </div>
 
-        ${renderProfileMatchSection(profile)}
+        ${anchors.length > 1 ? renderPublicProfileAnchorNav(anchors) : ''}
+
+        ${matchSectionHtml}
 
         <div class="user-profile-sections">
             ${!profile.collection_visible ? `
@@ -369,23 +390,15 @@ function renderPublicProfileShell(container, profile) {
         </div>
 
         ${profile.wishlist_visible ? `
-            <div class="user-profile-section user-profile-wishlist-browser">
+            <div class="user-profile-section user-profile-wishlist-browser" id="user-profile-wishlist-section">
                 <div class="user-profile-section-title"><i class="ti ti-star" aria-hidden="true"></i> Wishlist</div>
                 <div id="public-wishlist-lists"></div>
             </div>
         ` : ''}
 
-        ${(profile.collection_visible && viewedPublicDuplicateCards.length > 0) ? `
-            <div class="user-profile-section user-profile-duplicates-browser">
-                <div class="user-profile-section-title"><i class="ti ti-copy" aria-hidden="true"></i> Ses doublons disponibles</div>
-                <div class="collection-display-case">
-                    <div class="collection-grid">${renderPublicDuplicateCardsHtml()}</div>
-                </div>
-            </div>
-        ` : ''}
 
         ${profile.collection_visible ? `
-            <div class="user-profile-section user-profile-collection-browser">
+            <div class="user-profile-section user-profile-collection-browser" id="user-profile-collection-section">
                 <div class="user-profile-section-title"><i class="ti ti-cards" aria-hidden="true"></i> Collection</div>
                 <div class="catalogue-toolbar">
                     <div class="input-with-icon">
@@ -432,15 +445,40 @@ function renderPublicProfileShell(container, profile) {
     }
 }
 
-// Bloc "Opportunités d'échange" (Phase 5, P5-4 - anciennement "Correspondances avec toi"). Retourne ''
-// (rien affiché) si aucune direction n'a de correspondance (isSelf déjà filtré en amont via
-// profileDuplicateMatches/profileMatchesB laissés vides dans loadPublicProfile) - pas de section vide
-// sur les profils sans opportunité, pas de faux compteur à 0 (décision explicite, cf demande P5-4 §6).
-// Toujours affichée dépliée (l'ancien résumé replié + détail à double-clic a été retiré : ce bloc EST
-// déjà le détail, pas une redite d'un résumé au-dessus) - titres de groupe génériques ("il"/"tu") plutôt
-// que le pseudo répété partout, décision produit explicite.
+// Sommaire d'ancres (audit webdesign 2026-09, quick win "Mini sommaire") : seulement les sections
+// réellement présentes (jamais plus de 3 : Échange/Wishlist/Collection), affiché uniquement s'il y a
+// au moins 2 cibles - sauter vers l'unique section d'une page n'a aucun intérêt. IMPORTANT : jamais de
+// <a href="#id">, cette route (#/user/<username>) est gérée par le hash-router de l'app
+// (tracker.js#getTabIdFromHash/hashchange) - changer location.hash ici serait interprété comme une
+// tentative de navigation. scrollToPublicProfileAnchor() fait un scrollIntoView JS pur à la place.
+function renderPublicProfileAnchorNav(anchors) {
+    return `
+        <nav class="user-profile-anchor-nav">
+            ${anchors.map(a => `
+                <button type="button" class="user-profile-anchor-pill" onclick="scrollToPublicProfileAnchor('${a.target}')">
+                    <i class="ti ${a.icon}" aria-hidden="true"></i> ${a.label}
+                </button>
+            `).join('')}
+        </nav>
+    `;
+}
+
+function scrollToPublicProfileAnchor(targetId) {
+    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Bloc "Échange" (Phase 5, P5-4 - anciennement "Correspondances avec toi" ; fusionné avec l'ancienne
+// section séparée "Ses doublons disponibles" - audit webdesign 2026-09, "cœur de la demande initiale").
+// Retourne '' si rien à montrer du tout : ni correspondance, ni doublon disponible (isSelf déjà filtré
+// en amont via profileDuplicateMatches/profileMatchesB/viewedPublicDuplicateCards laissés vides dans
+// loadPublicProfile) - pas de section vide sur les profils sans opportunité ni doublon.
+// Toujours affichée dépliée pour les correspondances (l'ancien résumé replié + détail à double-clic a
+// été retiré : ce bloc EST déjà le détail, pas une redite d'un résumé au-dessus) - titres de groupe
+// génériques ("il"/"tu") plutôt que le pseudo répété partout, décision produit explicite.
 function renderProfileMatchSection(profile) {
-    if (profileDuplicateMatches.length === 0 && profileMatchesB.length === 0) return '';
+    const hasMatches = profileDuplicateMatches.length > 0 || profileMatchesB.length > 0;
+    const remainingDuplicates = getRemainingTradeDuplicates();
+    if (!hasMatches && remainingDuplicates.length === 0) return '';
 
     // Une seule direction présente -> le groupe occupe toute la largeur (grid-column: 1/-1) plutôt que
     // de laisser une colonne vide à côté (la grille 2 colonnes de .trade-opportunity-groups ne s'adapte
@@ -468,33 +506,97 @@ function renderProfileMatchSection(profile) {
         </div>
     ` : '';
 
+    // Bandeau plein largeur (audit webdesign 2026-09, "[L] Bandeau Match réciproque repensé") : c'est
+    // le signal le plus fort de toute la page (deux collections qui se complètent), il ne peut plus
+    // se contenter du même traitement visuel qu'un simple libellé de section (l'ancienne pastille
+    // .trade-reciprocal-badge, retirée). Toujours en tête de section, avant même le titre "Échange".
+    const reciprocalBannerHtml = hasReciprocalTrade ? `
+        <div class="trade-reciprocal-banner">
+            <i class="ti ti-repeat" aria-hidden="true"></i>
+            <span>Vous avez chacun quelque chose qui intéresse l'autre — un vrai match réciproque.</span>
+        </div>
+    ` : '';
+
     return `
-        <div class="user-profile-section user-profile-match-section">
+        <div class="user-profile-section user-profile-match-section" id="user-profile-trade-section">
+            ${reciprocalBannerHtml}
             <div class="user-profile-match-header">
-                <div class="user-profile-section-title"><i class="ti ti-repeat" aria-hidden="true"></i> Opportunités d'échange</div>
-                ${hasReciprocalTrade ? '<span class="trade-reciprocal-badge">Match réciproque</span>' : ''}
+                <div class="user-profile-section-title"><i class="ti ti-repeat" aria-hidden="true"></i> Échange</div>
             </div>
-            <div class="trade-opportunity-groups">
-                ${groupA}
-                ${groupB}
-            </div>
+            ${hasMatches ? `
+                <div class="trade-opportunity-groups">
+                    ${groupA}
+                    ${groupB}
+                </div>
+            ` : ''}
+            ${renderTradeDuplicatesDrawer(remainingDuplicates)}
         </div>
     `;
 }
 
-// Rattache condition/finish à chaque match (mutation en place) depuis la carte source correspondant
-// à ownedCardId - même carte que celle qu'ouvre le clic sur la vignette (showPublicCardDetail côté
-// groupe A, ou allCollectionCards côté groupe B), donc l'état affiché sur la vignette est toujours
-// celui de la fiche qu'elle ouvre réellement.
-function enrichMatchesWithConditionFinish(matches, sourceCards) {
+// Doublons de sa collection (viewedPublicDuplicateCards) qui n'apparaissent pas déjà dans le groupe A
+// (déjà montrés, avec le contexte "correspond à ta wishlist" en plus) - c'est cette liste qui, avant
+// la fusion, formait la section séparée "Ses doublons disponibles" en entier (donc en partie déjà
+// visible plus haut, sans lien apparent entre les deux blocs).
+function getRemainingTradeDuplicates() {
+    const matchedOwnedCardIds = new Set(profileDuplicateMatches.map(m => m.ownedCardId));
+    return viewedPublicDuplicateCards.filter(c => !matchedOwnedCardIds.has(c.id));
+}
+
+// Tiroir replié par défaut (tradeDuplicatesDrawerExpanded) : la queue naturelle de la section Échange
+// plutôt qu'un deuxième bloc toujours visible - jamais dupliqué à l'écran par défaut, visible sur
+// demande uniquement. Rendu riche (renderGridCardHtml, rareté/état/finition) plutôt que les vignettes
+// nues de renderProfileMatchThumb : ces cartes n'ont justement PAS de correspondance avec la wishlist,
+// donc pas de contexte d'échange à afficher, seulement "voici ce qu'il a en trop".
+function renderTradeDuplicatesDrawer(remaining) {
+    if (remaining.length === 0) return '';
+
+    if (!tradeDuplicatesDrawerExpanded) {
+        const count = remaining.length;
+        return `
+            <button type="button" class="trade-duplicates-drawer-toggle" onclick="toggleTradeDuplicatesDrawer()">
+                <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                + ${count} autre${count > 1 ? 's' : ''} doublon${count > 1 ? 's' : ''} sans correspondance dans ta wishlist
+            </button>
+        `;
+    }
+
+    return `
+        <button type="button" class="trade-duplicates-drawer-toggle trade-duplicates-drawer-toggle-expanded" onclick="toggleTradeDuplicatesDrawer()">
+            <i class="ti ti-chevron-up" aria-hidden="true"></i> Masquer les doublons sans correspondance
+        </button>
+        <div class="collection-display-case trade-duplicates-drawer-grid">
+            <div class="collection-grid">${renderPublicDuplicateCardsHtml(remaining)}</div>
+        </div>
+    `;
+}
+
+// Remplace uniquement le nœud de la section Échange (id stable posé par renderProfileMatchSection) -
+// initHoloGridEffect(container) est délégué sur un ancêtre commun (posé une seule fois par
+// renderPublicProfileShell), donc les nouvelles cartes du tiroir restent couvertes sans ré-attachement.
+function toggleTradeDuplicatesDrawer() {
+    tradeDuplicatesDrawerExpanded = !tradeDuplicatesDrawerExpanded;
+    const section = document.getElementById('user-profile-trade-section');
+    if (section) section.outerHTML = renderProfileMatchSection(viewedPublicProfile);
+}
+
+// Rattache condition/finish/market_value à chaque match (mutation en place) depuis la carte source
+// correspondant à ownedCardId - même carte que celle qu'ouvre le clic sur la vignette
+// (showPublicCardDetail côté groupe A, ou allCollectionCards côté groupe B), donc l'état affiché sur
+// la vignette est toujours celui de la fiche qu'elle ouvre réellement. Trie ensuite par market_value
+// décroissant (audit webdesign 2026-09, quick win "Tri par valeur") : la carte la plus intéressante à
+// proposer apparaît en premier, pas au hasard de l'ordre d'itération de computeWishlistMatch.
+function enrichAndSortMatches(matches, sourceCards) {
     const byId = new Map(sourceCards.map(c => [c.id, c]));
     matches.forEach(m => {
         const src = byId.get(m.ownedCardId);
         if (src) {
             m.condition = src.condition;
             m.finish = src.finish;
+            m.market_value = Number(src.market_value) || 0;
         }
     });
+    matches.sort((a, b) => (b.market_value || 0) - (a.market_value || 0));
 }
 
 // Miniature de carte matchée : réutilise les classes visuelles de la wishlist publique. Clic ->
@@ -624,9 +726,11 @@ function getFilteredSortedPublicCollection() {
 // getDuplicateCardsWithQuantity ne fait que sélectionner une carte représentative par groupe). Le badge
 // affiche duplicateQuantity (surplus au-delà de l'exemplaire principal), jamais quantity brute — cf audit
 // "3 exemplaires = 2 doublons potentiels, pas 3". Rendu partagé avec renderPublicCollectionGrid, cf
-// card-grid-renderer.js (Phase 3).
-function renderPublicDuplicateCardsHtml() {
-    return viewedPublicDuplicateCards.map(card => renderGridCardHtml(card, {
+// card-grid-renderer.js (Phase 3). Paramètre explicite (pas viewedPublicDuplicateCards implicite) depuis
+// la fusion webdesign 2026-09 : appelé sur le sous-ensemble "sans correspondance" du tiroir
+// (getRemainingTradeDuplicates), plus sur la collection complète.
+function renderPublicDuplicateCardsHtml(cards) {
+    return cards.map(card => renderGridCardHtml(card, {
         detailFn: 'showPublicCardDetail',
         badgeMode: 'duplicate',
         holoEffect: true
@@ -1019,7 +1123,12 @@ window.loadPublicWishlistData = loadPublicWishlistData;
 window.loadPublicWishlistPrices = loadPublicWishlistPrices;
 window.renderPublicProfileShell = renderPublicProfileShell;
 window.renderProfileMatchSection = renderProfileMatchSection;
+window.renderPublicProfileAnchorNav = renderPublicProfileAnchorNav;
+window.scrollToPublicProfileAnchor = scrollToPublicProfileAnchor;
 window.renderProfileMatchThumb = renderProfileMatchThumb;
+window.getRemainingTradeDuplicates = getRemainingTradeDuplicates;
+window.renderTradeDuplicatesDrawer = renderTradeDuplicatesDrawer;
+window.toggleTradeDuplicatesDrawer = toggleTradeDuplicatesDrawer;
 window.populatePublicCollectionSeriesFilter = populatePublicCollectionSeriesFilter;
 window.renderPublicCollectionRarityRow = renderPublicCollectionRarityRow;
 window.setPublicCollectionRarityFilter = setPublicCollectionRarityFilter;
