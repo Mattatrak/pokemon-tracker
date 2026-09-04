@@ -138,6 +138,12 @@ async function openProfileModal() {
                     <span>Partager ma wishlist</span>
                     <input type="checkbox" id="profile-wishlist-visible-input" ${p.wishlist_visible ? 'checked' : ''} onchange="checkProfileDirty()">
                 </label>
+
+                ${p.is_public && p.username ? `
+                    <a class="profile-public-preview-link" href="#/user/${encodeURIComponent(p.username)}" onclick="closeProfileModal()">
+                        <i class="ti ti-external-link" aria-hidden="true"></i> Voir mon profil public
+                    </a>
+                ` : ''}
             </div>
 
             <div class="modal-edit-actions">

@@ -25,6 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" integrity="sha384-PwEnNZvp50/uDLtKrd1s2D4Xe/y+fCVtEigigjik/PgHlDXUF1uJ32m7guk/XWYV" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/radius-tokens.css">
     <link rel="stylesheet" href="css/shadow-tokens.css">
@@ -60,20 +61,14 @@
                 <form id="login-form" class="login-form-group">
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
+                            <i class="ti ti-mail" aria-hidden="true"></i>
                         </div>
                         <input type="email" id="login-email" placeholder="Adresse e-mail" required autocomplete="username">
                     </div>
 
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            <i class="ti ti-lock" aria-hidden="true"></i>
                         </div>
                         <input type="password" id="login-password" placeholder="Mot de passe" required autocomplete="current-password">
                     </div>
@@ -113,40 +108,28 @@
                 <form id="signup-form" class="login-form-group">
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
+                            <i class="ti ti-user" aria-hidden="true"></i>
                         </div>
                         <input type="text" id="signup-pseudo" placeholder="Pseudo" required maxlength="24" autocomplete="nickname">
                     </div>
 
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
+                            <i class="ti ti-mail" aria-hidden="true"></i>
                         </div>
                         <input type="email" id="signup-email" placeholder="Adresse e-mail" required autocomplete="username">
                     </div>
 
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            <i class="ti ti-lock" aria-hidden="true"></i>
                         </div>
                         <input type="password" id="signup-password" placeholder="Mot de passe (6 caractères min.)" required minlength="6" autocomplete="new-password">
                     </div>
 
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            <i class="ti ti-lock" aria-hidden="true"></i>
                         </div>
                         <input type="password" id="signup-password-confirm" placeholder="Confirme le mot de passe" required minlength="6" autocomplete="new-password">
                     </div>
@@ -173,10 +156,7 @@
                 <form id="forgot-form" class="login-form-group">
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
+                            <i class="ti ti-mail" aria-hidden="true"></i>
                         </div>
                         <input type="email" id="forgot-email" placeholder="Adresse e-mail" required autocomplete="username">
                     </div>
@@ -203,20 +183,14 @@
                 <form id="reset-form" class="login-form-group">
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            <i class="ti ti-lock" aria-hidden="true"></i>
                         </div>
                         <input type="password" id="reset-password" placeholder="Nouveau mot de passe (6 caractères min.)" required minlength="6" autocomplete="new-password">
                     </div>
 
                     <div class="form-field">
                         <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            <i class="ti ti-lock" aria-hidden="true"></i>
                         </div>
                         <input type="password" id="reset-password-confirm" placeholder="Confirme le mot de passe" required minlength="6" autocomplete="new-password">
                     </div>
