@@ -260,10 +260,13 @@ async function loadPublicProfile(username) {
         if (profile.collection_visible) {
             // quantity substituée par duplicateQuantity (surplus au-delà de l'exemplaire principal) :
             // computeWishlistMatch ne lit que .quantity, aucune modification de cette fonction requise.
-            profileDuplicateMatches = computeWishlistMatch(
-                allWishlistItems,
-                viewedPublicDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }))
-            );
+            const ownedCardsA = viewedPublicDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }));
+            profileDuplicateMatches = computeWishlistMatch(allWishlistItems, ownedCardsA);
+            // Audit webdesign 2026-09 (F-Focus, quick win "Vignette enrichie") : condition/finish ne
+            // sont pas recopiés par computeWishlistMatch (hors scope de ce module pur, cf son en-tête) -
+            // rattachés ici depuis la carte source (celle de ownedCardId, même carte que celle qu'ouvre
+            // le clic sur la vignette) pour affichage sur renderProfileMatchThumb.
+            enrichMatchesWithConditionFinish(profileDuplicateMatches, ownedCardsA);
         }
         if (profile.wishlist_visible) {
             // "Pour lui" (Phase 5, P5-1) : mes doublons réellement échangeables ∩ sa wishlist - même
@@ -273,10 +276,9 @@ async function loadPublicProfile(username) {
             // allCollectionCards brut, ce qui comptait aussi mes exemplaires uniques comme échangeables
             // - incorrect (cf audit Phase 5).
             const myDuplicateCards = getDuplicateCardsWithQuantity(getPublicDuplicateEligibleCards(allCollectionCards));
-            profileMatchesB = computeWishlistMatch(
-                viewedPublicWishlistItems,
-                myDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }))
-            );
+            const ownedCardsB = myDuplicateCards.map(c => ({ ...c, quantity: c.duplicateQuantity }));
+            profileMatchesB = computeWishlistMatch(viewedPublicWishlistItems, ownedCardsB);
+            enrichMatchesWithConditionFinish(profileMatchesB, ownedCardsB);
         }
 
         // Match réciproque : les deux signaux ("Pour moi" = profileDuplicateMatches, "Pour lui" =
@@ -446,18 +448,22 @@ function renderProfileMatchSection(profile) {
     const onlyOneDirection = profileDuplicateMatches.length === 0 || profileMatchesB.length === 0;
     const groupClass = onlyOneDirection ? 'user-profile-match-group user-profile-match-group-full' : 'user-profile-match-group';
 
-    // Groupe A - "Pour moi" : ses doublons échangeables qui correspondent à ma wishlist.
+    // Groupe A - "Pour moi" : ses doublons échangeables qui correspondent à ma wishlist. Flèche ↓ +
+    // couleur "for-me" (audit webdesign 2026-09, quick win "Titres directionnels") : même vocabulaire
+    // visuel que renderCollectorSignalBadges (collectors.js) pour ce même signal, plutôt qu'un titre
+    // générique qui demande une seconde de réflexion ("qui est il, qui est tu ?").
     const groupA = profileDuplicateMatches.length > 0 ? `
         <div class="${groupClass}">
-            <div class="user-profile-match-group-title">Ce qu'il peut te proposer</div>
+            <div class="user-profile-match-group-title user-profile-match-group-title-for-me"><i class="ti ti-arrow-down" aria-hidden="true"></i> Ce qu'il peut te proposer</div>
             <div class="wishlist-thumb-grid">${profileDuplicateMatches.map(m => renderProfileMatchThumb(m, `showPublicCardDetail(${m.ownedCardId})`)).join('')}</div>
         </div>
     ` : '';
 
-    // Groupe B - "Pour lui" : mes doublons échangeables qui correspondent à sa wishlist.
+    // Groupe B - "Pour lui" : mes doublons échangeables qui correspondent à sa wishlist. Flèche ↑ +
+    // couleur "for-them", symétrique du groupe A.
     const groupB = profileMatchesB.length > 0 ? `
         <div class="${groupClass}">
-            <div class="user-profile-match-group-title">Ce que tu peux lui proposer</div>
+            <div class="user-profile-match-group-title user-profile-match-group-title-for-them"><i class="ti ti-arrow-up" aria-hidden="true"></i> Ce que tu peux lui proposer</div>
             <div class="wishlist-thumb-grid">${profileMatchesB.map(m => renderProfileMatchThumb(m, `showPublicWishlistItemDetail(${m.wishlistItemId})`)).join('')}</div>
         </div>
     ` : '';
@@ -476,11 +482,30 @@ function renderProfileMatchSection(profile) {
     `;
 }
 
+// Rattache condition/finish à chaque match (mutation en place) depuis la carte source correspondant
+// à ownedCardId - même carte que celle qu'ouvre le clic sur la vignette (showPublicCardDetail côté
+// groupe A, ou allCollectionCards côté groupe B), donc l'état affiché sur la vignette est toujours
+// celui de la fiche qu'elle ouvre réellement.
+function enrichMatchesWithConditionFinish(matches, sourceCards) {
+    const byId = new Map(sourceCards.map(c => [c.id, c]));
+    matches.forEach(m => {
+        const src = byId.get(m.ownedCardId);
+        if (src) {
+            m.condition = src.condition;
+            m.finish = src.finish;
+        }
+    });
+}
+
 // Miniature de carte matchée : réutilise les classes visuelles de la wishlist publique. Clic ->
 // rouvre la même fiche détail publique que les sections Collection/Wishlist plus bas sur cette page
 // (showPublicCardDetail/showPublicWishlistItemDetail, déjà en lecture seule, aucune fonction
-// propriétaire) — jamais une troisième fiche détail dédiée.
+// propriétaire) — jamais une troisième fiche détail dédiée. condition/finish (audit webdesign
+// 2026-09, quick win "Vignette enrichie") : même badge que la grille Collection perso
+// (renderGridCardHtml, card-grid-renderer.js) - .condition-badge-grid + renderFinishBadge - pour que
+// les deux infos qui comptent le plus pour décider d'un échange soient visibles sans ouvrir la fiche.
 function renderProfileMatchThumb(match, onclickExpr) {
+    const conditionClass = (match.condition || '').toLowerCase();
     return `
         <div class="wishlist-thumb-wrap">
             <div class="collection-card wishlist-thumb-card" onclick="${onclickExpr}" title="${escapeHtml(match.name)}">
@@ -492,6 +517,8 @@ function renderProfileMatchThumb(match, onclickExpr) {
                 <div class="collection-card-overlay">
                     <div class="collection-card-name">${escapeHtml(match.name)}</div>
                     <div class="collection-card-set">${escapeHtml(match.series || '')}</div>
+                    ${match.condition ? `<span class="condition-badge-grid ${escapeHtml(conditionClass)}">${escapeHtml(match.condition)}</span>` : ''}
+                    ${renderFinishBadge(match.finish, 'condition-badge-grid finish-badge', 12)}
                 </div>
             </div>
         </div>

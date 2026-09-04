@@ -146,6 +146,7 @@
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    font-size: 1.25rem;
 }
 
 /* Recolorés sur la palette anthracite du reste de l'app (var(--panel)/--panel-light) - utilisaient

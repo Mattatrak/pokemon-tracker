@@ -533,8 +533,7 @@ function applyCardToPreview(card) {
     cardmarketLink.style.display = '';
 
     // Réinitialiser le mode d'obtention à "Achetée" par défaut pour chaque nouvelle carte
-    document.getElementById('card-acquisition').value = 'achat';
-    document.getElementById('purchase-price-group').style.display = '';
+    resetAddPanelPurchaseDetails();
 
     document.getElementById('card-preview').classList.add('active');
 
@@ -830,10 +829,9 @@ async function addCard() {
     document.getElementById('card-condition').value = 'NM';
     document.getElementById('card-finish').innerHTML = '<option value="normal">Normale</option>';
     document.getElementById('card-value').value = '';
-    document.getElementById('card-acquisition').value = 'achat';
     const cardDateInput = document.getElementById('card-date-added');
     if (cardDateInput._flatpickr) cardDateInput._flatpickr.clear();
-    document.getElementById('purchase-price-group').style.display = '';
+    resetAddPanelPurchaseDetails();
     document.getElementById('card-preview').classList.remove('active');
     selectedCard = null;
     customPreviewImage = null;
@@ -888,6 +886,34 @@ function stepAddQuantity(delta) {
     const max = Number(input.max) || 100;
     const next = Math.min(max, Math.max(min, (parseInt(input.value, 10) || min) + delta));
     input.value = next;
+}
+
+// Audit webdesign 2026-09, quick win "Champs achat masqués" : Prix d'achat/Date d'acquisition
+// n'ont plus de sens sur "Sortie d'un booster" (purchasePrice forcé à 0 dans performCardAdd,
+// cf. le calcul plus bas dans ce fichier) - repliés derrière "+ Détails d'achat" dans ce cas,
+// toujours révélables manuellement (revealAddPanelPurchaseDetails) pour le cas rare où
+// l'utilisateur veut quand même noter un prix/une date sur un pack.
+function handleAddPanelAcquisitionChange() {
+    const isPack = document.getElementById('card-acquisition').value === 'pack';
+    document.getElementById('purchase-price-group').style.display = isPack ? 'none' : '';
+    document.getElementById('purchase-date-group').style.display = isPack ? 'none' : '';
+    document.getElementById('add-panel-purchase-toggle-btn').style.display = isPack ? '' : 'none';
+}
+
+function revealAddPanelPurchaseDetails() {
+    document.getElementById('purchase-price-group').style.display = '';
+    document.getElementById('purchase-date-group').style.display = '';
+    document.getElementById('add-panel-purchase-toggle-btn').style.display = 'none';
+}
+
+// Remet le panneau d'ajout dans son état par défaut (Obtention = "achat", champs visibles) - appelé
+// à chaque nouvelle carte sélectionnée (applyCardToPreview) et après chaque ajout réussi
+// (performAddToCollection), remplace les affectations manuelles dupliquées à ces deux endroits.
+function resetAddPanelPurchaseDetails() {
+    document.getElementById('card-acquisition').value = 'achat';
+    document.getElementById('purchase-price-group').style.display = '';
+    document.getElementById('purchase-date-group').style.display = '';
+    document.getElementById('add-panel-purchase-toggle-btn').style.display = 'none';
 }
 
 function markResultSelected(el) {
@@ -1078,6 +1104,9 @@ window.addCard = addCard;
 window.toggleAddPanel = toggleAddPanel;
 window.isAddPanelDefaultOpen = isAddPanelDefaultOpen;
 window.stepAddQuantity = stepAddQuantity;
+window.handleAddPanelAcquisitionChange = handleAddPanelAcquisitionChange;
+window.revealAddPanelPurchaseDetails = revealAddPanelPurchaseDetails;
+window.resetAddPanelPurchaseDetails = resetAddPanelPurchaseDetails;
 window.markResultSelected = markResultSelected;
 window.onSearchResultClick = onSearchResultClick;
 window.activeSort = activeSort;

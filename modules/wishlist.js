@@ -17,14 +17,18 @@ let wishlistSortMode = 'date-desc';
 let wishlistEditResolve = null;
 
 const WISHLIST_ICON_PRESET = ['🔥', '🌿', '⭐', '💧', '⚡', '🌙', '🎃', '🍀', '🎯', '💎'];
+// Désaturées ~20-35% (audit webdesign 2026-09, quick win "Désaturation légère") par rapport à
+// l'original : ces 8 pastilles étaient le point le plus saturé de l'app (s=79-100%) alors que le
+// reste de la palette tourne autour de s=55-65% (--gold, --positive) - même teinte/luminosité
+// conservées, juste ramenées dans le même registre visuel sobre que le reste du site.
 const WISHLIST_COLOR_PRESET = [
-    { key: 'gold', hex: '#E8A93B' },
-    { key: 'teal', hex: '#3FA7A1' },
-    { key: 'purple', hex: '#C77DFF' },
-    { key: 'red', hex: '#E8593B' },
-    { key: 'blue', hex: '#4C8DF6' },
-    { key: 'pink', hex: '#F06BA8' },
-    { key: 'green', hex: '#5FBF6B' },
+    { key: 'gold', hex: '#D2A351' },
+    { key: 'teal', hex: '#519591' },
+    { key: 'purple', hex: '#C58AF2' },
+    { key: 'red', hex: '#D26751' },
+    { key: 'blue', hex: '#5F91E3' },
+    { key: 'pink', hex: '#E07BA9' },
+    { key: 'green', hex: '#70AE78' },
     { key: 'slate', hex: '#8A93A6' }
 ];
 const WISHLIST_THUMB_CAP = 8;

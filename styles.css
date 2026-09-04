@@ -931,6 +931,29 @@ body::before {
     min-width: 0;
 }
 
+/* Audit webdesign 2026-09, quick win "Champs achat masqués" : Prix d'achat/Date d'acquisition n'ont
+   plus de sens pour "Sortie d'un booster" (prix déjà à 0 dans performCardAdd) mais restaient affichés
+   par défaut - repliés derrière ce lien dans ce cas, même pattern que toggleQaSettingsPriceField
+   (modules/progression.js) déjà utilisé dans les réglages Progression. */
+.add-panel-purchase-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: center;
+    padding: 0.5rem 0.2rem;
+    background: none;
+    border: none;
+    color: var(--slate);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--motion-duration-fast) ease;
+}
+
+.add-panel-purchase-toggle:hover {
+    color: var(--gold);
+}
+
 .add-panel-row-2 {
     align-items: flex-end;
 }
@@ -3782,11 +3805,16 @@ tbody tr:hover {
     box-shadow: 0 10px 24px rgba(0,0,0,0.3);
 }
 
+/* Retour utilisateur 2026-09 : le badge de prix Wishlist avait un fond plat uni ici (contredisant le
+   commentaire ci-dessus, "rendu identique à la page Collection") au lieu du dégradé + halo doré de
+   .price-badge (styles.css ~3190) - visible sur toute carte non rare (sans .price-badge-foil), le cas
+   le plus fréquent. Reprend maintenant le même dégradé/ombre, le flou reste le seul "polissage" propre
+   à la Wishlist. */
 .wishlist-thumb-card .price-badge {
-    background: rgba(232, 169, 59, 0.94);
+    background: linear-gradient(180deg, #F3D9AC 0%, #E8A93B 100%);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), 0 0 14px rgba(232,169,59,0.4);
 }
 
 /* Même spécificité (0,2,0) que .wishlist-thumb-card .price-badge juste au-dessus, déclarée après :
@@ -4117,6 +4145,31 @@ tbody tr:hover {
     margin: -0.3rem 0 0.2rem;
 }
 
+/* Audit webdesign 2026-09, quick win "Bouton Voir mon profil public" : la route #/user/<username>
+   existait déjà (isSelf gérée côté public-profile.js) mais aucun lien n'y menait depuis les réglages
+   - l'utilisateur devait se chercher lui-même dans Collectionneurs pour voir le résultat de ses
+   réglages de visibilité. */
+.profile-public-preview-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+    padding: 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+    text-decoration: none;
+    transition: border-color var(--motion-duration-fast) ease, background var(--motion-duration-fast) ease;
+}
+
+.profile-public-preview-link:hover {
+    border-color: var(--gold);
+    background: rgba(232, 169, 59, 0.08);
+}
+
 /* PHASE 3 — Profil public (#/user/<username>, modules/public-profile.js). Shell minimal : header +
    stats + 2 placeholders. Réutilise les tokens existants (verre fumé, --gold, --slate) pour rester
    cohérent avec le reste de l'app, aucun nouveau composant lourd. */
@@ -4329,10 +4382,24 @@ tbody tr:hover {
 }
 
 .user-profile-match-group-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     font-weight: 600;
     font-size: 0.85rem;
     color: var(--text-primary);
     margin-bottom: 0.6rem;
+}
+
+/* Même vocabulaire visuel que .collectors-signal-for-me/-for-them (collectors.js) pour ce même
+   signal (audit webdesign 2026-09, quick win "Titres directionnels") : icône seule colorée plutôt
+   que le texte entier, le titre reste lisible sur --text-primary. */
+.user-profile-match-group-title-for-me .ti {
+    color: var(--positive);
+}
+
+.user-profile-match-group-title-for-them .ti {
+    color: var(--info);
 }
 
 .user-profile-match-group-full {

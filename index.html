@@ -401,10 +401,13 @@
                                             <label for="card-value">Prix d'achat (€)</label>
                                             <input type="number" id="card-value" placeholder="optionnel" step="0.01" min="0">
                                         </div>
-                                        <div class="form-group">
+                                        <div class="form-group" id="purchase-date-group">
                                             <label for="card-date-added">Date d'acquisition</label>
                                             <input type="text" id="card-date-added" placeholder="jj/mm/aaaa">
                                         </div>
+                                        <button type="button" class="add-panel-purchase-toggle" id="add-panel-purchase-toggle-btn" style="display:none;" onclick="revealAddPanelPurchaseDetails()">
+                                            <i class="ti ti-plus" aria-hidden="true"></i> Détails d'achat (prix, date)
+                                        </button>
                                     </div>
 
                                     <div class="add-panel-row add-panel-row-2">
@@ -418,7 +421,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label for="card-acquisition">Obtention</label>
-                                            <select id="card-acquisition">
+                                            <select id="card-acquisition" onchange="handleAddPanelAcquisitionChange()">
                                                 <option value="achat">Achetée</option>
                                                 <option value="pack">Sortie d'un booster</option>
                                             </select>
