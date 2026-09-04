@@ -3,6 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- Audit sécurité 2026-09-04 (finding "Moyenne") : aggrave l'impact d'un éventuel XSS non
+         attrapé par escapeHtml() (nouveau payload, oubli futur) en limitant les origines depuis
+         lesquelles du code/des styles peuvent charger et où les requêtes réseau peuvent partir -
+         en particulier connect-src, qui empêcherait un payload d'exfiltrer le jeton de session
+         (stocké en localStorage par supabase-js) vers un domaine autre que ceux déjà utilisés par
+         l'app. script-src/style-src gardent 'unsafe-inline' : l'app utilise des attributs
+         onclick="..."/style="..." générés dynamiquement (innerHTML) partout, un passage aux nonces
+         demanderait une réécriture complète hors de portée de ce correctif. Livré en <meta> car le
+         site est servi par GitHub Pages (pas d'en-têtes HTTP personnalisables) - certaines
+         directives (frame-ancestors, report-to) sont ignorées par les navigateurs dans ce contexte
+         et volontairement omises ici plutôt que laissées à générer un avertissement silencieux.
+         Origines listées : cdn.jsdelivr.net (supabase-js, Chart.js/Flatpickr/Papaparse chargés à la
+         demande, icônes Tabler), browser.sentry-cdn.com (Sentry), fonts.google* (Bebas Neue/Inter),
+         assets.tcgdex.net (images de cartes), mmdcpkwygqsdaqnkimwb.supabase.co (API + Storage),
+         api.tcgdex.net (recherche de cartes), api.pokemontcg.io (module Administration, chargé à la
+         demande), ingest.de.sentry.io (remontée d'erreurs).
+         Pas de upgrade-insecure-requests : casse tout chargement de ressource (CSS/JS/polices) quand
+         le site est testé en HTTP simple sur une IP locale non-localhost (ex. serveur de dev accédé
+         depuis un autre appareil du réseau) - la directive force une réécriture en HTTPS de chaque
+         requête interne, qui échoue puisque le serveur de dev ne parle qu'en HTTP sur ce port. Inutile
+         de toute façon : le site en prod (GitHub Pages) est déjà entièrement servi en HTTPS. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https://assets.tcgdex.net https://mmdcpkwygqsdaqnkimwb.supabase.co; connect-src 'self' https://mmdcpkwygqsdaqnkimwb.supabase.co https://api.tcgdex.net https://api.pokemontcg.io https://o4511905699004416.ingest.de.sentry.io; object-src 'none'; base-uri 'self'; form-action 'self'">
+
     <title>Pokémon Collection Tracker</title>
 
     <!-- PWA -->
