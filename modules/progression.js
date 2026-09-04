@@ -339,7 +339,7 @@ function renderProgressionPriorityGoals(ownedIdsBySet) {
         const safeName = (set.name || '').replace(/'/g, "\\'");
         const logoUrl = resolveCachedLogoUrl(set.id, set.logo);
         return `
-            <div class="progression-goal-card" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
+            <div class="progression-goal-card" onclick="runSetProgressionMorphTransition(event, '${set.id}', '${safeName}', '${logoUrl}')">
                 <div class="progression-goal-label">${label}</div>
                 ${logoUrl ? `<img src="${logoUrl}" class="progression-goal-logo" alt="" onerror="handleTcgdexImgError(this, (img) => img.remove())">` : ''}
                 <div class="progression-goal-name">${set.name}</div>
@@ -449,7 +449,7 @@ function renderProgressionSeriesList() {
                 : `${owned}/${officialCount} cartes`;
 
             return `
-                <div class="progression-set-row ${rowStateClass}" onclick="openSetProgression('${set.id}', '${safeName}', '${logoUrl}')">
+                <div class="progression-set-row ${rowStateClass}" onclick="runSetProgressionMorphTransition(event, '${set.id}', '${safeName}', '${logoUrl}')">
                     <span class="progression-set-pct-badge ${badgeClass}">${pct}%</span>
                     <div class="progression-set-logo-wrap">${logoHtml}${progressRingSvg(pct)}</div>
                     <div class="progression-set-info">
@@ -573,6 +573,53 @@ function teardownProgressionStickyBar() {
         progressionStickyObserver = null;
     }
     document.getElementById('progression-set-sticky-bar')?.classList.remove('visible');
+}
+
+// Morph Atlas -> détail de set (audit webdesign 2026-09, "[L] Transition de morph entre la vignette
+// du set cliqué dans l'Atlas et le logo affiché en tête de #progression-set-title-row") - même
+// principe que runCardDetailMorphTransition (card-grid-renderer.js) et le VT4 Collecteur -> profil
+// public (view-transitions.js) : un seul élément partagé (le logo) morphe, le reste de la page ne
+// fait l'objet d'aucun cross-fade (cf règles CSS :active-view-transition-type(set-progression)).
+// Désactivé sur mobile, même convention établie pour tous les morphs de l'app (coût GPU/flou en
+// mouvement) - et si aucune image source n'est trouvée (logo pas encore chargé, cf
+// .progression-set-logo-upload en repli dans renderProgressionSeriesList/renderProgressionPriorityGoals).
+// openSetProgression() elle-même n'est jamais modifiée : sa partie synchrone (titre/logo/skeleton)
+// suffit à capturer l'état "après" du morph, la suite (fetch des cartes) continue normalement une
+// fois la transition lancée - jamais attendue ici, elle retarderait le morph pour rien.
+function runSetProgressionMorphTransition(event, setId, setName, logoUrl) {
+    const sourceImg = event?.currentTarget?.querySelector('img.progression-set-logo, img.progression-goal-logo');
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (typeof document.startViewTransition !== 'function' || !sourceImg || isMobile) {
+        openSetProgression(setId, setName, logoUrl);
+        return;
+    }
+
+    sourceImg.style.viewTransitionName = 'set-progression-morph';
+
+    const cleanup = () => {
+        sourceImg.style.viewTransitionName = '';
+        const destImg = document.getElementById('progression-set-logo');
+        if (destImg) destImg.style.viewTransitionName = '';
+    };
+
+    const transition = runViewTransition('set-progression', () => {
+        // Même raison que card-detail-morph (card-grid-renderer.js) : la carte source ET le logo de
+        // destination ne doivent jamais porter le même view-transition-name en même temps dans l'état
+        // "new" capturé par le navigateur, sous peine de transition skippée sans animation.
+        sourceImg.style.viewTransitionName = '';
+        openSetProgression(setId, setName, logoUrl);
+        const destImg = document.getElementById('progression-set-logo');
+        if (destImg) destImg.style.viewTransitionName = 'set-progression-morph';
+    });
+
+    if (!transition) {
+        // reduced-motion / API indisponible : runViewTransition a déjà exécuté la fonction directement
+        // en synchrone, aucune transition réelle n'a eu lieu.
+        cleanup();
+        return;
+    }
+
+    transition.finished.finally(cleanup);
 }
 
 async function openSetProgression(setId, setName, logoUrl) {
@@ -1312,6 +1359,7 @@ window.handleProgressionSeriesLogoUpload = handleProgressionSeriesLogoUpload;
 window.setupProgressionStickyBar = setupProgressionStickyBar;
 window.teardownProgressionStickyBar = teardownProgressionStickyBar;
 window.openSetProgression = openSetProgression;
+window.runSetProgressionMorphTransition = runSetProgressionMorphTransition;
 window.renderProgressionObjectiveControl = renderProgressionObjectiveControl;
 window.pinDashboardObjective = pinDashboardObjective;
 window.onProgressionObjectiveDeadlineChange = onProgressionObjectiveDeadlineChange;

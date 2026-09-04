@@ -5723,6 +5723,14 @@ html:active-view-transition-type(profile-open)::view-transition-new(root) {
     animation: none;
 }
 
+/* Atlas des séries -> détail de set (audit webdesign 2026-09, runSetProgressionMorphTransition,
+   modules/progression.js) : même traitement que profile-open juste au-dessus, seul le logo partagé
+   doit bouger, aucun cross-fade du reste de la page. */
+html:active-view-transition-type(set-progression)::view-transition-old(root),
+html:active-view-transition-type(set-progression)::view-transition-new(root) {
+    animation: none;
+}
+
 /* Réorganisation du Tableau Collection (VT5, cf roadmap technique animations premium) : comme
    card-detail, aucun fade global - seules les lignes explicitement nommées (collection-row-<id>,
    modules/collection.js#filterAndDisplayReorder) doivent bouger, jamais la navbar/les KPI/le hero/les
@@ -5742,6 +5750,11 @@ html:active-view-transition-type(collection-reorder)::view-transition-group(*) {
 }
 
 html:active-view-transition-type(profile-open)::view-transition-group(collector-profile-avatar) {
+    animation-duration: var(--motion-duration-normal);
+    animation-timing-function: var(--motion-ease-standard);
+}
+
+html:active-view-transition-type(set-progression)::view-transition-group(set-progression-morph) {
     animation-duration: var(--motion-duration-normal);
     animation-timing-function: var(--motion-ease-standard);
 }
