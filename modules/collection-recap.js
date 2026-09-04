@@ -375,6 +375,135 @@ function renderRecapDuplicatesSection(cards) {
     `;
 }
 
+// ===== R8 - Historique d'acquisition (chantier lourd, audit webdesign 2026-09) =====
+// Frise groupée par mois (created_at) - répond à "qu'est-ce que j'ai acheté cet été" plutôt qu'à
+// "combien ça vaut" (déjà couvert par la courbe de valeur de Statistiques). Chargée mois par mois
+// (recapTimelineVisibleMonths) plutôt que d'un coup : une collection active peut compter des
+// centaines d'entrées sur des dizaines de mois.
+let recapTimelineVisibleMonths = 2;
+let recapTimelineCards = [];
+
+const RECAP_TIMELINE_MONTH_LABELS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+// Retour utilisateur 2026-09 : les cartes Commune/Peu commune (2 paliers du bas sur 9, RARITY_ORDER/
+// utils.js) "polluent" la frise - elles ne représentent pas vraiment "la collection" au sens de ce que
+// cette section raconte. Rareté non reconnue (mapping absent, ex. valeur inattendue) : incluse par
+// défaut, impossible de confirmer qu'elle est commune.
+const RECAP_TIMELINE_MIN_RARITY_INDEX = RARITY_ORDER.indexOf('holo.webp');
+function isTimelineWorthyRarity(rarity) {
+    const file = RARITY_ICON_MAP[normalizeForMatch(rarity)];
+    if (!file) return true;
+    return RARITY_ORDER.indexOf(file) >= RECAP_TIMELINE_MIN_RARITY_INDEX;
+}
+
+// Groupé par "YYYY-MM" (clé de tri fiable, jamais le libellé français directement), trié du plus
+// récent au plus ancien. Cartes sans created_at exploitable exclues (ni un mois ni le total) plutôt
+// que de leur fabriquer une fausse date - même esprit que R3 (purchase_price<=0 exclu de la plus-value).
+function computeRecapTimelineMonths(cards) {
+    const byMonth = new Map();
+
+    cards.forEach(card => {
+        if (!isTimelineWorthyRarity(card.rarity)) return;
+        if (!card.created_at) return;
+        const date = new Date(card.created_at);
+        if (Number.isNaN(date.getTime())) return;
+
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!byMonth.has(key)) {
+            byMonth.set(key, { year: date.getFullYear(), monthIndex: date.getMonth(), cards: [], totalSpent: 0 });
+        }
+        const bucket = byMonth.get(key);
+        bucket.cards.push(card);
+        bucket.totalSpent += Number(card.purchase_price || 0) * Number(card.quantity || 1);
+    });
+
+    return [...byMonth.entries()]
+        .sort(([keyA], [keyB]) => keyB.localeCompare(keyA))
+        .map(([, bucket]) => {
+            bucket.cards.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            return bucket;
+        });
+}
+
+// Même clic -> showCardDetail(id, event) que R5/R6 (morph View Transition inclus par construction,
+// aucun code de transition propre à R8). Prix affiché = prix d'achat (ce qui a été dépensé, l'angle
+// de cette section), jamais market_value (déjà couvert par R3/Statistiques) - masqué si absent
+// (booster, cadeau) plutôt qu'un "0,00 €" trompeur.
+function renderRecapTimelineEntry(card) {
+    const date = new Date(card.created_at);
+    const dateLabel = `${date.getDate()} ${RECAP_TIMELINE_MONTH_LABELS[date.getMonth()].slice(0, 3).toLowerCase()}.`;
+    const price = Number(card.purchase_price || 0) * Number(card.quantity || 1);
+
+    return `
+        <div class="timeline-entry" data-card-id="${card.id}" onclick="showCardDetail(${card.id}, event)">
+            <div class="timeline-thumb">
+                ${card.image
+                    ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="this.outerHTML=getGridNoImageHtml()">`
+                    : getGridNoImageHtml()
+                }
+            </div>
+            <div class="timeline-info">
+                <div class="timeline-name">${escapeHtml(card.name)}</div>
+                <div class="timeline-series">${escapeHtml(card.series || '')}</div>
+            </div>
+            <div class="timeline-meta">
+                <div class="timeline-date">${dateLabel}</div>
+                ${price > 0 ? `<div class="timeline-price">${formatRecapEuro(price)}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function renderRecapTimelineMonth(bucket) {
+    const count = bucket.cards.length;
+    const monthLabel = `${RECAP_TIMELINE_MONTH_LABELS[bucket.monthIndex]} ${bucket.year}`;
+    const spentLabel = bucket.totalSpent > 0 ? ` · ${formatRecapEuro(bucket.totalSpent)}` : '';
+
+    return `
+        <div class="timeline-month">${monthLabel} <span class="timeline-month-count">· ${count} carte${count > 1 ? 's' : ''}${spentLabel}</span></div>
+        ${bucket.cards.map(renderRecapTimelineEntry).join('')}
+    `;
+}
+
+function renderRecapTimelineSection(cards) {
+    const section = document.getElementById('recap-section-timeline');
+    if (!section) return;
+
+    recapTimelineCards = cards;
+    const months = computeRecapTimelineMonths(cards);
+
+    if (months.length === 0) {
+        section.innerHTML = `
+            <div class="recap-value-block">
+                <h3 class="recap-value-title">Historique d'acquisition</h3>
+                <p class="recap-value-empty">Aucune carte datée au-delà de Commune/Peu commune dans ce périmètre.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const visibleMonths = months.slice(0, recapTimelineVisibleMonths);
+    const hasMore = months.length > recapTimelineVisibleMonths;
+
+    section.innerHTML = `
+        <div class="recap-value-block">
+            <h3 class="recap-value-title">Historique d'acquisition</h3>
+            <div class="timeline">
+                ${visibleMonths.map(renderRecapTimelineMonth).join('')}
+            </div>
+            ${hasMore ? `<div class="timeline-more"><button type="button" onclick="loadMoreRecapTimelineMonths()">Charger le mois précédent</button></div>` : ''}
+        </div>
+    `;
+}
+
+// Réutilise recapTimelineCards (mémorisé au dernier rendu complet) plutôt que de redemander les
+// cartes filtrées à l'appelant - un "charger plus" n'est jamais un changement de filtre/mode, inutile
+// de repasser par renderFilteredCollection pour ça.
+function loadMoreRecapTimelineMonths() {
+    recapTimelineVisibleMonths += 1;
+    renderRecapTimelineSection(recapTimelineCards);
+}
+
 // Point d'entrée appelé par renderFilteredCollection (collection.js) à chaque changement de mode/filtre
 // tant qu'on est en vue Récap.
 function renderCollectionRecap(cards) {
@@ -382,6 +511,9 @@ function renderCollectionRecap(cards) {
     renderRecapStateSection(cards);
     renderRecapTopCardsSection(cards);
     renderRecapDuplicatesSection(cards);
+    recapTimelineVisibleMonths = 2; // reset avant rendu : un vrai changement de filtre/mode, pas un "charger plus"
+    renderRecapTimelineSection(cards);
 }
 
 window.renderCollectionRecap = renderCollectionRecap;
+window.loadMoreRecapTimelineMonths = loadMoreRecapTimelineMonths;
