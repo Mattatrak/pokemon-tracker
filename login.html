@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- Même politique qu'index.html (voir commentaire là-bas) - conservée identique plutôt que
+         restreinte au strict besoin de cette page pour n'avoir qu'une seule policy à maintenir. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https://assets.tcgdex.net https://mmdcpkwygqsdaqnkimwb.supabase.co; connect-src 'self' https://mmdcpkwygqsdaqnkimwb.supabase.co https://api.tcgdex.net https://api.pokemontcg.io https://o4511905699004416.ingest.de.sentry.io; object-src 'none'; base-uri 'self'; form-action 'self'">
+
     <title>Pokémon Collection Tracker - Connexion</title>
 
     <!-- PWA -->
@@ -227,8 +232,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC" crossorigin="anonymous"></script>
+    <script src="https://browser.sentry-cdn.com/8.55.2/bundle.min.js" integrity="sha384-lNMClDekFF9oPvouGJqnUSKioEadbe8byR7uGUA0sPP+g9r2x3eiErEJmm/Em+wB" crossorigin="anonymous"></script>
     <script type="module" src="modules/error-tracking.js"></script>
     <script type="module" src="modules/utils.js"></script>
     <script type="module" src="modules/profile.js"></script>
