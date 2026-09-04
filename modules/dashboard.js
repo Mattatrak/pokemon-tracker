@@ -17,23 +17,45 @@ async function renderDashboard() {
 
     // Chaque section reordonnable/masquable rend seulement si dashboardBuildSkeleton lui a construit
     // un conteneur (cf. filtre "hidden" ci-dessus) - sinon document.getElementById(bodyId) est null.
-    const widgetRenderers = {
-        activity: renderDashboardActivity,
-        objective: renderDashboardObjective,
-        badges: renderDashboardBadges,
-        dailyCard: renderDashboardDailyCard,
-        acquisitions: renderDashboardAcquisitions,
-        todo: renderDashboardTodo,
-        wishlist: renderDashboardWishlist,
-        collectors: renderDashboardCollectorsSearch
-    };
-    Object.entries(widgetRenderers).forEach(([key, renderFn]) => {
+    Object.entries(DASHBOARD_WIDGET_RENDERERS).forEach(([key, renderFn]) => {
         if (document.getElementById(DASHBOARD_WIDGET_DEFS[key].bodyId)) {
             renderSectionSafe(DASHBOARD_WIDGET_DEFS[key].bodyId, renderFn);
         }
     });
 
     dashboardNeedsRefresh = false;
+}
+
+// Extrait de renderDashboard() (retour utilisateur 2026-09, "la page se rafraîchit à chaque
+// déplacement/redimensionnement") : partagé avec dashboardRerenderWidgetBody plus bas, qui rend un
+// seul widget après un redimensionnement au lieu de tout reconstruire via markDashboardDirty().
+const DASHBOARD_WIDGET_RENDERERS = {
+    activity: renderDashboardActivity,
+    objective: renderDashboardObjective,
+    badges: renderDashboardBadges,
+    dailyCard: renderDashboardDailyCard,
+    acquisitions: renderDashboardAcquisitions,
+    todo: renderDashboardTodo,
+    wishlist: renderDashboardWishlist,
+    collectors: renderDashboardCollectorsSearch
+};
+
+// Re-rend le contenu d'UN SEUL widget après un redimensionnement (cf dashboardHandleResizePointerUp)
+// - son contenu adaptatif (dashboardTrimListToFit) doit refléter la nouvelle hauteur, mais les autres
+// widgets n'ont pas changé et ne doivent pas être détruits/recréés (perte de l'état d'un graphique,
+// d'une recherche en cours, nouvel appel réseau superflu...). "movers" (Top hausses) hors de
+// DASHBOARD_WIDGET_RENDERERS (pas dans DASHBOARD_WIDGET_DEFS, cf dashboardBuildSkeleton) - traité à
+// part avec son propre renderer.
+function dashboardRerenderWidgetBody(key) {
+    if (key === 'movers') {
+        renderSectionSafe('dashboard-movers-body', renderDashboardTopMovers);
+        return;
+    }
+    const renderFn = DASHBOARD_WIDGET_RENDERERS[key];
+    const def = DASHBOARD_WIDGET_DEFS[key];
+    if (renderFn && def && document.getElementById(def.bodyId)) {
+        renderSectionSafe(def.bodyId, renderFn);
+    }
 }
 
 // Sections reordonnables (passe "personnalisation" 2026-09) : "Top hausses" en est volontairement
@@ -108,6 +130,168 @@ function toggleDashboardWidgetVisibility(key) {
     markDashboardDirty();
 }
 
+// ===== TAILLE DES WIDGETS - V2 "widgets Android" (retour utilisateur 2026-09 : le premier essai à 3
+// tailles cyclables ne permettait pas de vraiment composer une mise en page - "grille de cases 1x1...
+// un peu comme les widgets sur Android"). Chaque widget occupe un rectangle {cols, rows} en cases
+// entières d'une grille à 6 colonnes (cf .dashboard-main-grid, styles.css), étiré/rétréci en glissant
+// depuis son coin (cf dashboardHandleResizePointerDown plus bas) plutôt que par un bouton qui cycle.
+const DASHBOARD_WIDGET_SPANS_KEY = 'dashboardWidgetSpans';
+const DASHBOARD_GRID_COLUMNS = 6;
+const DASHBOARD_MIN_SPAN = 1;
+const DASHBOARD_MAX_ROWS = 8; // limite haute raisonnable, évite un widget étiré à l'infini par erreur
+
+// Tailles par défaut (remplace l'ancien champ DASHBOARD_WIDGET_DEFS[key].size 'large'/undefined) - choisies
+// pour retrouver approximativement la même disposition qu'avant cette refonte (3 cartes ~carrées par
+// rangée, Activité récente/Wishlist deux fois plus hautes que leurs voisines).
+// Vérifiées en direct (scrollHeight du contenu réel vs hauteur disponible à chaque taille, pas
+// devinées) : plusieurs widgets étaient rognés à leurs anciennes valeurs par défaut (2-4 lignes selon
+// les cas) - Activité récente en particulier a besoin de 6 lignes pour ses ~6-8 entrées sans coupe.
+const DASHBOARD_DEFAULT_SPANS = {
+    activity: { cols: 2, rows: 6 },
+    objective: { cols: 2, rows: 3 },
+    badges: { cols: 2, rows: 3 },
+    dailyCard: { cols: 2, rows: 2 },
+    wishlist: { cols: 2, rows: 4 },
+    acquisitions: { cols: 2, rows: 4 },
+    todo: { cols: 2, rows: 2 },
+    collectors: { cols: 2, rows: 4 },
+    // "movers" (Top hausses) : pas dans DASHBOARD_WIDGET_DEFS (jamais réordonnable/masquable, cf
+    // dashboardBuildSkeleton), mais redimensionnable comme les autres depuis le retour utilisateur
+    // "n'a pas la poignée pour le rétrécir" - même mécanisme de span, juste une clé de plus ici.
+    movers: { cols: 6, rows: 2 }
+};
+
+// { [key]: {cols, rows} } - seuls les widgets explicitement redimensionnés par l'utilisateur ont une
+// entrée ; les autres retombent sur DASHBOARD_DEFAULT_SPANS, cf getDashboardEffectiveSpan. Toute entrée
+// dont cols/rows ne sont pas des entiers positifs est ignorée plutôt que de produire un
+// "grid-column: span NaN" invalide.
+function getDashboardWidgetSpans() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(DASHBOARD_WIDGET_SPANS_KEY) || '{}');
+        if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+            return Object.fromEntries(Object.entries(stored).filter(([, v]) =>
+                v && Number.isInteger(v.cols) && v.cols >= 1 && Number.isInteger(v.rows) && v.rows >= 1
+            ));
+        }
+    } catch (e) { /* stockage corrompu, repli sur un objet vide (chaque widget retombe sur sa taille par défaut) */ }
+    return {};
+}
+
+function saveDashboardWidgetSpans(spans) {
+    localStorage.setItem(DASHBOARD_WIDGET_SPANS_KEY, JSON.stringify(spans));
+}
+
+function getDashboardEffectiveSpan(key) {
+    const spans = getDashboardWidgetSpans();
+    return spans[key] || DASHBOARD_DEFAULT_SPANS[key] || { cols: 2, rows: 2 };
+}
+
+// Lit le span RÉEL actuellement appliqué à un widget (style inline posé par dashboardBuildSkeleton) -
+// jamais recalculé depuis getDashboardEffectiveSpan pendant un glisser en cours, qui doit partir de ce
+// que l'utilisateur voit à l'écran à cet instant, pas d'une valeur potentiellement obsolète.
+function dashboardReadCurrentSpan(widget) {
+    const colMatch = /span (\d+)/.exec(widget.style.gridColumn || getComputedStyle(widget).gridColumn);
+    const rowMatch = /span (\d+)/.exec(widget.style.gridRow || getComputedStyle(widget).gridRow);
+    return {
+        cols: colMatch ? parseInt(colMatch[1], 10) : 1,
+        rows: rowMatch ? parseInt(rowMatch[1], 10) : 1
+    };
+}
+
+let dashboardResizeState = null;
+
+function dashboardHandleResizePointerDown(e, grip) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const widget = grip.closest('.dashboard-widget[data-widget-key]');
+    const grid = document.getElementById('dashboard-main-grid');
+    if (!widget || !grid) return;
+    e.preventDefault(); // évite la sélection de texte pendant le glisser
+
+    // Taille réelle d'UNE case (largeur de colonne + gap), lue en direct sur la grille plutôt que
+    // recalculée à la main - reste juste si le nombre de colonnes ou le gap changent un jour.
+    const gridStyles = getComputedStyle(grid);
+    const gap = parseFloat(gridStyles.columnGap) || 0;
+    const rowGap = parseFloat(gridStyles.rowGap) || 0;
+    const gridWidth = grid.getBoundingClientRect().width;
+    const cellWidth = (gridWidth - gap * (DASHBOARD_GRID_COLUMNS - 1)) / DASHBOARD_GRID_COLUMNS;
+    const rowUnit = parseFloat(gridStyles.gridAutoRows) || 90;
+
+    const startSpan = dashboardReadCurrentSpan(widget);
+
+    dashboardResizeState = {
+        key: widget.dataset.widgetKey,
+        widget,
+        startX: e.clientX,
+        startY: e.clientY,
+        startCols: startSpan.cols,
+        startRows: startSpan.rows,
+        currentCols: startSpan.cols,
+        currentRows: startSpan.rows,
+        cellWidth,
+        colGap: gap,
+        rowUnit,
+        rowGap
+    };
+
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché, sans conséquence */ }
+    widget.classList.add('dashboard-widget-resizing');
+
+    window.addEventListener('pointermove', dashboardHandleResizePointerMove);
+    window.addEventListener('pointerup', dashboardHandleResizePointerUp);
+    window.addEventListener('pointercancel', dashboardHandleResizePointerUp);
+}
+
+function dashboardHandleResizePointerMove(e) {
+    if (!dashboardResizeState) return;
+    const s = dashboardResizeState;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+
+    // Arrondi à la case la plus proche (pas un simple floor/ceil) : le glisser doit "accrocher" au
+    // milieu du trajet vers la case suivante, comme un vrai redimensionnement de widget Android.
+    const deltaCols = Math.round(dx / (s.cellWidth + s.colGap));
+    const deltaRows = Math.round(dy / (s.rowUnit + s.rowGap));
+
+    const newCols = Math.min(DASHBOARD_GRID_COLUMNS, Math.max(DASHBOARD_MIN_SPAN, s.startCols + deltaCols));
+    const newRows = Math.min(DASHBOARD_MAX_ROWS, Math.max(DASHBOARD_MIN_SPAN, s.startRows + deltaRows));
+
+    if (newCols !== s.currentCols || newRows !== s.currentRows) {
+        s.currentCols = newCols;
+        s.currentRows = newRows;
+        s.widget.style.gridColumn = `span ${newCols}`;
+        s.widget.style.gridRow = `span ${newRows}`;
+    }
+}
+
+function dashboardHandleResizePointerUp() {
+    if (!dashboardResizeState) return;
+    const s = dashboardResizeState;
+
+    window.removeEventListener('pointermove', dashboardHandleResizePointerMove);
+    window.removeEventListener('pointerup', dashboardHandleResizePointerUp);
+    window.removeEventListener('pointercancel', dashboardHandleResizePointerUp);
+    s.widget.classList.remove('dashboard-widget-resizing');
+
+    if (s.currentCols !== s.startCols || s.currentRows !== s.startRows) {
+        const spans = getDashboardWidgetSpans();
+        spans[s.key] = { cols: s.currentCols, rows: s.currentRows };
+        saveDashboardWidgetSpans(spans);
+
+        // Infobulle du grip (cols×rows) : mise à jour directe plutôt que via un nouveau rendu du
+        // squelette complet (cf commentaire dashboardRerenderWidgetBody plus haut).
+        const grip = s.widget.querySelector('.dashboard-widget-resize-grip');
+        if (grip) grip.title = `Glisser pour redimensionner (${s.currentCols}×${s.currentRows} cases)`;
+
+        // Retour utilisateur 2026-09 ("la page se rafraîchit à chaque redimensionnement") : le style
+        // inline grid-column/grid-row posé pendant le glisser est déjà la valeur finale correcte -
+        // seul le CONTENU de ce widget doit être re-rendu (adaptatif à la nouvelle hauteur, cf
+        // dashboardTrimListToFit), pas tout le Dashboard.
+        dashboardRerenderWidgetBody(s.key);
+    }
+
+    dashboardResizeState = null;
+}
+
 // Structure fixe des 3 zones (header/hero à part, KPI, grille principale, grille basse) : construite une
 // seule fois par recalcul, chaque section remplit ensuite juste son propre conteneur interne.
 // L'ordre des 6 premieres vient de getDashboardWidgetOrder() (personnalisable, cf.
@@ -117,22 +301,213 @@ function dashboardBuildSkeleton() {
     const widgetsHtml = getDashboardWidgetOrder().filter(key => !hidden.includes(key)).map(key => {
         const def = DASHBOARD_WIDGET_DEFS[key];
         const linkHtml = def.link ? `<button class="dashboard-widget-link" onclick="navigateToTab('${def.link.tab}')">${def.link.label}</button>` : '';
-        const sizeClass = def.size === 'large' ? 'dashboard-widget-size-large' : '';
+        const span = getDashboardEffectiveSpan(key);
+        // Poignée de réorganisation (P3, audit design 2026-09) : le réordonnancement existait déjà
+        // (bouton unique dans le coin du hero, cf openDashboardCustomizeModal) mais n'était découvrable
+        // qu'en cherchant. D'abord juste une icône ⠿ ouvrant la modale, puis - retour utilisateur -
+        // transformée en vraie poignée de glisser-déposer (cf dashboardHandlePointerDown plus bas) ; la
+        // modale/flèches restent l'unique repli clavier + le seul chemin sur mobile (pas de survol
+        // tactile pour révéler la poignée, jamais de drag tactile implémenté - hors scope). onclick
+        // conservé pour l'activation clavier (Entrée/Espace sur un <button>) - dashboardHandleWidgetHandleClick
+        // l'ignore si un vrai glisser vient d'avoir lieu (cf le flag qu'il pose).
+        const dragHandleHtml = `<button class="dashboard-widget-drag-handle" onpointerdown="dashboardHandlePointerDown(event, this)" onclick="dashboardHandleWidgetHandleClick()" title="Réorganiser les sections (glisser ou cliquer)" aria-label="Réorganiser les sections"><i class="ti ti-grip-vertical" aria-hidden="true"></i></button>`;
+        // Grip de redimensionnement (V2 "widgets Android", retour utilisateur 2026-09) : coin bas-droit,
+        // glissé pour étirer/rétrécir en cases entières (cf dashboardHandleResizePointerDown plus bas).
+        // Pas de role="button"/tabindex ici (contrairement à la poignée de déplacement) : purement
+        // piloté à la souris/au pointeur, aucun équivalent clavier - cohérent avec un grip de
+        // redimensionnement classique (coin de fenêtre), jamais présenté comme opérable au clavier.
+        const resizeGripHtml = `<div class="dashboard-widget-resize-grip" onpointerdown="dashboardHandleResizePointerDown(event, this)" title="Glisser pour redimensionner (${span.cols}×${span.rows} cases)" aria-hidden="true"></div>`;
         return `
-            <div class="dashboard-widget ${def.extraClass} ${sizeClass}">
-                <div class="dashboard-widget-header"><h3>${def.title}</h3>${linkHtml}</div>
+            <div class="dashboard-widget ${def.extraClass}" data-widget-key="${key}" style="grid-column: span ${span.cols}; grid-row: span ${span.rows};">
+                <div class="dashboard-widget-header">
+                    <h3>${def.title}</h3>
+                    <div class="dashboard-widget-header-actions">${dragHandleHtml}${linkHtml}</div>
+                </div>
                 <div id="${def.bodyId}"></div>
+                ${resizeGripHtml}
             </div>
         `;
     }).join('');
 
+    // "movers" (Top hausses) : data-widget-key posé ici (pas de poignée de déplacement en revanche -
+    // reste toujours en dernier, jamais réordonnable) suffit à réutiliser tel quel le même mécanisme
+    // de redimensionnement (dashboardHandleResizePointerDown ne demande que ce sélecteur générique).
+    const moversSpan = getDashboardEffectiveSpan('movers');
     document.getElementById('dashboard-main-grid').innerHTML = `
         ${widgetsHtml}
-        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers">
+        <div class="dashboard-widget dashboard-widget-full" id="dashboard-widget-movers" data-widget-key="movers" style="grid-column: span ${moversSpan.cols}; grid-row: span ${moversSpan.rows};">
             <div class="dashboard-widget-header"><h3>Top hausses</h3></div>
             <div id="dashboard-movers-body"></div>
+            <div class="dashboard-widget-resize-grip" onpointerdown="dashboardHandleResizePointerDown(event, this)" title="Glisser pour redimensionner (${moversSpan.cols}×${moversSpan.rows} cases)" aria-hidden="true"></div>
         </div>
     `;
+}
+
+// ===== GLISSER-DEPOSER DES WIDGETS (retour utilisateur 2026-09, remplace la modale comme chemin
+// principal sur desktop - modale/flèches gardées comme repli clavier + seul chemin mobile) =====
+//
+// V2 (retour utilisateur : la 1ère version ne faisait qu'échanger avec UN widget cible, plutôt que
+// vraiment déplacer où l'on veut) : un placeholder (case vide en pointillés) matérialise l'endroit où
+// le widget atterrirait, et SUIT le curseur pendant tout le glisser - avant/après le widget survolé,
+// selon la moitié (haut/bas) actuellement pointée. Seul ce placeholder (un simple <div> vide) est
+// déplacé dans le DOM à chaque frame, jamais les widgets eux-mêmes (qui gardent leur position naturelle
+// dans la grille, réorganisée par CSS grid-auto-flow:dense autour du "trou" laissé par le placeholder) -
+// aucun widget à état (Chart.js, contrôleurs de recherche) n'est jamais détruit/recréé pendant le
+// geste. Le widget qu'on tient reste position:fixed, suit le curseur au pixel près, indépendamment du
+// placeholder. Au dépôt, la position FINALE du placeholder dans le DOM (pas un calcul d'index sur un
+// tableau, source d'un bug de décalage dans la 1ère version) donne directement le nouvel ordre.
+let dashboardDragState = null;
+// Posé par dashboardHandlePointerUp après un vrai glisser (moved=true) : le "click" natif qui suit
+// toujours un pointerup ne doit pas rouvrir la modale juste après un dépôt volontaire - consommé et
+// remis à false par dashboardHandleWidgetHandleClick, plus bas.
+let dashboardSuppressNextClick = false;
+const DASHBOARD_DRAG_CLICK_THRESHOLD = 6; // px - en-deçà, un pointerup est traité comme un simple clic
+
+function dashboardHandlePointerDown(e, handle) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return; // clic gauche uniquement en souris
+    const widget = handle.closest('.dashboard-widget[data-widget-key]');
+    if (!widget) return;
+
+    const rect = widget.getBoundingClientRect();
+
+    // Le placeholder reprend le span actuel du widget (grid-column/grid-row, cf getDashboardEffectiveSpan)
+    // pour que la grille ne saute pas de dimension pendant le glisser.
+    const placeholder = document.createElement('div');
+    placeholder.className = 'dashboard-widget-placeholder';
+    const currentSpan = dashboardReadCurrentSpan(widget);
+    placeholder.style.gridColumn = `span ${currentSpan.cols}`;
+    placeholder.style.gridRow = `span ${currentSpan.rows}`;
+    widget.parentNode.insertBefore(placeholder, widget);
+
+    dashboardDragState = {
+        key: widget.dataset.widgetKey,
+        widget,
+        placeholder,
+        startX: e.clientX,
+        startY: e.clientY,
+        originLeft: rect.left,
+        originTop: rect.top,
+        moved: false
+    };
+
+    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché, sans conséquence */ }
+
+    // height explicite (pas seulement width) : une fois position:fixed, le widget sort du flux de la
+    // grille et perd l'étirement que lui donnait align-items:stretch - sans ça, une carte sur plusieurs
+    // lignes rétrécissait visiblement à sa hauteur de contenu le temps du glisser.
+    Object.assign(widget.style, {
+        position: 'fixed',
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+        zIndex: '200'
+    });
+    widget.classList.add('dashboard-widget-dragging');
+
+    window.addEventListener('pointermove', dashboardHandlePointerMove);
+    window.addEventListener('pointerup', dashboardHandlePointerUp);
+    window.addEventListener('pointercancel', dashboardHandlePointerUp);
+}
+
+function dashboardHandlePointerMove(e) {
+    if (!dashboardDragState) return;
+    const state = dashboardDragState;
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+
+    if (!state.moved && Math.hypot(dx, dy) > DASHBOARD_DRAG_CLICK_THRESHOLD) {
+        state.moved = true;
+        state.placeholder.classList.add('dashboard-widget-placeholder-active'); // invisible avant ce seuil (cf CSS) - simple clic sans "trou" visible
+    }
+    if (!state.moved) return;
+
+    state.widget.style.left = `${state.originLeft + dx}px`;
+    state.widget.style.top = `${state.originTop + dy}px`;
+
+    // pointer-events:none sur le widget en cours de glisser ET sur le placeholder (cf CSS) :
+    // elementFromPoint traverse les deux tout seul, toujours le widget RÉEL sous le curseur.
+    // :not(.dashboard-widget-full) exclut "Top hausses" (movers) : porte data-widget-key depuis le
+    // retour utilisateur sur le redimensionnement (cf DASHBOARD_DEFAULT_SPANS), mais reste hors
+    // réordonnancement - jamais une cible de dépôt valide, sinon il finirait par polluer le tableau
+    // d'ordre sauvegardé (getDashboardWidgetOrder), qui ne connaît que les 8 clés réelles.
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const targetWidget = el ? el.closest('.dashboard-widget[data-widget-key]:not(.dashboard-widget-full)') : null;
+    if (!targetWidget || targetWidget === state.widget) return;
+
+    // Avant ou après le widget survolé, selon la moitié haut/bas actuellement pointée - heuristique
+    // simple (pas une vraie détection 2D par colonne), suffisante pour une grille de quelques cartes.
+    const r = targetWidget.getBoundingClientRect();
+    const insertAfter = (e.clientY - r.top) > r.height / 2;
+    const referenceNode = insertAfter ? targetWidget.nextSibling : targetWidget;
+    if (state.placeholder !== referenceNode) {
+        targetWidget.parentNode.insertBefore(state.placeholder, referenceNode);
+    }
+}
+
+function dashboardHandlePointerUp() {
+    if (!dashboardDragState) return;
+    const state = dashboardDragState;
+
+    window.removeEventListener('pointermove', dashboardHandlePointerMove);
+    window.removeEventListener('pointerup', dashboardHandlePointerUp);
+    window.removeEventListener('pointercancel', dashboardHandlePointerUp);
+
+    if (state.moved) {
+        // Ordre final lu directement dans la position du placeholder parmi les AUTRES widgets
+        // réorganisables (le widget qu'on tient est exclu - il est resté à sa position DOM d'origine,
+        // seul le placeholder a bougé) - jamais un calcul d'index sur le tableau localStorage, qui
+        // décalait le résultat d'une position dans la version précédente.
+        // "movers" (Top hausses) explicitement exclu ici aussi (pas seulement à la détection de cible,
+        // pointermove plus haut) : porte data-widget-key depuis le retour utilisateur sur le
+        // redimensionnement, mais ne doit jamais atterrir dans le tableau d'ordre sauvegardé, qui ne
+        // connaît que les 8 clés réordonnables réelles (DASHBOARD_WIDGET_DEFS).
+        const isReorderableWidget = sib => sib !== state.widget && sib.dataset && sib.dataset.widgetKey && sib.dataset.widgetKey !== 'movers';
+        const grid = document.getElementById('dashboard-main-grid');
+        const siblings = [...grid.children];
+        const placeholderIndex = siblings.indexOf(state.placeholder);
+        let insertAt = 0;
+        for (let i = 0; i < placeholderIndex; i++) {
+            if (isReorderableWidget(siblings[i])) insertAt++;
+        }
+        const newOrder = siblings
+            .filter(sib => sib !== state.placeholder && isReorderableWidget(sib))
+            .map(sib => sib.dataset.widgetKey);
+        newOrder.splice(insertAt, 0, state.key);
+        saveDashboardWidgetOrder(newOrder);
+    }
+
+    // Retour utilisateur 2026-09 ("la page se rafraîchit à chaque déplacement") : le placeholder
+    // matérialise déjà la position finale voulue dans le DOM (cf commentaire du bloc plus haut) - le
+    // remplacer directement par le widget réel suffit à le déplacer, sans reconstruire tout le
+    // Dashboard (markDashboardDirty), qui détruisait/recréait chaque widget - y compris ceux à état
+    // (recherche Collecteurs, graphiques) que le geste de glisser lui-même prenait justement soin de
+    // ne jamais toucher. L'ordre reste sauvegardé en localStorage juste au-dessus pour les prochains
+    // rendus complets (changement d'onglet, etc.).
+    state.placeholder.replaceWith(state.widget);
+    Object.assign(state.widget.style, {
+        position: '',
+        left: '',
+        top: '',
+        width: '',
+        height: '',
+        zIndex: ''
+    });
+    state.widget.classList.remove('dashboard-widget-dragging');
+
+    // dashboardSuppressNextClick : un vrai glisser (moved=true) est toujours suivi d'un évènement
+    // "click" natif du navigateur juste après pointerup - dashboardHandleWidgetHandleClick doit
+    // l'ignorer pour ne pas rouvrir la modale juste après un dépôt volontaire.
+    dashboardSuppressNextClick = state.moved;
+    dashboardDragState = null;
+}
+
+function dashboardHandleWidgetHandleClick() {
+    if (dashboardSuppressNextClick) {
+        dashboardSuppressNextClick = false;
+        return;
+    }
+    openDashboardCustomizeModal();
 }
 
 // ===== PERSONNALISATION (reordonnancement) =====
@@ -390,10 +765,32 @@ function dashboardRelativeTime(dateInput) {
     return `Il y a ${diffJ} j`;
 }
 
+// Contenu adaptatif à la taille de la carte (retour utilisateur 2026-09, "rendre l'intérieur des
+// cards responsive") : plutôt que deviner une hauteur de ligne moyenne à l'avance, on rend d'abord une
+// liste généreuse puis on retire après coup les entrées qui dépasseraient réellement l'espace
+// disponible - robuste aux noms sur 2 lignes/wrap variable, s'adapte à n'importe quelle taille de
+// widget (redimensionnement libre, cf DASHBOARD_DEFAULT_SPANS) sans recalcul manuel. Mesure le bord
+// réel du WIDGET (pas du conteneur de la liste, qui n'a lui-même pas de hauteur fixe pour la plupart
+// des widgets à liste) - c'est lui qui porte overflow:hidden et la hauteur imposée par la grille.
+function dashboardTrimListToFit(container, itemSelector) {
+    if (!container) return;
+    const widget = container.closest('.dashboard-widget');
+    if (!widget) return;
+    const items = [...container.querySelectorAll(itemSelector)];
+    if (items.length === 0) return;
+    const clipBottom = widget.getBoundingClientRect().bottom - 12; // marge de respiration avant le bord
+    for (const item of items) {
+        if (item.getBoundingClientRect().bottom > clipBottom) item.remove();
+    }
+}
+
 function renderDashboardActivity() {
     const el = document.getElementById('dashboard-activity-body');
 
-    const recentAdds = allCollectionCards.slice(0, 10).map(c => ({
+    // 10 -> 15 (retour utilisateur 2026-09, contenu adaptatif) : plafond de sécurité généreux, le
+    // widget agrandi peut désormais afficher plus que l'ancienne limite fixe - dashboardTrimListToFit
+    // (plus bas) retire de toute façon ce qui ne rentre pas réellement, jamais un simple "afficher tout".
+    const recentAdds = allCollectionCards.slice(0, 15).map(c => ({
         type: 'add',
         id: c.id,
         name: c.name,
@@ -408,7 +805,7 @@ function renderDashboardActivity() {
 
     const items = [...recentAdds];
     for (const m of movers) {
-        if (items.length >= 10) break;
+        if (items.length >= 15) break;
         items.push({ type: 'mover', name: m.name, number: m.number, delta: m.delta });
     }
 
@@ -420,7 +817,7 @@ function renderDashboardActivity() {
     // Timeline (passe premium 2026-09, cf mockup) : ligne verticale + puce par entree, gold pour un
     // ajout, verte/rouge pour une variation de prix - meme info qu'avant, juste un repere visuel en
     // plus (dashboard-activity-row--up/--down pilotent la couleur de la puce, cf styles.css).
-    const rowsHtml = items.slice(0, 10).map(item => {
+    const rowsHtml = items.slice(0, 15).map(item => {
         if (item.type === 'add') {
             return `
                 <div class="dashboard-activity-row" ${item.id != null ? `data-card-id="${item.id}" onclick="showCardDetail(${item.id}, event)"` : ''}>
@@ -450,6 +847,7 @@ function renderDashboardActivity() {
     }).join('');
 
     el.innerHTML = `<div class="dashboard-activity-timeline">${rowsHtml}</div>`;
+    dashboardTrimListToFit(el, '.dashboard-activity-row');
 }
 
 // ===== OBJECTIF ACTUEL =====
@@ -968,7 +1366,10 @@ function renderDashboardWishlist() {
     }
 
     const ownedTcgdexIds = new Set(allCollectionCards.filter(c => c.tcgdex_id).map(c => c.tcgdex_id));
-    const items = allWishlistItems.filter(i => !(i.tcgdex_id && ownedTcgdexIds.has(i.tcgdex_id))).slice(0, 6);
+    const availableItems = allWishlistItems.filter(i => !(i.tcgdex_id && ownedTcgdexIds.has(i.tcgdex_id)));
+    // 6 -> 15 (retour utilisateur 2026-09, contenu adaptatif) : plafond de sécurité généreux, comme
+    // Activité récente - dashboardTrimListToFit (plus bas) retire ce qui ne rentre pas réellement.
+    const items = availableItems.slice(0, 15);
 
     if (items.length === 0) {
         el.innerHTML = dashboardWishlistEmptyHtml('Toutes vos cartes en wishlist sont déjà possédées');
@@ -1006,7 +1407,7 @@ function renderDashboardWishlist() {
     // collection) - impossible de "juste afficher plus" s'il n'y a rien de plus a montrer. Un
     // remplisseur flex:1 comble l'espace avec une invitation plutot que du vide brut (retour
     // utilisateur 2026-09).
-    const fillerHtml = items.length < 6 ? `
+    const fillerHtml = availableItems.length < 6 ? `
         <div class="dashboard-widget-empty-compact dashboard-wishlist-filler">
             <i class="ti ti-star" aria-hidden="true"></i>
             <p class="dashboard-empty-text" style="padding:0;">Ajoute d'autres cartes à ta wishlist pour les suivre ici</p>
@@ -1015,6 +1416,7 @@ function renderDashboardWishlist() {
     ` : '';
 
     el.innerHTML = rowsHtml + fillerHtml;
+    dashboardTrimListToFit(el, '.dashboard-wishlist-row');
 
     dashboardUpdateWishlistTrends(items.filter(i => i.tcgdex_id));
 }
@@ -1090,10 +1492,14 @@ async function dashboardUpdateWishlistTrends(items) {
 // du 2026-08-14 sur l'état mutable partagé entre fichiers).
 window.renderDashboard = renderDashboard;
 window.dashboardBuildSkeleton = dashboardBuildSkeleton;
+window.dashboardTrimListToFit = dashboardTrimListToFit;
 window.openDashboardCustomizeModal = openDashboardCustomizeModal;
 window.closeDashboardCustomizeModal = closeDashboardCustomizeModal;
 window.moveDashboardWidget = moveDashboardWidget;
+window.dashboardHandlePointerDown = dashboardHandlePointerDown;
+window.dashboardHandleWidgetHandleClick = dashboardHandleWidgetHandleClick;
 window.toggleDashboardWidgetVisibility = toggleDashboardWidgetVisibility;
+window.dashboardHandleResizePointerDown = dashboardHandleResizePointerDown;
 window.dashboardGoToProgressionSet = dashboardGoToProgressionSet;
 window.renderDashboardHeader = renderDashboardHeader;
 window.dashboardGetLastMovers = dashboardGetLastMovers;

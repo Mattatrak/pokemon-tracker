@@ -15,7 +15,10 @@
 const COLLECTORS_MIN_QUERY_LENGTH = 2;
 const COLLECTORS_DEBOUNCE_MS = 300;
 const COLLECTORS_RESULT_LIMIT = 20;
-const DASHBOARD_COLLECTORS_RESULT_LIMIT = 5;
+// 5 -> 12 (retour utilisateur 2026-09, contenu adaptatif des cards Dashboard) : plafond de sécurité
+// généreux, comme les autres widgets-listes - dashboardTrimListToFit (dashboard.js, cf
+// renderDashboardCollectorsResults) retire ensuite ce qui ne rentre pas réellement dans la carte.
+const DASHBOARD_COLLECTORS_RESULT_LIMIT = 12;
 
 // Echappe les jokers ILIKE (% _ \) : la saisie utilisateur ne doit jamais agir comme un joker de
 // recherche non voulu (même principe que public-profile.js pour la résolution de username).
@@ -250,6 +253,9 @@ function renderDashboardCollectorsResults(container, profiles) {
             </div>
         </a>
     `).join('');
+    // Contenu adaptatif à la taille de la carte (retour utilisateur 2026-09, même mécanisme que les
+    // autres widgets-listes du Dashboard, cf dashboardTrimListToFit dans modules/dashboard.js).
+    window.dashboardTrimListToFit(container, '.collectors-result-row');
 }
 
 // Contrôleur de recherche réutilisable : encapsule debounce, minimum de caractères, anti-réponse
