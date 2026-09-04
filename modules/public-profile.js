@@ -485,7 +485,7 @@ function renderProfileMatchThumb(match, onclickExpr) {
         <div class="wishlist-thumb-wrap">
             <div class="collection-card wishlist-thumb-card" onclick="${onclickExpr}" title="${escapeHtml(match.name)}">
                 ${match.image
-                    ? `<img src="${match.image}" alt="${escapeHtml(match.name)}" loading="lazy" onerror="this.style.display='none'">`
+                    ? `<img src="${escapeHtml(match.image)}" alt="${escapeHtml(match.name)}" loading="lazy" onerror="this.style.display='none'">`
                     : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${match.multiple ? `<div class="qty-badge" title="Possédée en plusieurs exemplaires">×${match.ownedQty}</div>` : ''}
@@ -832,7 +832,7 @@ function renderPublicWishlistLists() {
                 <div class="wishlist-thumb-wrap">
                     <div class="collection-card wishlist-thumb-card" onclick="showPublicWishlistItemDetail(${item.id})" title="${escapeHtml(item.name)}">
                         ${item.image
-                            ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
+                            ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'">`
                             : '<div class="collection-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                         }
                         ${price > 0 ? `<div class="price-badge${isHighRarityCard(item.rarity) ? ' price-badge-foil' : ''}">${formatPrice(price)}</div>` : ''}

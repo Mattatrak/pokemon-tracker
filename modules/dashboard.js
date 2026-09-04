@@ -1386,7 +1386,7 @@ function renderDashboardWishlist() {
         return `
         <div class="dashboard-wishlist-row" onclick="openWishlistItemDetail(${item.id}, event)">
             ${item.image
-                ? `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="dashboard-wishlist-img" onerror="this.style.display='none'">`
+                ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" class="dashboard-wishlist-img" onerror="this.style.display='none'">`
                 : '<div class="no-image-placeholder thumb"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
             }
             <div class="dashboard-wishlist-text">
