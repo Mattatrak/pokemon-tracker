@@ -898,7 +898,7 @@ async function renderProgressionCardsGrid() {
         return `
             <div class="progression-card-item ${owned ? 'owned' : 'missing'} ${progressionFinishMode !== 'normal' ? 'reverse-mode' : ''} ${isMostExpensiveMissing ? 'most-expensive-missing' : ''}" ${owned && ownedCardRow ? `data-card-id="${ownedCardRow.id}" onclick="showCardDetail(${ownedCardRow.id}, event)"` : `onclick="addFromProgression('${card.id}', null)"`}>
                 ${imageUrl
-                    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="handleTcgdexImgError(this)">`
+                    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(card.name)}" loading="lazy" onerror="handleTcgdexImgError(this, '<div class=&quot;progression-card-noimg&quot;><i class=&quot;ti ti-photo-off&quot; aria-hidden=&quot;true&quot;></i></div>')">`
                     : '<div class="progression-card-noimg"><i class="ti ti-photo-off" aria-hidden="true"></i></div>'
                 }
                 ${ownedQuantity > 1 ? `<div class="qty-badge">×${ownedQuantity}</div>` : ''}
