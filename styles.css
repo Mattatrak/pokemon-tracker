@@ -2902,6 +2902,152 @@ button:disabled {
     color: var(--gold);
 }
 
+/* R8 - Historique d'acquisition (chantier lourd, audit webdesign 2026-09) : frise verticale groupée
+   par mois. Même matière que .recap-dup-item pour les entrées (fond/bordure neutres) - la ligne
+   dorée + les points de repère par mois sont l'ajout propre à cette section. */
+.timeline {
+    position: relative;
+    padding-left: 1.6rem;
+    margin-top: 0.25rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 2px;
+    background: linear-gradient(180deg, var(--gold) 0%, rgba(232, 169, 59, 0.15) 100%);
+}
+
+.timeline-month {
+    position: relative;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 1.25rem 0 0.6rem;
+}
+
+.timeline-month:first-child {
+    margin-top: 0;
+}
+
+.timeline-month::before {
+    content: '';
+    position: absolute;
+    left: -1.6rem;
+    top: 50%;
+    transform: translate(-1px, -50%);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 3px var(--ink-navy);
+}
+
+.timeline-month-count {
+    color: var(--slate);
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 0.3rem;
+}
+
+.timeline-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.timeline-entry:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-thumb {
+    flex-shrink: 0;
+    width: 34px;
+    height: 47px;
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+}
+
+.timeline-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.timeline-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.timeline-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-series {
+    font-size: 0.72rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-meta {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.timeline-date {
+    font-size: 0.7rem;
+    color: var(--slate);
+}
+
+.timeline-price {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--gold);
+    margin-top: 0.1rem;
+}
+
+.timeline-more {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.timeline-more button {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    color: var(--slate);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.5rem 1.1rem;
+    cursor: pointer;
+    transition: color var(--motion-duration-fast) ease, border-color var(--motion-duration-fast) ease;
+}
+
+.timeline-more button:hover {
+    color: var(--gold);
+    border-color: rgba(232, 169, 59, 0.35);
+}
+
 .collection-grid-empty {
     grid-column: 1 / -1;
     text-align: center;
