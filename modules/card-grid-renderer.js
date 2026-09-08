@@ -48,6 +48,13 @@ function defaultResolveModalImg() {
 // (modules/view-transitions.js) au lieu d'appeler document.startViewTransition() directement -
 // support/reduced-motion/concurrence gérés une seule fois pour tout le projet, ce fichier ne garde
 // que ce qui lui est propre (quel élément nommer, quand nettoyer).
+//
+// Impact à l'atterrissage (retour utilisateur 2026-09, mockup "Ouverture avec impact" validé - morph
+// jugé "trop plat") : classe .is-landing posée sur .modal-card une fois la fiche arrivée (flash +
+// anneau, cf #card-detail-card.is-landing::after et consorts, styles.css), en plus du rebond ajouté sur
+// l'animation-timing-function du groupe de transition (::view-transition-group(card-detail-morph),
+// styles.css). Résolu via resolveModalImg().closest('.modal-card') plutôt qu'un ID en dur : couvre les
+// 3 fiches (carte, carte publique, wishlist) sans dupliquer cette fonction ni leur markup.
 function runCardDetailMorphTransition(event, renderFn, resolveModalImg = defaultResolveModalImg) {
     const sourceImg = event?.currentTarget?.querySelector('img');
     // Desactive sur mobile (retour utilisateur, essai bottom sheet 2026-08-18) : le morph d'image entre
@@ -56,8 +63,46 @@ function runCardDetailMorphTransition(event, renderFn, resolveModalImg = default
     // seul appelant qui n'a jamais utilise ce morph, prefere par l'utilisateur au comparatif. Desktop
     // inchange (le morph grille -> fiche y reste l'effet voulu).
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Rejoue l'animation à chaque ouverture (retrait avant réajout + reflow forcé) plutôt que de
+    // compter sur 'animationend' pour la retirer : la fiche est recréée à chaque fois (innerHTML), la
+    // classe ne survit donc jamais d'une ouverture à l'autre - mais rien n'empêchait déjà .is-landing
+    // d'être présente sur LE MÊME élément si un appelant rouvrait sans passer par cleanup (garde-fou).
+    const triggerLanding = () => {
+        if (reducedMotion) return;
+        const modalImg = resolveModalImg();
+        const modalCard = modalImg ? modalImg.closest('.modal-card') : null;
+        if (!modalCard) return;
+        modalCard.classList.remove('is-landing');
+        void modalCard.offsetWidth;
+        modalCard.classList.add('is-landing');
+    };
+
+    // Decale d'un ratio de --motion-duration-normal, jamais synchrone - meme raisonnement que le
+    // decalage sur .ready plus bas, applique ici a l'entree CSS classique de .modal-card (fondu +
+    // scale desktop, glissement bottom sheet mobile) plutot qu'au morph VT. triggerLanding() synchrone
+    // demarrait le flash EXACTEMENT quand la fiche commence tout juste a apparaitre/glisser depuis le
+    // bas - il avait quasiment fini de s'estomper (0.5s) avant que la fiche soit reellement visible a
+    // l'ecran (retour utilisateur : "c'est volontaire de ne pas avoir mis le flash sur mobile ?" - non,
+    // oubli : la classe se posait bien, juste au mauvais moment). 0.9 (pas d'overshoot a compenser ici,
+    // contrairement au ratio VT ci-dessous) plutot que 1 : demarre juste avant la fin de l'entree pour
+    // eviter un flash perceptiblement en retard sur une fiche deja immobile.
+    // parseFloat seul ne suffit pas : en build de prod, un optimiseur CSS (cssnano ou equivalent, cf
+    // Vite) reecrit souvent "450ms" en ".45s" (plus court) - repere via toString() sur le devtools plus
+    // que verifie dans les sources, mais confirme en pratique (retour utilisateur, meme diagnostic que
+    // la question mobile ci-dessus : le flash arrivait "immediatement" car .45 pris pour des ms donnait
+    // un delai quasi nul). "ms" explicite sinon on considere que c'est des secondes.
+    const scheduleLanding = (delayRatio) => {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue('--motion-duration-normal').trim();
+        const value = parseFloat(raw);
+        const durationMs = Number.isNaN(value) ? 450 : (raw.endsWith('ms') ? value : value * 1000);
+        window.setTimeout(triggerLanding, durationMs * delayRatio);
+    };
+
     if (typeof document.startViewTransition !== 'function' || !sourceImg || isMobile) {
         renderFn();
+        scheduleLanding(0.9);
         return;
     }
 
@@ -81,15 +126,46 @@ function runCardDetailMorphTransition(event, renderFn, resolveModalImg = default
     });
 
     if (!transition) {
-        // reduced-motion / API indisponible : runViewTransition a déjà exécuté renderFn()
-        // directement en synchrone, aucune transition réelle n'a eu lieu - on retire juste le nom
-        // posé au-dessus avant de le savoir, rien d'autre à faire.
+        // reduced-motion / API indisponible (Firefox) : runViewTransition a déjà exécuté renderFn()
+        // directement en synchrone, aucune transition réelle n'a eu lieu - repli sur la même entrée
+        // CSS classique que la branche mobile ci-dessus (fondu + scale, .modal-card), même décalage.
         cleanup();
+        scheduleLanding(0.9);
         return;
     }
 
+    // Décalé sur .ready (DOM/pseudo-éléments prêts, l'animation démarre) plutôt que sur .finished
+    // (retour utilisateur : "l'effet arrive un peu tard après la carte") - .finished ne résout qu'une
+    // fois l'animation ENTIÈREMENT terminée, mais l'overshoot (cubic-bezier(0.34, 1.56, 0.64, 1),
+    // styles.css) est déjà visuellement à l'arrêt bien avant sa fin technique. 0.78 (plus bas que le
+    // 0.9 des entrées CSS classiques ci-dessus) pour compenser cet overshoot, propre au morph VT.
+    // .catch() ne doit PAS rester silencieux (contrairement à runViewTransition, qui a ses propres
+    // raisons documentées de laisser passer un .ready rejeté sans repli) : Chrome rejette .ready avec
+    // "Transition was aborted" dès que le document n'est pas visible au moment du morph (onglet
+    // arrière-plan, ou verifie en debug via document.visibilityState) - sans repli ici, la fiche
+    // s'affichait quand meme normalement (renderFn tourne en synchrone dans l'updateFn, peu importe le
+    // sort de la transition) mais le flash/eclats ne se declenchaient jamais. Repli sur le meme ratio
+    // que les entrees CSS classiques (0.9) : pas d'overshoot a compenser dans ce cas, la transition
+    // n'a de toute facon pas anime.
+    transition.ready.then(() => scheduleLanding(0.78)).catch(() => scheduleLanding(0.9));
+
     transition.finished.finally(cleanup);
 }
+
+// 7 eclats decoratifs pour l'atterrissage de la fiche (retour utilisateur 2026-09, mockup "Balayage ou
+// eclats" valide - piste B) : markup statique partage par les 3 fiches (carte/carte publique/wishlist),
+// positions/delais/tailles en CSS (.card-landing-glint-1..7, styles.css) - cette fonction ne fait que
+// poser les 7 <span> une fois, l'animation reste entierement geree par .is-landing comme le halo
+// existant (::after sur .modal-image-frame/.wishlist-detail-image-frame). Toujours presents dans le DOM
+// (pas conditionnes a is-landing) : au repos ils sont juste invisibles (opacity:0, aucune animation
+// appliquee hors .modal-card.is-landing), donc aucun cout a les laisser en place entre deux ouvertures.
+function getCardLandingGlintsHtml() {
+    return [1, 2, 3, 4, 5, 6, 7]
+        .map(n => `<span class="card-landing-glint card-landing-glint-${n}" aria-hidden="true"></span>`)
+        .join('');
+}
+
+window.getCardLandingGlintsHtml = getCardLandingGlintsHtml;
 
 // Badge en haut à droite de la carte : soit la quantité possédée (masqué si 1 seul exemplaire), soit
 // le nombre de doublons échangeables (toujours affiché, jamais les deux en même temps - un seul appelant

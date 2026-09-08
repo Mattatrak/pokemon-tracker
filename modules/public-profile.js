@@ -829,6 +829,7 @@ function renderPublicCardDetail(cardId) {
                             : getGridNoImageHtml()
                         }
                         ${seriesLogoUrl ? `<img src="${escapeHtml(seriesLogoUrl)}" class="modal-series-seal" alt="" onerror="handleSealLogoError(this)">` : ''}
+                        ${getCardLandingGlintsHtml()}
                     </div>
                 </div>
             </div>
@@ -894,6 +895,15 @@ function renderPublicCardDetail(cardId) {
         </div>
         </div>
     `;
+
+    // Flash/anneau d'atterrissage teinté par type, cf card-detail.js#renderCardDetail (même retour
+    // utilisateur 2026-09, card-grid-renderer.js#triggerLanding).
+    const landingColor = getTypeAccentColor(card.type);
+    if (landingColor) {
+        modalCard.style.setProperty('--card-landing-color', landingColor);
+    } else {
+        modalCard.style.removeProperty('--card-landing-color');
+    }
 
     document.getElementById('public-card-detail-overlay').classList.add('active');
     initHoloDetailEffect(document.getElementById('public-card-detail-image-holo'));

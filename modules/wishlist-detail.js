@@ -417,6 +417,7 @@ function buildWishlistDetailHtml(item) {
                     ${imageHtml}
                     ${seriesSealHtml}
                     ${owned ? '<div class="qty-badge wishlist-thumb-owned-flag wishlist-detail-owned-flag"><i class="ti ti-check" aria-hidden="true"></i> Déjà possédée</div>' : ''}
+                    ${getCardLandingGlintsHtml()}
                 </div>
             </div>
             <div class="wishlist-detail-info-col">
