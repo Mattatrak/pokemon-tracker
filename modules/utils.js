@@ -601,6 +601,45 @@ function getTypeIconHtml(type, sizePx = 26) {
     return `<img src="${TYPE_ICON_BASE_URL}${filename}" alt="" class="type-icon" style="width:${sizePx}px;height:${sizePx}px;" onerror="this.remove()">`;
 }
 
+// Couleur d'accent par type (retour utilisateur 2026-09, effet d'atterrissage de la fiche carte -
+// card-grid-renderer.js#triggerLanding) : teinte le flash/anneau selon le type du Pokémon plutôt
+// qu'une couleur fixe. Clés normalisées (normalizeForMatch) comme getTypeIconHtml juste au-dessus.
+// Couverture volontairement large (types energie TCG + types Pokedex vus dans card.type, cf
+// commentaire de getTypesIconsHtml) - un type absent de cette table retombe simplement sur
+// --card-landing-color par defaut (styles.css), jamais d'erreur.
+const TYPE_LANDING_COLORS = {
+    feu: '#ff7a52',
+    eau: '#4fa8e8',
+    plante: '#5cc26e',
+    electrique: '#f0cf3a',
+    psy: '#b673d6',
+    combat: '#c8703a',
+    obscurite: '#6b5b73',
+    tenebres: '#6b5b73',
+    metal: '#a8a8b0',
+    acier: '#a8a8b0',
+    fee: '#ec8fd0',
+    dragon: '#7a68d6',
+    incolore: '#cfcfd6',
+    poison: '#a05fc4',
+    sol: '#d4a94a',
+    vol: '#8fb8e8',
+    roche: '#b8a06a',
+    insecte: '#9bc23a',
+    spectre: '#6a5a9c',
+    glace: '#7fd6e0',
+    normal: '#b8b8a0'
+};
+
+// card.type peut contenir plusieurs types ("Feu, Vol") : couleur du premier type seulement, comme
+// accent unique - un degrade multi-couleurs serait plus fidele mais hors de proportion pour un simple
+// flash d'atterrissage.
+function getTypeAccentColor(typeString) {
+    if (!typeString || typeString === 'N/A') return null;
+    const firstType = typeString.split(',')[0].trim();
+    return TYPE_LANDING_COLORS[normalizeForMatch(firstType)] || null;
+}
+
 // card.type peut contenir plusieurs types joints par ", " (ex: "Feu, Vol") : une icône par type
 function getTypesIconsHtml(typeString, sizePx = 22) {
     if (!typeString || typeString === 'N/A') return '';
@@ -987,6 +1026,7 @@ window.getRarityGroupKey = getRarityGroupKey;
 window.TYPE_ICON_BASE_URL = TYPE_ICON_BASE_URL;
 window.getTypeIconHtml = getTypeIconHtml;
 window.getTypesIconsHtml = getTypesIconsHtml;
+window.getTypeAccentColor = getTypeAccentColor;
 window.buildRarityFilterRowHtml = buildRarityFilterRowHtml;
 window.debounce = debounce;
 window.parseCsvDate = parseCsvDate;

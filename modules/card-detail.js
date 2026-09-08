@@ -165,6 +165,7 @@ function renderCardDetail(cardId) {
                              l'absence du noeud suffit. -->
                         <button class="modal-nav-btn modal-nav-prev" id="card-detail-nav-prev" onclick="navigateCardDetail(-1)" aria-label="Carte précédente" title="Carte précédente"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
                         <button class="modal-nav-btn modal-nav-next" id="card-detail-nav-next" onclick="navigateCardDetail(1)" aria-label="Carte suivante" title="Carte suivante"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                        ${getCardLandingGlintsHtml()}
                     </div>
                 </div>
                 ${card.tcgdex_id ? `
@@ -282,6 +283,17 @@ function renderCardDetail(cardId) {
         </div>
         </div>
     `;
+
+    // Flash/anneau d'atterrissage teinté par type (retour utilisateur 2026-09,
+    // card-grid-renderer.js#triggerLanding) : posé une seule fois ici, inline sur l'élément (pas
+    // recréé par innerHTML), donc survit à un re-rendu ultérieur de la même fiche (édition,
+    // navigation précédent/suivant repasse par ce même chemin).
+    const landingColor = getTypeAccentColor(card.type);
+    if (landingColor) {
+        modalCard.style.setProperty('--card-landing-color', landingColor);
+    } else {
+        modalCard.style.removeProperty('--card-landing-color');
+    }
 
     document.getElementById('card-detail-overlay').classList.add('active');
     updateCardDetailNavButtons();
